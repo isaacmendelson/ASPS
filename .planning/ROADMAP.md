@@ -29,11 +29,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Chrome Extension connects to Desktop App via WebSocket and receives a response to a test message
   3. Backend ports (50001, 50002, 5555, 5556) are confirmed listening and accepting connections
   4. Diagnostic logging is in place at each link boundary showing message send/receive with timestamps
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 01-01: Verify backend ports and ZMQ REQ/REP round-trip
-- [ ] 01-02: Verify WebSocket connectivity and Extension-to-Desktop message exchange
+- [ ] 01-01-PLAN.md -- Disable CurveMQ, verify backend ports, prove ZMQ REQ/REP round-trip
+- [ ] 01-02-PLAN.md -- Verify WebSocket connectivity and Extension-to-Desktop ping/pong
 
 ### Phase 2: Fix Async Notification Bridge
 **Goal**: Notifications published by Backend on ZMQ PUB (port 50002) are received by Desktop App's SUB socket and successfully bridged from the ZMQ background thread to the asyncio event loop for WebSocket broadcast
