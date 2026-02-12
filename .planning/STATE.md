@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 3 of 5 (Restore End-to-End Score Flow)
-Plan: 0 of 2 in current phase
-Status: Ready to plan
-Last activity: 2026-02-12 -- Phase 2 complete (2 plans executed, 7/7 must-haves verified)
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-02-12 -- Completed 03-01-PLAN.md (device registration and token acquisition)
 
-Progress: [####......] 40%
+Progress: [#####.....] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: ~4 min per plan
-- Total execution time: ~14 min
+- Total plans completed: 5
+- Average duration: ~3 min per plan
+- Total execution time: ~17 min
 
 **By Phase:**
 
@@ -29,10 +29,11 @@ Progress: [####......] 40%
 |-------|-------|-------|----------|
 | 1. Diagnose Baseline | 2 | ~10 min | ~5 min |
 | 2. Fix Async Notification Bridge | 2 | ~4 min | ~2 min |
+| 3. Restore End-to-End Score Flow | 1 | ~3 min | ~3 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (complete), 01-02 (complete), 02-01 (complete), 02-02 (complete)
-- Trend: Accelerating (targeted fixes execute faster than diagnostic setup)
+- Last 5 plans: 01-02 (complete), 02-01 (complete), 02-02 (complete), 03-01 (complete)
+- Trend: Consistent fast execution on targeted fixes
 
 *Updated after each plan completion*
 
@@ -53,6 +54,9 @@ Recent decisions affecting current work:
 - [Phase 2]: Diagnostic logging added to notification_client.py SUB boundary ([NOTIFY-DIAG] prefix)
 - [Phase 2]: asyncio.run() replaced with run_coroutine_threadsafe() in notification_handler.py (PRIMARY BUG FIX)
 - [Phase 2]: Event loop injected from main.py start() into NotificationHandler before thread start
+- [Phase 3]: RegisterDevice/RequestToken two-step flow for token acquisition from Backend
+- [Phase 3]: Hardcoded UUID removed; empty token fallback with clear warning instead
+- [Phase 3]: USER_EMAIL configurable via env var (default: user@example.com)
 
 ### Pending Todos
 
@@ -60,8 +64,9 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
-- [Research]: Hardcoded token UUID in zmq_client.py may not be registered in backend TokenStore
+- [RESOLVED by 03-01]: Hardcoded token UUID replaced with real RegisterDevice flow
 - [Research]: Extension cache (1-hour TTL) can mask broken pipeline during testing -- use fresh URLs
+- [Phase 3]: Default email user@example.com must match active Backend user, or RegisterDevice will fail
 - [Phase 1]: Runtime testing deferred -- user to run diag_zmq_test.py and diag_ws_test.py when services are started
 
 ## Phase 1 Completion Notes
@@ -100,8 +105,21 @@ Recent decisions affecting current work:
 - 656843a: feat(02-02): fix NotificationHandler thread-to-asyncio bridge
 - 1fdd193: feat(02-02): inject event loop into NotificationHandler at startup
 
+## Phase 3 Progress Notes
+
+**03-01 delivered:**
+1. ZMQClient.request_token() sends RegisterDevice, falls back to RequestToken
+2. AuthManager.authenticate() acquires real token from Backend at startup
+3. AuthManager.is_valid() properly checks non-empty + non-expired (was always True)
+4. Hardcoded UUID "12345678-..." fully eliminated from token flow
+5. USER_EMAIL and DEVICE_MAC configured in config.py
+
+**Commits (apps repo):**
+- 7674144: feat(03-01): add request_token method and remove hardcoded UUID fallback
+- 003981e: feat(03-01): wire token acquisition into AuthManager and startup flow
+
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Phase 2 complete, ready for Phase 3 planning
+Stopped at: Completed 03-01-PLAN.md, ready for 03-02
 Resume file: None
