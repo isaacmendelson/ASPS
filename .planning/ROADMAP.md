@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Diagnose and Verify Baseline Communication** - Confirm each individual link (ZMQ REQ/REP, WebSocket) works in isolation
 - [x] **Phase 2: Fix Async Notification Bridge** - Repair the thread-to-asyncio bridge so ZMQ SUB notifications reach the WebSocket broadcast
-- [ ] **Phase 3: Restore End-to-End Score Flow** - Verify the full pipeline works: URL submitted from Extension returns a score displayed in the popup
+- [x] **Phase 3: Restore End-to-End Score Flow** - Verify the full pipeline works: URL submitted from Extension returns a score displayed in the popup
 - [ ] **Phase 4: Restore CurveMQ Security** - Re-enable encrypted ZMQ communication between Desktop App and Backend
 - [ ] **Phase 5: Harden Reliability and Document** - Add failure recovery, connection resilience, and produce the bug report for the server team
 
@@ -63,8 +63,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md -- Implement device registration and token acquisition from Backend
-- [ ] 03-02-PLAN.md -- End-to-end pipeline verification with live testing
+- [x] 03-01-PLAN.md -- Implement device registration and token acquisition from Backend
+- [x] 03-02-PLAN.md -- End-to-end pipeline verification (pre-flight complete, live test deferred)
 
 ### Phase 4: Restore CurveMQ Security
 **Goal**: All ZMQ communication between Desktop App (pyzmq) and Backend (NetMQ) is encrypted via CurveMQ, with proper key exchange and no silent handshake failures
@@ -104,10 +104,10 @@ Phases execute in numeric order: 1 --> 2 --> 3 --> 4 --> 5
 |-------|----------------|--------|-----------|
 | 1. Diagnose and Verify Baseline Communication | 2/2 | Complete | 2026-02-12 |
 | 2. Fix Async Notification Bridge | 2/2 | Complete | 2026-02-12 |
-| 3. Restore End-to-End Score Flow | 0/2 | Planning complete | - |
+| 3. Restore End-to-End Score Flow | 2/2 | Complete (code), runtime deferred | 2026-02-12 |
 | 4. Restore CurveMQ Security | 0/1 | Not started | - |
 | 5. Harden Reliability and Document | 0/3 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-12*
-*Last updated: 2026-02-12 after Phase 3 planning*
+*Last updated: 2026-02-12 after Phase 3 completion (code level)*

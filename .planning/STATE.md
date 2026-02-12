@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Full score flow must work: URL -> analysis -> score displayed in Chrome Extension
-**Current focus:** Phase 3 - Restore End-to-End Score Flow
+**Current focus:** Phase 4 - Restore CurveMQ Security
 
 ## Current Position
 
-Phase: 3 of 5 (Restore End-to-End Score Flow)
-Plan: 1 of 2 in current phase
-Status: In progress
-Last activity: 2026-02-12 -- Completed 03-01-PLAN.md (device registration and token acquisition)
+Phase: 4 of 5 (Restore CurveMQ Security)
+Plan: 0 of 1 in current phase
+Status: Ready to plan
+Last activity: 2026-02-12 -- Phase 3 complete (code level, runtime deferred)
 
-Progress: [#####.....] 50%
+Progress: [######....] 60%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
+- Total plans completed: 6
 - Average duration: ~3 min per plan
-- Total execution time: ~17 min
+- Total execution time: ~21 min
 
 **By Phase:**
 
@@ -29,10 +29,10 @@ Progress: [#####.....] 50%
 |-------|-------|-------|----------|
 | 1. Diagnose Baseline | 2 | ~10 min | ~5 min |
 | 2. Fix Async Notification Bridge | 2 | ~4 min | ~2 min |
-| 3. Restore End-to-End Score Flow | 1 | ~3 min | ~3 min |
+| 3. Restore End-to-End Score Flow | 2 | ~7 min | ~3.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (complete), 02-01 (complete), 02-02 (complete), 03-01 (complete)
+- Last 5 plans: 02-01 (complete), 02-02 (complete), 03-01 (complete), 03-02 (complete)
 - Trend: Consistent fast execution on targeted fixes
 
 *Updated after each plan completion*
@@ -105,14 +105,19 @@ Recent decisions affecting current work:
 - 656843a: feat(02-02): fix NotificationHandler thread-to-asyncio bridge
 - 1fdd193: feat(02-02): inject event loop into NotificationHandler at startup
 
-## Phase 3 Progress Notes
+## Phase 3 Completion Notes
 
-**03-01 delivered:**
-1. ZMQClient.request_token() sends RegisterDevice, falls back to RequestToken
-2. AuthManager.authenticate() acquires real token from Backend at startup
-3. AuthManager.is_valid() properly checks non-empty + non-expired (was always True)
-4. Hardcoded UUID "12345678-..." fully eliminated from token flow
-5. USER_EMAIL and DEVICE_MAC configured in config.py
+**What was delivered:**
+1. ZMQClient.request_token() sends RegisterDevice, falls back to RequestToken (03-01)
+2. AuthManager.authenticate() acquires real token from Backend at startup (03-01)
+3. AuthManager.is_valid() properly checks non-empty + non-expired (03-01)
+4. Hardcoded UUID "12345678-..." fully eliminated from token flow (03-01)
+5. USER_EMAIL and DEVICE_MAC configured in config.py (03-01)
+6. Pre-flight code validation passed for all E2E paths (03-02)
+
+**Runtime testing DEFERRED:** User cannot test live pipeline now. All code artifacts verified.
+
+**Verification:** 9/9 code must-haves verified. See 03-VERIFICATION.md.
 
 **Commits (apps repo):**
 - 7674144: feat(03-01): add request_token method and remove hardcoded UUID fallback
@@ -121,5 +126,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Completed 03-01-PLAN.md, ready for 03-02
+Stopped at: Phase 3 complete, ready for Phase 4
 Resume file: None
