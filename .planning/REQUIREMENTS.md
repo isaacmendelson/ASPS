@@ -60,9 +60,9 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| COMM-01 | Phase 1 | Pending |
+| COMM-01 | Phase 1 | Complete |
 | COMM-02 | Phase 2 | Pending |
-| COMM-03 | Phase 1 | Pending |
+| COMM-03 | Phase 1 | Complete |
 | COMM-04 | Phase 2 | Pending |
 | FLOW-01 | Phase 3 | Pending |
 | FLOW-02 | Phase 3 | Pending |
@@ -82,4 +82,4 @@
 
 ---
 *Requirements defined: 2026-02-11*
-*Last updated: 2026-02-12 after roadmap phase mapping*
+*Last updated: 2026-02-12 after Phase 1 completion*

@@ -12,7 +12,7 @@ The ASPS anti-phishing system has a broken score delivery pipeline: URLs are ana
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Diagnose and Verify Baseline Communication** - Confirm each individual link (ZMQ REQ/REP, WebSocket) works in isolation
+- [x] **Phase 1: Diagnose and Verify Baseline Communication** - Confirm each individual link (ZMQ REQ/REP, WebSocket) works in isolation
 - [ ] **Phase 2: Fix Async Notification Bridge** - Repair the thread-to-asyncio bridge so ZMQ SUB notifications reach the WebSocket broadcast
 - [ ] **Phase 3: Restore End-to-End Score Flow** - Verify the full pipeline works: URL submitted from Extension returns a score displayed in the popup
 - [ ] **Phase 4: Restore CurveMQ Security** - Re-enable encrypted ZMQ communication between Desktop App and Backend
@@ -32,8 +32,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md -- Disable CurveMQ, verify backend ports, prove ZMQ REQ/REP round-trip
-- [ ] 01-02-PLAN.md -- Verify WebSocket connectivity and Extension-to-Desktop ping/pong
+- [x] 01-01-PLAN.md -- Disable CurveMQ, verify backend ports, prove ZMQ REQ/REP round-trip
+- [x] 01-02-PLAN.md -- Verify WebSocket connectivity and Extension-to-Desktop ping/pong
 
 ### Phase 2: Fix Async Notification Bridge
 **Goal**: Notifications published by Backend on ZMQ PUB (port 50002) are received by Desktop App's SUB socket and successfully bridged from the ZMQ background thread to the asyncio event loop for WebSocket broadcast
@@ -102,7 +102,7 @@ Phases execute in numeric order: 1 --> 2 --> 3 --> 4 --> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Diagnose and Verify Baseline Communication | 0/2 | Not started | - |
+| 1. Diagnose and Verify Baseline Communication | 2/2 | Complete | 2026-02-12 |
 | 2. Fix Async Notification Bridge | 0/2 | Not started | - |
 | 3. Restore End-to-End Score Flow | 0/2 | Not started | - |
 | 4. Restore CurveMQ Security | 0/1 | Not started | - |
@@ -110,4 +110,4 @@ Phases execute in numeric order: 1 --> 2 --> 3 --> 4 --> 5
 
 ---
 *Roadmap created: 2026-02-12*
-*Last updated: 2026-02-12*
+*Last updated: 2026-02-12 after Phase 1 completion*
