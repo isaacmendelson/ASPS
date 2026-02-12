@@ -44,11 +44,11 @@ Plans:
   2. NotificationHandler bridges received messages from the ZMQ thread to the main asyncio event loop using thread-safe scheduling (not asyncio.run() fallback)
   3. ExtensionServer.broadcast() executes on the correct event loop and sends to all connected WebSocket clients
   4. Multipart ZMQ frames (topic + message) are received atomically via recv_multipart()
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 02-01: Fix ZMQ SUB subscription and verify PUB/SUB message delivery
-- [ ] 02-02: Fix thread-to-asyncio bridge in NotificationHandler
+- [ ] 02-01-PLAN.md -- Fix ZMQ SUB recv_multipart and add diagnostic logging to notification_client.py
+- [ ] 02-02-PLAN.md -- Fix thread-to-asyncio bridge in NotificationHandler and inject event loop from main.py
 
 ### Phase 3: Restore End-to-End Score Flow
 **Goal**: A user visiting a URL in Chrome sees a threat score displayed in the Extension popup, proving the entire pipeline works from submission to display
@@ -110,4 +110,4 @@ Phases execute in numeric order: 1 --> 2 --> 3 --> 4 --> 5
 
 ---
 *Roadmap created: 2026-02-12*
-*Last updated: 2026-02-12 after Phase 1 completion*
+*Last updated: 2026-02-12 after Phase 2 planning*
