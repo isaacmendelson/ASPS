@@ -60,11 +60,11 @@ Plans:
   3. Desktop App forwards the score to the Chrome Extension via WebSocket (visible in Extension console)
   4. Chrome Extension displays the threat score in the popup UI and updates the extension icon badge
   5. The full round-trip completes in under 10 seconds for a test URL
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 03-01: Wire up and test complete URL-to-score pipeline
-- [ ] 03-02: Verify Extension UI displays received scores correctly
+- [ ] 03-01-PLAN.md -- Implement device registration and token acquisition from Backend
+- [ ] 03-02-PLAN.md -- End-to-end pipeline verification with live testing
 
 ### Phase 4: Restore CurveMQ Security
 **Goal**: All ZMQ communication between Desktop App (pyzmq) and Backend (NetMQ) is encrypted via CurveMQ, with proper key exchange and no silent handshake failures
@@ -104,10 +104,10 @@ Phases execute in numeric order: 1 --> 2 --> 3 --> 4 --> 5
 |-------|----------------|--------|-----------|
 | 1. Diagnose and Verify Baseline Communication | 2/2 | Complete | 2026-02-12 |
 | 2. Fix Async Notification Bridge | 2/2 | Complete | 2026-02-12 |
-| 3. Restore End-to-End Score Flow | 0/2 | Not started | - |
+| 3. Restore End-to-End Score Flow | 0/2 | Planning complete | - |
 | 4. Restore CurveMQ Security | 0/1 | Not started | - |
 | 5. Harden Reliability and Document | 0/3 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-12*
-*Last updated: 2026-02-12 after Phase 2 completion*
+*Last updated: 2026-02-12 after Phase 3 planning*
