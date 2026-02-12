@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Full score flow must work: URL -> analysis -> score displayed in Chrome Extension
-**Current focus:** Phase 4 - Restore CurveMQ Security
+**Current focus:** Phase 4 complete, ready for Phase 5
 
 ## Current Position
 
 Phase: 4 of 5 (Restore CurveMQ Security)
-Plan: 0 of 1 in current phase
-Status: Ready to plan
-Last activity: 2026-02-12 -- Phase 3 complete (code level, runtime deferred)
+Plan: 1 of 1 in current phase
+Status: Phase complete
+Last activity: 2026-02-12 -- Completed 04-01-PLAN.md (CurveMQ encryption restored)
 
-Progress: [######....] 60%
+Progress: [########..] 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
+- Total plans completed: 7
 - Average duration: ~3 min per plan
-- Total execution time: ~21 min
+- Total execution time: ~24 min
 
 **By Phase:**
 
@@ -30,9 +30,10 @@ Progress: [######....] 60%
 | 1. Diagnose Baseline | 2 | ~10 min | ~5 min |
 | 2. Fix Async Notification Bridge | 2 | ~4 min | ~2 min |
 | 3. Restore End-to-End Score Flow | 2 | ~7 min | ~3.5 min |
+| 4. Restore CurveMQ Security | 1 | ~3 min | ~3 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (complete), 02-02 (complete), 03-01 (complete), 03-02 (complete)
+- Last 5 plans: 02-02 (complete), 03-01 (complete), 03-02 (complete), 04-01 (complete)
 - Trend: Consistent fast execution on targeted fixes
 
 *Updated after each plan completion*
@@ -57,10 +58,15 @@ Recent decisions affecting current work:
 - [Phase 3]: RegisterDevice/RequestToken two-step flow for token acquisition from Backend
 - [Phase 3]: Hardcoded UUID removed; empty token fallback with clear warning instead
 - [Phase 3]: USER_EMAIL configurable via env var (default: user@example.com)
+- [Phase 4]: CurveMQ re-enabled: CurveEnabled=true in appsettings.json
+- [Phase 4]: Ephemeral client keypairs per socket via zmq.curve_keypair() (no ZAP authenticator needed)
+- [Phase 4]: apply_curve_client() shared helper, CURVE options set BEFORE socket.connect()
+- [Phase 4]: SERVER_PUBLIC_KEY_Z85 configurable via ZMQ_SERVER_PUBLIC_KEY env var
+- [Phase 4]: CURVE_ENABLED defaults to true (secure by default), disableable for debugging
 
 ### Pending Todos
 
-- Runtime verification of diagnostic scripts (requires starting Backend + Desktop App)
+- Runtime verification of full pipeline (requires starting Backend + Desktop App)
 
 ### Blockers/Concerns
 
@@ -68,6 +74,7 @@ Recent decisions affecting current work:
 - [Research]: Extension cache (1-hour TTL) can mask broken pipeline during testing -- use fresh URLs
 - [Phase 3]: Default email user@example.com must match active Backend user, or RegisterDevice will fail
 - [Phase 1]: Runtime testing deferred -- user to run diag_zmq_test.py and diag_ws_test.py when services are started
+- [Phase 4]: CURVE mismatch symptoms are silent timeouts, not error messages -- if pipeline times out, check key sync
 
 ## Phase 1 Completion Notes
 
@@ -123,8 +130,25 @@ Recent decisions affecting current work:
 - 7674144: feat(03-01): add request_token method and remove hardcoded UUID fallback
 - 003981e: feat(03-01): wire token acquisition into AuthManager and startup flow
 
+## Phase 4 Completion Notes
+
+**What was delivered:**
+1. CurveMQ client encryption on ZMQ REQ socket via apply_curve_client() in zmq_client.py (04-01)
+2. CurveMQ client encryption on ZMQ SUB socket via apply_curve_client() in notification_client.py (04-01)
+3. Backend CurveEnabled flipped to true in appsettings.json (04-01)
+4. Z85 server public key synced across all 4 check points (config, zmq_client, notification_client, appsettings)
+5. CURVE options verified BEFORE socket.connect() in both clients
+
+**Verification:** All 6 verification checks + all 6 overall verification checks passed.
+
+**Commits (apps repo):**
+- d038234: feat(04-01): add CurveMQ client encryption to ZMQ REQ and SUB sockets
+
+**Commits (ASPSBackend14_J repo):**
+- 776b0a7: feat(04-01): re-enable CurveEnabled in Backend appsettings.json
+
 ## Session Continuity
 
 Last session: 2026-02-12
-Stopped at: Phase 3 complete, ready for Phase 4
+Stopped at: Phase 4 complete, ready for Phase 5
 Resume file: None
