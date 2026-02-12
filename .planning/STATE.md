@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Full score flow must work: URL -> analysis -> score displayed in Chrome Extension
-**Current focus:** Phase 4 complete, ready for Phase 5
+**Current focus:** Phase 5 — Harden Reliability and Document
 
 ## Current Position
 
-Phase: 4 of 5 (Restore CurveMQ Security)
-Plan: 1 of 1 in current phase
-Status: Phase complete
-Last activity: 2026-02-12 -- Completed 04-01-PLAN.md (CurveMQ encryption restored)
+Phase: 5 of 5 (Harden Reliability and Document)
+Plan: 0 of 3 in current phase
+Status: Ready to plan
+Last activity: 2026-02-12 -- Phase 4 complete, starting Phase 5
 
 Progress: [########..] 80%
 

@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Diagnose and Verify Baseline Communication** - Confirm each individual link (ZMQ REQ/REP, WebSocket) works in isolation
 - [x] **Phase 2: Fix Async Notification Bridge** - Repair the thread-to-asyncio bridge so ZMQ SUB notifications reach the WebSocket broadcast
 - [x] **Phase 3: Restore End-to-End Score Flow** - Verify the full pipeline works: URL submitted from Extension returns a score displayed in the popup
-- [ ] **Phase 4: Restore CurveMQ Security** - Re-enable encrypted ZMQ communication between Desktop App and Backend
+- [x] **Phase 4: Restore CurveMQ Security** - Re-enable encrypted ZMQ communication between Desktop App and Backend
 - [ ] **Phase 5: Harden Reliability and Document** - Add failure recovery, connection resilience, and produce the bug report for the server team
 
 ## Phase Details
@@ -77,7 +77,7 @@ Plans:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 04-01-PLAN.md -- Add CURVE client encryption to Desktop App ZMQ sockets and flip Backend CurveEnabled to true
+- [x] 04-01-PLAN.md -- Add CURVE client encryption to Desktop App ZMQ sockets and flip Backend CurveEnabled to true
 
 ### Phase 5: Harden Reliability and Document
 **Goal**: The system recovers gracefully from common failure scenarios (lost ZMQ responses, WebSocket disconnects, service worker termination) and a detailed bug report is delivered to the server team
@@ -105,9 +105,9 @@ Phases execute in numeric order: 1 --> 2 --> 3 --> 4 --> 5
 | 1. Diagnose and Verify Baseline Communication | 2/2 | Complete | 2026-02-12 |
 | 2. Fix Async Notification Bridge | 2/2 | Complete | 2026-02-12 |
 | 3. Restore End-to-End Score Flow | 2/2 | Complete (code), runtime deferred | 2026-02-12 |
-| 4. Restore CurveMQ Security | 0/1 | Planned | - |
+| 4. Restore CurveMQ Security | 1/1 | Complete | 2026-02-12 |
 | 5. Harden Reliability and Document | 0/3 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-12*
-*Last updated: 2026-02-12 after Phase 4 planning*
+*Last updated: 2026-02-12 after Phase 4 completion*
