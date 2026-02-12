@@ -153,6 +153,23 @@ Recent decisions affecting current work:
 - 6b7a012: feat(05-01): add Lazy Pirate retry pattern to ZMQ REQ socket
 - dd64a3d: feat(05-01): add PendingResults store and flush on WebSocket reconnect
 
+## Phase 5 Plan 2 Completion Notes
+
+**What was delivered:**
+1. Alarm-based keepalive backup (chrome.alarms.create('keepalive')) in ConnectionService.js (05-02)
+2. sendKeepalive() public method on ConnectionService, callable from alarm handler (05-02)
+3. chrome.alarms.clear('keepalive') in handleDisconnect() and disconnect() (05-02)
+4. 'keepalive' case in background.js alarm listener switch (05-02)
+5. MessageQueue persist() to chrome.storage.session after every enqueue (05-02)
+6. MessageQueue restore() from chrome.storage.session with TTL filtering (05-02)
+7. messageQueueService.restore() called in init() before connect() (05-02)
+
+**Verification:** All verification criteria confirmed. REL-03 satisfied.
+
+**Commits (apps repo):**
+- 7920331: feat(05-02): add alarm-based keepalive backup to ConnectionService and background.js
+- f56fbb0: feat(05-02): add persist/restore to MessageQueueService via chrome.storage.session
+
 ## Phase 4 Completion Notes
 
 **What was delivered:**
