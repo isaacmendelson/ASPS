@@ -88,12 +88,12 @@ Plans:
   2. WebSocket reconnection between Extension and Desktop App works automatically after a disconnect, with pending results delivered after reconnection
   3. Chrome Extension service worker survives keepalive cycles and re-establishes WebSocket connection after termination
   4. A bug report document exists describing: what was broken, why it broke, how it was fixed, and recommendations for the server team
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 05-01: Add ZMQ REQ recovery and WebSocket reconnection resilience
-- [ ] 05-02: Harden Chrome Extension service worker lifecycle
-- [ ] 05-03: Write bug report for server team
+- [ ] 05-01-PLAN.md -- Add Lazy Pirate ZMQ REQ recovery and WebSocket pending results store
+- [ ] 05-02-PLAN.md -- Harden Chrome Extension service worker with alarm-based keepalive and MessageQueue persistence
+- [ ] 05-03-PLAN.md -- Write comprehensive bug report for server team
 
 ## Progress
 
@@ -110,4 +110,4 @@ Phases execute in numeric order: 1 --> 2 --> 3 --> 4 --> 5
 
 ---
 *Roadmap created: 2026-02-12*
-*Last updated: 2026-02-12 after Phase 4 completion*
+*Last updated: 2026-02-12 after Phase 5 planning*
