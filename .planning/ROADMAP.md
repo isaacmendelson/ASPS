@@ -74,10 +74,10 @@ Plans:
   1. Backend runs with CurveEnabled=true and Desktop App connects successfully using CURVE client keys on both REQ and SUB sockets
   2. Server public key is correctly distributed from Backend to Desktop App (via config or token response)
   3. End-to-end score flow still works with encryption enabled (no regression from Phase 3)
-**Plans**: TBD
+**Plans:** 1 plan
 
 Plans:
-- [ ] 04-01: Implement CurveMQ client in Desktop App and verify encrypted communication
+- [ ] 04-01-PLAN.md -- Add CURVE client encryption to Desktop App ZMQ sockets and flip Backend CurveEnabled to true
 
 ### Phase 5: Harden Reliability and Document
 **Goal**: The system recovers gracefully from common failure scenarios (lost ZMQ responses, WebSocket disconnects, service worker termination) and a detailed bug report is delivered to the server team
@@ -105,9 +105,9 @@ Phases execute in numeric order: 1 --> 2 --> 3 --> 4 --> 5
 | 1. Diagnose and Verify Baseline Communication | 2/2 | Complete | 2026-02-12 |
 | 2. Fix Async Notification Bridge | 2/2 | Complete | 2026-02-12 |
 | 3. Restore End-to-End Score Flow | 2/2 | Complete (code), runtime deferred | 2026-02-12 |
-| 4. Restore CurveMQ Security | 0/1 | Not started | - |
+| 4. Restore CurveMQ Security | 0/1 | Planned | - |
 | 5. Harden Reliability and Document | 0/3 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-12*
-*Last updated: 2026-02-12 after Phase 3 completion (code level)*
+*Last updated: 2026-02-12 after Phase 4 planning*
