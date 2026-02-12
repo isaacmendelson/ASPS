@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** Full score flow must work: URL -> analysis -> score displayed in Chrome Extension
-**Current focus:** Phase 2 complete - Ready for Phase 3 (End-to-End Flow Repair)
+**Current focus:** Phase 3 - Restore End-to-End Score Flow
 
 ## Current Position
 
-Phase: 2 of 5 (Fix Async Notification Bridge)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-02-12 -- Completed 02-02-PLAN.md (thread-to-asyncio bridge fix)
+Phase: 3 of 5 (Restore End-to-End Score Flow)
+Plan: 0 of 2 in current phase
+Status: Ready to plan
+Last activity: 2026-02-12 -- Phase 2 complete (2 plans executed, 7/7 must-haves verified)
 
 Progress: [####......] 40%
 
@@ -92,6 +92,8 @@ Recent decisions affecting current work:
 4. Diagnostic boundary logging across all notification pipeline components
 
 **Primary bug fixed:** asyncio.run() in handle() created isolated event loop with zero WebSocket clients. Now uses run_coroutine_threadsafe() to schedule broadcast on the main event loop where WebSocket clients are connected.
+
+**Verification:** 7/7 must-haves verified (COMM-02, COMM-04 satisfied). See 02-VERIFICATION.md.
 
 **Commits (apps repo):**
 - 2cd1c63: feat(02-01): fix ZMQ SUB to use atomic recv_multipart with diagnostic logging

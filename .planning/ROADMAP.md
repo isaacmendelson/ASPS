@@ -13,7 +13,7 @@ The ASPS anti-phishing system has a broken score delivery pipeline: URLs are ana
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Diagnose and Verify Baseline Communication** - Confirm each individual link (ZMQ REQ/REP, WebSocket) works in isolation
-- [ ] **Phase 2: Fix Async Notification Bridge** - Repair the thread-to-asyncio bridge so ZMQ SUB notifications reach the WebSocket broadcast
+- [x] **Phase 2: Fix Async Notification Bridge** - Repair the thread-to-asyncio bridge so ZMQ SUB notifications reach the WebSocket broadcast
 - [ ] **Phase 3: Restore End-to-End Score Flow** - Verify the full pipeline works: URL submitted from Extension returns a score displayed in the popup
 - [ ] **Phase 4: Restore CurveMQ Security** - Re-enable encrypted ZMQ communication between Desktop App and Backend
 - [ ] **Phase 5: Harden Reliability and Document** - Add failure recovery, connection resilience, and produce the bug report for the server team
@@ -47,8 +47,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md -- Fix ZMQ SUB recv_multipart and add diagnostic logging to notification_client.py
-- [ ] 02-02-PLAN.md -- Fix thread-to-asyncio bridge in NotificationHandler and inject event loop from main.py
+- [x] 02-01-PLAN.md -- Fix ZMQ SUB recv_multipart and add diagnostic logging to notification_client.py
+- [x] 02-02-PLAN.md -- Fix thread-to-asyncio bridge in NotificationHandler and inject event loop from main.py
 
 ### Phase 3: Restore End-to-End Score Flow
 **Goal**: A user visiting a URL in Chrome sees a threat score displayed in the Extension popup, proving the entire pipeline works from submission to display
@@ -103,11 +103,11 @@ Phases execute in numeric order: 1 --> 2 --> 3 --> 4 --> 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Diagnose and Verify Baseline Communication | 2/2 | Complete | 2026-02-12 |
-| 2. Fix Async Notification Bridge | 0/2 | Not started | - |
+| 2. Fix Async Notification Bridge | 2/2 | Complete | 2026-02-12 |
 | 3. Restore End-to-End Score Flow | 0/2 | Not started | - |
 | 4. Restore CurveMQ Security | 0/1 | Not started | - |
 | 5. Harden Reliability and Document | 0/3 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-12*
-*Last updated: 2026-02-12 after Phase 2 planning*
+*Last updated: 2026-02-12 after Phase 2 completion*
