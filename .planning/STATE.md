@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-13)
 
 ## Current Position
 
-Phase: Phase 6 - Repository Cleanup (COMPLETE)
-Plan: 1/1 complete
-Status: Phase 6 complete, ready for Phase 7
-Last activity: 2026-02-13 — 06-01 Repository Cleanup executed
+Phase: Phase 7 - Fix Communication Bugs (IN PROGRESS)
+Plan: 1/2 complete
+Status: 07-01 complete, ready for 07-02
+Last activity: 2026-02-13 — 07-01 Desktop Python Bugfixes executed
 
-Progress: [█████░░░░░] 1/2 phases (50%)
+Progress: [████████░░] 1.5/2 phases (75%)
 
 ## Performance Metrics
 
@@ -24,13 +24,14 @@ Progress: [█████░░░░░] 1/2 phases (50%)
 - All 5 phases complete
 
 **Current Milestone (v1.1):**
-- Plans completed: 1
-- Phases complete: 1/2
+- Plans completed: 2
+- Phases complete: 1.5/2
 - Coverage: 11/11 requirements mapped (100%)
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
 | 06    | 01   | 4min     | 3     | 1     |
+| 07    | 01   | 3min     | 2     | 2     |
 
 ## Accumulated Context
 
@@ -47,12 +48,14 @@ Progress: [█████░░░░░] 1/2 phases (50%)
 - [v1.1 Phase 6]: Preserved aspsbackend2db_20260130.sql (intentional DB dump, not bloat)
 - [v1.1 Phase 6]: No *.sql in .gitignore -- database dumps may be intentional
 - [v1.1 Phase 6]: No git history rewriting needed -- all bloat was untracked files
+- [v1.1 Phase 7]: url passed as first positional param to _create_result/_create_error for consistency
+- [v1.1 Phase 7]: Only url_check handler wrapped in executor -- other handlers are pure dict ops with no I/O
 
 ### Code Review Findings (2026-02-13)
 
 Bugs preventing end-to-end flow:
-1. Missing `url` field in scan_service.py responses → Extension can't match results
-2. Async/sync mismatch in extension_handler.py → blocks event loop
+1. ~~Missing `url` field in scan_service.py responses → Extension can't match results~~ FIXED (07-01, COMM-05)
+2. ~~Async/sync mismatch in extension_handler.py → blocks event loop~~ FIXED (07-01, COMM-06)
 3. Message type mismatch in content.js → page info not collected
 4. Silent broadcast failure in notification_handler.py → results lost
 
@@ -70,6 +73,6 @@ Bugs preventing end-to-end flow:
 ## Session Continuity
 
 Last session: 2026-02-13
-Stopped at: Completed 06-01-PLAN.md (Repository Cleanup)
-Next step: `/gsd:plan-phase 7` for Communication Bugfixes or `/gsd:execute-phase 7`
-Resume file: .planning/phases/06-repository-cleanup/06-01-SUMMARY.md
+Stopped at: Completed 07-01-PLAN.md (Desktop Python Bugfixes)
+Next step: Execute 07-02-PLAN.md (Extension & Notification Bugfixes)
+Resume file: .planning/phases/07-fix-communication-bugs/07-01-SUMMARY.md
