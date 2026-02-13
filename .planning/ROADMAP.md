@@ -1,113 +1,105 @@
-# Roadmap: ASPS Score Flow Repair
+# Roadmap: ASPS v1.1 — Cleanup & Fix Communication
+
+**Milestone:** v1.1 Cleanup & Fix Communication
+**Created:** 2026-02-13
+**Depth:** comprehensive
+**Phases:** 2 (continuing from v1.0's Phase 5)
 
 ## Overview
 
-The ASPS anti-phishing system has a broken score delivery pipeline: URLs are analyzed but results never reach the Chrome Extension. This roadmap repairs the pipeline link by link, starting with baseline communication verification, then fixing the async notification bridge (the most likely root cause), restoring end-to-end score flow, re-enabling CurveMQ encryption, and finally hardening reliability. Each phase builds on the previous, following the data flow from Extension through Desktop App to Backend and back.
+This milestone cleans repository bloat and fixes critical communication bugs blocking the end-to-end score flow. Phase 6 removes ~1.8GB of garbage files. Phase 7 fixes 4 specific bugs found in code review that prevent Extension from receiving/matching scan results.
 
 ## Phases
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+### Phase 6: Repository Cleanup
 
-Decimal phases appear between their surrounding integers in numeric order.
+**Goal:** Repository contains only necessary files with proper .gitignore protection
 
-- [x] **Phase 1: Diagnose and Verify Baseline Communication** - Confirm each individual link (ZMQ REQ/REP, WebSocket) works in isolation
-- [x] **Phase 2: Fix Async Notification Bridge** - Repair the thread-to-asyncio bridge so ZMQ SUB notifications reach the WebSocket broadcast
-- [x] **Phase 3: Restore End-to-End Score Flow** - Verify the full pipeline works: URL submitted from Extension returns a score displayed in the popup
-- [x] **Phase 4: Restore CurveMQ Security** - Re-enable encrypted ZMQ communication between Desktop App and Backend
-- [x] **Phase 5: Harden Reliability and Document** - Add failure recovery, connection resilience, and produce the bug report for the server team
+**Dependencies:** None (can start immediately)
 
-## Phase Details
+**Requirements:**
+- CLEAN-01: Delete all duplicate ZIP files from repository (apps.zip x3, basic-url-analyzer ZIPs x4)
+- CLEAN-02: Delete all __pycache__ directories and .pyc files from repository
+- CLEAN-03: Delete duplicate virtual environments (keep .venv, delete venv)
+- CLEAN-04: Delete .NET build artifacts (bin/, obj/, .vs/, WebApi/publish/)
+- CLEAN-05: Delete temp files and one-off scripts from root (nul, test_result.*, PowerShell scripts, update_emails.sql)
+- CLEAN-06: Add comprehensive .gitignore to prevent future bloat
 
-### Phase 1: Diagnose and Verify Baseline Communication
-**Goal**: Each communication link in the pipeline can send and receive messages independently, with diagnostic evidence confirming success or identifying the exact failure point
-**Depends on**: Nothing (first phase)
-**Requirements**: COMM-01, COMM-03
-**Success Criteria** (what must be TRUE):
-  1. Desktop App connects to Backend via ZMQ REQ on port 50001 and receives an acknowledgment response to a test alert
-  2. Chrome Extension connects to Desktop App via WebSocket and receives a response to a test message
-  3. Backend ports (50001, 50002, 5555, 5556) are confirmed listening and accepting connections
-  4. Diagnostic logging is in place at each link boundary showing message send/receive with timestamps
-**Plans:** 2 plans
+**Success Criteria:**
+1. Repository size reduced by at least 1.5GB (verified with git du)
+2. All duplicate ZIPs, virtual environments, and build artifacts deleted
+3. Comprehensive .gitignore in place covering Python, .NET, Node.js, and IDE artifacts
+4. No __pycache__ or .pyc files remain in working tree
+5. Clean git status shows only intentional untracked files
 
-Plans:
-- [x] 01-01-PLAN.md -- Disable CurveMQ, verify backend ports, prove ZMQ REQ/REP round-trip
-- [x] 01-02-PLAN.md -- Verify WebSocket connectivity and Extension-to-Desktop ping/pong
+**Status:** Pending
 
-### Phase 2: Fix Async Notification Bridge
-**Goal**: Notifications published by Backend on ZMQ PUB (port 50002) are received by Desktop App's SUB socket and successfully bridged from the ZMQ background thread to the asyncio event loop for WebSocket broadcast
-**Depends on**: Phase 1
-**Requirements**: COMM-02, COMM-04
-**Success Criteria** (what must be TRUE):
-  1. Desktop App's ZMQ SUB socket receives notification messages published by Backend on port 50002
-  2. NotificationHandler bridges received messages from the ZMQ thread to the main asyncio event loop using thread-safe scheduling (not asyncio.run() fallback)
-  3. ExtensionServer.broadcast() executes on the correct event loop and sends to all connected WebSocket clients
-  4. Multipart ZMQ frames (topic + message) are received atomically via recv_multipart()
-**Plans:** 2 plans
+---
 
-Plans:
-- [x] 02-01-PLAN.md -- Fix ZMQ SUB recv_multipart and add diagnostic logging to notification_client.py
-- [x] 02-02-PLAN.md -- Fix thread-to-asyncio bridge in NotificationHandler and inject event loop from main.py
+### Phase 7: Fix Communication Bugs
 
-### Phase 3: Restore End-to-End Score Flow
-**Goal**: A user visiting a URL in Chrome sees a threat score displayed in the Extension popup, proving the entire pipeline works from submission to display
-**Depends on**: Phase 2
-**Requirements**: FLOW-01, FLOW-02, FLOW-03, FLOW-04
-**Success Criteria** (what must be TRUE):
-  1. A URL submitted from the Chrome Extension reaches the Backend and triggers analysis (visible in Backend logs)
-  2. The analysis result (threat score) is published by Backend and received by Desktop App (visible in Desktop App logs)
-  3. Desktop App forwards the score to the Chrome Extension via WebSocket (visible in Extension console)
-  4. Chrome Extension displays the threat score in the popup UI and updates the extension icon badge
-  5. The full round-trip completes in under 10 seconds for a test URL
-**Plans:** 2 plans
+**Goal:** Extension receives scan results with correct url field and can match them to pending requests
 
-Plans:
-- [x] 03-01-PLAN.md -- Implement device registration and token acquisition from Backend
-- [x] 03-02-PLAN.md -- End-to-end pipeline verification (pre-flight complete, live test deferred)
+**Dependencies:** None (independent of cleanup)
 
-### Phase 4: Restore CurveMQ Security
-**Goal**: All ZMQ communication between Desktop App (pyzmq) and Backend (NetMQ) is encrypted via CurveMQ, with proper key exchange and no silent handshake failures
-**Depends on**: Phase 3
-**Requirements**: SEC-01, SEC-02
-**Success Criteria** (what must be TRUE):
-  1. Backend runs with CurveEnabled=true and Desktop App connects successfully using CURVE client keys on both REQ and SUB sockets
-  2. Server public key is correctly distributed from Backend to Desktop App (via config or token response)
-  3. End-to-end score flow still works with encryption enabled (no regression from Phase 3)
-**Plans:** 1 plan
+**Requirements:**
+- COMM-05: scan_service.py _create_result() includes `url` field in all responses to Extension
+- COMM-06: extension_handler.py handlers are properly async or called correctly from async context
+- COMM-07: content.js message type constants match ScanService.js (page:info:request)
+- COMM-08: notification_handler.py broadcast has retry logic and proper error handling (not silent failure)
+- VERIFY-01: End-to-end flow verified: Extension sends url_check -> Desktop forwards to Backend -> result returns to Extension with correct url field
 
-Plans:
-- [x] 04-01-PLAN.md -- Add CURVE client encryption to Desktop App ZMQ sockets and flip Backend CurveEnabled to true
+**Success Criteria:**
+1. scan_service.py response includes url field in all code paths (success, error, cached)
+2. extension_handler.py handlers execute without blocking asyncio event loop
+3. content.js message listener responds to 'page:info:request' from ScanService.js
+4. notification_handler.py logs broadcast failures and retries at least once before giving up
+5. End-to-end test passes: Extension url_check -> Backend analysis -> result with correct url returns to Extension UI
 
-### Phase 5: Harden Reliability and Document
-**Goal**: The system recovers gracefully from common failure scenarios (lost ZMQ responses, WebSocket disconnects, service worker termination) and a detailed bug report is delivered to the server team
-**Depends on**: Phase 4
-**Requirements**: REL-01, REL-02, REL-03, DOC-01
-**Success Criteria** (what must be TRUE):
-  1. ZMQ REQ socket recovers from a lost/timed-out response without permanently corrupting the REQ/REP state machine
-  2. WebSocket reconnection between Extension and Desktop App works automatically after a disconnect, with pending results delivered after reconnection
-  3. Chrome Extension service worker survives keepalive cycles and re-establishes WebSocket connection after termination
-  4. A bug report document exists describing: what was broken, why it broke, how it was fixed, and recommendations for the server team
-**Plans:** 3 plans
+**Status:** Pending
 
-Plans:
-- [x] 05-01-PLAN.md -- Add Lazy Pirate ZMQ REQ recovery and WebSocket pending results store
-- [x] 05-02-PLAN.md -- Harden Chrome Extension service worker with alarm-based keepalive and MessageQueue persistence
-- [x] 05-03-PLAN.md -- Write comprehensive bug report for server team
+---
 
 ## Progress
 
-**Execution Order:**
-Phases execute in numeric order: 1 --> 2 --> 3 --> 4 --> 5
+| Phase | Status | Requirements | Success Criteria | Notes |
+|-------|--------|--------------|------------------|-------|
+| 6 - Repository Cleanup | Pending | 6 | 5 | ~1.8GB bloat removal |
+| 7 - Fix Communication Bugs | Pending | 5 | 5 | Includes E2E verification |
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Diagnose and Verify Baseline Communication | 2/2 | Complete | 2026-02-12 |
-| 2. Fix Async Notification Bridge | 2/2 | Complete | 2026-02-12 |
-| 3. Restore End-to-End Score Flow | 2/2 | Complete (code), runtime deferred | 2026-02-12 |
-| 4. Restore CurveMQ Security | 1/1 | Complete | 2026-02-12 |
-| 5. Harden Reliability and Document | 3/3 | Complete | 2026-02-13 |
+**Total Requirements:** 11/11 mapped (100% coverage)
+
+**Phase Completion:**
+- v1.0: Phases 1-5 complete
+- v1.1: Phases 6-7 pending
 
 ---
-*Roadmap created: 2026-02-12*
-*Last updated: 2026-02-13 after Phase 5 completion — ALL PHASES COMPLETE*
+
+## Dependency Graph
+
+```
+Phase 6 (Cleanup) ──┐
+                    ├──> Both independent, can run in parallel
+Phase 7 (Comm Bugs) ┘
+```
+
+Both phases are independent. Cleanup is pure file deletion. Communication fixes are targeted code changes. They can be executed in any order or in parallel.
+
+---
+
+## Notes
+
+**Starting phase number:** 6 (continuing from v1.0's 5 phases)
+
+**Lean structure rationale:**
+- Cleanup is naturally one atomic operation (file deletion + .gitignore)
+- Communication fixes are 4 related bugs + verification, grouped for efficiency
+- No artificial splitting needed — both phases deliver coherent capabilities
+
+**Verification strategy:**
+- Phase 6: Verify with git du, git status, manual inspection
+- Phase 7: End-to-end test with fresh URL (avoid Extension cache masking)
+
+---
+
+*Last updated: 2026-02-13 after roadmap creation*

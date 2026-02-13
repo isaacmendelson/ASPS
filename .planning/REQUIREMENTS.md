@@ -44,23 +44,24 @@ All 14 requirements from v1.0 milestone completed. See git history for details.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CLEAN-01 | — | Pending |
-| CLEAN-02 | — | Pending |
-| CLEAN-03 | — | Pending |
-| CLEAN-04 | — | Pending |
-| CLEAN-05 | — | Pending |
-| CLEAN-06 | — | Pending |
-| COMM-05 | — | Pending |
-| COMM-06 | — | Pending |
-| COMM-07 | — | Pending |
-| COMM-08 | — | Pending |
-| VERIFY-01 | — | Pending |
+| CLEAN-01 | Phase 6 | Pending |
+| CLEAN-02 | Phase 6 | Pending |
+| CLEAN-03 | Phase 6 | Pending |
+| CLEAN-04 | Phase 6 | Pending |
+| CLEAN-05 | Phase 6 | Pending |
+| CLEAN-06 | Phase 6 | Pending |
+| COMM-05 | Phase 7 | Pending |
+| COMM-06 | Phase 7 | Pending |
+| COMM-07 | Phase 7 | Pending |
+| COMM-08 | Phase 7 | Pending |
+| VERIFY-01 | Phase 7 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 11 total
-- Mapped to phases: 0
-- Unmapped: 11
+- Mapped to phases: 11
+- Unmapped: 0
+- Coverage: 100%
 
 ---
 *Requirements defined: 2026-02-13*
-*Last updated: 2026-02-13 after initial definition*
+*Last updated: 2026-02-13 after roadmap creation — 100% coverage achieved*
