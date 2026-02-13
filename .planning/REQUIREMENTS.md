@@ -1,85 +1,66 @@
-# Requirements: ASPS Score Flow Repair
+# Requirements: ASPS v1.1 — Cleanup & Fix Communication
 
-**Defined:** 2026-02-11
-**Core Value:** הזרימה המלאה חייבת לעבוד: URL -> ניתוח -> ציון מוצג בתוסף Chrome
+**Defined:** 2026-02-13
+**Core Value:** Full score flow must work: URL -> analysis -> score displayed in Chrome Extension
 
-## v1 Requirements
+## v1.1 Requirements
 
-### Communication - תקשורת
+### Cleanup
 
-- [ ] **COMM-01**: Desktop App מתחבר ל-Backend via ZMQ REQ (port 50001) בהצלחה
-- [ ] **COMM-02**: Desktop App מקבל התראות מ-Backend via ZMQ SUB (port 50002)
-- [ ] **COMM-03**: Extension מתחבר ל-Desktop App via WebSocket
-- [ ] **COMM-04**: ZMQ thread מעביר הודעות ל-asyncio event loop הנכון
+- [ ] **CLEAN-01**: Delete all duplicate ZIP files from repository (apps.zip x3, basic-url-analyzer ZIPs x4)
+- [ ] **CLEAN-02**: Delete all __pycache__ directories and .pyc files from repository
+- [ ] **CLEAN-03**: Delete duplicate virtual environments (keep .venv, delete venv)
+- [ ] **CLEAN-04**: Delete .NET build artifacts (bin/, obj/, .vs/, WebApi/publish/)
+- [ ] **CLEAN-05**: Delete temp files and one-off scripts from root (nul, test_result.*, PowerShell scripts, update_emails.sql)
+- [ ] **CLEAN-06**: Add comprehensive .gitignore to prevent future bloat
 
-### Analysis Flow - זרימת ניתוח
+### Communication Bug Fixes
 
-- [ ] **FLOW-01**: URL שנשלח מ-Extension מגיע ל-Backend ומתנתח
-- [ ] **FLOW-02**: תוצאת ניתוח חוזרת מ-Backend ל-Desktop App
-- [ ] **FLOW-03**: Desktop App מעביר ציון ל-Extension via WebSocket
-- [ ] **FLOW-04**: Extension מציג ציון בפופאפ
+- [ ] **COMM-05**: scan_service.py _create_result() includes `url` field in all responses to Extension
+- [ ] **COMM-06**: extension_handler.py handlers are properly async or called correctly from async context
+- [ ] **COMM-07**: content.js message type constants match ScanService.js (page:info:request)
+- [ ] **COMM-08**: notification_handler.py broadcast has retry logic and proper error handling (not silent failure)
 
-### Security - אבטחה
+### Verification
 
-- [ ] **SEC-01**: CurveMQ encryption עובד בין Desktop App (pyzmq) ל-Backend (NetMQ)
-- [ ] **SEC-02**: מפתחות CURVE מסונכרנים בין הרכיבים
+- [ ] **VERIFY-01**: End-to-end flow verified: Extension sends url_check -> Desktop forwards to Backend -> result returns to Extension with correct url field
 
-### Reliability - אמינות
+## v1.0 Requirements (Completed)
 
-- [ ] **REL-01**: ZMQ REQ socket מתאושש מתגובה אבודה
-- [ ] **REL-02**: WebSocket reconnection עובד אחרי ניתוק
-- [ ] **REL-03**: Chrome service worker שורד keepalive
-
-### Documentation - תיעוד
-
-- [ ] **DOC-01**: דוח באג מפורט — מה קרה, למה, ואיך לתקן — לצוות השרת
-
-## v2 Requirements
-
-### Enhanced Reliability
-
-- **REL-04**: Auto-restart של Desktop App אחרי crash
-- **REL-05**: Error telemetry לזיהוי בעיות מרחוק
-
-### Monitoring
-
-- **MON-01**: Health dashboard שמציג סטטוס כל רכיב
-- **MON-02**: Alerting על כשלי תקשורת
+All 14 requirements from v1.0 milestone completed. See git history for details.
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| פיצ'רים חדשים | המטרה היא תיקון בלבד |
-| שדרוג frameworks | לא משנים טכנולוגיה |
-| UI redesign | שומרים על הממשק הנוכחי |
-| Mobile app | לא רלוונטי כרגע |
-| Tests מלאים | רק בדיקות שנחוצות לאימות התיקון |
+| Port changes | Cannot change existing ports |
+| Tech debt fixes | Not our responsibility |
+| Password/security | Not relevant now |
+| Directory restructuring | Only delete garbage, don't move things |
+| New features | Fix existing first |
+| UI changes | Keep current interface |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| COMM-01 | Phase 1 | Complete |
-| COMM-02 | Phase 2 | Complete |
-| COMM-03 | Phase 1 | Complete |
-| COMM-04 | Phase 2 | Complete |
-| FLOW-01 | Phase 3 | Complete (code) |
-| FLOW-02 | Phase 3 | Complete (code) |
-| FLOW-03 | Phase 3 | Complete (code) |
-| FLOW-04 | Phase 3 | Complete (code) |
-| SEC-01 | Phase 4 | Complete |
-| SEC-02 | Phase 4 | Complete |
-| REL-01 | Phase 5 | Complete |
-| REL-02 | Phase 5 | Complete |
-| REL-03 | Phase 5 | Complete |
-| DOC-01 | Phase 5 | Complete |
+| CLEAN-01 | — | Pending |
+| CLEAN-02 | — | Pending |
+| CLEAN-03 | — | Pending |
+| CLEAN-04 | — | Pending |
+| CLEAN-05 | — | Pending |
+| CLEAN-06 | — | Pending |
+| COMM-05 | — | Pending |
+| COMM-06 | — | Pending |
+| COMM-07 | — | Pending |
+| COMM-08 | — | Pending |
+| VERIFY-01 | — | Pending |
 
 **Coverage:**
-- v1 requirements: 14 total
-- Mapped to phases: 14
-- Unmapped: 0
+- v1.1 requirements: 11 total
+- Mapped to phases: 0
+- Unmapped: 11
 
 ---
-*Requirements defined: 2026-02-11*
-*Last updated: 2026-02-13 after Phase 5 completion — ALL REQUIREMENTS COMPLETE*
+*Requirements defined: 2026-02-13*
+*Last updated: 2026-02-13 after initial definition*
