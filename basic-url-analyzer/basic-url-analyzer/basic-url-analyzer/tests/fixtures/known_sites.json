@@ -1,0 +1,128 @@
+[
+  {
+    "site": "coinbase",
+    "category": "crypto_exchange",
+    "text": "Coinbase is a secure platform for buying, selling, and storing cryptocurrency. FDIC-insured USD balances up to $250,000. Your funds are protected with industry-leading security. Regulated by state money transmitter licenses. Cryptocurrency is not FDIC insured and may lose value.",
+    "expected_label": 0,
+    "region": "US"
+  },
+  {
+    "site": "binance",
+    "category": "crypto_exchange",
+    "text": "Binance is the world's largest cryptocurrency exchange by trading volume. Advanced trading features with spot, margin, and futures. Proof of Reserves verified. Risk Warning: Cryptocurrency trading involves significant risks.",
+    "expected_label": 0,
+    "region": "global"
+  },
+  {
+    "site": "kraken",
+    "category": "crypto_exchange",
+    "text": "Kraken is a US-based cryptocurrency exchange founded in 2011. Bank-level security with 95% of assets in cold storage. FinCEN registered and regulated. Past performance does not guarantee future results.",
+    "expected_label": 0,
+    "region": "US"
+  },
+  {
+    "site": "gemini",
+    "category": "crypto_exchange",
+    "text": "Gemini is a regulated cryptocurrency exchange and custodian. SOC 2 Type 2 certified. NYDFS regulated. Your assets are protected with insurance coverage. Cryptocurrency value can fluctuate.",
+    "expected_label": 0,
+    "region": "US"
+  },
+  {
+    "site": "crypto_com",
+    "category": "crypto_exchange",
+    "text": "Crypto.com provides trading, payments, and financial services for cryptocurrency. ISO 27001 certified. SOC 2 Type 2 compliant. Regulatory licenses in multiple jurisdictions.",
+    "expected_label": 0,
+    "region": "global"
+  },
+  {
+    "site": "bitstamp",
+    "category": "crypto_exchange",
+    "text": "Bitstamp is Europe's longest-standing cryptocurrency exchange. Luxembourg-licensed virtual currency exchange. Full compliance with EU regulations. Cryptocurrency investments carry risk.",
+    "expected_label": 0,
+    "region": "EU"
+  },
+  {
+    "site": "bitso",
+    "category": "crypto_exchange",
+    "text": "Bitso is Latin America's leading cryptocurrency exchange. Regulated in multiple countries. Bank-level security protocols. Your funds are protected. Cryptocurrency values may decrease.",
+    "expected_label": 0,
+    "region": "LATAM"
+  },
+  {
+    "site": "coindcx",
+    "category": "crypto_exchange",
+    "text": "CoinDCX is India's largest cryptocurrency exchange. ISO 27001 certified. FIU-IND registered. Advanced security with multi-layer protection. Investment in crypto assets involves risk.",
+    "expected_label": 0,
+    "region": "India"
+  },
+  {
+    "site": "chase",
+    "category": "financial",
+    "text": "Chase Bank offers checking, savings, mortgages, and credit cards. FDIC insured up to $250,000. Member FDIC. Equal Housing Lender. JPMorgan Chase & Co.",
+    "expected_label": 0,
+    "region": "US"
+  },
+  {
+    "site": "bank_of_america",
+    "category": "financial",
+    "text": "Bank of America provides banking, investing, and mortgage services. FDIC insured. Member FDIC. Equal Housing Lender. Merrill Lynch wealth management.",
+    "expected_label": 0,
+    "region": "US"
+  },
+  {
+    "site": "fidelity",
+    "category": "financial",
+    "text": "Fidelity Investments offers brokerage, retirement, and wealth management. SIPC protected up to $500,000. SEC registered. Not FDIC insured, investments may lose value.",
+    "expected_label": 0,
+    "region": "US"
+  },
+  {
+    "site": "charles_schwab",
+    "category": "financial",
+    "text": "Charles Schwab provides brokerage, banking, and financial advisory services. SIPC member. SEC registered investment adviser. Your investments may lose value.",
+    "expected_label": 0,
+    "region": "US"
+  },
+  {
+    "site": "vanguard",
+    "category": "financial",
+    "text": "Vanguard offers low-cost index funds and ETFs. SIPC member. SEC registered. Investments are subject to market risk. Past performance is not a guarantee.",
+    "expected_label": 0,
+    "region": "US"
+  },
+  {
+    "site": "td_ameritrade",
+    "category": "financial",
+    "text": "TD Ameritrade provides investment and trading services. SIPC protected. SEC registered broker-dealer. Investments involve risk including loss of principal.",
+    "expected_label": 0,
+    "region": "US"
+  },
+  {
+    "site": "etrade",
+    "category": "financial",
+    "text": "E*TRADE offers brokerage and banking services. SIPC member. FDIC insured bank accounts. Morgan Stanley company. Investments may lose value.",
+    "expected_label": 0,
+    "region": "US"
+  },
+  {
+    "site": "wells_fargo",
+    "category": "financial",
+    "text": "Wells Fargo provides banking, mortgage, and investment services. FDIC insured. NMLS ID 399801. Investment products are not FDIC insured.",
+    "expected_label": 0,
+    "region": "US"
+  },
+  {
+    "site": "citibank",
+    "category": "financial",
+    "text": "Citibank offers personal banking and credit card services. FDIC insured. Member FDIC. Equal Housing Lender. Citigroup company.",
+    "expected_label": 0,
+    "region": "US"
+  },
+  {
+    "site": "capital_one",
+    "category": "financial",
+    "text": "Capital One provides banking, credit cards, and auto loans. FDIC insured. Member FDIC. Equal Housing Lender.",
+    "expected_label": 0,
+    "region": "US"
+  }
+]

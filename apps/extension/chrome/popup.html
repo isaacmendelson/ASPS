@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Main Section (always visible - email comes from desktop agent) -->
+    <div id="mainSection">
+      <!-- Header -->
+      <div class="header">
+        <div class="status-indicator gray" id="statusIndicator"></div>
+        <div class="header-text">
+          <div class="title">AntiScam Protection</div>
+          <div class="subtitle" id="connectionStatus">Checking...</div>
+        </div>
+        <!-- Email managed by desktop agent -->
+      </div>
+
+      <!-- Warning Banner (shown when remote access detected) -->
+      <div class="warning-banner" id="warningBanner">
+        <span class="icon">&#9888;</span>
+        <span class="text" id="warningText">Remote access detected</span>
+      </div>
+
+      <!-- Risk Display -->
+      <div class="risk-section">
+        <div class="risk-circle gray" id="riskCircle">
+          <span class="risk-score" id="riskScore">--</span>
+        </div>
+        <div class="risk-label gray" id="riskLabel">Checking...</div>
+      </div>
+
+      <!-- Details -->
+      <div class="details-section">
+        <div class="detail-row">
+          <span class="detail-label">Domain</span>
+          <span class="detail-value" id="domainValue">--</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Source</span>
+          <span class="detail-value" id="sourceValue">--</span>
+        </div>
+      </div>
+
+      <!-- Connection Info -->
+      <div class="connection-section">
+        <div class="detail-row">
+          <span class="detail-label">User</span>
+          <span class="detail-value" id="userEmail">--</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Desktop App</span>
+          <span class="detail-value" id="desktopStatus">--</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Server</span>
+          <span class="detail-value" id="serverStatus">--</span>
+        </div>
+      </div>
+
+      <!-- Feedback Section (shown after score) -->
+      <div class="feedback-section" id="feedbackSection" style="display: none;">
+        <div class="feedback-question">Is this score correct?</div>
+        <div class="feedback-buttons">
+          <button class="btn-feedback btn-correct" id="btnCorrect" title="Score is correct">
+            👍
+          </button>
+          <button class="btn-feedback btn-incorrect" id="btnIncorrect" title="Score is wrong">
+            👎
+          </button>
+        </div>
+        <div class="feedback-sent" id="feedbackSent" style="display: none;">
+          ✓ Thanks for your feedback!
+        </div>
+      </div>
+
+      <!-- Buttons -->
+      <div class="buttons-section">
+        <button class="btn btn-primary" id="btnScan">
+          <span class="btn-icon">🔍</span> Scan Page
+        </button>
+        <button class="btn btn-secondary" id="btnReconnect">
+          <span class="btn-icon">🔄</span> Reconnect
+        </button>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <span class="version">v<span id="versionNumber">0.1.0</span></span>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

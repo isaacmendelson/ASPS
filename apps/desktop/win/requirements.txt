@@ -1,0 +1,29 @@
+# AntiScam Desktop App - Dependencies
+
+# Environment variable loading
+python-dotenv>=1.0.1
+
+# WebSocket for extension communication
+websockets>=12.0
+
+# ZeroMQ for backend communication
+pyzmq>=25.1.0
+
+# HTTP requests (for Google Auth)
+requests>=2.31.0
+
+# System tray
+pystray>=0.19.5
+Pillow>=10.0.0
+
+# Modern tkinter widgets for popup UI
+customtkinter>=5.2.2
+
+# Process monitoring
+psutil>=5.9.0
+
+# IP Geolocation (optional - gracefully degrades if missing)
+geoip2>=4.8.0
+
+# For building EXE
+pyinstaller>=6.0.0

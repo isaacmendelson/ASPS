@@ -1,0 +1,145 @@
+// ============================================
+// AntiScam Extension - Message Types
+// Centralized message type definitions
+// ============================================
+
+export const MSG = {
+  // ==========================================
+  // Connection Messages
+  // ==========================================
+  CONNECTION_CHECK: 'connection:check',
+  CONNECTION_STATUS: 'connection:status',
+  CONNECTION_RECONNECT: 'connection:reconnect',
+
+  // ==========================================
+  // Scan Messages
+  // ==========================================
+  SCAN_URL: 'scan:url',
+  SCAN_RESULT: 'scan:result',
+  SCAN_PAGE: 'scan:page',
+  SCAN_CURRENT: 'scan:current',
+
+  // ==========================================
+  // Page Info Messages
+  // ==========================================
+  PAGE_INFO_REQUEST: 'page:info:request',
+  PAGE_INFO_RESPONSE: 'page:info:response',
+
+  // ==========================================
+  // Warning/Protection Messages
+  // ==========================================
+  SHOW_WARNING: 'warning:show',
+  BLOCK_PAGE: 'warning:block',
+  REMOVE_WARNING: 'warning:remove',
+
+  // ==========================================
+  // Auth Messages
+  // ==========================================
+  AUTH_SIGN_IN: 'auth:signin',
+  AUTH_SIGN_OUT: 'auth:signout',
+  AUTH_STATUS: 'auth:status',
+
+  // ==========================================
+  // Cache Messages
+  // ==========================================
+  CACHE_CLEAR: 'cache:clear',
+  CACHE_GET: 'cache:get',
+  CACHE_SET: 'cache:set',
+
+  // ==========================================
+  // Status Messages
+  // ==========================================
+  STATUS_GET: 'status:get',
+  STATUS_UPDATE: 'status:update',
+
+  // ==========================================
+  // Desktop App Messages (WebSocket)
+  // ==========================================
+  WS_PING: 'ping',
+  WS_PONG: 'pong',
+  WS_URL_CHECK: 'url_check',
+  WS_URL_RESULT: 'url_result',
+  WS_USER_AUTH: 'user_auth',
+  WS_USER_SIGNOUT: 'user_signout',
+  WS_NOTIFICATION: 'notification',
+  WS_ERROR: 'error',
+
+  // ==========================================
+  // Remote Access Warning Messages
+  // ==========================================
+  REMOTE_ACCESS_ALERT: 'remote_access_alert',           // From desktop when session detected
+  REMOTE_ACCESS_WARNING_SHOW: 'warning:remote_access',  // To content script to show warning
+  REMOTE_ACCESS_WARNING_DISMISS: 'warning:remote_dismiss', // Dismiss warning across tabs
+  REMOTE_ACCESS_CLOSE_SESSION: 'remote:close_session',  // Request desktop to close session
+  REMOTE_ACCESS_CONTINUED: 'remote:continued_anyway',   // User chose to continue
+  REMOTE_ACCESS_SESSION_END: 'remote_access_session_end', // Session ended
+  REMOTE_ACCESS_APP_CLOSED: 'remote_access_app_closed'  // App closed
+};
+
+// Warning styles
+export const WARNING_STYLE = {
+  BANNER: 'banner',
+  MODAL: 'modal',
+  BLOCK: 'block'
+};
+
+// Protective action types (matching backend)
+export const PROTECTIVE_ACTION = {
+  NONE: 0,
+  NOTIFY: 1,
+  WARN_BANNER: 2,
+  WARN_MODAL: 3,
+  BLOCK: 4
+};
+
+// Risk types (matching backend)
+export const RISK_TYPE = {
+  SAFE: 0,
+  PHISHING: 1,
+  CLOAKING: 2,
+  IMPERSONATION: 3,
+  FAKE_DOMAIN: 4,
+  UNKNOWN: 5
+};
+
+// Risk labels
+export const RISK_LABELS = {
+  [RISK_TYPE.SAFE]: 'Safe',
+  [RISK_TYPE.PHISHING]: 'Phishing',
+  [RISK_TYPE.CLOAKING]: 'Cloaking',
+  [RISK_TYPE.IMPERSONATION]: 'Impersonation',
+  [RISK_TYPE.FAKE_DOMAIN]: 'Fake Domain',
+  [RISK_TYPE.UNKNOWN]: 'Unknown Risk'
+};
+
+// Remote access tool IDs (matching desktop config.py REMOTE_ACCESS_TOOLS)
+export const REMOTE_TOOL = {
+  ANYDESK: 1,
+  TEAMVIEWER: 2,
+  CHROME_RD: 3,
+  ULTRAVIEWER: 4,
+  LOGMEIN: 5,
+  RUSTDESK: 6,
+  AMMYY: 7,
+  RDP: 8,
+  QUICK_ASSIST: 9,
+  CONNECTWISE: 10,
+  UNKNOWN: 99
+};
+
+// Tool display names for UI
+export const REMOTE_TOOL_NAMES = {
+  [REMOTE_TOOL.ANYDESK]: 'AnyDesk',
+  [REMOTE_TOOL.TEAMVIEWER]: 'TeamViewer',
+  [REMOTE_TOOL.CHROME_RD]: 'Chrome Remote Desktop',
+  [REMOTE_TOOL.ULTRAVIEWER]: 'UltraViewer',
+  [REMOTE_TOOL.LOGMEIN]: 'LogMeIn',
+  [REMOTE_TOOL.RUSTDESK]: 'RustDesk',
+  [REMOTE_TOOL.AMMYY]: 'Ammyy Admin',
+  [REMOTE_TOOL.RDP]: 'Remote Desktop',
+  [REMOTE_TOOL.QUICK_ASSIST]: 'Quick Assist',
+  [REMOTE_TOOL.CONNECTWISE]: 'ConnectWise',
+  [REMOTE_TOOL.UNKNOWN]: 'Remote access software'
+};
+
+export default MSG;

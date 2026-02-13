@@ -1,0 +1,336 @@
+@page
+@model WebApi.Pages.Users.DetailsModel
+@{
+    ViewData["Title"] = "User Details";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">User Details</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="/Users" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Users
+        </a>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Error!</strong> @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (Request.Query.ContainsKey("success"))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <strong>Success!</strong> @Request.Query["success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (Model.User != null)
+{
+    <div class="row">
+        <!-- User Information Card -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-user"></i> Personal Information</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Full Name:</dt>
+                        <dd class="col-sm-8">@Model.User.FirstName @Model.User.LastName</dd>
+
+                        <dt class="col-sm-4">Keycloak ID:</dt>
+                        <dd class="col-sm-8"><code>@Model.User.KeycloakUserId</code></dd>
+
+                        <dt class="col-sm-4">Phone:</dt>
+                        <dd class="col-sm-8">@Model.User.PhoneNumber</dd>
+
+                        <dt class="col-sm-4">Role:</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge bg-info">@Model.User.Role</span>
+                        </dd>
+
+                        <dt class="col-sm-4">Status:</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.User.IsDisabled)
+                            {
+                                <span class="badge bg-danger">Disabled</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-4">Created:</dt>
+                        <dd class="col-sm-8">@Model.User.DateCreated.ToString("yyyy-MM-dd HH:mm")</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Address Card -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-map-marker-alt"></i> Address</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Street:</dt>
+                        <dd class="col-sm-8">@Model.User.Address</dd>
+
+                        <dt class="col-sm-4">City:</dt>
+                        <dd class="col-sm-8">@Model.User.City</dd>
+
+                        <dt class="col-sm-4">State:</dt>
+                        <dd class="col-sm-8">@Model.User.State</dd>
+
+                        <dt class="col-sm-4">ZIP:</dt>
+                        <dd class="col-sm-8">@Model.User.Zip</dd>
+
+                        <dt class="col-sm-4">Country:</dt>
+                        <dd class="col-sm-8">@Model.User.Country</dd>
+
+                        <dt class="col-sm-4">Timezone:</dt>
+                        <dd class="col-sm-8">UTC @Model.User.Timezone</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Devices Section -->
+    <div class="card shadow mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-laptop"></i> Registered Devices (@Model.Devices.Count)</h5>
+            <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addDeviceModal">
+                <i class="fas fa-plus"></i> Add Device
+            </button>
+        </div>
+        <div class="card-body">
+            @if (Model.Devices.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Device UID</th>
+                                <th>Type</th>
+                                <th>OS</th>
+                                <th>Model</th>
+                                <th>MAC</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var device in Model.Devices)
+                            {
+                                <tr>
+                                    <td><code>@device.DeviceUid</code></td>
+                                    <td>
+                                        @if (device.DeviceType == Common.Enums.DeviceType.SmartPhone)
+                                        {
+                                            <span class="badge bg-primary"><i class="fas fa-mobile-alt"></i> Phone</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-info"><i class="fas fa-desktop"></i> PC</span>
+                                        }
+                                    </td>
+                                    <td>@device.OperatingSystem</td>
+                                    <td>@device.Model</td>
+                                    <td><small>@device.MAC</small></td>
+                                    <td>
+                                        @if (device.MonitoringStatus == Common.Enums.DeviceMonitoringStatus.Enabled)
+                                        {
+                                            <span class="badge bg-success">Monitored</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">@device.MonitoringStatus</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="viewDevice('@device.KeyField')">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <p class="text-muted mb-0">No devices registered for this user.</p>
+            }
+        </div>
+    </div>
+
+    <!-- Recent Alerts Section -->
+    <div class="card shadow mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Recent Alerts (Last 7 Days) (@Model.RecentAlerts.Count)</h5>
+        </div>
+        <div class="card-body">
+            @if (Model.RecentAlerts.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Type</th>
+                                <th>Priority</th>
+                                <th>Device</th>
+                                <th>Details</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var alert in Model.RecentAlerts.Take(10))
+                            {
+                                <tr>
+                                    <td>@alert.Timestamp.ToString("MM/dd HH:mm")</td>
+                                    <td>
+                                        @if (alert.AlertType.Contains("Url", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge bg-warning"><i class="fas fa-link"></i> URL</span>
+                                        }
+                                        else if (alert.AlertType.Contains("RemoteAccess", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge bg-danger"><i class="fas fa-desktop"></i> Remote</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-info">@alert.AlertType</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @{
+                                            var priorityClass = alert.Priority switch
+                                            {
+                                                Common.Enums.Priority.Critical => "danger",
+                                                Common.Enums.Priority.High => "warning",
+                                                Common.Enums.Priority.Medium => "info",
+                                                _ => "secondary"
+                                            };
+                                        }
+                                        <span class="badge bg-@priorityClass">@alert.Priority</span>
+                                    </td>
+                                    <td><small><code>@alert.DeviceUid</code></small></td>
+                                    <td>
+                                        @if (alert is Common.Entities.UrlAlertEntity urlAlert)
+                                        {
+                                            <small class="text-truncate d-inline-block" style="max-width: 200px;" title="@urlAlert.Url">
+                                                @urlAlert.Url
+                                            </small>
+                                        }
+                                        else if (alert is Common.Entities.RemoteAccessAlertEntity raAlert)
+                                        {
+                                            <small>@raAlert.RemoteAccessApp</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="viewAlert('@alert.KeyField')">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                @if (Model.RecentAlerts.Count > 10)
+                {
+                    <div class="text-center mt-2">
+                        <small class="text-muted">Showing 10 of @Model.RecentAlerts.Count alerts</small>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="text-muted mb-0">No recent alerts for this user's devices.</p>
+            }
+        </div>
+    </div>
+
+    <!-- Add Device Modal -->
+    <div class="modal fade" id="addDeviceModal" tabindex="-1" aria-labelledby="addDeviceModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" asp-page-handler="CreateDevice" asp-route-key="@Model.User.KeyField">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addDeviceModalLabel">Add Device for @Model.User.FirstName @Model.User.LastName</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="DeviceUid" class="form-label">Device UID <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="DeviceUid" name="DeviceUid" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="DeviceType" class="form-label">Device Type <span class="text-danger">*</span></label>
+                            <select class="form-select" id="DeviceType" name="DeviceType" required onchange="togglePhoneNumber()">
+                                <option value="PersonalComputer">Personal Computer</option>
+                                <option value="SmartPhone">Smart Phone</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="DeviceOS" class="form-label">Operating System <span class="text-danger">*</span></label>
+                            <select class="form-select" id="DeviceOS" name="DeviceOS" required>
+                                <option value="Windows">Windows</option>
+                                <option value="Linux">Linux</option>
+                                <option value="Mac">Mac</option>
+                                <option value="Android">Android</option>
+                                <option value="IOS">iOS</option>
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="DeviceMake" class="form-label">Make <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="DeviceMake" name="DeviceMake" required placeholder="e.g. Dell, Apple, Samsung" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="DeviceModel" class="form-label">Model <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="DeviceModel" name="DeviceModel" required placeholder="e.g. XPS 15, iPhone 14" />
+                            </div>
+                        </div>
+                        <div class="mb-3" id="phoneNumberGroup" style="display:none;">
+                            <label for="DevicePhoneNumber" class="form-label">Phone Number</label>
+                            <input type="text" class="form-control" id="DevicePhoneNumber" name="DevicePhoneNumber" placeholder="e.g. +1-555-123-4567" />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">Add Device</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i> User not found.
+    </div>
+}
+
+@section Scripts {
+<script>
+    function togglePhoneNumber() {
+        var deviceType = document.getElementById('DeviceType').value;
+        var phoneGroup = document.getElementById('phoneNumberGroup');
+        phoneGroup.style.display = (deviceType === 'SmartPhone') ? 'block' : 'none';
+    }
+</script>
+}

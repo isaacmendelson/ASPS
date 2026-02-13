@@ -1,0 +1,68 @@
+using Business.Commands;
+using Business.Queries;
+using Business.Handlers;
+using Business.Data.EF;
+using Business.Data.EF.Repositories;
+using Interface.Repositories;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Business.Services;
+
+/// <summary>
+/// Service to register Business layer dependencies in WebApi
+/// This keeps all database configuration in Business layer
+/// </summary>
+public static class BusinessServiceRegistration
+{
+    public static IServiceCollection AddBusinessServices(
+        this IServiceCollection services, 
+        string connectionString)
+    {
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            throw new InvalidOperationException(
+                "Database connection string is required. " +
+                "Pass the connection string from ASPSBackend configuration.");
+        }
+
+        // Register DbContext (Business layer only)
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+
+        // Register Repositories (Business layer only)
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IUserDeviceRepository, UserDeviceRepository>();
+        services.AddScoped<IUserAccountRepository, UserAccountRepository>();
+        services.AddScoped<IDeviceAlertRepository, DeviceAlertRepository>();
+        services.AddScoped<IAnalysisResultRepository, AnalysisResultRepository>();
+        services.AddScoped<IKnownPhishingWebsiteRepository, KnownPhishingWebsiteRepository>();
+
+        // Register Command and Query Handlers (These are what WebApi uses)
+        services.AddScoped<UserCommandHandlers>();
+        services.AddScoped<UserQueryHandlers>();
+        services.AddScoped<AdminCommandHandlers>();
+        services.AddScoped<AdminQueryHandlers>();
+
+        Console.WriteLine("✓ Business layer services registered");
+        Console.WriteLine($"✓ Database: {GetDatabaseName(connectionString)}");
+
+        return services;
+    }
+
+    private static string GetDatabaseName(string connectionString)
+    {
+        try
+        {
+            var parts = connectionString.Split(';');
+            var dbPart = parts.FirstOrDefault(p => p.Trim().StartsWith("database=", StringComparison.OrdinalIgnoreCase));
+            if (dbPart != null)
+            {
+                return dbPart.Split('=')[1].Trim();
+            }
+        }
+        catch { }
+        return "Unknown";
+    }
+}

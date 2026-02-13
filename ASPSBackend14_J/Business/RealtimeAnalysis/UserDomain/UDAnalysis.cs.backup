@@ -1,0 +1,259 @@
+using Common.Entities;
+using Common.Enums;
+using Common.Events;
+using Common.Interfaces;
+using Common.Models;
+using Common.Models.Alerts;
+using Microsoft.Extensions.Logging;
+using DeviceAlert = Common.Models.DeviceAlert;
+
+namespace Business.RealtimeAnalysis.UserDomain;
+
+// Analysis result class
+public class UDAnalysisResult
+{
+    public Severity OverallSeverity { get; set; }
+    public Dictionary<string, object> AnalyzerResults { get; set; } = new();
+    public List<AlertFlag> GeneratedFlags { get; set; } = new();
+    public DateTime AnalysisTimestamp { get; set; } = DateTime.UtcNow;
+}
+
+// UDAnalysis class
+public class UDAnalysis
+{
+    private readonly List<ISpecificAnalyzer> _analyzers;
+    private readonly ILogger<UDAnalysis> _logger;
+    public List<DeviceAlert> ActiveAlerts { get; private set; } = new();
+    public UDAnalysisResult? Result { get; private set; }
+
+    public UDAnalysis(List<ISpecificAnalyzer> analyzers, ILogger<UDAnalysis> logger)
+    {
+        _analyzers = analyzers;
+        _logger = logger;
+    }
+
+    public async Task AnalyzeAsync(DeviceAlert newAlert)
+    {
+        ActiveAlerts.Add(newAlert);
+        
+        var analysisResults = new Dictionary<string, object>();
+        var flags = new List<AlertFlag>();
+
+        foreach (var analyzer in _analyzers)
+        {
+            if (analyzer.CanAnalyze(newAlert))
+            {
+                var result = await analyzer.AnalyzeAsync(newAlert, ActiveAlerts);
+                analysisResults[analyzer.GetType().Name] = result;
+
+                SaveAnalysisResult(result);
+                
+                if (result.Flags != null)
+                {
+                    flags.AddRange(result.Flags);
+                }
+            }
+        }
+
+        Result = new UDAnalysisResult
+        {
+            AnalyzerResults = analysisResults,
+            GeneratedFlags = flags,
+            OverallSeverity = DetermineOverallSeverity(analysisResults)
+        };
+
+        _logger.LogInformation($"Analysis completed. Overall severity: {Result.OverallSeverity}");
+    }
+
+    private void SaveAnalysisResult(AnalyzerResult result)
+    {
+        //var resultRecord = new AnalysisResultContainer(result.Details.)
+    }
+
+    private Severity DetermineOverallSeverity(Dictionary<string, object> results)
+    {
+        var maxSeverity = Severity.Low;
+        
+        foreach (var result in results.Values)
+        {
+            if (result is AnalyzerResult ar && ar.Severity > maxSeverity)
+            {
+                maxSeverity = ar.Severity;
+            }
+        }
+        
+        return maxSeverity;
+    }
+}
+
+// Analyzer result class
+public class AnalyzerResult
+{
+    public Severity Severity { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public List<AlertFlag>? Flags { get; set; }
+    public Dictionary<string, object> Details { get; set; } = new();
+}
+
+// Analyzer interface
+public interface ISpecificAnalyzer
+{
+    ExternalAnalyzer[] ExternalAnalyzers { get; }
+    bool CanAnalyze(DeviceAlert alert);
+    Task<AnalyzerResult> AnalyzeAsync(DeviceAlert alert, List<DeviceAlert> historicalAlerts);
+}
+
+// Remote Access Analyzer
+public class UDRemoteAccessAnalyzer : ISpecificAnalyzer
+{
+    private readonly ILogger<UDRemoteAccessAnalyzer> _logger;
+
+    public ExternalAnalyzer[] ExternalAnalyzers => Array.Empty<ExternalAnalyzer>();
+
+    public UDRemoteAccessAnalyzer(ILogger<UDRemoteAccessAnalyzer> logger)
+    {
+        _logger = logger;
+    }
+
+    public bool CanAnalyze(DeviceAlert alert)
+    {
+        return alert is RemoteAccessAlert;
+    }
+
+    public async Task<AnalyzerResult> AnalyzeAsync(DeviceAlert alert, List<DeviceAlert> historicalAlerts)
+    {
+        await Task.CompletedTask; // Placeholder for async operations
+        
+        var remoteAlert = alert as RemoteAccessAlert;
+        if (remoteAlert == null)
+        {
+            return new AnalyzerResult { Severity = Severity.Low, Message = "Invalid alert type" };
+        }
+
+        var flags = new List<AlertFlag>();
+        var severity = Severity.Low;
+
+        // Analyze running processes
+        if (remoteAlert.RunningProcesses > 0)
+        {
+            flags.Add(new AlertFlag
+            {
+                AlertFlagType = AlertFlagType.RemoteAccess_AppRunning,
+                Status = AlertFlagStatus.Open,
+                Created = DateTime.UtcNow
+            });
+            severity = Severity.Medium;
+        }
+
+        // Analyze connection status
+        if (remoteAlert.ConnectionStatus == ConnectionStatus.Open)
+        {
+            flags.Add(new AlertFlag
+            {
+                AlertFlagType = AlertFlagType.RemoteAccess_ConnectionOpen,
+                Status = AlertFlagStatus.Open,
+                Created = DateTime.UtcNow
+            });
+            severity = Severity.High;
+        }
+
+        // Check for active session
+        if (remoteAlert.SessionStatus > 0)
+        {
+            flags.Add(new AlertFlag
+            {
+                AlertFlagType = AlertFlagType.RemoteAccess_SessionActive,
+                Status = AlertFlagStatus.Open,
+                Created = DateTime.UtcNow
+            });
+            severity = Severity.Critical;
+        }
+
+        _logger.LogInformation($"Remote access analysis: Severity={severity}, Flags={flags.Count}");
+
+        return new AnalyzerResult
+        {
+            Severity = severity,
+            Message = $"Remote access detected: {remoteAlert.RemoteAccessApp}",
+            Flags = flags,
+            Details = new Dictionary<string, object>
+            {
+                ["App"] = remoteAlert.RemoteAccessApp.ToString(),
+                ["ConnectionUrl"] = remoteAlert.ConnectionUrl,
+                ["ConnectionsCount"] = remoteAlert.ConnectionsCount
+            }
+        };
+    }
+}
+
+// Phishing Analyzer
+public class UDPhishingAnalyzer : ISpecificAnalyzer
+{
+    private readonly ILogger<UDPhishingAnalyzer> _logger;
+    private readonly HashSet<string> _knownPhishingDomains = new()
+    {
+        "suspicious-bank.com", "fake-paypal.net", "phishing-site.org"
+    };
+
+    public ExternalAnalyzer[] ExternalAnalyzers => Array.Empty<ExternalAnalyzer>();
+
+    public UDPhishingAnalyzer(ILogger<UDPhishingAnalyzer> logger)
+    {
+        _logger = logger;
+    }
+
+    public bool CanAnalyze(DeviceAlert alert)
+    {
+        return alert is UrlAlert;
+    }
+
+    public async Task<AnalyzerResult> AnalyzeAsync(DeviceAlert alert, List<DeviceAlert> historicalAlerts)
+    {
+        await Task.CompletedTask;
+        
+        var urlAlert = alert as UrlAlert;
+        if (urlAlert == null)
+        {
+            return new AnalyzerResult { Severity = Severity.Low, Message = "Invalid alert type" };
+        }
+
+        var severity = Severity.Low;
+        var flags = new List<AlertFlag>();
+
+        // Check URL against known phishing domains
+        foreach (var domain in _knownPhishingDomains)
+        {
+            if (urlAlert.Url.Contains(domain, StringComparison.OrdinalIgnoreCase))
+            {
+                severity = Severity.Critical;
+                _logger.LogWarning($"Phishing URL detected: {urlAlert.Url}");
+                break;
+            }
+        }
+
+        // Check for suspicious trackers
+        if (urlAlert.Trackers.Length > 5)
+        {
+            severity = severity < Severity.Medium ? Severity.Medium : severity;
+        }
+
+        // Check for iframes (potential clickjacking)
+        if (urlAlert.IFrameDomains.Length > 0)
+        {
+            severity = severity < Severity.Medium ? Severity.Medium : severity;
+        }
+
+        return new AnalyzerResult
+        {
+            Severity = severity,
+            Message = $"URL analysis: {urlAlert.Url}",
+            Flags = flags,
+            Details = new Dictionary<string, object>
+            {
+                ["Url"] = urlAlert.Url,
+                ["TrackerCount"] = urlAlert.Trackers.Length,
+                ["IFrameCount"] = urlAlert.IFrameDomains.Length
+            }
+        };
+    }
+}

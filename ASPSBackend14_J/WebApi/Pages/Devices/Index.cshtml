@@ -1,0 +1,142 @@
+@page
+@model WebApi.Pages.Devices.IndexModel
+@{
+    ViewData["Title"] = "Devices";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Registered Devices</h1>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Error!</strong> @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">All Devices (@Model.Devices.Count)</h6>
+        <form method="get" class="d-flex" style="max-width: 400px;">
+            <input type="text" name="search" value="@Model.Search" class="form-control form-control-sm me-2" placeholder="Search UID, model, owner..." />
+            <button type="submit" class="btn btn-sm btn-primary">Search</button>
+            @if (!string.IsNullOrEmpty(Model.Search))
+            {
+                <a href="/Devices" class="btn btn-sm btn-outline-secondary ms-1">Clear</a>
+            }
+        </form>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover" id="devicesTable">
+                <thead>
+                    <tr>
+                        <th>Device UID</th>
+                        <th>Type</th>
+                        <th>OS</th>
+                        <th>Model</th>
+                        <th>Owner</th>
+                        <th>Device Uid</th>
+                        <th>Status</th>
+                        <th>Added On</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Devices)
+                    {
+                        var device = item.Device;
+                        <tr>
+                            <td><code>@device.DeviceUid</code></td>
+                            <td>
+                                @if (device.DeviceType == Common.Enums.DeviceType.SmartPhone)
+                                {
+                                    <span class="badge bg-primary"><i class="fas fa-mobile-alt"></i> Phone</span>
+                                }
+                                else if (device.DeviceType == Common.Enums.DeviceType.PersonalComputer)
+                                {
+                                    <span class="badge bg-info"><i class="fas fa-desktop"></i> PC</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">@device.DeviceType</span>
+                                }
+                            </td>
+                            <td>
+                                @if (device.OperatingSystem == Common.Enums.OperatingSystemType.Android)
+                                {
+                                    <span><i class="fab fa-android text-success"></i> Android</span>
+                                }
+                                else if (device.OperatingSystem == Common.Enums.OperatingSystemType.IOS)
+                                {
+                                    <span><i class="fab fa-apple text-secondary"></i> iOS</span>
+                                }
+                                else if (device.OperatingSystem == Common.Enums.OperatingSystemType.Windows)
+                                {
+                                    <span><i class="fab fa-windows text-primary"></i> Windows</span>
+                                }
+                                else if (device.OperatingSystem == Common.Enums.OperatingSystemType.Mac)
+                                {
+                                    <span><i class="fab fa-apple text-secondary"></i> macOS</span>
+                                }
+                                else if (device.OperatingSystem == Common.Enums.OperatingSystemType.Linux)
+                                {
+                                    <span><i class="fab fa-linux text-dark"></i> Linux</span>
+                                }
+                                else
+                                {
+                                    <span>@device.OperatingSystem</span>
+                                }
+                            </td>
+                            <td>@device.Model</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(device.UserKeyField))
+                                {
+                                    <span class="badge bg-success">@item.UserName</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning">Unregistered</span>
+                                }
+                            </td>
+                            <td><small>@device.DeviceUid</small></td>
+                            <td>
+                                @if (device.MonitoringStatus == Common.Enums.DeviceMonitoringStatus.Enabled)
+                                {
+                                    <span class="badge bg-success"><i class="fas fa-shield-alt"></i> Monitored</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">@device.MonitoringStatus</span>
+                                }
+                            </td>
+                            <td><small>@device.DateCreated</small></td>
+                            <td class="table-actions">
+                                <button class="btn btn-sm btn-primary" onclick="viewDevice('@device.KeyField')" title="View Details">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+
+<script>
+    $(document).ready(function() {
+        $('#devicesTable').DataTable({
+            order: [[0, 'asc']],
+            pageLength: 25
+        });
+    });
+</script>
+}

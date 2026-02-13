@@ -1,0 +1,289 @@
+/* AntiScam Extension - Warning Styles */
+
+#antiscam-warning-banner {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 2147483647 !important;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%) !important;
+  color: white !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 14px !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+}
+
+.antiscam-banner-content {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 12px 20px !important;
+  gap: 12px !important;
+}
+
+.antiscam-icon {
+  font-size: 20px !important;
+}
+
+.antiscam-text {
+  flex: 1 !important;
+}
+
+.antiscam-close {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: none !important;
+  color: white !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  cursor: pointer !important;
+  font-size: 16px !important;
+}
+
+.antiscam-close:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+
+#antiscam-warning-modal {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 2147483647 !important;
+  background: rgba(0, 0, 0, 0.7) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.antiscam-modal-content {
+  background: white !important;
+  border-radius: 16px !important;
+  max-width: 450px !important;
+  width: 90% !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4) !important;
+  overflow: hidden !important;
+}
+
+.antiscam-modal-header {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%) !important;
+  color: white !important;
+  padding: 24px !important;
+  text-align: center !important;
+}
+
+.antiscam-modal-icon {
+  font-size: 48px !important;
+  display: block !important;
+  margin-bottom: 12px !important;
+}
+
+.antiscam-modal-header h2 {
+  margin: 0 !important;
+  font-size: 24px !important;
+  font-weight: 600 !important;
+}
+
+.antiscam-modal-body {
+  padding: 24px !important;
+  color: #333 !important;
+  text-align: center !important;
+}
+
+.antiscam-modal-body p {
+  margin: 12px 0 !important;
+  font-size: 15px !important;
+}
+
+.antiscam-risk-type,
+.antiscam-score {
+  color: #ee5a5a !important;
+  font-weight: 600 !important;
+}
+
+.antiscam-modal-footer {
+  padding: 16px 24px 24px !important;
+  display: flex !important;
+  gap: 12px !important;
+  justify-content: center !important;
+}
+
+.antiscam-btn-leave {
+  background: #ee5a5a !important;
+  color: white !important;
+  border: none !important;
+  padding: 12px 24px !important;
+  border-radius: 8px !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+}
+
+.antiscam-btn-leave:hover {
+  background: #dd4a4a !important;
+}
+
+.antiscam-btn-continue {
+  background: #f0f0f0 !important;
+  color: #666 !important;
+  border: none !important;
+  padding: 12px 24px !important;
+  border-radius: 8px !important;
+  font-size: 15px !important;
+  cursor: pointer !important;
+}
+
+.antiscam-btn-continue:hover {
+  background: #e0e0e0 !important;
+}
+
+/* Blur wrapper for blocked pages */
+.antiscam-blurred {
+  filter: blur(20px) !important;
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+#antiscam-block-page {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 2147483647 !important;
+  background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(22, 33, 62, 0.95) 100%) !important;
+  backdrop-filter: blur(10px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.antiscam-block-content {
+  text-align: center !important;
+  color: white !important;
+  padding: 40px !important;
+  max-width: 600px !important;
+}
+
+.antiscam-block-icon {
+  font-size: 100px !important;
+  margin-bottom: 20px !important;
+  animation: antiscam-pulse 2s infinite !important;
+}
+
+@keyframes antiscam-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+.antiscam-block-content h1 {
+  font-size: 42px !important;
+  margin: 0 0 8px 0 !important;
+  font-weight: 700 !important;
+  color: #FF4444 !important;
+  text-shadow: 0 2px 10px rgba(255, 68, 68, 0.5) !important;
+}
+
+.antiscam-block-subtitle {
+  font-size: 24px !important;
+  margin: 0 0 20px 0 !important;
+  font-weight: 400 !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.antiscam-block-url {
+  font-size: 16px !important;
+  color: #FFD700 !important;
+  margin: 16px 0 !important;
+  font-weight: 600 !important;
+}
+
+.antiscam-block-details {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: 2px solid rgba(255, 68, 68, 0.5) !important;
+  border-radius: 16px !important;
+  padding: 24px 32px !important;
+  margin: 24px 0 !important;
+  display: inline-block !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.antiscam-detail-item {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin: 12px 0 !important;
+  gap: 20px !important;
+}
+
+.antiscam-detail-label {
+  font-size: 14px !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.antiscam-detail-value {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #FF4444 !important;
+}
+
+.antiscam-block-warning {
+  font-size: 20px !important;
+  color: #FFD700 !important;
+  margin: 20px 0 8px 0 !important;
+  font-weight: 600 !important;
+}
+
+.antiscam-block-warning-en {
+  font-size: 16px !important;
+  color: rgba(255, 215, 0, 0.8) !important;
+  margin: 0 0 24px 0 !important;
+}
+
+.antiscam-block-buttons {
+  display: flex !important;
+  gap: 16px !important;
+  justify-content: center !important;
+  flex-wrap: wrap !important;
+  margin-top: 32px !important;
+}
+
+.antiscam-btn-back {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%) !important;
+  color: white !important;
+  border: none !important;
+  padding: 18px 36px !important;
+  border-radius: 12px !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4) !important;
+  transition: all 0.3s ease !important;
+}
+
+.antiscam-btn-back:hover {
+  background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6) !important;
+}
+
+.antiscam-btn-continue-anyway {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  padding: 12px 24px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+}
+
+.antiscam-btn-continue-anyway:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}

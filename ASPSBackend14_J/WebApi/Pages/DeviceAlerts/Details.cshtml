@@ -1,0 +1,307 @@
+@page
+@model WebApi.Pages.DeviceAlerts.DetailsModel
+@{
+    ViewData["Title"] = "Alert Details";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Alert Details</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="/DeviceAlerts" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Alerts
+        </a>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Error!</strong> @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (Model.Alert != null)
+{
+    <div class="row">
+        <!-- Alert Information Card -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Alert Information</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Key:</dt>
+                        <dd class="col-sm-8"><code>@Model.Alert.KeyField</code></dd>
+
+                        <dt class="col-sm-4">Alert Type:</dt>
+                        <dd class="col-sm-8"><span class="badge bg-warning">@Model.Alert.AlertType</span></dd>
+
+                        <dt class="col-sm-4">Priority:</dt>
+                        <dd class="col-sm-8">
+                            @{
+                                var priorityClass = Model.Alert.Priority switch
+                                {
+                                    Common.Enums.Priority.Critical => "danger",
+                                    Common.Enums.Priority.High => "warning",
+                                    Common.Enums.Priority.Medium => "info",
+                                    _ => "secondary"
+                                };
+                            }
+                            <span class="badge bg-@priorityClass">@Model.Alert.Priority</span>
+                        </dd>
+
+                        <dt class="col-sm-4">Timestamp:</dt>
+                        <dd class="col-sm-8">@Model.Alert.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</dd>
+
+                        <dt class="col-sm-4">Device UID:</dt>
+                        <dd class="col-sm-8"><code>@Model.Alert.DeviceUid</code></dd>
+
+                        <dt class="col-sm-4">Operating System:</dt>
+                        <dd class="col-sm-8">@Model.Alert.OperatingSystem</dd>
+
+                        <dt class="col-sm-4">MAC Address:</dt>
+                        <dd class="col-sm-8"><code>@Model.Alert.MAC</code></dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert-Specific Details Card -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Alert Details</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Alert is Common.Entities.UrlAlertEntity urlAlert)
+                    {
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">URL:</dt>
+                            <dd class="col-sm-8">
+                                <a href="@urlAlert.Url" target="_blank" class="text-break">@urlAlert.Url</a>
+                            </dd>
+
+                            <dt class="col-sm-4">User Agent:</dt>
+                            <dd class="col-sm-8"><small>@urlAlert.UserAgent</small></dd>
+
+                            @if (!string.IsNullOrEmpty(urlAlert.TrackerKeys) && urlAlert.TrackerKeys != "[]")
+                            {
+                                <dt class="col-sm-4">Trackers:</dt>
+                                <dd class="col-sm-8"><code>@urlAlert.TrackerKeys</code></dd>
+                            }
+
+                            @if (!string.IsNullOrEmpty(urlAlert.IFrameDomains) && urlAlert.IFrameDomains != "[]")
+                            {
+                                <dt class="col-sm-4">IFrame Domains:</dt>
+                                <dd class="col-sm-8"><code>@urlAlert.IFrameDomains</code></dd>
+                            }
+                        </dl>
+                    }
+                    else if (Model.Alert is Common.Entities.RemoteAccessAlertEntity raAlert)
+                    {
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">Application:</dt>
+                            <dd class="col-sm-8"><span class="badge bg-primary">@raAlert.RemoteAccessApp</span></dd>
+
+                            <dt class="col-sm-4">Connection URL:</dt>
+                            <dd class="col-sm-8 text-break">@raAlert.ConnectionUrl</dd>
+
+                            <dt class="col-sm-4">Connection Status:</dt>
+                            <dd class="col-sm-8"><span class="badge bg-info">@raAlert.ConnectionStatus</span></dd>
+
+                            <dt class="col-sm-4">Connections:</dt>
+                            <dd class="col-sm-8">@raAlert.ConnectionsCount</dd>
+
+                            <dt class="col-sm-4">Running Processes:</dt>
+                            <dd class="col-sm-8">@raAlert.RunningProcesses</dd>
+
+                            <dt class="col-sm-4">Session Status:</dt>
+                            <dd class="col-sm-8">@raAlert.SessionStatus</dd>
+                        </dl>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User and Device Information -->
+    <div class="row">
+        @if (!string.IsNullOrEmpty(Model.UserName))
+        {
+            <div class="col-md-6 mb-4">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-user"></i> User Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">Name:</dt>
+                            <dd class="col-sm-8">@Model.UserName</dd>
+
+                            <dt class="col-sm-4">User Key:</dt>
+                            <dd class="col-sm-8"><code>@Model.Alert.UserKeyField</code></dd>
+                        </dl>
+                        <div class="mt-3">
+                            <button class="btn btn-sm btn-primary" onclick="viewUser('@Model.Alert.UserKeyField')">
+                                <i class="fas fa-eye"></i> View User Profile
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.DeviceName))
+        {
+            <div class="col-md-6 mb-4">
+                <div class="card shadow">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-laptop"></i> Device Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">Device:</dt>
+                            <dd class="col-sm-8">@Model.DeviceName</dd>
+
+                            <dt class="col-sm-4">Device Key:</dt>
+                            <dd class="col-sm-8"><code>@Model.Alert.DeviceKeyField</code></dd>
+                        </dl>
+                        <div class="mt-3">
+                            <button class="btn btn-sm btn-primary" onclick="viewDevice('@Model.Alert.DeviceKeyField')">
+                                <i class="fas fa-eye"></i> View Device Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Analysis Result -->
+    @if (Model.AnalysisResult != null)
+    {
+        <div class="row">
+            <div class="col-12 mb-4">
+                <div class="card shadow">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-chart-line"></i> Analysis Result</h5>
+                        <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#jsonModal">
+                            <i class="fas fa-code"></i> View JSON
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-3">Key:</dt>
+                            <dd class="col-sm-9"><code>@Model.AnalysisResult.KeyField</code></dd>
+
+                            <dt class="col-sm-3">Type:</dt>
+                            <dd class="col-sm-9"><span class="badge bg-info">@Model.AnalysisResult.Discriminator</span></dd>
+
+                            <dt class="col-sm-3">Timestamp:</dt>
+                            <dd class="col-sm-9">@Model.AnalysisResult.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</dd>
+
+                            <dt class="col-sm-3">From Cache:</dt>
+                            <dd class="col-sm-9">
+                                @if (Model.AnalysisResult.IsFromCache)
+                                {
+                                    <span class="badge bg-success">Yes</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">No</span>
+                                }
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- JSON Modal -->
+        <div class="modal fade" id="jsonModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Analysis Result JSON - <code>@Model.AnalysisResult.KeyField</code></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="d-flex justify-content-end mb-2">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="copyJsonToClipboard()">
+                                <i class="fas fa-copy"></i> Copy to Clipboard
+                            </button>
+                        </div>
+                        <pre id="jsonContent" class="bg-dark text-light p-3 rounded" style="max-height: 600px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 14px;"></pre>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+else
+{
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i> Alert not found.
+    </div>
+}
+
+@if (Model.AnalysisResult != null)
+{
+    @section Scripts {
+    <script>
+        var rawJson = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AnalysisResult.JsonValue ?? ""));
+        var currentJsonValue = '';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var el = document.getElementById('jsonContent');
+            if (!el) return;
+            try {
+                var jsonValue = (typeof rawJson === 'string') ? rawJson.trim() : '';
+                if (jsonValue && (jsonValue.startsWith('{') || jsonValue.startsWith('['))) {
+                    var parsed = JSON.parse(jsonValue);
+                    currentJsonValue = JSON.stringify(parsed, null, 4);
+                } else {
+                    currentJsonValue = jsonValue || '(empty)';
+                }
+                el.innerHTML = syntaxHighlight(currentJsonValue);
+            } catch (e) {
+                currentJsonValue = rawJson || '';
+                el.textContent = currentJsonValue;
+            }
+        });
+
+        function syntaxHighlight(json) {
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                var cls = 'color: #98c379;';
+                if (/^"/.test(match)) {
+                    cls = /:$/.test(match) ? 'color: #e06c75;' : 'color: #98c379;';
+                } else if (/true|false/.test(match)) {
+                    cls = 'color: #d19a66;';
+                } else if (/null/.test(match)) {
+                    cls = 'color: #c678dd;';
+                }
+                return '<span style="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        function copyJsonToClipboard() {
+            navigator.clipboard.writeText(currentJsonValue).then(function() {
+                var btn = event.target.closest('button');
+                var orig = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                btn.classList.replace('btn-outline-secondary', 'btn-success');
+                setTimeout(function() {
+                    btn.innerHTML = orig;
+                    btn.classList.replace('btn-success', 'btn-outline-secondary');
+                }, 2000);
+            });
+        }
+    </script>
+    }
+}

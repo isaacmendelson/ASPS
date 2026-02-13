@@ -1,0 +1,368 @@
+@page
+@model WebApi.Pages.AnalysisResults.IndexModel
+@{
+    ViewData["Title"] = "Analysis Results";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Analysis Results</h1>
+    <div class="btn-group">
+        <a href="?hours=1@(string.IsNullOrEmpty(Model.Search) ? "" : $"&search={Uri.EscapeDataString(Model.Search)}")" class="btn btn-sm @(Model.TimeFilter == 1 ? "btn-primary" : "btn-outline-primary")">Last Hour</a>
+        <a href="?hours=24@(string.IsNullOrEmpty(Model.Search) ? "" : $"&search={Uri.EscapeDataString(Model.Search)}")" class="btn btn-sm @(Model.TimeFilter == 24 ? "btn-primary" : "btn-outline-primary")">Last 24h</a>
+        <a href="?hours=168@(string.IsNullOrEmpty(Model.Search) ? "" : $"&search={Uri.EscapeDataString(Model.Search)}")" class="btn btn-sm @(Model.TimeFilter == 168 ? "btn-primary" : "btn-outline-primary")">Last Week</a>
+        <a href="?hours=720@(string.IsNullOrEmpty(Model.Search) ? "" : $"&search={Uri.EscapeDataString(Model.Search)}")" class="btn btn-sm @(Model.TimeFilter == 720 ? "btn-primary" : "btn-outline-primary")">Last Month</a>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Error!</strong> @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.InfoMessage))
+{
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="fas fa-info-circle"></i> @Model.InfoMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">
+           Analysis Results from Last @Model.TimeFilter Hours (@Model.ResultsWithInfo.Count)
+        </h6>
+        <form method="get" class="d-flex" style="max-width: 400px;">
+            <input type="hidden" name="hours" value="@Model.TimeFilter" />
+            <input type="text" name="search" value="@Model.Search" class="form-control form-control-sm me-2" placeholder="Search type, user..." />
+            <button type="submit" class="btn btn-sm btn-primary">Search</button>
+            @if (!string.IsNullOrEmpty(Model.Search))
+            {
+                <a href="/AnalysisResults?hours=@Model.TimeFilter" class="btn btn-sm btn-outline-secondary ms-1">Clear</a>
+            }
+        </form>
+    </div>
+    <div class="card-body">
+        @if (Model.ResultsWithInfo.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover table-sm" id="resultsTable">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Type</th>
+                        <th>User</th>
+                        <th>Alert</th>
+                        <th>Device UID</th>
+                        <th>Device Type</th>
+                        <th>From Cache</th>
+                        <th>Key</th>
+                        <th>JSON Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.ResultsWithInfo)
+                    {
+                        var result = item.AnalysisResult;
+                        <tr>
+                            <td>@result.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td>
+                                <span class="badge bg-info">@result.Discriminator</span>
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(item.UserName))
+                                {
+                                    <a href="/Users/Details?key=@result.UserKeyField" class="text-primary" style="text-decoration: underline;">
+                                        @item.UserName
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Unknown</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.Alert != null)
+                                {
+                                    <a href="/DeviceAlerts/Details?key=@item.Alert.KeyField" title="@item.Alert.KeyField">
+                                        <span class="badge bg-warning">@item.Alert.AlertType</span>
+                                        <br />
+                                        <small class="text-muted">@item.Alert.Timestamp.ToString("MM/dd HH:mm")</small>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">N/A</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.Alert != null && !string.IsNullOrEmpty(item.Alert.DeviceKeyField))
+                                {
+                                    <a href="/Devices/Details?key=@item.Alert.DeviceKeyField" class="text-primary">
+                                        <code>@item.Alert.DeviceUid</code>
+                                    </a>
+                                }
+                                else if (item.Alert != null && !string.IsNullOrEmpty(item.Alert.DeviceUid))
+                                {
+                                    <a href="/Devices/Details?uid=@Uri.EscapeDataString(item.Alert.DeviceUid)" class="text-primary">
+                                        <code>@item.Alert.DeviceUid</code>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">N/A</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.Device != null)
+                                {
+                                    @if (item.Device.DeviceType == Common.Enums.DeviceType.SmartPhone)
+                                    {
+                                        <span class="badge bg-primary"><i class="fas fa-mobile-alt"></i> Phone</span>
+                                    }
+                                    else if (item.Device.DeviceType == Common.Enums.DeviceType.PersonalComputer)
+                                    {
+                                        <span class="badge bg-info"><i class="fas fa-desktop"></i> PC</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@item.Device.DeviceType</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted">N/A</span>
+                                }
+                            </td>
+                            <td>
+                                @if (result.IsFromCache)
+                                {
+                                    <span class="badge bg-success"><i class="fas fa-check"></i> Yes</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary"><i class="fas fa-times"></i> No</span>
+                                }
+                            </td>
+                            <td><small><code>@result.KeyField</code></small></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary json-view-btn"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#jsonModal"
+                                        data-key="@result.KeyField">
+                                    <i class="fas fa-code"></i> View JSON
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="fas fa-chart-line fa-4x text-muted mb-3"></i>
+                <h5 class="text-muted">No Analysis Results Found</h5>
+                <p class="text-muted">
+                    No analysis results available for the selected time period.<br/>
+                    Analysis results are generated when device alerts are analyzed.
+                </p>
+                <div class="mt-3">
+                    <a href="/DeviceAlerts" class="btn btn-primary">
+                        <i class="fas fa-bell"></i> View Device Alerts
+                    </a>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- JSON Modal -->
+<div class="modal fade" id="jsonModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">JSON Value - <span id="jsonKeyDisplay"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-end mb-2">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="copyJsonToClipboard()">
+                        <i class="fas fa-copy"></i> Copy to Clipboard
+                    </button>
+                </div>
+                <pre id="jsonContent" class="bg-dark text-light p-3 rounded" style="max-height: 600px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 14px;"></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+
+<script>
+    var jsonDataMap = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+        Model.ResultsWithInfo.ToDictionary(
+            i => i.AnalysisResult.KeyField ?? "",
+            i => i.AnalysisResult.JsonValue ?? ""
+        )
+    ));
+
+    $(document).ready(function() {
+        $('#resultsTable').DataTable({
+            order: [[0, 'desc']],
+            pageLength: 25,
+            columnDefs: [
+                { width: "150px", targets: 0 },
+                { width: "80px", targets: 1 },
+                { width: "120px", targets: 2 }
+            ]
+        });
+
+        // Handle JSON view button clicks
+        $(document).on('click', '.json-view-btn', function() {
+            const key = $(this).data('key');
+            const jsonValue = jsonDataMap[key] || '';
+            showJson(key, jsonValue);
+        });
+    });
+
+    let currentJsonValue = '';
+
+    function showJson(key, jsonValue) {
+        console.log('=== showJson called ===');
+        console.log('key:', key);
+        console.log('jsonValue type:', typeof jsonValue);
+        console.log('jsonValue length:', jsonValue ? jsonValue.length : 0);
+        console.log('jsonValue (first 200 chars):', jsonValue ? jsonValue.substring(0, 200) : 'null/undefined');
+        
+        try {
+            // Set the key in the modal title
+            document.getElementById('jsonKeyDisplay').textContent = key;
+            
+            let jsonObject;
+            
+            // Handle empty or null values
+            if (!jsonValue || jsonValue === 'null' || jsonValue === '') {
+                jsonObject = { message: "No JSON data available" };
+            }
+            // If jsonValue is already an object, use it
+            else if (typeof jsonValue === 'object' && jsonValue !== null) {
+                jsonObject = jsonValue;
+            } 
+            // If it's a string, try to parse it
+            else if (typeof jsonValue === 'string') {
+                // Trim whitespace
+                jsonValue = jsonValue.trim();
+                
+                // Check if it looks like JSON (starts with { or [)
+                if (jsonValue.startsWith('{') || jsonValue.startsWith('[')) {
+                    try {
+                        jsonObject = JSON.parse(jsonValue);
+                        console.log('Successfully parsed JSON');
+                    } catch (parseError) {
+                        console.error('JSON parse error:', parseError);
+                        // If parsing fails, show as-is in a structured way
+                        jsonObject = { 
+                            _error: "Could not parse as JSON",
+                            _rawValue: jsonValue 
+                        };
+                    }
+                } else {
+                    // Not JSON format, show as plain text
+                    jsonObject = { 
+                        _note: "Not JSON format",
+                        _value: jsonValue 
+                    };
+                }
+            } 
+            // For anything else, convert to string
+            else {
+                jsonObject = { _value: String(jsonValue) };
+            }
+            
+            console.log('Final jsonObject:', jsonObject);
+            
+            // Prettify and display
+            const prettyJson = JSON.stringify(jsonObject, null, 4);
+            currentJsonValue = prettyJson;
+            
+            // Add syntax highlighting
+            const highlighted = syntaxHighlight(prettyJson);
+            document.getElementById('jsonContent').innerHTML = highlighted;
+            
+            console.log('Display successful');
+            
+        } catch (e) {
+            console.error('Error displaying JSON:', e);
+            document.getElementById('jsonKeyDisplay').textContent = key;
+            document.getElementById('jsonContent').innerHTML = '<span style="color: #ff6b6b;">Error displaying JSON: ' + e.message + '</span>\n\n' + escapeHtml(String(jsonValue));
+            currentJsonValue = String(jsonValue);
+        }
+    }
+
+    function syntaxHighlight(json) {
+        if (typeof json !== 'string') {
+            json = JSON.stringify(json, null, 4);
+        }
+        
+        json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        
+        return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+            let cls = 'color: #98c379;'; // number - green
+            if (/^"/.test(match)) {
+                if (/:$/.test(match)) {
+                    cls = 'color: #e06c75;'; // key - red
+                } else {
+                    cls = 'color: #98c379;'; // string - green
+                }
+            } else if (/true|false/.test(match)) {
+                cls = 'color: #d19a66;'; // boolean - orange
+            } else if (/null/.test(match)) {
+                cls = 'color: #c678dd;'; // null - purple
+            }
+            return '<span style="' + cls + '">' + match + '</span>';
+        });
+    }
+
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    function copyJsonToClipboard() {
+        navigator.clipboard.writeText(currentJsonValue).then(() => {
+            // Show success message
+            const btn = event.target.closest('button');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            btn.classList.remove('btn-outline-secondary');
+            btn.classList.add('btn-success');
+            
+            setTimeout(() => {
+                btn.innerHTML = originalHtml;
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-outline-secondary');
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+            alert('Failed to copy to clipboard');
+        });
+    }
+</script>
+}

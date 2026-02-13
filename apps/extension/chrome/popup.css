@@ -1,0 +1,484 @@
+/* AntiScam Extension - Popup Styles */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 300px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: #fff;
+}
+
+.container {
+  padding: 16px;
+}
+
+/* Sign In Section */
+.sign-in-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 20px;
+  text-align: center;
+}
+
+.sign-in-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.sign-in-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.sign-in-subtitle {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 24px;
+}
+
+/* Email Input Group */
+.email-input-group {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 8px 0;
+  width: 100%;
+}
+
+.email-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #3a3f5c;
+  border-radius: 8px;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.email-input:focus {
+  border-color: #667eea;
+}
+
+.email-input::placeholder {
+  color: #666;
+}
+
+/* Save Button */
+.btn-save {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+
+.btn-save:hover {
+  opacity: 0.9;
+}
+
+.btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Email Error */
+.email-error {
+  color: #ff1744;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.status-indicator.green {
+  background-color: #22C55E;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+}
+
+.status-indicator.yellow {
+  background-color: #F59E0B;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+  animation: statusPulse 1.5s ease-in-out infinite;
+}
+
+.status-indicator.red {
+  background-color: #EF4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+.status-indicator.gray {
+  background-color: #666;
+  box-shadow: none;
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Reconnect button visibility */
+.btn-reconnect-hidden {
+  display: none !important;
+}
+
+.header-text {
+  flex: 1;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: #888;
+  margin-top: 2px;
+}
+
+/* Logout Button */
+.btn-logout {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.btn-logout:hover {
+  color: #ff1744;
+  background: rgba(255, 23, 68, 0.1);
+}
+
+/* Risk Section */
+.risk-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.risk-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  border: 4px solid;
+  transition: all 0.3s ease, transform 0.3s ease;
+}
+
+.risk-circle.green {
+  background: rgba(0, 200, 83, 0.15);
+  border-color: #00c853;
+  color: #00c853;
+}
+
+.risk-circle.yellow {
+  background: rgba(255, 214, 0, 0.15);
+  border-color: #ffd600;
+  color: #ffd600;
+}
+
+.risk-circle.red {
+  background: rgba(255, 23, 68, 0.15);
+  border-color: #ff1744;
+  color: #ff1744;
+}
+
+.risk-circle.gray {
+  background: rgba(102, 102, 102, 0.15);
+  border-color: #666;
+  color: #666;
+}
+
+.risk-score {
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.risk-label {
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.risk-label.green { color: #00c853; }
+.risk-label.yellow { color: #ffd600; }
+.risk-label.red { color: #ff1744; }
+.risk-label.gray { color: #666; }
+
+/* Details Section */
+.details-section,
+.connection-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-size: 12px;
+  color: #888;
+}
+
+.detail-value {
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-value.online {
+  color: #00c853;
+}
+
+.detail-value.offline {
+  color: #ff1744;
+}
+
+/* Buttons */
+.buttons-section {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.btn {
+  flex: 1;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-icon {
+  font-size: 14px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Footer */
+.footer {
+  text-align: center;
+}
+
+.version {
+  font-size: 10px;
+  color: #555;
+}
+
+/* Animations */
+.risk-circle.loading {
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+/* Checking state scale pulse - grows/shrinks per user decision */
+@keyframes circle-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.92);
+  }
+}
+
+/* Checking state - gray with scale pulse */
+.risk-circle.checking {
+  background: rgba(158, 158, 158, 0.15);
+  border-color: #9E9E9E;
+  color: #9E9E9E;
+  animation: circle-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Hide score text during checking - empty interior per user decision */
+.risk-circle.checking .risk-score {
+  opacity: 0;
+}
+
+/* Checking label style */
+.risk-label.checking {
+  color: #9E9E9E;
+}
+
+/* Timeout state - neutral gray, no animation */
+.risk-circle.timeout {
+  background: rgba(158, 158, 158, 0.15);
+  border-color: #9E9E9E;
+  color: #9E9E9E;
+  animation: none;
+}
+
+.risk-label.timeout {
+  color: #9E9E9E;
+}
+
+/* Warning Banner */
+.warning-banner {
+  background: rgba(255, 214, 0, 0.2);
+  border: 1px solid #ffd600;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 12px;
+  display: none;
+}
+
+.warning-banner.show {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.warning-banner .icon {
+  font-size: 16px;
+}
+
+.warning-banner .text {
+  font-size: 11px;
+  color: #ffd600;
+  line-height: 1.4;
+}
+
+/* Feedback Section */
+.feedback-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.feedback-question {
+  font-size: 13px;
+  color: #ccc;
+  margin-bottom: 10px;
+}
+
+.feedback-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.btn-feedback {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-feedback:hover {
+  transform: scale(1.1);
+}
+
+.btn-correct:hover {
+  border-color: #00c853;
+  background: rgba(0, 200, 83, 0.2);
+}
+
+.btn-incorrect:hover {
+  border-color: #ff1744;
+  background: rgba(255, 23, 68, 0.2);
+}
+
+.btn-feedback:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.feedback-sent {
+  color: #00c853;
+  font-size: 12px;
+  margin-top: 8px;
+}
