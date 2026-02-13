@@ -8,6 +8,14 @@
 
 הזרימה המלאה חייבת לעבוד: משתמש מבקר ב-URL -> ניתוח מתבצע -> ציון חוזר ומוצג בתוסף Chrome.
 
+## Current Milestone: v1.1 Cleanup & Fix Communication
+
+**Goal:** ניקוי זבל מהריפוזיטורי ותיקון באגים שמונעים מזרימת הציון לעבוד בפועל.
+
+**Target features:**
+- מחיקת קבצים מיותרים (ZIPים, __pycache__, venvs כפולים, build artifacts)
+- תיקון באגים קריטיים בתקשורת שנמצאו בסקירת קוד
+
 ## Requirements
 
 ### Validated
@@ -21,21 +29,29 @@
 - ✓ דשבורד Admin ב-WebApi עם Razor Pages — existing
 - ✓ זיהוי תוכנות Remote Access (AnyDesk, TeamViewer וכו') — existing
 - ✓ מערכת Cache ב-Extension ו-Desktop App — existing
+- ✓ Lazy Pirate retry pattern ב-ZMQ REQ socket — v1.0 phase 5
+- ✓ PendingResults store ב-Desktop App — v1.0 phase 5
+- ✓ CurveMQ encryption — v1.0 phase 4
+- ✓ asyncio bridge fix (run_coroutine_threadsafe) — v1.0 phase 2
+- ✓ Token acquisition flow (RegisterDevice/RequestToken) — v1.0 phase 3
 
 ### Active
 
-- [ ] תיקון זרימת החזרת ציון מ-Backend -> Desktop App -> Extension (הבאג העיקרי)
-- [ ] ייצוב תקשורת WebSocket בין Desktop App לתוסף
-- [ ] ייצוב תקשורת ZMQ בין Desktop App ל-Backend
-- [ ] וידוא שה-Notification Publisher (port 50002) שולח תוצאות חזרה
-- [ ] וידוא ש-Desktop App מעביר תוצאות ניתוח לתוסף via WebSocket
-
-- [ ] כתיבת דוח מפורט: מה קרה, למה זה קרה, ואיך לתקן — לצוות השרת
+- [ ] ניקוי קבצים מיותרים מהריפוזיטורי (~1.8GB זבל)
+- [ ] תיקון שדה `url` חסר בתגובות scan_service → Extension לא יכול להתאים תוצאות
+- [ ] תיקון async/sync mismatch ב-extension_handler.py
+- [ ] תיקון message type mismatch ב-content.js (getPageInfo vs page:info:request)
+- [ ] תיקון silent broadcast failure ב-notification_handler.py
+- [ ] וידוא שהזרימה המלאה עובדת end-to-end
 
 ### Out of Scope
 
+- שינוי פורטים — לא משנים פורטים קיימים
+- חוב טכני כללי — לא שלנו לתקן
+- סיסמאות/אבטחה — לא רלוונטי עכשיו
 - פיצ'רים חדשים — המטרה היא לתקן את מה שקיים
 - שדרוג טכנולוגי — לא מחליפים frameworks או שפות
+- שיפור מבנה תיקיות — רק מחיקת זבל, לא restrucuring
 - UI redesign — שומרים על הממשק הנוכחי
 - Mobile app — לא רלוונטי כרגע
 
@@ -48,23 +64,28 @@
 - Desktop App -> WebSocket server on ports 8080-8484
 - Chrome Extension -> Manifest V3 service worker
 
-**הבעיה:**
-הזרימה המלאה עבדה בעבר. כרגע הציון לא חוזר לתוסף. צריך לאתר איפה בשרשרת הזרימה הדברים נשברים:
-1. Extension -> Desktop App (WebSocket) ✓ (כנראה עובד)
-2. Desktop App -> Backend (ZMQ REQ port 50001) — לבדוק
-3. Backend -> ניתוח + Analyzer חיצוני — לבדוק
-4. Backend -> Desktop App (ZMQ PUB port 50002) — חשוד
-5. Desktop App -> Extension (WebSocket response) — חשוד
+**באגים שנמצאו בסקירת קוד (2026-02-13):**
+
+1. **חסר שדה `url` בתגובות** — `scan_service.py:_create_result()` לא שולח `url` חזרה. ה-Extension לא יכול להתאים תוצאה ל-URL ספציפי → loading אינסופי.
+
+2. **Async/Sync mismatch** — `extension_handler.py` handlers הם sync אבל נקראים מ-async context. חוסם event loop.
+
+3. **Message type mismatch** — `content.js` מגדיר `'getPageInfo'` אבל `ScanService.js` שולח `'page:info:request'`. מידע על trackers/iframes לא מגיע.
+
+4. **Silent broadcast failure** — `notification_handler.py` אם broadcast נכשל (timeout, event loop חסר), שום דבר לא קורה — תוצאה אבודה.
+
+**v1.0 תיקונים שנעשו (פאזות 1-5):**
+- asyncio bridge fix (run_coroutine_threadsafe)
+- recv_multipart atomicity
+- Token acquisition flow
+- CurveMQ re-enablement
+- Lazy Pirate retry pattern
+- PendingResults store
+- SW keepalive hardening
 
 **URL Analyzer חיצוני:**
 - נמצא ב: `C:\Users\judaz\OneDrive\Desktop\basic-url-analyzer\basic-url-analyzer\basic-url-analyzer`
 - Backend מפעיל אותו כסקריפט Python
-
-**אזורים שבירים (מ-CONCERNS.md):**
-- ZMQ REQ/REP דורש חילוף שליחה-קבלה מדויק — תגובה אבודה שוברת socket
-- Service Worker של Chrome נהרג אחרי 30 שניות חוסר פעילות
-- Extension Message Queue — הודעות עלולות להיות stale
-- Heartbeat gap של עד 30 שניות לזיהוי connection מת
 
 ## Constraints
 
@@ -77,9 +98,11 @@
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| לתקן לפני להוסיף | המערכת הבסיסית חייבת לעבוד לפני שמוסיפים פיצ'רים | — Pending |
+| לתקן לפני להוסיף | המערכת הבסיסית חייבת לעבוד לפני שמוסיפים פיצ'רים | ✓ Good |
 | URL Analyzer חיצוני | Backend מפעיל analyzer כסקריפט Python נפרד | ✓ Good |
 | ZMQ לתקשורת Backend | NetMQ/pyzmq עם REQ/REP ו-PUB/SUB | ✓ Good |
+| ניקוי רק מחיקה | לא משנים מבנה תיקיות, רק מוחקים זבל | — Pending |
+| תיקוני תקשורת מבוססי code review | נמצאו 4 באגים ספציפיים בסקירת קוד | — Pending |
 
 ---
-*Last updated: 2026-02-11 after initialization*
+*Last updated: 2026-02-13 after milestone v1.1 start*
