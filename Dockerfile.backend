@@ -1,0 +1,91 @@
+# ============================================================
+# ASPSBackend Dockerfile (Backend + Python URL Analyzer)
+# ============================================================
+# Build context: project root (.)
+# Multi-stage: SDK build → Runtime with .NET + Python
+# ============================================================
+
+# --- Stage 1: Build .NET ---
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy project files first (layer caching)
+COPY ASPSBackend14_J/Common/Common.csproj Common/
+COPY ASPSBackend14_J/Interface/Interface.csproj Interface/
+COPY ASPSBackend14_J/Business/Business.csproj Business/
+COPY ASPSBackend14_J/ASPSBackend/ASPSBackend.csproj ASPSBackend/
+
+# Restore NuGet packages
+RUN dotnet restore ASPSBackend/ASPSBackend.csproj
+
+# Copy all source code
+COPY ASPSBackend14_J/Common/ Common/
+COPY ASPSBackend14_J/Interface/ Interface/
+COPY ASPSBackend14_J/Business/ Business/
+COPY ASPSBackend14_J/ASPSBackend/ ASPSBackend/
+
+# Build and publish
+RUN dotnet publish ASPSBackend/ASPSBackend.csproj -c Release -o /app/publish --no-restore
+
+# --- Stage 2: Runtime ---
+FROM mcr.microsoft.com/dotnet/runtime:8.0 AS runtime
+
+# Install Python and Playwright system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-venv \
+    # Playwright/Chromium dependencies
+    libnss3 \
+    libnspr4 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libdbus-1-3 \
+    libxkbcommon0 \
+    libatspi2.0-0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libpango-1.0-0 \
+    libcairo2 \
+    libasound2 \
+    libwayland-client0 \
+    fonts-liberation \
+    fonts-noto-color-emoji \
+    wget \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy published .NET app
+COPY --from=build /app/publish .
+
+# Copy Docker-specific config
+COPY ASPSBackend14_J/ASPSBackend/appsettings.Docker.json ./appsettings.Docker.json
+
+# Copy Python analyzer
+COPY basic-url-analyzer/basic-url-analyzer/basic-url-analyzer/ /app/analyzer/
+
+# Create venv and install Python dependencies
+RUN python3 -m venv /app/analyzer/.venv \
+    && /app/analyzer/.venv/bin/pip install --no-cache-dir --upgrade pip \
+    && /app/analyzer/.venv/bin/pip install --no-cache-dir -r /app/analyzer/requirements.txt \
+    && /app/analyzer/.venv/bin/playwright install chromium \
+    && /app/analyzer/.venv/bin/playwright install-deps chromium 2>/dev/null || true
+
+# Ports:
+#   5555  - NetMQ CQRS processor
+#   5556  - CQRS Gateway (for WebApi)
+#   50001 - RealTime Alert Listener (ZMQ REP, CURVE encrypted)
+#   50002 - Notification Publisher (ZMQ PUB, CURVE encrypted)
+EXPOSE 5555 5556 50001 50002
+
+ENV ASPNETCORE_ENVIRONMENT=Docker
+ENV DOTNET_ENVIRONMENT=Docker
+
+ENTRYPOINT ["dotnet", "ASPSBackend.dll"]

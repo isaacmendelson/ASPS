@@ -1,0 +1,46 @@
+# ============================================================
+# WebApi Dockerfile (Admin Dashboard + REST API)
+# ============================================================
+# Build context: project root (.)
+# Multi-stage: SDK build → ASP.NET runtime
+# ============================================================
+
+# --- Stage 1: Build .NET ---
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy project files first (layer caching)
+COPY ASPSBackend14_J/Common/Common.csproj Common/
+COPY ASPSBackend14_J/Interface/Interface.csproj Interface/
+COPY ASPSBackend14_J/Business/Business.csproj Business/
+COPY ASPSBackend14_J/WebApi/WebApi.csproj WebApi/
+
+# Restore NuGet packages
+RUN dotnet restore WebApi/WebApi.csproj
+
+# Copy all source code
+COPY ASPSBackend14_J/Common/ Common/
+COPY ASPSBackend14_J/Interface/ Interface/
+COPY ASPSBackend14_J/Business/ Business/
+COPY ASPSBackend14_J/WebApi/ WebApi/
+
+# Build and publish
+RUN dotnet publish WebApi/WebApi.csproj -c Release -o /app/publish --no-restore
+
+# --- Stage 2: Runtime ---
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+
+# Copy published app
+COPY --from=build /app/publish .
+
+# Copy Docker-specific config
+COPY ASPSBackend14_J/WebApi/appsettings.Docker.json ./appsettings.Docker.json
+
+# Port: 5001 (Admin Dashboard + Swagger + SignalR)
+EXPOSE 5001
+
+ENV ASPNETCORE_ENVIRONMENT=Docker
+ENV ASPNETCORE_URLS=http://0.0.0.0:5001
+
+ENTRYPOINT ["dotnet", "WebApi.dll"]

@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# Claude Code / GSD
+.claude/
+.planning/
+
+# Python virtual environments
+**/.venv/
+**/venv/
+**/__pycache__/
+**/*.pyc
+
+# .NET build artifacts
+**/bin/
+**/obj/
+**/.vs/
+**/*.user
+
+# IDE
+.vscode/
+.idea/
+
+# Archives
+*.zip
+
+# OS
+Thumbs.db
+.DS_Store
+nul
+
+# Temp files
+test_result.*
+*.log
+
+# Other scripts
+*.ps1
