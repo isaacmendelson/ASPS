@@ -17,6 +17,11 @@ This milestone cleans repository bloat and fixes critical communication bugs blo
 
 **Dependencies:** None (can start immediately)
 
+**Plans:** 1 plan
+
+Plans:
+- [ ] 06-01-PLAN.md — Delete duplicate ZIPs, build artifacts, Python caches, duplicate venvs, temp files; create comprehensive .gitignore
+
 **Requirements:**
 - CLEAN-01: Delete all duplicate ZIP files from repository (apps.zip x3, basic-url-analyzer ZIPs x4)
 - CLEAN-02: Delete all __pycache__ directories and .pyc files from repository
@@ -102,4 +107,4 @@ Both phases are independent. Cleanup is pure file deletion. Communication fixes 
 
 ---
 
-*Last updated: 2026-02-13 after roadmap creation*
+*Last updated: 2026-02-13 after phase 6 planning*
