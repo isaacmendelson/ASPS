@@ -47,6 +47,12 @@ Plans:
 
 **Dependencies:** None (independent of cleanup)
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Fix missing url field in scan_service.py responses + offload url_check to thread pool executor
+- [ ] 07-02-PLAN.md — Align content.js message type constant with MessageTypes.js + add broadcast retry to notification_handler.py + end-to-end verification
+
 **Requirements:**
 - COMM-05: scan_service.py _create_result() includes `url` field in all responses to Extension
 - COMM-06: extension_handler.py handlers are properly async or called correctly from async context
@@ -61,7 +67,7 @@ Plans:
 4. notification_handler.py logs broadcast failures and retries at least once before giving up
 5. End-to-end test passes: Extension url_check -> Backend analysis -> result with correct url returns to Extension UI
 
-**Status:** Pending
+**Status:** Planned
 
 ---
 
@@ -70,13 +76,13 @@ Plans:
 | Phase | Status | Requirements | Success Criteria | Notes |
 |-------|--------|--------------|------------------|-------|
 | 6 - Repository Cleanup | **Complete** | 6 | 5 | 2.06GB freed (2026-02-13) |
-| 7 - Fix Communication Bugs | Pending | 5 | 5 | Includes E2E verification |
+| 7 - Fix Communication Bugs | Planned | 5 | 5 | 2 plans, includes E2E verification |
 
 **Total Requirements:** 11/11 mapped (100% coverage)
 
 **Phase Completion:**
 - v1.0: Phases 1-5 complete
-- v1.1: Phase 6 complete, Phase 7 pending
+- v1.1: Phase 6 complete, Phase 7 planned
 
 ---
 
@@ -107,4 +113,4 @@ Both phases are independent. Cleanup is pure file deletion. Communication fixes 
 
 ---
 
-*Last updated: 2026-02-13 after phase 6 execution — verified passed*
+*Last updated: 2026-02-13 after phase 7 planning*
