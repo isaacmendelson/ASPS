@@ -41,7 +41,6 @@ public class RealTimeAlertListener : IDisposable
     private bool _isRunning;
     private readonly int _port;
     private readonly SocketMode _mode;
-    private readonly IDeviceAlertRepository _repository;
     private readonly AlertPersistenceActor _alertPersistenceActor;
 
     public RealTimeAlertListener(
@@ -64,9 +63,9 @@ public class RealTimeAlertListener : IDisposable
         _mode = mode;
         var scope = _serviceProvider.CreateScope();
         var deviceAlertRepository = scope.ServiceProvider.GetRequiredService<IDeviceAlertRepository>();
-        _repository = scope.ServiceProvider.GetRequiredService<IDeviceAlertRepository>();
         _alertPersistenceActor = new AlertPersistenceActor(deviceAlertRepository, _loggerFactory, _asView, _serviceProvider);
         this.RegisterEventHandler(_alertPersistenceActor);
+        this.RegisterEventHandler(_asView);
     }
 
     public void RegisterEventHandler(IDomainEventHandler handler)
@@ -391,11 +390,6 @@ public class RealTimeAlertListener : IDisposable
     {
         try
         {
-            var settings = new JsonSerializerSettings
-            {
-                TypeNameHandling = TypeNameHandling.Auto
-            };
-
             string alertType = jObject["AlertType"]?.ToString() ?? "";
 
             Common.Models.DeviceAlert? alert = null;
@@ -403,21 +397,21 @@ public class RealTimeAlertListener : IDisposable
             switch (alertType)
             {
                 case "RemoteAccessAlert":
-                    alert = JsonConvert.DeserializeObject<RemoteAccessAlert>(message, settings);
+                    alert = JsonConvert.DeserializeObject<RemoteAccessAlert>(message);
                     break;
                 case "UrlAlert":
-                    alert = JsonConvert.DeserializeObject<UrlAlert>(message, settings);
+                    alert = JsonConvert.DeserializeObject<UrlAlert>(message);
                     break;
                 default:
                     _logger.LogWarning($"Unknown AlertType: {alertType}. Attempting to infer type from JSON structure.");
 
                     if (message.Contains("\"Url\""))
                     {
-                        alert = JsonConvert.DeserializeObject<UrlAlert>(message, settings);
+                        alert = JsonConvert.DeserializeObject<UrlAlert>(message);
                     }
                     else if (message.Contains("\"RemoteAccessApp\"") || message.Contains("\"ConnectionUrl\""))
                     {
-                        alert = JsonConvert.DeserializeObject<RemoteAccessAlert>(message, settings);
+                        alert = JsonConvert.DeserializeObject<RemoteAccessAlert>(message);
                     }
                     else
                     {
@@ -482,52 +476,7 @@ public class RealTimeAlertListener : IDisposable
 
             _logger.LogInformation($"Alert from device {deviceUid} associated with user {user.Key}");
 
-            Common.Entities.DeviceAlertEntity? alertEntity = null;
-
-            if (alert is RemoteAccessAlert remoteAlert)
-            {
-                alertEntity = new Common.Entities.RemoteAccessAlertEntity
-                {
-                    KeyField = Guid.NewGuid().ToString(),
-                    AlertType = alertType,
-                    Priority = remoteAlert.Priority,
-                    Timestamp = remoteAlert.Timestamp,
-                    Token = remoteAlert.Token,
-                    DeviceUid = remoteAlert.DeviceInfo.DeviceUid,
-                    DeviceType = Common.Enums.DeviceType.PersonalComputer,
-                    OperatingSystem = remoteAlert.DeviceInfo.OperatingSystem,
-                    MAC = "",
-                    UserKeyField = userDevice.UserKeyField,
-                    RemoteAccessApp = remoteAlert.RemoteAccessApp,
-                    RunningProcesses = remoteAlert.RunningProcesses,
-                    ConnectionUrl = remoteAlert.ConnectionUrl,
-                    ConnectionStatus = remoteAlert.ConnectionStatus,
-                    ConnectionsCount = remoteAlert.ConnectionsCount,
-                    SessionStatus = remoteAlert.SessionStatus,
-                    DeviceKeyField = remoteAlert.DeviceInfo.Key.Value
-                };
-            }
-            else if (alert is UrlAlert urlAlert)
-            {
-                alertEntity = new Common.Entities.UrlAlertEntity
-                {
-                    KeyField = Guid.NewGuid().ToString(),
-                    AlertType = alertType,
-                    Priority = urlAlert.Priority,
-                    Timestamp = urlAlert.Timestamp,
-                    Token = urlAlert.Token,
-                    DeviceUid = urlAlert.DeviceInfo.DeviceUid,
-                    DeviceType = Common.Enums.DeviceType.PersonalComputer,
-                    OperatingSystem = urlAlert.DeviceInfo.OperatingSystem,
-                    MAC = "",
-                    UserKeyField = userDevice.UserKeyField,
-                    Url = urlAlert.Url,
-                    TrackerKeys = JsonConvert.SerializeObject(urlAlert.Trackers),
-                    IFrameDomains = JsonConvert.SerializeObject(urlAlert.IFrameDomains),
-                    UserAgent = urlAlert.UserAgent,
-                    DeviceKeyField = urlAlert.DeviceInfo.Key.Value
-                };
-            }
+            var keyField = Guid.NewGuid().ToString();
 
             var domainEvent = new DeviceAlertReceived(
                 alert,
@@ -535,7 +484,7 @@ public class RealTimeAlertListener : IDisposable
                 alert.DeviceInfo.DeviceUid,
                 DateTime.UtcNow,
                 alert.Timestamp,
-                alertEntity?.Key.Value ?? string.Empty
+                keyField
             );
 
             var userManager = await _userDomainService.GetManagerForDeviceAsync(alert.DeviceInfo.DeviceUid);

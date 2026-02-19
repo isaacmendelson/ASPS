@@ -4,6 +4,7 @@ using Business.RealtimeAnalysis.UserDomain;
 using Common.Entities;
 using Common.Interfaces;
 using Common.Models;
+using Common.Models.Alerts;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -40,9 +41,27 @@ namespace Business.Views
             if (analyzerResults != null)
             {
                 AnalysisResult = analyzerResults.ToObject<UrlAnalysisResultVm>();
+                // Set the base class property so polymorphic access works
+                ((AnalysisResultView)this).AnalysisResult = AnalysisResult;
+            }
+
+            // Reconstruct Alert from parsed data so consumers (cache lookup, admin pages) can access it
+            if (AnalysisResult != null && !string.IsNullOrEmpty(AnalysisResult.Url))
+            {
+                var deviceUid = jObject["DeviceUid"]?.ToString() ?? string.Empty;
+                Alert = new UrlAlert
+                {
+                    Url = AnalysisResult.Url,
+                    AlertType = nameof(UrlAlert),
+                    AlertId = this.DeviceAlertKey?.Value,
+                    Trackers = Array.Empty<Key>(),
+                    IFrameDomains = Array.Empty<string>(),
+                    UserAgent = string.Empty,
+                    DeviceInfo = new DeviceInfo { DeviceUid = deviceUid }
+                };
             }
         }
 
-        public UrlAnalysisResultVm AnalysisResult { get; set; }
+        public new UrlAnalysisResultVm AnalysisResult { get; set; }
     }
 }

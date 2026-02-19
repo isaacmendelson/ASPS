@@ -1,0 +1,41 @@
+{
+    "cache": {
+        "enabled": false,
+        "ttl_hours": 24,
+        "max_entries": 10000,
+        "file_path": "cache/results_cache.json"
+    },
+    "scraping": {
+        "timeout_seconds": 60,
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "wait_for_load": true,
+        "headless": true
+    },
+    "scoring": {
+        "thresholds": {
+            "low": 30,
+            "medium": 60,
+            "high": 61
+        },
+        "minimum_confidence": 0.5
+    },
+    "high_risk_countries": ["PA", "RU", "CN", "NG", "PK", "VN", "IN"],
+    "suspicious_registrars": ["freenom", "nic.ru", "reg.ru", "hostinger"],
+    "logging": {
+        "level": "INFO",
+        "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    },
+    "ollama": {
+        "enabled": false,
+        "host": "http://localhost:11434",
+        "timeout_seconds": 90,
+        "max_retries": 3,
+        "retry_delay_min": 2,
+        "retry_delay_max": 8,
+        "model_preferences": ["phi3", "llama3.2", "mistral"],
+        "generation_options": {
+            "temperature": 0.3,
+            "num_predict": 300
+        }
+    }
+}

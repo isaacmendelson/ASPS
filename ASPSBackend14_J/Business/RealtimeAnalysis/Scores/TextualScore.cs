@@ -9,7 +9,7 @@ namespace Business.RealtimeAnalysis
     public class TextualScore : Score
     {
         public TextualScore(string value, float certainty, bool isValid)
-            : base(certainty, certainty)
+            : base(certainty, certainty, isValid)
         {
             Value = value;
         }

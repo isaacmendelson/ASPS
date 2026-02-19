@@ -1,5 +1,7 @@
 ﻿using Common.Entities;
 using Common.Enums;
+using Common.Models;
+using Common.Models.Alerts;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -21,8 +23,23 @@ namespace Business.Views
             this.ConnectionStatus = entity.ConnectionStatus;
             this.ConnectionsCount = entity.ConnectionsCount;
             this.SessionStatus = entity.SessionStatus;
-            this.ConnectionStatus = entity.ConnectionStatus;
+        }
 
+        public RemoteAccessAlertView(
+            Key key, string? alertId, string alertType, Priority priority,
+            DateTime timestamp, string token, string deviceUid,
+            DeviceType deviceType, OperatingSystemType operatingSystem, string? mAC, Key? userKey,
+            RemoteAccessApp remoteAccessApp, int runningProcesses, string connectionUrl,
+            ConnectionStatus connectionStatus, int connectionsCount, int sessionStatus, BrowserTab[]? browserTabs)
+            : base(key, alertId, alertType, priority, timestamp, token, deviceUid, deviceType, operatingSystem, mAC ?? string.Empty, userKey)
+        {
+            RemoteAccessApp = remoteAccessApp;
+            RunningProcesses = runningProcesses;
+            ConnectionUrl = connectionUrl;
+            ConnectionStatus = connectionStatus;
+            ConnectionsCount = connectionsCount;
+            SessionStatus = sessionStatus;
+            BrowserTabs = browserTabs;
         }
 
         public RemoteAccessApp RemoteAccessApp { get; set; }
@@ -31,6 +48,8 @@ namespace Business.Views
         public ConnectionStatus ConnectionStatus { get; set; }
         public int ConnectionsCount { get; set; }
         public int SessionStatus { get; set; }
+
+        public BrowserTab[]? BrowserTabs { get; set; }
 
         [NotMapped]
         public string TypeName => "RemoteAccessAlert";

@@ -96,7 +96,7 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
                 red_flags = Array.Empty<string>(),
                 Recommendation = "this domain is safe (whitelisted)",
                 scraping_status = null,
-                risk_assessment = new RiskAssessmentVm(100, "Whitelisted", false, 1),
+                risk_assessment = new RiskAssessment(100, "Whitelisted", false, 1),
                 website_category = null,
                 Reputation = null,
                 Warnings = Array.Empty<string>(),
@@ -206,13 +206,16 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
                         Reputation = cachedResult.AnalysisResult.Reputation,
                         missing_data = cachedResult.AnalysisResult.missing_data,
                         Warnings = cachedResult.AnalysisResult.Warnings
-                        };
+                    };
+                }
+                else
+                {
+                    result = await RunPythonAnalyzerAsync(analyzer, urlAlert.Url);
                 }
 
-                result = await RunPythonAnalyzerAsync(analyzer, urlAlert.Url);
-                result.phishing_check = phishingCheckResult;
                 if (result != null)
                 {
+                    result.phishing_check = phishingCheckResult;
                     results.Add(result);
                     _logger.LogInformation($"Analyzer {analyzer.ScriptFile} completed successfully. Risk Score: {result.risk_assessment?.risk_score ?? 0}");
                 }

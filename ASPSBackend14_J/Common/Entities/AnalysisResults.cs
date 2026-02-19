@@ -50,14 +50,14 @@ public class AnalysisResultContainer : Entity
         set => DeviceAlertKeyField = value?.Value;
     }
 
-    //// Navigation property to User (EF Core will use UserKeyField as FK)
-    //[ForeignKey(nameof(DeviceAlertKeyField))]
-    //public DeviceAlert? DeviceAlert { get; set; }
+    // Navigation property to User (EF Core will use UserKeyField as FK)
+    [ForeignKey(nameof(DeviceAlertKeyField))]
+    public DeviceAlertEntity? DeviceAlert { get; set; }
 
 
-    //// Navigation property to User (EF Core will use UserKeyField as FK)
-    //[ForeignKey(nameof(UserKeyField))]
-    //public User? User { get; set; }
+    // Navigation property to User (EF Core will use UserKeyField as FK)
+    [ForeignKey(nameof(UserKeyField))]
+    public User? User { get; set; }
 
     [NotMapped]
     public override string TypeName => nameof(AnalysisResultContainer);

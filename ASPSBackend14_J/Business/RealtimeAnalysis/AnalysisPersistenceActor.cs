@@ -32,7 +32,7 @@ public class AnalysisPersistenceActor : IDomainEventHandler
     {
         if (evt is AnalysisResultReceived analysisEvent)
         {
-            HandleAnalysisResultReceivedAsync(analysisEvent).GetAwaiter().GetResult();
+            await HandleAnalysisResultReceivedAsync(analysisEvent);
         }
     }
 

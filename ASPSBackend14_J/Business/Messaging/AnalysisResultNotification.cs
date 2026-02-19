@@ -2,6 +2,7 @@
 using Business.RealtimeAnalysis.Indicators;
 using Business.RealtimeAnalysis.UserDomain;
 using Common.Interfaces;
+using Common.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +14,7 @@ namespace Business.Messaging
 {
     public class AnalysisResultNotification
     {
-        public AnalysisResultNotification(string alertType, string severity, RiskAssessmentVm riskAssessment,
+        public AnalysisResultNotification(string alertType, string severity, RiskAssessment riskAssessment,
             IAnalysisResult analysisResult, List<IProtectiveAction> protectiveActions, List<IIndicator> indicators, DateTime analysisTimestamp)
         {
             this.AlertType = alertType;
@@ -42,7 +43,7 @@ namespace Business.Messaging
         public string AlertType { get; set; }
 
         [DataMember]
-        public RiskAssessmentVm RiskAssessment { get; set; }
+        public RiskAssessment RiskAssessment { get; set; }
 
         [DataMember]
         public List<IProtectiveAction> protectiveActions { get; set; }

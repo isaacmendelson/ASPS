@@ -42,7 +42,7 @@ namespace Business.RealtimeAnalysis
         {
             if (evt is DeviceAlertReceived analysisEvent)
             {
-                HandleDeviceAlertReceivedAsync(analysisEvent).GetAwaiter().GetResult();
+                await HandleDeviceAlertReceivedAsync(analysisEvent);
             }
         }
         public async Task HandleDeviceAlertReceivedAsync(DeviceAlertReceived alertReceived)
@@ -58,13 +58,16 @@ namespace Business.RealtimeAnalysis
             }
 
             DeviceAlertEntity? alertEntity = null;
+            var entityKey = !string.IsNullOrEmpty(alertReceived.DeviceAlertEntityKey)
+                ? alertReceived.DeviceAlertEntityKey
+                : Guid.NewGuid().ToString();
             switch (vm)
             {
                 case UrlAlert u:
                     alertEntity = new UrlAlertEntity()
                     {
                         DateCreated = DateTime.UtcNow,
-                        KeyField = Guid.NewGuid().ToString(),
+                        KeyField = entityKey,
                         AlertType = vm.AlertType,
                         Priority = vm.Priority,
                         Timestamp = vm.Timestamp,
@@ -83,7 +86,7 @@ namespace Business.RealtimeAnalysis
                     alertEntity = new RemoteAccessAlertEntity()
                     {
                         DateCreated = DateTime.UtcNow,
-                        KeyField = Guid.NewGuid().ToString(),
+                        KeyField = entityKey,
                         AlertType = vm.AlertType,
                         Priority = vm.Priority,
                         Timestamp = vm.Timestamp,
@@ -110,8 +113,6 @@ namespace Business.RealtimeAnalysis
             // Save alert entity to database using scoped repository
             if (alertEntity != null)
             {
-                alertEntity.KeyField = alertReceived.DeviceAlertEntityKey;
-                //_deviceAlertRepository.AddAsync(alertEntity).GetAwaiter().GetResult();
                 _logger.LogInformation(
                     $"[AlertPersistenceActor] Saved device alert: " +
                     $"Key={alertEntity.Key.Value}, " +

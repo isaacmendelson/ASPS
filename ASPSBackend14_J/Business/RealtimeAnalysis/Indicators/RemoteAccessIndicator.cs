@@ -13,15 +13,18 @@ namespace Business.RealtimeAnalysis.Indicators
     {
 
         public RemoteAccessIndicator() { }
-        public RemoteAccessIndicator(RemoteAccessAlert alertData, NumericScore score, AnalysisLevel level, int? sequence, float? weight = 1)
+        public RemoteAccessIndicator(RemoteAccessApp remoteAccessApp, int runningProcesses, string? connectionUrl, 
+            ConnectionStatus connectionStatus, int connectionsCount, SessionStatus sessionStatus, BrowserTab[]? browserTabs, 
+            NumericScore score, AnalysisLevel level, int? sequence, float? weight = 1)
            : base(score, level, sequence ?? 0, weight ?? 1)
         {
-            this.RemoteAccessApp = alertData.RemoteAccessApp;
-            this.RunningProcesses = alertData.RunningProcesses;
-            this.ConnectionUrl = alertData.ConnectionUrl;
-            this.ConnectionStatus = alertData.ConnectionStatus;
-            this.ConnectionsCount = alertData.ConnectionsCount;
-
+            this.RemoteAccessApp = remoteAccessApp;
+            this.RunningProcesses = runningProcesses;
+            this.ConnectionUrl = connectionUrl;
+            this.ConnectionStatus = connectionStatus;
+            this.ConnectionsCount = connectionsCount;
+            this.SessionStatus = sessionStatus;
+            this.BrowserTabs = browserTabs;
 
             //this.TypedValue = value;
             //this.Score = score;
@@ -35,10 +38,11 @@ namespace Business.RealtimeAnalysis.Indicators
         }
         public RemoteAccessApp RemoteAccessApp { get; set; }
         public int RunningProcesses { get; set; }
-        public string ConnectionUrl { get; set; } = string.Empty;
+        public string? ConnectionUrl { get; set; } = string.Empty;
         public ConnectionStatus ConnectionStatus { get; set; }
         public int ConnectionsCount { get; set; }
-        public int SessionStatus { get; set; }
+        public SessionStatus SessionStatus { get; set; }
+        public BrowserTab[]? BrowserTabs { get; set; }
 
         //public NumericScore Score { get; set; }
 

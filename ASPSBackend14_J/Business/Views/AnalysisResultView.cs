@@ -43,7 +43,7 @@ namespace Business.Views
 
         public bool IsFromCache { get; set; }
         public Key? DeviceAlertKey { get; set; }
-        public virtual IAnalysisResult AnalysisResult { get; set; }
+        public IAnalysisResult AnalysisResult { get; set; }
 
         
         public IIndicator[]? Indicators { get; set; }
@@ -53,10 +53,5 @@ namespace Business.Views
         public string AnalyzerName { get; set; }
 
     }
-
-    public interface IAnalysisResultView
-    {
-        DateTime Timestamp { get; set; }
-        IAnalysisResult AnalysisResult { get; set; }
-    }
+  
 }

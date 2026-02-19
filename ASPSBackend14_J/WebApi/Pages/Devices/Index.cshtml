@@ -51,7 +51,7 @@
                         <tr>
                             <td><code>@device.DeviceUid</code></td>
                             <td>
-                                @if (device.DeviceType == Common.Enums.DeviceType.SmartPhone)
+                                @if (device.DeviceType == Common.Enums.DeviceType.MobilePhone)
                                 {
                                     <span class="badge bg-primary"><i class="fas fa-mobile-alt"></i> Phone</span>
                                 }
@@ -77,7 +77,7 @@
                                 {
                                     <span><i class="fab fa-windows text-primary"></i> Windows</span>
                                 }
-                                else if (device.OperatingSystem == Common.Enums.OperatingSystemType.Mac)
+                                else if (device.OperatingSystem == Common.Enums.OperatingSystemType.MacOS)
                                 {
                                     <span><i class="fab fa-apple text-secondary"></i> macOS</span>
                                 }

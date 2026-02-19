@@ -37,12 +37,9 @@ public class UDAnalysisResult
 
     [DataMember]
     public Severity OverallSeverity { get; set; }
-    //public Dictionary<string, AnalysisResult> AnalyzerResults { get; set; } = new();
-    [DataMember] 
+    [DataMember]
     public Dictionary<string, Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>> AnalyzerResults { get; set; } = new();
-    //public List<AlertFlag> GeneratedFlags { get; set; } = new();
-    //public List<IIndicator>? Indicators { get; set; } = new();
-    [DataMember] 
+    [DataMember]
     public DateTime AnalysisTimestamp { get; set; } = DateTime.UtcNow;
 
     [DataMember]
@@ -73,8 +70,7 @@ public class UDAnalysis : IBackgroundTask
 
     public IReadOnlyList<ActiveDeviceAlert> ActiveDeviceAlerts => _activeDeviceAlerts.AsReadOnly();
     public IReadOnlyList<ActiveDeviceAlert> ExpiredDeviceAlerts => _expiredDeviceAlerts.AsReadOnly();
-    //public UDAnalysisResult? Result { get; private set; }
-    //private readonly ASView aSView = new ASView();
+
     public UDAnalysis(
         UDUser udUser, 
         ASView aSView,
@@ -121,10 +117,8 @@ public class UDAnalysis : IBackgroundTask
 
     public async Task AnalyzeAsync(DeviceAlert deviceAlert, string deviceUid, string deviceAlertEntityKey)
     {
-        // Create ActiveDeviceAlert record with AnalysisResult = null
         var activeAlert = new ActiveDeviceAlert(deviceUid, deviceAlert, deviceAlertEntityKey);
         _activeDeviceAlerts.Add(activeAlert);
-        //activeAlert.Alert.
         _logger.LogInformation($"Added alert from device {deviceUid}. Total active alerts: {_activeDeviceAlerts.Count}");
         
         // Run analysis
@@ -139,9 +133,7 @@ public class UDAnalysis : IBackgroundTask
                 var result = await analyzer.AnalyzeAsync(deviceAlert, allAlerts, _configuration);
                 analysisResults[analyzer.GetType().Name] = new Tuple<string, AnalyzerResult>(deviceAlert.AlertId, result);
 
-                //************************ Fire event for persistence and other handlers *********************
-                //FireSpecificAnalyzerResultReceivedEvent(activeAlert, analyzer.GetType().Name, result);
-                object firstResult = null; //  result.Details.FirstOrDefault(i => i.Key == "results").Value;
+                object firstResult = null;
                 switch (analyzer)
                 {
                     case UDUrlAnalyzer:
@@ -166,8 +158,6 @@ public class UDAnalysis : IBackgroundTask
                         _logger.LogInformation($"RemoteAccessAnalyzer: analyzer results for device {deviceUid}: Severity={result.Severity}, Message={result.Message}");
                         break;
                 }
-                var xx = firstResult is AnalysisResult;
-
                 if (firstResult is AnalysisResult[] resultsCollection && resultsCollection.Length > 0)
                 {
                     var indicators = this._indicatorFactory.CreateIndicators(resultsCollection.First());
@@ -182,12 +172,7 @@ public class UDAnalysis : IBackgroundTask
                         result.ProtectiveActions?.AddRange(protectiveActions.ToList());
                     }
                 }
-                else if (firstResult is AnalyzerResult analyzerResult)
-                {
-                    //var indicators = this._indicatorFactory.CreateIndicators(analyzerResult);
-                }
-
-                    analysisResults[analyzer.GetType().Name] = new Tuple<string, AnalyzerResult>(deviceAlert.AlertId, result);
+                analysisResults[analyzer.GetType().Name] = new Tuple<string, AnalyzerResult>(deviceAlert.AlertId, result);
                 FireSpecificAnalyzerResultReceivedEvent(activeAlert, analyzer.GetType().Name, result);
             }
         }
@@ -202,7 +187,6 @@ public class UDAnalysis : IBackgroundTask
                 foreach (var item in urlAnalyzerResults)
                 {
                     var r = item.Value.Item2.Details["results"];
-                    var rx = r is UrlAnalysisResultVm[];
                     if (r is UrlAnalysisResultVm[] vms)
                     {
                         foreach (var result in vms)
@@ -219,7 +203,6 @@ public class UDAnalysis : IBackgroundTask
                 {
                     if (item.Key == nameof(UDRemoteAccessAnalyzer))
                     {
-                        //urlAnalysisResults.Add(item.Key, new Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>(item.Value.Item2, item.Value.Item2.Indicators.ToArray(), item.Value.Item2.ProtectiveActions.ToArray()));
                         var r = item.Value.Item2.Details["results"];
                         if (r is AnalysisResult[] raar)
                         {
@@ -232,24 +215,8 @@ public class UDAnalysis : IBackgroundTask
                 }
                     break;
         }
-        //var urlAnalyzerResultA = analysisResults.Where(i => i.Key == nameof(UDUrlAnalyzer));
 
-        
-        //var urlAnalysisResults = new Tuple<string, AnalysisResult, Indicator[]>();
-        //foreach (var item in urlAnalyzerResults)
-        //{
-        //    var r = item.Value.Item2.Details["results"];
-        //    var rx = r is UrlAnalysisResultVm[];
-        //    if (r is UrlAnalysisResultVm[] vms)
-        //    {
-        //        foreach (var result in vms)
-        //        {
-        //            urlAnalysisResults.Add(item.Key, new Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>(result, item.Value.Item2.Indicators.ToArray(), item.Value.Item2.ProtectiveActions.ToArray()));
-        //        }
-        //    }
-        //}
-
-        var analysisResult = new UDAnalysisResult(AnalysisLevel.Device, DetermineOverallSeverity(analysisResults), udAnalysisResults,  DateTime.UtcNow, this._udUser, _configuration );
+        var analysisResult = new UDAnalysisResult(AnalysisLevel.Device, DetermineOverallSeverity(analysisResults), udAnalysisResults, DateTime.UtcNow, this._udUser, _configuration);
 
         // Update the AnalysisResult field in the ActiveDeviceAlert
         activeAlert.AnalysisResult = analysisResult;
@@ -327,7 +294,6 @@ public class UDAnalysis : IBackgroundTask
                 }
             }
         }
-        //this._userAnalyzer.AnalyzeUserAsync(activeAlert, result);
 
         _logger.LogDebug($"Fired AnalysisResultReceived event for device: {activeAlert.DeviceUid}, at {activeAlert.Timestamp} Severity: {result.OverallSeverity}");
     }
@@ -422,12 +388,6 @@ public class AnalyzerResult
     public List<IProtectiveAction>? ProtectiveActions { get; set; }
 
     public Dictionary<string, object> Details { get; set; } = new();
-
-    //public virtual Dictionary<string, AnalysisResult>? AnalysisResults {
-    //    get {
-    //        return (Dictionary<string, AnalysisResult>)this.Details.Where(i=> i.Value is IAnalysisResult) ;
-    //    }
-    //}
 }
 
 // Analyzer interface
@@ -528,17 +488,15 @@ public class UDRemoteAccessAnalyzer : ISpecificAnalyzer
                 score.Value = 30;
             }
 
-            //var indicator1 = new RemoteAccessIndicator(remoteAlert, score, AnalysisLevel.Device, 1);   
-            //indicators.Add(indicator1);
-
             string msg = $"Remote access application {remoteAlert.RemoteAccessApp} detected with {remoteAlert.ConnectionsCount} connections.";
             var action = new ProtectiveAction(ProtectiveActionSubject.Device, ProtectiveActionType.DisplayNotification, AnalysisLevel.Device, msg, remoteAlert.AlertId); // "Remote access detected", "A remote access application has been detected running on your device. Please verify if this activity is authorized.", DateTime.UtcNow);
             protectiveActions.Add(action);
         }
 
-        var riskAssesment = new RiskAssessmentVm(score.Value, "", isScam, 1);
+        var riskAssesment = new RiskAssessment(score.Value, "", isScam, 1);
 
-        var res = new RemoteAccessAnalysisResultVm(remoteAlert.RemoteAccessApp, remoteAlert.RunningProcesses, remoteAlert.ConnectionUrl, remoteAlert.ConnectionStatus, remoteAlert.ConnectionsCount, remoteAlert.SessionStatus, riskAssesment);
+        var res = new RemoteAccessAnalysisResultVm(remoteAlert.RemoteAccessApp, remoteAlert.RunningProcesses, remoteAlert.ConnectionUrl, 
+            remoteAlert.ConnectionStatus, remoteAlert.ConnectionsCount, remoteAlert.SessionStatus, remoteAlert.BrowserTabs, riskAssesment);
         var results = new List<RemoteAccessAnalysisResultVm>() { res};
 
         return new AnalyzerResult

@@ -13,7 +13,7 @@ public enum DeviceType
 {
     Unknown = 0,
     PersonalComputer = 1,
-    SmartPhone = 2,
+    MobilePhone = 2,
     Other = 3
 }
 
@@ -29,7 +29,7 @@ public enum OperatingSystemType
     Unknown = 0,
     Windows = 1,
     Linux = 2,
-    Mac = 3,
+    MacOS = 3,
     Android = 4,
     IOS = 5
 }
@@ -83,7 +83,12 @@ public enum ConnectionStatus
     Closed = 2
 }
 
-
+public enum SessionStatus
+{
+    Unknown = 0,
+    Open = 1,
+    Closed = 2
+}
 
 public enum PersonalComputerType
 {
@@ -146,6 +151,19 @@ public enum  AnalysisLevel
     Unknown = 0,
     Device = 1,
     User = 2
+}
+
+public enum MessagingApp
+{
+    Unknown = 0,
+    Email = 1,
+    Skype = 2,
+    Slack = 3,
+    MicrosoftTeams = 4,
+    Zoom = 5,
+    Discord = 6,
+    WhatsApp = 7,
+    Telegram = 8
 }
 
 

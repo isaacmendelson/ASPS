@@ -8,9 +8,10 @@ namespace Business.RealtimeAnalysis
     {
         public Score() { }
 
-        public Score(float value, float confidence) { 
+        public Score(float value, float confidence, bool isValid) { 
             this.Value = value;
             this.Confidence = confidence;
+            this.IsValid = isValid;
         }
 
         

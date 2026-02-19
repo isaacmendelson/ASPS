@@ -9,7 +9,7 @@ namespace Business.RealtimeAnalysis
     public class BooleanScore : Score
     {
         public BooleanScore(bool value, float certainty, bool isValid)
-            : base(certainty, certainty)
+            : base(certainty, certainty, isValid)
         {
             Value = value;
         }

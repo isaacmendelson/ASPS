@@ -3,6 +3,7 @@ using Business.Views;
 using Common.Entities;
 using Common.Interfaces;
 using Common.Models;
+using Common.Models.Alerts;
 using Interface.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -24,6 +25,7 @@ public class UserDomainManagerService
     private readonly AppDbContext _dbContext;
     private readonly List<IDomainEventHandler> _eventHandlers;
     private readonly IKnownPhishingWebsiteRepository _phishingRepo;
+    private readonly ISafeDomainRepository _safeDomainRepo;
     private readonly ASView _aSView;
 
     public UserDomainManagerService(
@@ -32,7 +34,8 @@ public class UserDomainManagerService
         AppDbContext dbContext,
         ASView aSView,
         IEnumerable<IDomainEventHandler> eventHandlers,
-        IKnownPhishingWebsiteRepository phishingRepo)
+        IKnownPhishingWebsiteRepository phishingRepo,
+        ISafeDomainRepository safeDomainRepo)
     {
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<UserDomainManagerService>();
@@ -41,7 +44,7 @@ public class UserDomainManagerService
         _dbContext = dbContext;
         _eventHandlers = eventHandlers.ToList();
         _phishingRepo = phishingRepo;
-        
+        _safeDomainRepo = safeDomainRepo;
         _logger.LogInformation($"UserDomainManagerService initialized with {_eventHandlers.Count} event handlers");
     }
 
@@ -82,7 +85,7 @@ public class UserDomainManagerService
         }
         else
         {
-            manager = new UDAnalysisManager(udUser, _loggerFactory, _aSView, _configuration, _eventHandlers, _phishingRepo);
+            manager = new UDAnalysisManager(udUser, _loggerFactory, _aSView, _configuration, _eventHandlers, _phishingRepo, _safeDomainRepo);
         }
 
             // Add to dictionary
@@ -156,27 +159,36 @@ public class UserDomainManagerService
     /// </summary>
     private UDUser CreateUDUserFromEntity(Common.Entities.User user)
     {
-        var udUser = new UDUser(new Key("User", user.KeyField))
-        {
-            KeycloakUserId = user.KeycloakUserId,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Address = user.Address,
-            City = user.City,
-            State = user.State,
-            Zip = user.Zip,
-            Country = user.Country,
-            PhoneNumber = user.PhoneNumber,
-            Role = user.Role,
-            GuardianKey = user.GuardianKey,
-            Locale = user.Locale,
-            Timezone = user.Timezone,
-            DateCreated = user.DateCreated,
-            DateModified = user.DateModified,
-            DateDeleted = user.DateDeleted,
-            IsDisabled = user.IsDisabled
-        };
+        Key key = user.Key ?? new Key("User", user.KeyField);
+        var udUser = new UDUser(
+            key,
 
+            new UserInfo(
+            key,
+            user.KeycloakUserId,
+            user.FirstName,
+            user.LastName,
+            user.Address,
+            user.City,
+            user.State,
+            user.Zip,
+            user.Country,
+            user.PhoneNumber,
+            user.Role,
+            user.IsDisabled,
+            user.DateCreated,
+            user.GuardianKey,
+            user.Locale,
+            user.Timezone
+            ),
+
+            new RiskAssessment(0, "Unknown", false, 0),
+            Enumerable.Empty<UserDeviceView>(), 
+            Enumerable.Empty<DeviceAlertView>(),
+            Enumerable.Empty<BrowserTab>(),
+            false
+        );
+        
         return udUser;
     }
 }
