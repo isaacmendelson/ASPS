@@ -25,6 +25,7 @@ public class CurveKeyManager
     private readonly ILogger<CurveKeyManager> _logger;
     private readonly bool _curveEnabled;
     private readonly string _keysFilePath;
+    private readonly string _publicKeyFilePath;
 
     public byte[] ServerPublicKey { get; private set; } = Array.Empty<byte>();
     public byte[] ServerSecretKey { get; private set; } = Array.Empty<byte>();
@@ -35,6 +36,7 @@ public class CurveKeyManager
         _logger = logger;
         _curveEnabled = configuration.GetValue<bool>("Security:CurveEnabled", true);
         _keysFilePath = ResolveKeysFilePath(configuration.GetValue<string>("Security:KeysFilePath"));
+        _publicKeyFilePath = Path.Combine(Path.GetDirectoryName(_keysFilePath)!, "curve-server-public-key.txt");
 
         if (_curveEnabled)
             LoadOrGenerateKeys();
@@ -101,6 +103,7 @@ public class CurveKeyManager
 
             _logger.LogInformation("CurveZMQ keypair loaded from {Path}", _keysFilePath);
             _logger.LogInformation("Server public key (Z85): {Key}", ServerPublicKeyZ85);
+            SavePublicKeyFile();
             return true;
         }
         catch (Exception ex)
@@ -143,12 +146,32 @@ public class CurveKeyManager
             _logger.LogError(ex, "Failed to save CURVE keys to {Path} — keys are in memory only", _keysFilePath);
         }
 
+        SavePublicKeyFile();
+
         _logger.LogWarning("════════════════════════════════════════════════════════");
         _logger.LogWarning("NEW CURVE KEYPAIR GENERATED");
         _logger.LogWarning("Distribute this public key (Z85) to all desktop clients:");
         _logger.LogWarning("  {Key}", ServerPublicKeyZ85);
         _logger.LogWarning("Set BACKEND_SERVER_PUBLIC_KEY_Z85 in the desktop app config.");
         _logger.LogWarning("════════════════════════════════════════════════════════");
+    }
+
+    /// <summary>
+    /// Write the server public key (Z85) to a separate, world-readable file.
+    /// Python and other clients read from this file — they never need access
+    /// to the full keypair file that contains the private key.
+    /// </summary>
+    private void SavePublicKeyFile()
+    {
+        try
+        {
+            File.WriteAllText(_publicKeyFilePath, ServerPublicKeyZ85);
+            _logger.LogInformation("CURVE public key written to {Path}", _publicKeyFilePath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not write CURVE public key file to {Path}", _publicKeyFilePath);
+        }
     }
 
     private static string ResolveKeysFilePath(string? configured)

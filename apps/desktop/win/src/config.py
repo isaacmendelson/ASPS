@@ -40,7 +40,7 @@ BACKEND_SUB_PORT = 50002  # Notifications (PUB/SUB pattern)
 import os as _os, pathlib as _pl
 
 def _load_curve_public_key() -> str:
-    import json as _json, platform as _platform
+    import platform as _platform
 
     # 1. Environment variable
     env_key = _os.environ.get("ANTISCAM_CURVE_PUBLIC_KEY", "")
@@ -54,23 +54,22 @@ def _load_curve_public_key() -> str:
         if key:
             return key
 
-    # 3. Backend keys file (same machine — dev/local setup).
-    #    Backend saves its keypair here on first run; Python reads the public key
-    #    so the first connection is already CURVE-encrypted.
+    # 3. Backend public key file (same machine — dev/local setup).
+    #    Backend writes ONLY the public key (Z85) to this file on startup.
+    #    Python reads from here — no access to the full keypair / private key.
     if _platform.system() == 'Windows':
-        backend_keys = _pl.Path(_os.environ.get('LOCALAPPDATA', _os.path.expanduser('~'))) / 'ASPS' / 'curve-server-keys.json'
+        backend_pubkey = _pl.Path(_os.environ.get('LOCALAPPDATA', _os.path.expanduser('~'))) / 'ASPS' / 'curve-server-public-key.txt'
     else:
-        backend_keys = _pl.Path(_os.path.expanduser('~')) / '.asps' / 'curve-server-keys.json'
+        backend_pubkey = _pl.Path(_os.path.expanduser('~')) / '.asps' / 'curve-server-public-key.txt'
 
-    if backend_keys.exists():
+    if backend_pubkey.exists():
         try:
-            data = _json.loads(backend_keys.read_text())
-            key = data.get('ServerPublicKeyZ85', '')
+            key = backend_pubkey.read_text().strip()
             if key:
-                print(f"[CONFIG] CURVE public key loaded from backend keys file: {backend_keys}")
+                print(f"[CONFIG] CURVE public key loaded from: {backend_pubkey}")
                 return key
         except Exception as e:
-            print(f"[CONFIG] Failed to read backend keys file: {e}")
+            print(f"[CONFIG] Failed to read CURVE public key file: {e}")
 
     # 4. No key — first connection is unencrypted; key received from backend RequestToken response
     return ""
