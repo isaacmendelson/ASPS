@@ -40,15 +40,39 @@ BACKEND_SUB_PORT = 50002  # Notifications (PUB/SUB pattern)
 import os as _os, pathlib as _pl
 
 def _load_curve_public_key() -> str:
+    import json as _json, platform as _platform
+
     # 1. Environment variable
     env_key = _os.environ.get("ANTISCAM_CURVE_PUBLIC_KEY", "")
     if env_key:
         return env_key.strip()
-    # 2. Local file
+
+    # 2. Manually distributed key file
     local_file = _pl.Path(_os.path.expanduser("~")) / ".antiscam" / "curve-public-key.txt"
     if local_file.exists():
-        return local_file.read_text().strip()
-    # 3. No key — will connect unencrypted on first run; key received from backend response
+        key = local_file.read_text().strip()
+        if key:
+            return key
+
+    # 3. Backend keys file (same machine — dev/local setup).
+    #    Backend saves its keypair here on first run; Python reads the public key
+    #    so the first connection is already CURVE-encrypted.
+    if _platform.system() == 'Windows':
+        backend_keys = _pl.Path(_os.environ.get('LOCALAPPDATA', _os.path.expanduser('~'))) / 'ASPS' / 'curve-server-keys.json'
+    else:
+        backend_keys = _pl.Path(_os.path.expanduser('~')) / '.asps' / 'curve-server-keys.json'
+
+    if backend_keys.exists():
+        try:
+            data = _json.loads(backend_keys.read_text())
+            key = data.get('ServerPublicKeyZ85', '')
+            if key:
+                print(f"[CONFIG] CURVE public key loaded from backend keys file: {backend_keys}")
+                return key
+        except Exception as e:
+            print(f"[CONFIG] Failed to read backend keys file: {e}")
+
+    # 4. No key — first connection is unencrypted; key received from backend RequestToken response
     return ""
 
 BACKEND_SERVER_PUBLIC_KEY_Z85 = _load_curve_public_key()
