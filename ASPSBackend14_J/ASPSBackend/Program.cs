@@ -71,6 +71,13 @@ class Program
 
     static IHostBuilder CreateHostBuilder(string[] args) =>
         Host.CreateDefaultBuilder(args)
+            .ConfigureAppConfiguration((ctx, config) =>
+            {
+                // Always load appsettings.Development.json if it exists (local dev overrides).
+                // This supplements the default env-based loading in case DOTNET_ENVIRONMENT
+                // is not set (e.g., Visual Studio multi-startup projects).
+                config.AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: true);
+            })
             .ConfigureServices((hostContext, services) =>
             {
                 var configuration = hostContext.Configuration;
