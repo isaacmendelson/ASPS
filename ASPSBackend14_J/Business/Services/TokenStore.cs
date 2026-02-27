@@ -110,7 +110,10 @@ public class TokenStore
             return TokenValidationResult.InvalidToken;
         }
 
-        if (storedToken.TokenValue != tokenValue)
+        // Constant-time comparison to prevent timing attacks
+        var storedBytes = Convert.FromHexString(storedToken.TokenValue);
+        var inputBytes  = Convert.FromHexString(tokenValue);
+        if (!CryptographicOperations.FixedTimeEquals(storedBytes, inputBytes))
         {
             _logger.LogWarning("Token mismatch for device {DeviceUid}", deviceUid);
             return TokenValidationResult.InvalidToken;
@@ -138,7 +141,10 @@ public class TokenStore
             return null;
         }
 
-        if (storedToken.TokenValue != oldTokenValue)
+        // Constant-time comparison to prevent timing attacks
+        var storedBytes = Convert.FromHexString(storedToken.TokenValue);
+        var inputBytes  = Convert.FromHexString(oldTokenValue);
+        if (!CryptographicOperations.FixedTimeEquals(storedBytes, inputBytes))
         {
             _logger.LogWarning("RefreshToken: Old token mismatch for device {DeviceUid}", deviceUid);
             return null;

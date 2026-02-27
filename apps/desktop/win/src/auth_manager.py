@@ -13,6 +13,17 @@ from pathlib import Path
 
 from config import DATA_DIR, BACKEND_SERVER_PUBLIC_KEY_Z85, WEBAPI_URL
 
+# Secure credential storage — Windows Credential Manager / macOS Keychain / libsecret
+try:
+    import keyring
+    _KEYRING_SERVICE = "AntiScamApp"
+    _KEYRING_AVAILABLE = True
+except ImportError:
+    _KEYRING_AVAILABLE = False
+    logging.getLogger(__name__).warning(
+        "keyring not installed — token stored in plain-text file. Run: pip install keyring"
+    )
+
 logger = logging.getLogger(__name__)
 
 
@@ -68,13 +79,27 @@ class AuthManager:
             print(f"[AUTH] Using bootstrap server public key from config")
 
     def _load_token(self):
-        """Load token from disk"""
+        """Load token from secure storage (keyring) and metadata from disk."""
         try:
             if self.storage_path.exists():
                 with open(self.storage_path, 'r') as f:
                     data = json.load(f)
 
-                self.token = data.get('token')
+                if _KEYRING_AVAILABLE:
+                    device_uid = self.device_info.get('id', 'unknown')
+                    self.token = keyring.get_password(_KEYRING_SERVICE, device_uid)
+                    if self.token:
+                        print("[AUTH] Token loaded from OS keyring (secure)")
+                    else:
+                        legacy = data.get('token')
+                        if legacy:
+                            keyring.set_password(_KEYRING_SERVICE, device_uid, legacy)
+                            self.token = legacy
+                            print("[AUTH] Migrated token to OS keyring")
+                else:
+                    self.token = data.get('token')
+                    print("[AUTH] WARNING: token loaded from plain-text file")
+
                 self.user_id = data.get('user_id')
                 self.is_authorized = data.get('is_authorized', False)
 
@@ -82,21 +107,18 @@ class AuthManager:
                 if expires_str:
                     self.expires_at = datetime.fromisoformat(expires_str)
 
-                # Load saved server public key
                 saved_key = data.get('server_public_key')
                 if saved_key:
                     self.server_public_key = saved_key.encode('utf-8') if isinstance(saved_key, str) else saved_key
 
-                # Recover saved email (if not already set via constructor)
                 saved_email = data.get('email', '')
                 if saved_email and not self.email:
                     self.email = saved_email
                     print(f"[AUTH] Loaded saved email: {self.email}")
 
                 if self.token:
-                    print(f"[AUTH] Loaded saved token: {self.token[:20]}...")
+                    print(f"[AUTH] Loaded saved token: {self.token[:8]}... (truncated)")
                     print(f"[AUTH] Expires: {self.expires_at}")
-
                     if self.is_expired():
                         print("[AUTH] Token is expired, will refresh")
                     else:
@@ -107,12 +129,22 @@ class AuthManager:
             logger.error(f"Error loading auth token: {e}")
 
     def _save_token(self):
-        """Save token to disk"""
+        """Save token to OS keyring; save non-sensitive metadata to disk."""
         try:
             self.storage_path.parent.mkdir(parents=True, exist_ok=True)
 
+            if _KEYRING_AVAILABLE and self.token:
+                device_uid = self.device_info.get('id', 'unknown')
+                keyring.set_password(_KEYRING_SERVICE, device_uid, self.token)
+                token_for_file = None
+                print("[AUTH] Token stored in OS keyring (secure)")
+            else:
+                token_for_file = self.token
+                if token_for_file:
+                    print("[AUTH] WARNING: token written to plain-text file")
+
             data = {
-                'token': self.token,
+                'token': token_for_file,
                 'user_id': self.user_id,
                 'expires_at': self.expires_at.isoformat() if self.expires_at else None,
                 'is_authorized': self.is_authorized,
@@ -123,7 +155,7 @@ class AuthManager:
             with open(self.storage_path, 'w') as f:
                 json.dump(data, f, indent=2)
 
-            print(f"[AUTH] Token saved to {self.storage_path}")
+            print(f"[AUTH] Auth metadata saved to {self.storage_path}")
 
         except Exception as e:
             print(f"[AUTH] Error saving token: {e}")
@@ -140,8 +172,8 @@ class AuthManager:
 
         if status in ("TokenCreated", "ExistingToken", "TokenRefreshed"):
             new_token = response.get("token", "")
-            print(f"[AUTH] Received token from backend: {new_token[:20] if new_token else 'EMPTY'}...")
-            print(f"[AUTH] Old token was: {self.token[:20] if self.token else 'None'}...")
+            print(f"[AUTH] Received token from backend: {new_token[:8] if new_token else 'EMPTY'}... (truncated)")
+            print(f"[AUTH] Replacing previous token")
 
             self.token = new_token
             self.is_authorized = True
@@ -161,7 +193,7 @@ class AuthManager:
                 self.zmq_client.set_server_public_key(self.server_public_key)
 
             self._save_token()
-            print(f"[AUTH] Token updated and saved! New token: {self.token[:20]}...")
+            print(f"[AUTH] Token updated and saved!")
             return True
 
         print(f"[AUTH] _handle_token_response returning False for status: {status}")
@@ -282,8 +314,16 @@ class AuthManager:
         return False
 
     def clear(self):
-        """Clear authentication data"""
+        """Clear authentication data from memory, OS keyring, and disk."""
         print("[AUTH] Clearing authentication")
+        if _KEYRING_AVAILABLE:
+            try:
+                device_uid = self.device_info.get('id', 'unknown')
+                keyring.delete_password(_KEYRING_SERVICE, device_uid)
+                print("[AUTH] Token removed from OS keyring")
+            except Exception:
+                pass
+
         self.token = None
         self.expires_at = None
         self.is_authorized = False

@@ -27,3 +27,6 @@ geoip2>=4.8.0
 
 # For building EXE
 pyinstaller>=6.0.0
+
+# Secure credential storage (Windows Credential Manager / macOS Keychain / libsecret)
+keyring>=24.0.0

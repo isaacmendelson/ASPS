@@ -132,7 +132,7 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         switch(evt)
         {
             case DeviceAlertReceived alertEvent:
-                HandleDeviceAlertReceived(alertEvent);
+                await HandleDeviceAlertReceived(alertEvent);
                 break;
             case AnalysisResultReceived analysisResultEvent:
                 HandleAnalysisResultReceived(analysisResultEvent);
@@ -149,7 +149,7 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         };
     }
 
-    private async void HandleDeviceAlertReceived(DeviceAlertReceived alertEvent)
+    private async Task HandleDeviceAlertReceived(DeviceAlertReceived alertEvent)
     {
         var deviceUid = alertEvent.DeviceUid;
         
@@ -166,9 +166,9 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         }
     }
 
-    private async Task HandleAnalysisResultReceived(AnalysisResultReceived analysisResultEvent)
+    private Task HandleAnalysisResultReceived(AnalysisResultReceived analysisResultEvent)
     {
-        var x = analysisResultEvent.AnalyzerResults.First().Key;
-
+        // TODO: implement post-analysis logic if needed
+        return Task.CompletedTask;
     }
 }

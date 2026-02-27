@@ -139,16 +139,15 @@ class AntiScamApp:
         print("\n[STARTUP] Authenticating with backend...")
         if self.container.auth_manager.ensure_authenticated():
             print("[STARTUP] Authenticated!")
-            token = self.container.auth_manager.token
-            token_display = token[:30] if token else "(no token)"
-            print(f"[STARTUP] Token: {token_display}...")
+            print(f"[STARTUP] Token: present")
             print(f"[STARTUP] User ID: {self.container.auth_manager.user_id}")
-
-            # Apply CURVE keys to notification client
-            self.container.apply_curve_keys()
         else:
             print("[STARTUP] WARNING: Could not authenticate!")
             print("[STARTUP] Some features may not work.")
+
+        # Always apply CURVE keys before starting notification client —
+        # bootstrap public key from config ensures encrypted SUB even if auth failed
+        self.container.apply_curve_keys()
 
         # Start Notification Client
         print("\n[STARTUP] Starting notification client...")
@@ -200,6 +199,7 @@ class AntiScamApp:
 
         await self.container.extension_server.stop()
         self.container.notification_client.stop()
+        self.container.zmq_client.destroy()
 
         print("[SHUTDOWN] AntiScam Desktop stopped")
         return True

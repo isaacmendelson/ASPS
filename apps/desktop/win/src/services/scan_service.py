@@ -127,7 +127,7 @@ class ScanService:
                 return self._create_error(url, "Not authenticated")
 
         token = self.auth_manager.get_token()
-        print(f"[SCAN] Token: {token[:20]}..." if token else "[SCAN] No token!")
+        print("[SCAN] Token: present" if token else "[SCAN] No token!")
 
         # Step 3: Send to backend
         print("[SCAN] Step 3: Sending to backend (ZMQ)...")

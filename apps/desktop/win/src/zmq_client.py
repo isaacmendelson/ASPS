@@ -50,9 +50,10 @@ class ZMQClient:
         self.host = host
         self.port = port
         self.timeout = 5000  # milliseconds
-        self.context = None
         self.socket = None
         self.server_public_key: Optional[bytes] = None  # Z85-encoded server key
+        # Context is expensive — create once and reuse across all requests
+        self.context = zmq.Context()
 
         print(f"[ZMQ] Client initialized")
         print(f"[ZMQ] Server: tcp://{self.host}:{self.port}")
@@ -63,9 +64,8 @@ class ZMQClient:
         print(f"[ZMQ] CURVE server public key set ({len(key)} bytes)")
 
     def connect(self) -> bool:
-        """Connect to ZMQ server with optional CURVE encryption"""
+        """Open a new REQ socket. Context is reused — only socket is created here."""
         try:
-            self.context = zmq.Context()
             self.socket = self.context.socket(zmq.REQ)
             self.socket.setsockopt(zmq.RCVTIMEO, self.timeout)
             self.socket.setsockopt(zmq.SNDTIMEO, self.timeout)
@@ -86,7 +86,7 @@ class ZMQClient:
             return False
 
     def close(self):
-        """Close connection"""
+        """Close current socket. Context is kept alive for reuse."""
         if self.socket:
             try:
                 self.socket.close()
@@ -96,6 +96,9 @@ class ZMQClient:
                 logger.exception("Unexpected error closing ZMQ socket")
             self.socket = None
 
+    def destroy(self):
+        """Terminate the context — call only on app shutdown."""
+        self.close()
         if self.context:
             try:
                 self.context.term()
@@ -104,8 +107,7 @@ class ZMQClient:
             except Exception:
                 logger.exception("Unexpected error terminating ZMQ context")
             self.context = None
-
-        print("[ZMQ] SUCCESS: Connection closed")
+            print("[ZMQ] Context terminated")
 
     def send_alert(self, alert: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
@@ -133,8 +135,10 @@ class ZMQClient:
             if alert.get('AlertType') == 'UrlAlert':
                 print(f"[ZMQ] URL: {alert.get('Url', 'N/A')}")
             print("-" * 70)
+            # Redact token before logging
+            log_alert = {**alert, 'Token': '[REDACTED]'} if 'Token' in alert else alert
             print("[ZMQ] FULL MESSAGE: Full message:")
-            print(json.dumps(alert, indent=2, ensure_ascii=False))
+            print(json.dumps(log_alert, indent=2, ensure_ascii=False))
             print("-" * 70)
 
             # Send
