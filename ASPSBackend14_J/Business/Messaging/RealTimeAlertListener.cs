@@ -114,8 +114,7 @@ public class RealTimeAlertListener : IDisposable
             {
                 if (_mode == SocketMode.Router)
                 {
-                    var incoming = new NetMQMessage();
-                    _routerSocket!.ReceiveMultipartMessage(incoming);
+                    var incoming = _routerSocket!.ReceiveMultipartMessage();
 
                     if (incoming.FrameCount < 3)
                     {
