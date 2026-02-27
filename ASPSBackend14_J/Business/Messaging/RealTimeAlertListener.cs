@@ -254,10 +254,15 @@ public class RealTimeAlertListener : IDisposable
     private object HandleRequestToken(JObject jObject)
     {
         var deviceUid = jObject["DeviceUid"]?.ToString();
+        var email     = jObject["Email"]?.ToString();
 
         if (string.IsNullOrEmpty(deviceUid))
-        {
             return new { status = "Error", message = "DeviceUid is required" };
+
+        if (string.IsNullOrEmpty(email))
+        {
+            _logger.LogWarning("RequestToken from device {DeviceUid} missing Email — rejected", deviceUid);
+            return new { status = "Error", message = "Email is required" };
         }
 
         _logger.LogInformation("RequestToken from device {DeviceUid}", deviceUid);
@@ -270,7 +275,23 @@ public class RealTimeAlertListener : IDisposable
             return new { status = "DeviceNotRecognized", deviceUid };
         }
 
-        // Device exists — check if there's already a valid token
+        // Security: verify the email belongs to the device owner.
+        // Prevents zero-factor token retrieval — attacker needs DeviceUid AND
+        // the registered email to obtain a token.
+        var deviceOwner = userDevice.UserKey != null
+            ? _asView.FindUserByKey(userDevice.UserKey)
+            : null;
+        if (deviceOwner == null || !string.Equals(deviceOwner.Email, email, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning(
+                "RequestToken: email mismatch for device {DeviceUid} — rejecting",
+                deviceUid);
+            // Return same response as DeviceNotRecognized to avoid leaking
+            // whether the DeviceUid exists at all.
+            return new { status = "DeviceNotRecognized", deviceUid };
+        }
+
+        // Device + email verified — check if there's already a valid token
         var existingToken = _tokenStore.GetToken(deviceUid);
         if (existingToken != null)
         {
