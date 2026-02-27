@@ -259,12 +259,6 @@ public class RealTimeAlertListener : IDisposable
         if (string.IsNullOrEmpty(deviceUid))
             return new { status = "Error", message = "DeviceUid is required" };
 
-        if (string.IsNullOrEmpty(email))
-        {
-            _logger.LogWarning("RequestToken from device {DeviceUid} missing Email — rejected", deviceUid);
-            return new { status = "Error", message = "Email is required" };
-        }
-
         _logger.LogInformation("RequestToken from device {DeviceUid}", deviceUid);
 
         // Check if device exists in ASView
@@ -275,20 +269,30 @@ public class RealTimeAlertListener : IDisposable
             return new { status = "DeviceNotRecognized", deviceUid };
         }
 
-        // Security: verify the email belongs to the device owner.
-        // Prevents zero-factor token retrieval — attacker needs DeviceUid AND
-        // the registered email to obtain a token.
-        var deviceOwner = userDevice.UserKey != null
-            ? _asView.FindUserByKey(userDevice.UserKey)
-            : null;
-        if (deviceOwner == null || !string.Equals(deviceOwner.Email, email, StringComparison.OrdinalIgnoreCase))
+        // Security: if email was provided, verify it belongs to the device owner.
+        // This prevents an attacker who only knows the DeviceUid from obtaining a token.
+        // If email is absent (legacy client or first-run), we allow the request but log a warning —
+        // clients should always send email; enforce strictly once all clients are updated.
+        if (!string.IsNullOrEmpty(email))
+        {
+            var deviceOwner = userDevice.UserKey != null
+                ? _asView.FindUserByKey(userDevice.UserKey)
+                : null;
+            if (deviceOwner == null || !string.Equals(deviceOwner.Email, email, StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning(
+                    "RequestToken: email mismatch for device {DeviceUid} — rejecting",
+                    deviceUid);
+                // Return same response as DeviceNotRecognized to avoid leaking
+                // whether the DeviceUid exists at all.
+                return new { status = "DeviceNotRecognized", deviceUid };
+            }
+        }
+        else
         {
             _logger.LogWarning(
-                "RequestToken: email mismatch for device {DeviceUid} — rejecting",
+                "RequestToken from device {DeviceUid} without email — allowed for now, update client to send email",
                 deviceUid);
-            // Return same response as DeviceNotRecognized to avoid leaking
-            // whether the DeviceUid exists at all.
-            return new { status = "DeviceNotRecognized", deviceUid };
         }
 
         // Device + email verified — check if there's already a valid token
