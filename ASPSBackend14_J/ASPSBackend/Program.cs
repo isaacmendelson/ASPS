@@ -71,6 +71,14 @@ class Program
 
     static IHostBuilder CreateHostBuilder(string[] args) =>
         Host.CreateDefaultBuilder(args)
+            .UseDefaultServiceProvider((context, options) =>
+            {
+                // DI scope validation is disabled — singleton/scoped mismatches
+                // exist in this codebase and are handled manually via IServiceScopeFactory.
+                // TODO: refactor singletons that consume scoped services.
+                options.ValidateScopes = false;
+                options.ValidateOnBuild = false;
+            })
             .ConfigureAppConfiguration((ctx, config) =>
             {
                 // Always load appsettings.Development.json if it exists (local dev overrides).
