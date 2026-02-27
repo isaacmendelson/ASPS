@@ -148,3 +148,15 @@ _check_*.ps1
 # Claude Code / GSD planning (not part of source)
 .claude/
 .planning/
+
+# -----------------------------------------------------------------------------
+# ASP.NET Core secrets — never commit environment-specific settings
+# -----------------------------------------------------------------------------
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Staging.json
+appsettings.*.local.json
+
+# CURVE key files (generated at runtime)
+curve-server-keys.json
+*.curve-keys.json

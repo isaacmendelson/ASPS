@@ -30,9 +30,28 @@ BACKEND_REQ_PORT = 50001  # Request/Response (REQ/REP pattern)
 BACKEND_SUB_PORT = 50002  # Notifications (PUB/SUB pattern)
 
 # CURVE Encryption - Server public key (Z85 encoded)
-# This key must match Security:ServerPublicKeyZ85 in backend's appsettings.json
-# Required for initial bootstrap since backend only accepts CURVE connections
-BACKEND_SERVER_PUBLIC_KEY_Z85 = "qPsk#8DY:n9ovp[vQ!YcOnOX[f/.i@.g^f#b:!ik"
+# The backend generates its keypair on first run and logs the public key.
+# Set this value via environment variable or a local config file — never hardcode in source.
+#
+# Priority:
+#   1. Environment variable: ANTISCAM_CURVE_PUBLIC_KEY
+#   2. Local file: %APPDATA%\AntiScam\curve-public-key.txt  (or ~/.antiscam/curve-public-key.txt)
+#   3. Empty string — first connection will be unencrypted; key received and saved from backend response.
+import os as _os, pathlib as _pl
+
+def _load_curve_public_key() -> str:
+    # 1. Environment variable
+    env_key = _os.environ.get("ANTISCAM_CURVE_PUBLIC_KEY", "")
+    if env_key:
+        return env_key.strip()
+    # 2. Local file
+    local_file = _pl.Path(_os.path.expanduser("~")) / ".antiscam" / "curve-public-key.txt"
+    if local_file.exists():
+        return local_file.read_text().strip()
+    # 3. No key — will connect unencrypted on first run; key received from backend response
+    return ""
+
+BACKEND_SERVER_PUBLIC_KEY_Z85 = _load_curve_public_key()
 
 # Whitelist - IPs and ports to ignore in remote access detection
 WHITELIST_IPS = [
