@@ -11,10 +11,10 @@ public class AppDbContext : DbContext
     {
         try
         {
-            Console.WriteLine("[DbContext] Constructor called");
+
             // Force model initialization to happen now so we can catch the error
             var _ = this.Model;
-            Console.WriteLine("[DbContext] Model initialized successfully");
+
         }
         catch (Exception ex)
         {
