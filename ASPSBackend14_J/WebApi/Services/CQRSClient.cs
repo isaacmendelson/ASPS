@@ -1,3 +1,4 @@
+using Business.Services;
 using Common.Messaging;
 using NetMQ;
 using NetMQ.Sockets;
@@ -13,18 +14,21 @@ public class CQRSClient : IDisposable
 {
     private readonly string _endpoint;
     private readonly ILogger<CQRSClient> _logger;
+    private readonly CurveKeyManager? _curveKeyManager;
     private readonly object _lock = new object();
     private readonly TimeSpan _timeout = TimeSpan.FromSeconds(10);
 
-    public CQRSClient(string endpoint, ILogger<CQRSClient> logger)
+    public CQRSClient(string endpoint, ILogger<CQRSClient> logger, CurveKeyManager? curveKeyManager = null)
     {
         _endpoint = endpoint;
         _logger = logger;
+        _curveKeyManager = curveKeyManager;
     }
 
     private RequestSocket CreateSocket()
     {
         var socket = new RequestSocket();
+        // No CURVE on internal localhost channel — encryption is on external ports 50001/50002
         socket.Connect(_endpoint);
         return socket;
     }

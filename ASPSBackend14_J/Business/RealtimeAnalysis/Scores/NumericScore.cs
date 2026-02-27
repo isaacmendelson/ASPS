@@ -9,7 +9,7 @@ namespace Business.RealtimeAnalysis
     public class NumericScore : Score
     {
         public NumericScore(float value, float Confidence, bool isValid)
-            : base(Confidence, Confidence)
+            : base(Confidence, Confidence, isValid)
         {
             Value = value;
         }

@@ -1,6 +1,7 @@
 using Business.DomainEvents;
 using Business.RealtimeAnalysis.UserDomain;
 using Common.Interfaces;
+using Common.Models;
 using Microsoft.Extensions.Logging;
 
 namespace Business.Messaging;
@@ -44,7 +45,7 @@ public class NotificationPublisherActor : IDomainEventHandler
             }
 
             var analyzerResult = analysisEvent.AnalyzerResults.First().Value;
-            RiskAssessmentVm? riskAssessment = null;
+            RiskAssessment? riskAssessment = null;
             switch (analyzerResult.Item1)
             {
                 case UrlAnalysisResultVm urlAnalyzerResult:

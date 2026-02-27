@@ -4,8 +4,10 @@ namespace Common.Models.Alerts;
 
 public class RemoteAccessAlert : DeviceAlert
 {
+
     protected RemoteAccessAlert() { }
-    public RemoteAccessAlert(RemoteAccessApp remoteAccessApp, int runningProcesses, string connectionUrl, ConnectionStatus connectionStatus, int connectionsCount, int sessionStatus)
+    public RemoteAccessAlert(RemoteAccessApp remoteAccessApp, int runningProcesses, string connectionUrl, ConnectionStatus connectionStatus, 
+        int connectionsCount, int sessionStatus, BrowserTab[]? browserTabs)
     {
         RemoteAccessApp = remoteAccessApp;
         RunningProcesses = runningProcesses;
@@ -13,7 +15,19 @@ public class RemoteAccessAlert : DeviceAlert
         ConnectionStatus = connectionStatus;
         ConnectionsCount = connectionsCount;
         SessionStatus = sessionStatus;
+        BrowserTabs = browserTabs;
     }
+
+    //protected RemoteAccessAlert() { }
+    //public RemoteAccessAlert(RemoteAccessApp remoteAccessApp, int runningProcesses, string connectionUrl, ConnectionStatus connectionStatus, int connectionsCount, int sessionStatus)
+    //{
+    //    RemoteAccessApp = remoteAccessApp;
+    //    RunningProcesses = runningProcesses;
+    //    ConnectionUrl = connectionUrl;
+    //    ConnectionStatus = connectionStatus;
+    //    ConnectionsCount = connectionsCount;
+    //    SessionStatus = sessionStatus;
+    //}
 
     public RemoteAccessApp RemoteAccessApp { get; set; }
     public int RunningProcesses { get; set; }
@@ -21,4 +35,6 @@ public class RemoteAccessAlert : DeviceAlert
     public ConnectionStatus ConnectionStatus { get; set; }
     public int ConnectionsCount { get; set; }
     public int SessionStatus { get; set; }
+
+    public BrowserTab[]? BrowserTabs { get; set; }
 }

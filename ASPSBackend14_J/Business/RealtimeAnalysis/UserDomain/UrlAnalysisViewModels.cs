@@ -2,6 +2,8 @@ using Business.RealtimeAnalysis.Indicators;
 using Common.Entities;
 using Common.Enums;
 using Common.Interfaces;
+using Common.Models;
+using Common.Models.Alerts;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -145,15 +147,17 @@ public class RemoteAccessAnalyzerResultVm : AnalyzerResultVm
 [DataContract]
 public class RemoteAccessAnalysisResultVm : AnalysisResult
 {
-    public RemoteAccessAnalysisResultVm(RemoteAccessApp remoteAccessApp, int runningProcesses, string connectionUrl, ConnectionStatus connectionStatus, int connectionsCount, int sessionStatus, RiskAssessmentVm? risk_assessment)
+    public RemoteAccessAnalysisResultVm(RemoteAccessApp remoteAccessApp, int runningProcesses, string connectionUrl, ConnectionStatus connectionStatus, 
+        int connectionsCount, int sessionStatus, BrowserTab[]? browserTabs, RiskAssessment? risk_assessment)
     {
-        RemoteAccessApp = remoteAccessApp;
-        RunningProcesses = runningProcesses;
-        ConnectionUrl = connectionUrl;
-        ConnectionStatus = connectionStatus;
-        ConnectionsCount = connectionsCount;
-        SessionStatus = sessionStatus;
+        this.RemoteAccessApp = remoteAccessApp;
+        this.RunningProcesses = runningProcesses;
+        this.ConnectionUrl = connectionUrl;
+        this.ConnectionStatus = connectionStatus;
+        this.ConnectionsCount = connectionsCount;
+        this.SessionStatus = sessionStatus;
         this.risk_assessment = risk_assessment;
+        this.BrowserTabs = browserTabs;
     }
 
     protected  RemoteAccessAnalysisResultVm() { }
@@ -173,9 +177,11 @@ public class RemoteAccessAnalysisResultVm : AnalysisResult
     public int ConnectionsCount { get; set; }
     [DataMember] 
     public int SessionStatus { get; set; }
+    [DataMember]
+    public BrowserTab[]? BrowserTabs { get; set; }
 
     [DataMember]
-    public RiskAssessmentVm? risk_assessment { get; set; }
+    public RiskAssessment? risk_assessment { get; set; }
 }
 
 public class Reputation
@@ -207,21 +213,21 @@ public class WebsiteCategory
     public string NameEn { get; set; }
     public float Confidence { get; set; }
 }
-public class RiskAssessmentVm
-{
-    public RiskAssessmentVm(float risk_score, string risk_level, bool is_scam, float confidence)
-    {
-        this.risk_score = risk_score;
-        this.risk_level = risk_level;
-        this.is_scam = is_scam;
-        this.confidence = confidence;
-    }
+//public class RiskAssessmentVm
+//{
+//    public RiskAssessmentVm(float risk_score, string risk_level, bool is_scam, float confidence)
+//    {
+//        this.risk_score = risk_score;
+//        this.risk_level = risk_level;
+//        this.is_scam = is_scam;
+//        this.confidence = confidence;
+//    }
 
-    public float risk_score { get; set; }
-    public string risk_level { get; set; } = string.Empty;
-    public bool is_scam { get; set; }
-    public float confidence { get; set; }
-}
+//    public float risk_score { get; set; }
+//    public string risk_level { get; set; } = string.Empty;
+//    public bool is_scam { get; set; }
+//    public float confidence { get; set; }
+//}
 
 public class Purpose
 {

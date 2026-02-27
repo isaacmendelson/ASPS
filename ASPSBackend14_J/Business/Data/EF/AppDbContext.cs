@@ -38,6 +38,7 @@ public class AppDbContext : DbContext
     public DbSet<DeviceAlertEntity> DeviceAlerts { get; set; }
     public DbSet<KnownPhishingWebsite> KnownPhishingWebsites { get; set; }
     public DbSet<SafeDomain> SafeDomains { get; set; }
+    public DbSet<DeviceTokenEntity> DeviceTokens { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -303,6 +304,20 @@ public class AppDbContext : DbContext
                 .HasDefaultValue(false);
 
             entity.HasIndex(e => e.Domain);
+        });
+
+        // DeviceToken configuration
+        modelBuilder.Entity<DeviceTokenEntity>(entity =>
+        {
+            entity.ToTable("DeviceTokens");
+            entity.HasKey(e => e.DeviceUid);
+            entity.Property(e => e.DeviceUid).HasMaxLength(255);
+            entity.Property(e => e.TokenValue).IsRequired().HasMaxLength(128);
+            entity.Property(e => e.UserKeyField).IsRequired().HasMaxLength(36);
+            entity.Property(e => e.DateCreated).IsRequired();
+            entity.Property(e => e.Expiration).IsRequired();
+
+            entity.HasIndex(e => e.TokenValue);
         });
     }
 }

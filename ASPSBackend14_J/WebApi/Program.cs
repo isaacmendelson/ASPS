@@ -1,3 +1,4 @@
+using Business.Services;
 using WebApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,12 +19,16 @@ builder.Services.AddRazorPages();
 // WebApi has ZERO database access!
 // All data operations go through NetMQ to ASPSBackend process
 
+// CurveZMQ Key Manager for encrypted NetMQ communication
+builder.Services.AddSingleton<CurveKeyManager>();
+
 var cqrsEndpoint = builder.Configuration.GetValue<string>("CQRS:Endpoint") ?? "tcp://localhost:5556";
 
 builder.Services.AddSingleton<CQRSClient>(sp =>
 {
     var logger = sp.GetRequiredService<ILogger<CQRSClient>>();
-    return new CQRSClient(cqrsEndpoint, logger);
+    var curveKeyManager = sp.GetRequiredService<CurveKeyManager>();
+    return new CQRSClient(cqrsEndpoint, logger, curveKeyManager);
 });
 
 Console.WriteLine($"✓ CQRS Client configured: {cqrsEndpoint}");
@@ -43,8 +48,9 @@ builder.Services.AddSingleton<NetMQClientService>(sp =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();
     var logger = sp.GetRequiredService<ILogger<NetMQClientService>>();
+    var curveKeyManager = sp.GetRequiredService<CurveKeyManager>();
     var endpoint = configuration.GetValue<string>("NetMQ:BusinessEndpoint") ?? "tcp://localhost:5555";
-    return new NetMQClientService(endpoint, logger);
+    return new NetMQClientService(endpoint, logger, curveKeyManager);
 });
 
 var app = builder.Build();

@@ -4,6 +4,7 @@ using Business.RealtimeAnalysis.UserDomain;
 using Common.Entities;
 using Common.Interfaces;
 using Common.Models;
+using Common.Models.Alerts;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -28,22 +29,53 @@ namespace Business.Views
 
             if (analyzerResults != null)
             {
-                AnalysisResult = analyzerResults.ToObject<RemoteAccessAnalysisResultVm>();
+                // The RemoteAccess JSON wraps data in AnalyzerResults.AnalysisResult
+                // (unlike URL which serializes the VM directly)
+                var innerResult = analyzerResults["AnalysisResult"];
+                if (innerResult != null)
+                {
+                    AnalysisResult = innerResult.ToObject<RemoteAccessAnalysisResultVm>();
+                }
+                else
+                {
+                    AnalysisResult = analyzerResults.ToObject<RemoteAccessAnalysisResultVm>();
+                }
+                // Set the base class property so polymorphic access works
+                ((AnalysisResultView)this).AnalysisResult = AnalysisResult;
+
+                // Indicators and ProtectiveActions are inside the AnalyzerResults wrapper
+                var ind = analyzerResults["Indicators"] ?? jObject["Indicators"];
+                if (ind is not null)
+                {
+                    this.Indicators = ind.ToObject<Indicator[]>();
+                }
+                var pa = analyzerResults["ProtectiveActions"] ?? jObject["ProtectiveActions"];
+                if (pa is not null)
+                {
+                    this.ProtectiveActions = pa.ToObject<ProtectiveAction[]>();
+                }
             }
-            var ind = jObject["Indicators"];
-            if (ind is not null)
+
+            // Reconstruct Alert from parsed data so consumers (cache lookup, admin pages) can access it
+            if (AnalysisResult != null)
             {
-                var indX = ind.ToObject<Indicator[]>();
-                this.Indicators = indX;
-            }
-            var pa = jObject["ProtectiveActions"];
-            if (pa is not null)
-            {
-                var paX = pa.ToObject<ProtectiveAction[]>();
-                this.ProtectiveActions = paX;
+                var deviceUid = jObject["DeviceUid"]?.ToString() ?? string.Empty;
+                Alert = new RemoteAccessAlert(
+                    AnalysisResult.RemoteAccessApp,
+                    AnalysisResult.RunningProcesses,
+                    AnalysisResult.ConnectionUrl,
+                    AnalysisResult.ConnectionStatus,
+                    AnalysisResult.ConnectionsCount,
+                    AnalysisResult.SessionStatus,
+                    AnalysisResult.BrowserTabs)
+                {
+                    AlertType = nameof(RemoteAccessAlert),
+                    AlertId = this.DeviceAlertKey?.Value,
+                    DeviceInfo = new DeviceInfo { DeviceUid = deviceUid }
+                };
             }
         }
 
-        public RemoteAccessAnalysisResultVm? AnalysisResult { get; set; }
+        public new RemoteAccessAnalysisResultVm? AnalysisResult { get; set; }
     }
 }

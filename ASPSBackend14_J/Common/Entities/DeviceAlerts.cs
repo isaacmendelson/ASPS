@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using Common.Enums;
 using Common.Models;
+using Common.Models.Alerts;
 
 namespace Common.Entities;
 
@@ -17,7 +18,34 @@ public abstract class DeviceAlertEntity : Entity, IDeviceAlert
     //}
 
     private Tag? tag;
-    
+
+    protected DeviceAlertEntity()
+    {
+        // Parameterless constructor for EF Core
+    }
+    //public DeviceAlertEntity(Tag? tag, DeviceAlert alert, string alertType, Priority priority, DateTime timestamp, string token, 
+    //    string deviceUid, DeviceType deviceType, OperatingSystemType operatingSystem, string mAC, string? userKeyField, 
+    //    AlertFlagStatus status, User? user, string? deviceKeyField, UserDevice? device, Key? userKey, Key? deviceKey)
+    //{
+    //    this.tag = tag;
+    //    Alert = alert;
+    //    AlertType = alertType;
+    //    Priority = priority;
+    //    Timestamp = timestamp;
+    //    Token = token;
+    //    DeviceUid = deviceUid;
+    //    DeviceType = deviceType;
+    //    OperatingSystem = operatingSystem;
+    //    MAC = mAC;
+    //    UserKeyField = userKeyField;
+    //    Status = status;
+    //    User = user;
+    //    DeviceKeyField = deviceKeyField;
+    //    Device = device;
+    //    UserKey = userKey;
+    //    DeviceKey = deviceKey;
+    //}
+
     public string? AlertId
     {
         get
@@ -25,6 +53,8 @@ public abstract class DeviceAlertEntity : Entity, IDeviceAlert
             return this.KeyField;
         }
     }
+
+    //public DeviceAlert Alert { get; set; }
 
     public string AlertType { get; set; }
     public Priority Priority { get; set; }
@@ -88,7 +118,9 @@ public abstract class DeviceAlertEntity : Entity, IDeviceAlert
                     "", // IP - not available in alert
                     "", // UserAgent - not available in alert
                     0,  // Timezone - not available in alert
-                    osType
+                    osType,
+                    this.Device.MAC,
+                    this.Device?.UserKey
                 );
             }
             else
@@ -101,7 +133,9 @@ public abstract class DeviceAlertEntity : Entity, IDeviceAlert
                     "",
                     "",
                     0,
-                    OperatingSystem // Use the flattened OperatingSystem property
+                    OperatingSystem, // Use the flattened OperatingSystem property
+                    this.Device?.MAC,
+                    this.Device?.UserKey
                 );
             }
         }
@@ -142,6 +176,24 @@ public abstract class DeviceAlertEntity : Entity, IDeviceAlert
 /// </summary>
 public class RemoteAccessAlertEntity : DeviceAlertEntity
 {
+    public RemoteAccessAlertEntity()
+    {
+    }
+
+    //public RemoteAccessAlertEntity(Tag? tag, RemoteAccessAlert alert, string alertType, Priority priority, DateTime timestamp, string token, 
+    //    string deviceUid, DeviceType deviceType, OperatingSystemType operatingSystem, string mAC, string? userKeyField, 
+    //    AlertFlagStatus status, User? user, string? deviceKeyField, UserDevice? device, Key? userKey, Key? deviceKey)
+    //    : base(tag, alert, alertType, priority, timestamp, token, deviceUid, deviceType, operatingSystem, mAC, userKeyField, status, user, 
+    //        deviceKeyField, device, userKey, deviceKey)
+    //{
+    //    this.RemoteAccessApp = alert?.RemoteAccessApp ?? new RemoteAccessApp();
+    //    this.RunningProcesses = alert?.RunningProcesses ?? 0;
+    //    this.ConnectionUrl = alert?.ConnectionUrl ?? string.Empty;
+    //    this.ConnectionStatus = alert?.ConnectionStatus ?? ConnectionStatus.Unknown;
+    //    this.ConnectionsCount = alert?.ConnectionsCount ?? 0;
+    //    this.SessionStatus = alert?.SessionStatus ?? 0;
+    //}
+
     public RemoteAccessApp RemoteAccessApp { get; set; }
     public int RunningProcesses { get; set; }
     public string ConnectionUrl { get; set; } = string.Empty;
@@ -158,6 +210,23 @@ public class RemoteAccessAlertEntity : DeviceAlertEntity
 /// </summary>
 public class UrlAlertEntity : DeviceAlertEntity
 {
+    //protected UrlAlertEntity()
+    //{
+    //}
+
+    //public UrlAlertEntity(Tag? tag, UrlAlert alert, string alertType, Priority priority, DateTime timestamp, string token, string deviceUid, 
+    //    DeviceType deviceType, OperatingSystemType operatingSystem, string mAC, string? userKeyField, AlertFlagStatus status, User? user, 
+    //    string? deviceKeyField, UserDevice? device, Key? userKey, Key? deviceKey)
+    //    : base(tag, alert, alertType, priority, timestamp, token, deviceUid, deviceType, operatingSystem, mAC, userKeyField, 
+    //        status, user, deviceKeyField, device, userKey, deviceKey)
+    //{
+    //    this.Url = (alert as UrlAlert)?.Url ?? string.Empty;
+    //    this.IFrameDomains = alert?.IFrameDomains != null ? System.Text.Json.JsonSerializer.Serialize(alert?.IFrameDomains) : string.Empty;
+    //    this.TrackerKeys = alert?.Trackers != null ? System.Text.Json.JsonSerializer.Serialize(alert?.Trackers) : string.Empty;
+    //    this.UserAgent = alert?.UserAgent ?? string.Empty;
+
+    //}
+
     public string Url { get; set; } = string.Empty;
     public string TrackerKeys { get; set; } = string.Empty; // JSON array of Keys
     public string IFrameDomains { get; set; } = string.Empty; // JSON array

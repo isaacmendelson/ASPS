@@ -30,6 +30,7 @@ public class DeviceAlertReceived : DomainEvent
         ReceiveTimestamp = receiveTimestamp;
         MessageTimestamp = messageTimestamp;
         DeviceAlertEntityKey = deviceAlertEntityKey;
+        
     }
     public DeviceAlert Alert { get; set; } = null!;
     public Priority Priority { get; set; }
@@ -78,7 +79,7 @@ public class SpecificAnalyzerResultReceived : DomainEvent
 
     public SpecificAnalyzerResultReceived()
     {
-        EventType = nameof(AnalysisResultReceived);
+        EventType = nameof(SpecificAnalyzerResultReceived);
     }
 }
 

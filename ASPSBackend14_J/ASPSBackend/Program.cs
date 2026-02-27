@@ -26,6 +26,10 @@ class Program
         Console.WriteLine("ASPSBackend System2 Starting...");
         Console.WriteLine("========================================");
 
+        // Load persisted tokens from database
+        var tokenStore = host.Services.GetRequiredService<TokenStore>();
+        await tokenStore.LoadFromDatabaseAsync();
+
         // Start ASView
         var asView = host.Services.GetRequiredService<ASView>();
         asView.Start();
@@ -48,7 +52,7 @@ class Program
 
         // Get configuration to display mode
         var configuration = host.Services.GetRequiredService<IConfiguration>();
-        var listenerMode = configuration.GetValue<string>("NetMQ:RealTimeListenerMode", "Rep");
+        var listenerMode = configuration.GetValue<string>("NetMQ:RealTimeListenerMode", "Router");
         var listenerPort = configuration.GetValue<int>("NetMQ:RealTimeListenerPort", 50001);
 
         Console.WriteLine("========================================");
@@ -135,11 +139,11 @@ class Program
                     var configuration = sp.GetRequiredService<IConfiguration>();
                     var port = configuration.GetValue<int>("NetMQ:RealTimeListenerPort", 50001);
 
-                    // Read socket mode from configuration (default to Rep for two-way communication)
-                    var modeString = configuration.GetValue<string>("NetMQ:RealTimeListenerMode", "Rep");
+                    // Read socket mode from configuration (default to Router for concurrent two-way communication)
+                    var modeString = configuration.GetValue<string>("NetMQ:RealTimeListenerMode", "Router");
                     var mode = Enum.TryParse<SocketMode>(modeString, true, out var parsedMode)
                         ? parsedMode
-                        : SocketMode.Rep;
+                        : SocketMode.Router;
 
                     return new RealTimeAlertListener(loggerFactory, sp, asView, userDomainService, tokenStore, curveKeyManager, port, mode);
                 });

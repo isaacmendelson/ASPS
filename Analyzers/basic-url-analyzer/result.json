@@ -1,0 +1,85 @@
+2026-02-01 23:24:23,751 - ml_classifier - INFO - Loaded trained model from C:\Users\judaz\OneDrive\Desktop\basic-url-analyzer\basic-url-analyzer\models\scam_classifier.pkl
+2026-02-01 23:24:23,751 - scam_analyzer - INFO - ML classifier enabled
+2026-02-01 23:24:23,751 - scam_analyzer - INFO - Starting analysis of https://www.exodus-inv.net/
+2026-02-01 23:24:23,759 - whois_checker - INFO - Performing WHOIS lookup for exodus-inv.net
+2026-02-01 23:24:24,717 - whois_checker - INFO - WHOIS lookup successful for exodus-inv.net
+2026-02-01 23:24:24,717 - playwright_scraper - INFO - Fetching URL: https://www.exodus-inv.net/
+2026-02-01 23:24:29,885 - playwright_scraper - INFO - Successfully fetched https://www.exodus-inv.net/ (status: 200)
+2026-02-01 23:24:29,969 - content_extractor - INFO - Extracting content from HTML
+2026-02-01 23:24:29,988 - content_extractor - INFO - Content extraction successful (385 words)
+2026-02-01 23:24:29,988 - rules_engine - INFO - Running rules engine analysis
+2026-02-01 23:24:29,996 - rules_engine - INFO - Analysis complete - Risk score: 55
+2026-02-01 23:24:30,000 - ml_classifier - INFO - ML prediction: SCAM (0.98)
+2026-02-01 23:24:30,000 - purpose_classifier - INFO - Classifying website purpose
+2026-02-01 23:24:30,000 - purpose_classifier - INFO - Classification: unknown (0.29 confidence)
+2026-02-01 23:24:30,000 - scam_analyzer - INFO - Analysis completed in 6249ms - Risk: HIGH
+{
+  "url": "https://www.exodus-inv.net/",
+  "domain": "exodus-inv.net",
+  "analyzed_at": "2026-02-01T23:24:23.759342",
+  "analysis_time_ms": 6249,
+  "from_cache": false,
+  "risk_assessment": {
+    "risk_score": 8,
+    "risk_level": "HIGH",
+    "is_scam": true,
+    "confidence": 1.0
+  },
+  "purpose": {
+    "category": "unknown",
+    "confidence": 0.2857142857142857,
+    "description": "Unable to determine purpose"
+  },
+  "whois": {
+    "success": true,
+    "domain_age_days": 48,
+    "created_date": "2025-12-15T11:11:17",
+    "registrar": "DEVEXPANSE LTD d/b/a Regery.com",
+    "country": "IL",
+    "privacy_protected": true,
+    "risk_score": 0.55
+  },
+  "content_analysis": {
+    "success": true,
+    "title": "Exodus-inv",
+    "detected_patterns": [
+      {
+        "name": "new_domain",
+        "type": "whois",
+        "matched_text": "Domain is 48 days old",
+        "weight": 0.35,
+        "description": "Domain less than 6 months old"
+      },
+      {
+        "name": "privacy_protected",
+        "type": "whois",
+        "matched_text": "WHOIS privacy protection enabled",
+        "weight": 0.2,
+        "description": "WHOIS privacy protection enabled"
+      }
+    ],
+    "cta_count": 2,
+    "form_types": [],
+    "word_count": 385
+  },
+  "ml_analysis": {
+    "enabled": true,
+    "success": true,
+    "score": 0.979007970026893,
+    "confidence": 0.979007970026893,
+    "note": "ML prediction based on trained model"
+  },
+  "red_flags": [
+    "Very new domain (48 days old)",
+    "Domain privacy protection enabled"
+  ],
+  "recommendation": "\u26a0\ufe0f HIGH RISK - Strong indicators of unknown. Do NOT engage or provide any personal/financial information.",
+  "scraping_status": {
+    "success": true,
+    "status_code": 200,
+    "final_url": "https://www.exodus-inv.net/",
+    "error": ""
+  },
+  "warnings": [],
+  "missing_data": []
+}

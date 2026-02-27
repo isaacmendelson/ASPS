@@ -1,6 +1,7 @@
 using Business.Commands;
 using Business.Handlers;
 using Business.Queries;
+using Business.Services;
 using Microsoft.Extensions.Logging;
 using NetMQ;
 using NetMQ.Sockets;
@@ -14,6 +15,7 @@ public class NetMQMessageProcessor : IDisposable
     private readonly UserCommandHandlers _userCommandHandlers;
     private readonly UserQueryHandlers _userQueryHandlers;
     private readonly UserDeviceCommandHandlers _deviceCommandHandlers;
+    private readonly CurveKeyManager? _curveKeyManager;
     private ResponseSocket? _responseSocket;
     private bool _isRunning;
 
@@ -27,21 +29,25 @@ public class NetMQMessageProcessor : IDisposable
         ILogger<NetMQMessageProcessor> logger,
         UserCommandHandlers userCommandHandlers,
         UserQueryHandlers userQueryHandlers,
-        UserDeviceCommandHandlers deviceCommandHandlers)
+        UserDeviceCommandHandlers deviceCommandHandlers,
+        CurveKeyManager? curveKeyManager = null)
     {
         _logger = logger;
         _userCommandHandlers = userCommandHandlers;
         _userQueryHandlers = userQueryHandlers;
         _deviceCommandHandlers = deviceCommandHandlers;
+        _curveKeyManager = curveKeyManager;
     }
 
     public void Start()
     {
         _isRunning = true;
         _responseSocket = new ResponseSocket();
+        _responseSocket.Options.Linger = TimeSpan.Zero;
+        // No CURVE on internal localhost channel — encryption is on external ports 50001/50002
         _responseSocket.Bind("tcp://*:5555");
 
-        _logger.LogInformation("NetMQ CQRS Message Processor started on tcp://*:5555");
+        _logger.LogInformation("NetMQ CQRS Message Processor started on tcp://*:5555 (internal channel, no CURVE)");
 
         Task.Run(() => ProcessMessages());
     }

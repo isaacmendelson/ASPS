@@ -23,8 +23,9 @@ namespace Business.Messaging;
 
 public enum SocketMode
 {
-    Pull,  // One-way communication (fire-and-forget)
-    Rep    // Two-way communication (request-response)
+    Pull,   // One-way, fire-and-forget (PullSocket)
+    Router  // Concurrent request-response (RouterSocket — scales to thousands of devices)
+            // Compatible with REQ clients; no client-side changes needed.
 }
 
 public class RealTimeAlertListener : IDisposable
@@ -35,13 +36,14 @@ public class RealTimeAlertListener : IDisposable
     private readonly UserDomainManagerService _userDomainService;
     private readonly TokenStore _tokenStore;
     private readonly CurveKeyManager? _curveKeyManager;
+    private readonly RateLimiter _rateLimiter;
     private readonly List<IDomainEventHandler> _eventHandlers = new();
-    private ResponseSocket? _repSocket;
+    private RouterSocket? _routerSocket;  // replaces ResponseSocket — handles concurrent clients
     private PullSocket? _pullSocket;
+    private readonly object _sendLock = new();  // RouterSocket is not thread-safe for sends
     private bool _isRunning;
     private readonly int _port;
     private readonly SocketMode _mode;
-    private readonly IDeviceAlertRepository _repository;
     private readonly AlertPersistenceActor _alertPersistenceActor;
 
     public RealTimeAlertListener(
@@ -52,7 +54,7 @@ public class RealTimeAlertListener : IDisposable
         TokenStore tokenStore,
         CurveKeyManager? curveKeyManager = null,
         int port = 50001,
-        SocketMode mode = SocketMode.Rep)
+        SocketMode mode = SocketMode.Router)
     {
         this._logger = _loggerFactory.CreateLogger<RealTimeAlertListener>();
         _serviceProvider = serviceProvider;
@@ -60,13 +62,14 @@ public class RealTimeAlertListener : IDisposable
         _userDomainService = userDomainService;
         _tokenStore = tokenStore;
         _curveKeyManager = curveKeyManager;
+        _rateLimiter = new RateLimiter();
         _port = port;
         _mode = mode;
         var scope = _serviceProvider.CreateScope();
         var deviceAlertRepository = scope.ServiceProvider.GetRequiredService<IDeviceAlertRepository>();
-        _repository = scope.ServiceProvider.GetRequiredService<IDeviceAlertRepository>();
         _alertPersistenceActor = new AlertPersistenceActor(deviceAlertRepository, _loggerFactory, _asView, _serviceProvider);
         this.RegisterEventHandler(_alertPersistenceActor);
+        this.RegisterEventHandler(_asView);
     }
 
     public void RegisterEventHandler(IDomainEventHandler handler)
@@ -77,105 +80,125 @@ public class RealTimeAlertListener : IDisposable
     public void Start()
     {
         _isRunning = true;
+        var encStatus = _curveKeyManager?.IsEnabled == true ? "CURVE encrypted" : "unencrypted";
 
-        if (_mode == SocketMode.Rep)
+        if (_mode == SocketMode.Router)
         {
-            _repSocket = new ResponseSocket();
-            _curveKeyManager?.ApplyServerCurve(_repSocket);
-            _repSocket.Bind($"tcp://*:{_port}");
-            var encStatus = _curveKeyManager?.IsEnabled == true ? "CURVE encrypted" : "unencrypted";
-            _logger.LogInformation($"Real-time alert listener started on tcp://*:{_port} (REP mode - {encStatus})");
+            _routerSocket = new RouterSocket();
+            _routerSocket.Options.Linger = TimeSpan.Zero;
+            _curveKeyManager?.ApplyServerCurve(_routerSocket);
+            _routerSocket.Bind($"tcp://*:{_port}");
+            _logger.LogInformation(
+                "Real-time alert listener started on tcp://*:{Port} (ROUTER mode — concurrent, {Enc})",
+                _port, encStatus);
         }
         else
         {
             _pullSocket = new PullSocket();
+            _pullSocket.Options.Linger = TimeSpan.Zero;
             _curveKeyManager?.ApplyServerCurve(_pullSocket);
             _pullSocket.Bind($"tcp://*:{_port}");
-            var encStatus = _curveKeyManager?.IsEnabled == true ? "CURVE encrypted" : "unencrypted";
-            _logger.LogInformation($"Real-time alert listener started on tcp://*:{_port} (PULL mode - {encStatus})");
+            _logger.LogInformation(
+                "Real-time alert listener started on tcp://*:{Port} (PULL mode — fire-and-forget, {Enc})",
+                _port, encStatus);
         }
 
         Task.Run(() => ListenForAlerts());
     }
 
-    private async Task ListenForAlerts()
+    private void ListenForAlerts()
     {
         while (_isRunning)
         {
             try
             {
-                byte[] messageBytes;
-
-                // Receive message based on socket mode
-                if (_mode == SocketMode.Rep)
+                if (_mode == SocketMode.Router)
                 {
-                    messageBytes = _repSocket!.ReceiveFrameBytes();
+                    var incoming = _routerSocket!.ReceiveMultipartMessage();
+
+                    if (incoming.FrameCount < 3)
+                    {
+                        _logger.LogWarning("Malformed ROUTER message: expected 3 frames, got {Count}", incoming.FrameCount);
+                        continue;
+                    }
+
+                    var identity     = incoming[0].Buffer.ToArray();
+                    var messageBytes = incoming[2].Buffer;
+
+                    _ = Task.Run(async () => await ProcessRouterMessageAsync(identity, messageBytes));
                 }
                 else
                 {
-                    messageBytes = _pullSocket!.ReceiveFrameBytes();
-                }
-
-                string message;
-                try
-                {
-                    message = System.Text.Encoding.UTF8.GetString(messageBytes);
-                    _logger.LogInformation($"Received message: {message}");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError($"Failed to decode message as UTF-8: {ex.Message}");
-                    _logger.LogError($"Received bytes (hex): {BitConverter.ToString(messageBytes)}");
-
-                    if (_mode == SocketMode.Rep)
+                    var messageBytes = _pullSocket!.ReceiveFrameBytes();
+                    _ = Task.Run(async () =>
                     {
-                        SendResponse(new
+                        try
                         {
-                            success = false,
-                            message = "Failed to decode message as UTF-8",
-                            error = ex.Message
-                        });
-                    }
-                    continue;
-                }
-
-                // Route message and get result
-                var result = await RouteMessageAsync(message);
-
-                if (_mode == SocketMode.Rep)
-                {
-                    SendResponse(result);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing message");
-
-                if (_mode == SocketMode.Rep)
-                {
-                    SendResponse(new
-                    {
-                        success = false,
-                        message = "Error processing message",
-                        error = ex.Message
+                            var message = System.Text.Encoding.UTF8.GetString(messageBytes);
+                            var jObject = JObject.Parse(message);
+                            await ProcessAlertAsync(message, jObject);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error processing PULL message");
+                        }
                     });
                 }
+            }
+            catch (Exception ex) when (_isRunning)
+            {
+                _logger.LogError(ex, "Error in receive loop");
             }
         }
     }
 
-    private void SendResponse(object response)
+    private async Task ProcessRouterMessageAsync(byte[] identity, byte[] messageBytes)
     {
+        object result;
         try
         {
-            var json = JsonConvert.SerializeObject(response);
-            var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-            _repSocket!.SendFrame(bytes);
-            _logger.LogDebug($"Response sent: {json}");
+            string message;
+            try
+            {
+                message = System.Text.Encoding.UTF8.GetString(messageBytes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to decode message as UTF-8");
+                result = new { success = false, message = "Failed to decode message" };
+                SendRouterResponse(identity, result);
+                return;
+            }
+
+            result = await RouteMessageAsync(message);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending response");
+            _logger.LogError(ex, "Error processing message");
+            result = new { success = false, message = "Error processing message" };
+        }
+
+        SendRouterResponse(identity, result);
+    }
+
+    private void SendRouterResponse(byte[] identity, object response)
+    {
+        try
+        {
+            var json  = JsonConvert.SerializeObject(response);
+            var reply = new NetMQMessage();
+            reply.Append(identity);
+            reply.AppendEmptyFrame();
+            reply.Append(json);
+
+            lock (_sendLock)
+            {
+                _routerSocket!.SendMultipartMessage(reply);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending router response");
         }
     }
 
@@ -190,6 +213,20 @@ public class RealTimeAlertListener : IDisposable
             var jObject = JObject.Parse(message);
             var messageType = jObject["MessageType"]?.ToString();
 
+            // Rate limit token endpoints
+            if (messageType is "RequestToken" or "RegisterDevice" or "RefreshToken")
+            {
+                var deviceUid = jObject["DeviceUid"]?.ToString() ?? "unknown";
+                var maxRequests = messageType == "RegisterDevice" ? 3 : 5;
+                var rateLimitKey = $"{messageType}:{deviceUid}";
+
+                if (!_rateLimiter.IsAllowed(rateLimitKey, maxRequests, TimeSpan.FromMinutes(1)))
+                {
+                    _logger.LogWarning("Rate limit exceeded for {MessageType} from device {DeviceUid}", messageType, deviceUid);
+                    return new { success = false, message = "Rate limit exceeded. Try again later." };
+                }
+            }
+
             return messageType switch
             {
                 "RequestToken" => HandleRequestToken(jObject),
@@ -201,12 +238,12 @@ public class RealTimeAlertListener : IDisposable
         catch (JsonException ex)
         {
             _logger.LogError(ex, "Failed to parse message JSON");
-            return new { success = false, message = "Invalid JSON", error = ex.Message };
+            return new { success = false, message = "Invalid JSON" };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error routing message");
-            return new { success = false, message = "Error processing message", error = ex.Message };
+            return new { success = false, message = "Error processing message" };
         }
     }
 
@@ -217,10 +254,15 @@ public class RealTimeAlertListener : IDisposable
     private object HandleRequestToken(JObject jObject)
     {
         var deviceUid = jObject["DeviceUid"]?.ToString();
+        var email     = jObject["Email"]?.ToString();
 
         if (string.IsNullOrEmpty(deviceUid))
-        {
             return new { status = "Error", message = "DeviceUid is required" };
+
+        if (string.IsNullOrEmpty(email))
+        {
+            _logger.LogWarning("RequestToken from device {DeviceUid} missing Email — rejected", deviceUid);
+            return new { status = "Error", message = "Email is required" };
         }
 
         _logger.LogInformation("RequestToken from device {DeviceUid}", deviceUid);
@@ -233,7 +275,23 @@ public class RealTimeAlertListener : IDisposable
             return new { status = "DeviceNotRecognized", deviceUid };
         }
 
-        // Device exists — check if there's already a valid token
+        // Security: verify the email belongs to the device owner.
+        // Prevents zero-factor token retrieval — attacker needs DeviceUid AND
+        // the registered email to obtain a token.
+        var deviceOwner = userDevice.UserKey != null
+            ? _asView.FindUserByKey(userDevice.UserKey)
+            : null;
+        if (deviceOwner == null || !string.Equals(deviceOwner.Email, email, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning(
+                "RequestToken: email mismatch for device {DeviceUid} — rejecting",
+                deviceUid);
+            // Return same response as DeviceNotRecognized to avoid leaking
+            // whether the DeviceUid exists at all.
+            return new { status = "DeviceNotRecognized", deviceUid };
+        }
+
+        // Device + email verified — check if there's already a valid token
         var existingToken = _tokenStore.GetToken(deviceUid);
         if (existingToken != null)
         {
@@ -295,7 +353,18 @@ public class RealTimeAlertListener : IDisposable
         var existingDevice = _asView.FindUserDeviceByDeviceUid(deviceUid);
         if (existingDevice != null)
         {
-            _logger.LogInformation("Device {DeviceUid} already exists, creating new token", deviceUid);
+            // Security: verify the requesting user owns this device.
+            // Prevents re-registration attacks where an attacker supplies a known
+            // DeviceUid with a different email to hijack the device token.
+            if (existingDevice.UserKeyField != user.KeyField)
+            {
+                _logger.LogWarning(
+                    "RegisterDevice: Device {DeviceUid} belongs to a different user. Rejecting re-registration attempt.",
+                    deviceUid);
+                return new { status = "Unauthorized", message = "Device is registered to a different user account." };
+            }
+
+            _logger.LogInformation("Device {DeviceUid} already exists for same user, creating new token", deviceUid);
             var token = _tokenStore.CreateToken(deviceUid, existingDevice.UserKeyField ?? string.Empty);
             return new
             {
@@ -346,7 +415,7 @@ public class RealTimeAlertListener : IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to register device {DeviceUid}", deviceUid);
-            return new { status = "Error", message = "Failed to register device", error = ex.Message };
+            return new { status = "Error", message = "Failed to register device" };
         }
     }
 
@@ -387,146 +456,53 @@ public class RealTimeAlertListener : IDisposable
     // ProcessAlertAsync — alert processing with token validation
     // ─────────────────────────────────────────────────────────────────────
 
-    private async Task<object> ProcessAlertAsync(string message, JObject jObject)
+    // Phase 1: fast — parse, validate token, ACK immediately, fire background task
+    private Task<object> ProcessAlertAsync(string message, JObject jObject)
     {
         try
         {
-            var settings = new JsonSerializerSettings
-            {
-                TypeNameHandling = TypeNameHandling.Auto
-            };
-
             string alertType = jObject["AlertType"]?.ToString() ?? "";
 
-            Common.Models.DeviceAlert? alert = null;
-
-            switch (alertType)
+            Common.Models.DeviceAlert? alert = alertType switch
             {
-                case "RemoteAccessAlert":
-                    alert = JsonConvert.DeserializeObject<RemoteAccessAlert>(message, settings);
-                    break;
-                case "UrlAlert":
-                    alert = JsonConvert.DeserializeObject<UrlAlert>(message, settings);
-                    break;
-                default:
-                    _logger.LogWarning($"Unknown AlertType: {alertType}. Attempting to infer type from JSON structure.");
-
-                    if (message.Contains("\"Url\""))
-                    {
-                        alert = JsonConvert.DeserializeObject<UrlAlert>(message, settings);
-                    }
-                    else if (message.Contains("\"RemoteAccessApp\"") || message.Contains("\"ConnectionUrl\""))
-                    {
-                        alert = JsonConvert.DeserializeObject<RemoteAccessAlert>(message, settings);
-                    }
-                    else
-                    {
-                        _logger.LogError($"Could not determine alert type from message: {message}");
-                        return new
-                        {
-                            success = false,
-                            message = "Unknown alert type",
-                            alertType = alertType
-                        };
-                    }
-                    break;
-            }
+                "RemoteAccessAlert" => JsonConvert.DeserializeObject<RemoteAccessAlert>(message),
+                "UrlAlert"          => JsonConvert.DeserializeObject<UrlAlert>(message),
+                _ => InferAlertType(message, alertType)
+            };
 
             if (alert == null)
             {
-                _logger.LogWarning("Failed to deserialize alert");
-                return new
-                {
-                    success = false,
-                    message = "Failed to deserialize alert",
-                    error = "Deserialization failed"
-                };
+                _logger.LogWarning("Failed to deserialize alert (type={AlertType})", alertType);
+                return Task.FromResult<object>(new { success = false, message = "Failed to deserialize alert" });
             }
 
-            // ── Token Validation ──
             var deviceUid = alert.DeviceInfo.DeviceUid;
             var tokenValidation = _tokenStore.ValidateToken(deviceUid, alert.Token);
 
-            switch (tokenValidation)
+            if (tokenValidation == TokenValidationResult.InvalidToken)
             {
-                case TokenValidationResult.InvalidToken:
-                    _logger.LogWarning("Invalid token from device {DeviceUid}", deviceUid);
-                    return new { status = "InvalidToken", message = "Token is invalid. Please authenticate." };
-
-                case TokenValidationResult.TokenExpired:
-                    _logger.LogInformation("Expired token from device {DeviceUid}", deviceUid);
-                    return new { status = "TokenExpired", message = "Token has expired. Please refresh." };
+                _logger.LogWarning("Invalid token from device {DeviceUid}", deviceUid);
+                return Task.FromResult<object>(new { status = "InvalidToken", message = "Token is invalid. Please authenticate." });
+            }
+            if (tokenValidation == TokenValidationResult.TokenExpired)
+            {
+                _logger.LogInformation("Expired token from device {DeviceUid}", deviceUid);
+                return Task.FromResult<object>(new { status = "TokenExpired", message = "Token has expired. Please refresh." });
             }
 
-            // ── Token is valid — proceed with alert processing ──
-
             var userDevice = _asView.FindUserDeviceByDeviceUid(deviceUid);
-
             if (userDevice == null)
             {
-                var errorMsg = $"Device not found: {deviceUid}";
-                _logger.LogWarning(errorMsg);
-                throw new DomainException(
-                    new Common.Exceptions.ErrorMessage("DeviceNotFound", errorMsg, Common.Enums.ResultStatusCode.NotFound));
+                _logger.LogWarning("Device not found: {DeviceUid}", deviceUid);
+                return Task.FromResult<object>(new { status = "DeviceNotRecognized", message = "Device not found." });
             }
             alert.DeviceInfo.Key = userDevice.Key;
 
             var user = _asView.FindUserByKey(userDevice.UserKey);
             if (user == null)
             {
-                var errorMsg = $"User not found for device: {deviceUid}";
-                _logger.LogWarning(errorMsg);
-                throw new DomainException(
-                    new Common.Exceptions.ErrorMessage("UserNotFound", errorMsg, Common.Enums.ResultStatusCode.NotFound));
-            }
-
-            _logger.LogInformation($"Alert from device {deviceUid} associated with user {user.Key}");
-
-            Common.Entities.DeviceAlertEntity? alertEntity = null;
-
-            if (alert is RemoteAccessAlert remoteAlert)
-            {
-                alertEntity = new Common.Entities.RemoteAccessAlertEntity
-                {
-                    KeyField = Guid.NewGuid().ToString(),
-                    AlertType = alertType,
-                    Priority = remoteAlert.Priority,
-                    Timestamp = remoteAlert.Timestamp,
-                    Token = remoteAlert.Token,
-                    DeviceUid = remoteAlert.DeviceInfo.DeviceUid,
-                    DeviceType = Common.Enums.DeviceType.PersonalComputer,
-                    OperatingSystem = remoteAlert.DeviceInfo.OperatingSystem,
-                    MAC = "",
-                    UserKeyField = userDevice.UserKeyField,
-                    RemoteAccessApp = remoteAlert.RemoteAccessApp,
-                    RunningProcesses = remoteAlert.RunningProcesses,
-                    ConnectionUrl = remoteAlert.ConnectionUrl,
-                    ConnectionStatus = remoteAlert.ConnectionStatus,
-                    ConnectionsCount = remoteAlert.ConnectionsCount,
-                    SessionStatus = remoteAlert.SessionStatus,
-                    DeviceKeyField = remoteAlert.DeviceInfo.Key.Value
-                };
-            }
-            else if (alert is UrlAlert urlAlert)
-            {
-                alertEntity = new Common.Entities.UrlAlertEntity
-                {
-                    KeyField = Guid.NewGuid().ToString(),
-                    AlertType = alertType,
-                    Priority = urlAlert.Priority,
-                    Timestamp = urlAlert.Timestamp,
-                    Token = urlAlert.Token,
-                    DeviceUid = urlAlert.DeviceInfo.DeviceUid,
-                    DeviceType = Common.Enums.DeviceType.PersonalComputer,
-                    OperatingSystem = urlAlert.DeviceInfo.OperatingSystem,
-                    MAC = "",
-                    UserKeyField = userDevice.UserKeyField,
-                    Url = urlAlert.Url,
-                    TrackerKeys = JsonConvert.SerializeObject(urlAlert.Trackers),
-                    IFrameDomains = JsonConvert.SerializeObject(urlAlert.IFrameDomains),
-                    UserAgent = urlAlert.UserAgent,
-                    DeviceKeyField = urlAlert.DeviceInfo.Key.Value
-                };
+                _logger.LogWarning("User not found for device {DeviceUid}", deviceUid);
+                return Task.FromResult<object>(new { success = false, message = "User not found." });
             }
 
             var domainEvent = new DeviceAlertReceived(
@@ -535,60 +511,70 @@ public class RealTimeAlertListener : IDisposable
                 alert.DeviceInfo.DeviceUid,
                 DateTime.UtcNow,
                 alert.Timestamp,
-                alertEntity?.Key.Value ?? string.Empty
+                Guid.NewGuid().ToString()
             );
 
-            var userManager = await _userDomainService.GetManagerForDeviceAsync(alert.DeviceInfo.DeviceUid);
+            // Phase 2: fire analysis in background — ACK is returned immediately
+            _ = Task.Run(() => DispatchAlertInBackground(domainEvent, deviceUid));
+
+            _logger.LogInformation("Alert accepted from device {DeviceUid}, type={AlertType} — dispatching analysis",
+                deviceUid, alertType);
+
+            return Task.FromResult<object>(new
+            {
+                success  = true,
+                message  = "Alert accepted — analysis in progress",
+                alertType,
+                deviceUid,
+                timestamp = DateTime.UtcNow.ToString("o"),
+                priority  = alert.Priority.ToString()
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in ProcessAlertAsync");
+            return Task.FromResult<object>(new { success = false, message = "Error processing alert" });
+        }
+    }
+
+    // Phase 2: runs on thread pool — analysis can take up to 30s (Python/ML)
+    private async Task DispatchAlertInBackground(DeviceAlertReceived domainEvent, string deviceUid)
+    {
+        try
+        {
+            var userManager = await _userDomainService.GetManagerForDeviceAsync(deviceUid);
             if (userManager != null)
             {
-                userManager.Handle(domainEvent);
-                _logger.LogInformation($"Alert routed to UDAnalysisManager for user: {userManager.UDUser.Key}");
+                await userManager.Handle(domainEvent);
+                _logger.LogInformation("Analysis dispatched for device {DeviceUid}, user {UserKey}",
+                    deviceUid, userManager.UDUser.Key);
             }
             else
             {
-                _logger.LogWarning($"No UDAnalysisManager found for device: {alert.DeviceInfo.DeviceUid}");
+                _logger.LogWarning("No UDAnalysisManager found for device {DeviceUid}", deviceUid);
             }
 
             foreach (var handler in _eventHandlers)
             {
                 if (handler.GetHandleableEvents().Contains(typeof(DeviceAlertReceived)))
-                {
-                    _ = handler.Handle(domainEvent);
-                }
+                    await handler.Handle(domainEvent);
             }
-
-            _logger.LogInformation($"Device alert processed: {alert.DeviceInfo.DeviceUid}, Type: {alertType}");
-
-            return new
-            {
-                success = true,
-                message = "Alert processed successfully",
-                alertType = alertType,
-                deviceUid = alert.DeviceInfo.DeviceUid,
-                timestamp = DateTime.UtcNow.ToString("o"),
-                priority = alert.Priority.ToString()
-            };
-        }
-        catch (DomainException domainEx)
-        {
-            _logger.LogWarning(domainEx, $"Domain error in ProcessAlertAsync: {domainEx.Code}");
-            return new
-            {
-                success = false,
-                message = domainEx.Code,
-                error = domainEx.Message
-            };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error in ProcessAlertAsync. Message: {message}");
-            return new
-            {
-                success = false,
-                message = "Error processing alert",
-                error = ex.Message
-            };
+            _logger.LogError(ex, "Error in background analysis dispatch for device {DeviceUid}", deviceUid);
         }
+    }
+
+    private Common.Models.DeviceAlert? InferAlertType(string message, string alertType)
+    {
+        _logger.LogWarning("Unknown AlertType '{AlertType}' — inferring from message content", alertType);
+        if (message.Contains("\"Url\""))
+            return JsonConvert.DeserializeObject<UrlAlert>(message);
+        if (message.Contains("\"RemoteAccessApp\"") || message.Contains("\"ConnectionUrl\""))
+            return JsonConvert.DeserializeObject<RemoteAccessAlert>(message);
+        _logger.LogError("Could not determine alert type from message content");
+        return null;
     }
 
     public void Stop()
@@ -601,6 +587,6 @@ public class RealTimeAlertListener : IDisposable
     {
         Stop();
         _pullSocket?.Dispose();
-        _repSocket?.Dispose();
+        _routerSocket?.Dispose();
     }
 }

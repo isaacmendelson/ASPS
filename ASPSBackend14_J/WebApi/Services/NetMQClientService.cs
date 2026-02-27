@@ -1,3 +1,4 @@
+using Business.Services;
 using NetMQ;
 using NetMQ.Sockets;
 using Newtonsoft.Json;
@@ -8,6 +9,7 @@ public class NetMQClientService : IDisposable
 {
     private readonly string _endpoint;
     private readonly ILogger<NetMQClientService> _logger;
+    private readonly CurveKeyManager? _curveKeyManager;
     private RequestSocket? _requestSocket;
     private readonly object _lock = new();
 
@@ -17,16 +19,18 @@ public class NetMQClientService : IDisposable
         TypeNameHandling = TypeNameHandling.All
     };
 
-    public NetMQClientService(string endpoint, ILogger<NetMQClientService> logger)
+    public NetMQClientService(string endpoint, ILogger<NetMQClientService> logger, CurveKeyManager? curveKeyManager = null)
     {
         _endpoint = endpoint;
         _logger = logger;
+        _curveKeyManager = curveKeyManager;
         InitializeSocket();
     }
 
     private void InitializeSocket()
     {
         _requestSocket = new RequestSocket();
+        // No CURVE on internal localhost channel — encryption is on external ports 50001/50002
         _requestSocket.Connect(_endpoint);
         _logger.LogInformation($"NetMQ client connected to {_endpoint}");
     }

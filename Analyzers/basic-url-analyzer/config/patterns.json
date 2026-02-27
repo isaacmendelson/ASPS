@@ -1,0 +1,182 @@
+{
+    "content_patterns": {
+        "guaranteed_returns": {
+            "regex": "(?i)(guarantee[ds]?|100%|certain(ly)?|assured?|promise[ds]?)\\s*(profit|returns?|success|income|money|earnings?|gains?)",
+            "weight": 0.25,
+            "description": "Promises guaranteed financial returns"
+        },
+        "unrealistic_roi": {
+            "regex": "(?i)(\\d{3,}\\s*%|[5-9]\\d{2}\\s*%|[5-9]\\d{2}\\s*percent|1000\\s*%)",
+            "weight": 0.30,
+            "description": "Claims unrealistic ROI (500%+)"
+        },
+        "get_rich_quick": {
+            "regex": "(?i)(millionaire|rich|wealthy|fortune|financial[\\s-]?freedom)\\s*(in|within|after)\\s*\\d+\\s*(days?|weeks?|months?|hours?)",
+            "weight": 0.28,
+            "description": "Get rich quick promises"
+        },
+        "no_effort": {
+            "regex": "(?i)(auto[\\s-]?pilot|while\\s*you\\s*sleep|no\\s*(work|effort)|passive\\s*income|automated?\\s*system|effortless|hands[\\s-]?free|zero\\s*effort)",
+            "weight": 0.20,
+            "description": "Claims no effort required"
+        },
+        "simple_steps": {
+            "regex": "(?i)(just|only|simple|easy)\\s*\\d+\\s*steps?",
+            "weight": 0.15,
+            "description": "Oversimplified process"
+        },
+        "urgency": {
+            "regex": "(?i)(act\\s*now|limited\\s*(time|spots?|offer)|expires?|don'?t\\s*miss|hurry|today\\s*only|last\\s*chance|right\\s*now)",
+            "weight": 0.22,
+            "description": "Creates urgency pressure"
+        },
+        "scarcity": {
+            "regex": "(?i)(only\\s*\\d+\\s*(spots?|left|remaining)|final\\s*(offer|opportunity)|running\\s*out|almost\\s*gone)",
+            "weight": 0.20,
+            "description": "Artificial scarcity tactics"
+        },
+        "small_to_big": {
+            "regex": "(?i)(\\$|usd)?\\s*\\d{1,3}\\s*(to|into|→|->|becomes?)\\s*(\\$|usd)?\\s*\\d+[kKmM]",
+            "weight": 0.25,
+            "description": "Small investment to huge returns"
+        },
+        "fake_testimonials": {
+            "regex": "(?i)\\d+\\s*(people|users?|members?|customers?|clients?)\\s*(already|earned?|made|joined?|profit)",
+            "weight": 0.18,
+            "description": "Unverifiable social proof"
+        },
+        "secret_method": {
+            "regex": "(?i)(secret|hidden|insider|exclusive|proprietary)\\s*(method|system|strategy|formula|trick|algorithm)",
+            "weight": 0.22,
+            "description": "Secret method claims"
+        },
+        "free_money": {
+            "regex": "(?i)(free\\s*(money|cash|income|profit)|no\\s*(cost|investment|risk|fees?))",
+            "weight": 0.20,
+            "description": "Free money claims"
+        },
+        "celebrity_name_drop": {
+            "regex": "(?i)(elon\\s*musk|bill\\s*gates|warren\\s*buffett|mark\\s*zuckerberg|jeff\\s*bezos)\\s*(recommends?|uses?|invested?|endorses?|backs?)",
+            "weight": 0.24,
+            "description": "Fake celebrity endorsements"
+        },
+        "crypto_scam_indicators": {
+            "regex": "(?i)(bit[\\s-]?coin|btc|crypto(currency)?|digital[\\s-]?(currency|money|asset|coin))\\s*(ai|artificial[\\s-]?intelligence|bot|robot|algorithm|oracle|automated?\\s*system|trading\\s*system)",
+            "weight": 0.30,
+            "description": "Crypto AI/bot trading scam indicators"
+        },
+        "fake_official": {
+            "regex": "(?i)(official|updated?|verified?|authorized?)\\s*(website|site|platform|portal)\\s*(20\\d{2}|\\d{4})",
+            "weight": 0.25,
+            "description": "Claims to be official updated site"
+        },
+        "trademark_abuse": {
+            "regex": "(?i)[™®©]\\s*(official|verified|authorized|certified)",
+            "weight": 0.15,
+            "description": "Fake trademark symbols with official claims"
+        },
+        "year_in_title": {
+            "regex": "(?i)(20\\d{2}|\\d{4})\\s*(official|updated|new|latest|current)",
+            "weight": 0.20,
+            "description": "Year in title suggesting fake updates"
+        },
+        "make_money_online": {
+            "regex": "(?i)(make|earn|generate)\\s*(money|cash|income|profit)\\s*(online|from\\s*home|remotely)",
+            "weight": 0.18,
+            "description": "Make money online schemes"
+        },
+        "investment_pressure": {
+            "regex": "(?i)(invest\\s*now|start\\s*(earning|making)|join\\s*(now|today)|sign\\s*up\\s*(now|today))\\s*(and|to)\\s*(earn|make|get)",
+            "weight": 0.22,
+            "description": "Investment pressure tactics"
+        }
+    },
+    "whois_rules": {
+        "very_new_domain": {
+            "condition": "age_days < 30",
+            "weight": 0.50,
+            "description": "Domain less than 30 days old"
+        },
+        "new_domain": {
+            "condition": "age_days < 180",
+            "weight": 0.35,
+            "description": "Domain less than 6 months old"
+        },
+        "privacy_protected": {
+            "condition": "privacy_protected == True",
+            "weight": 0.20,
+            "description": "WHOIS privacy protection enabled"
+        },
+        "suspicious_location": {
+            "condition": "country in high_risk_list",
+            "weight": 0.25,
+            "description": "Registered in high-risk country"
+        },
+        "suspicious_registrar": {
+            "condition": "registrar in suspicious_list",
+            "weight": 0.15,
+            "description": "Known for hosting scam sites"
+        }
+    },
+    "structure_rules": {
+        "excessive_ctas": {
+            "condition": "cta_count > 5",
+            "weight": 0.18,
+            "description": "Excessive call-to-action buttons"
+        },
+        "payment_form": {
+            "condition": "'payment' in form_types or 'credit' in form_types",
+            "weight": 0.30,
+            "description": "Payment form detected early"
+        },
+        "url_shorteners": {
+            "condition": "has_suspicious_links",
+            "weight": 0.15,
+            "description": "Uses URL shorteners"
+        },
+        "few_internal_links": {
+            "condition": "internal_links < 5",
+            "weight": 0.12,
+            "description": "Very few internal links"
+        },
+        "many_external_links": {
+            "condition": "external_links > 20",
+            "weight": 0.10,
+            "description": "Excessive external links"
+        }
+    },
+    "purpose_categories": {
+        "crypto_scam": {
+            "keywords": ["bitcoin", "crypto", "btc", "cryptocurrency", "blockchain", "digital currency", "trading bot", "ai trading"],
+            "required_patterns": ["crypto_scam_indicators"]
+        },
+        "investment_scam": {
+            "keywords": ["invest", "trading", "forex", "stocks", "trader", "portfolio", "returns"],
+            "required_patterns": ["guaranteed_returns", "unrealistic_roi"]
+        },
+        "get_rich_quick": {
+            "keywords": ["millionaire", "passive income", "financial freedom", "rich", "wealthy", "make money"],
+            "required_patterns": ["get_rich_quick", "no_effort"]
+        },
+        "fake_ecommerce": {
+            "keywords": ["shop", "buy", "sale", "discount", "store", "product"],
+            "required_patterns": ["urgency", "scarcity"]
+        },
+        "phishing": {
+            "keywords": ["verify", "account", "suspended", "confirm", "update", "security"],
+            "required_patterns": ["urgency"]
+        },
+        "tech_support_scam": {
+            "keywords": ["virus", "infected", "call now", "support", "error", "warning"],
+            "required_patterns": ["urgency"]
+        },
+        "romance_scam": {
+            "keywords": ["dating", "meet", "singles", "romance", "love", "lonely"],
+            "required_patterns": ["urgency", "fake_testimonials"]
+        },
+        "lottery_scam": {
+            "keywords": ["winner", "won", "lottery", "prize", "claim", "congratulations"],
+            "required_patterns": ["urgency", "free_money"]
+        }
+    }
+}

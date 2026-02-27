@@ -1,4 +1,5 @@
 ﻿using Common.Interfaces;
+using Common.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -58,7 +59,7 @@ namespace Business.RealtimeAnalysis.UserDomain
         public ScrapingStatusVm? scraping_status { get; set; } = new ScrapingStatusVm();
 
         [DataMember]
-        public RiskAssessmentVm? risk_assessment { get; set; }
+        public RiskAssessment? risk_assessment { get; set; }
 
         [DataMember]
         public WebsiteCategory? website_category { get; set; }

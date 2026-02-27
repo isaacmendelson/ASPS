@@ -12,7 +12,8 @@ namespace Business.RealtimeAnalysis.UserDomain;
 public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
 {
     private readonly UDUser _udUser;
-    private readonly List<ISpecificAnalyzer> _analyzers;
+    private List<UserDeviceView> _userDevices;
+    private List<ISpecificAnalyzer> _analyzers;
     private readonly UDAnalysis _analysis;
     private readonly ILogger<UDAnalysisManager> _logger;
     private readonly ILoggerFactory _loggerFactory;
@@ -22,6 +23,9 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
     private bool _isRunning;
     //private UDUserAnalyzer _userAnalyzer;
     private readonly ASView _aSView;
+    private bool isInitialized = false;
+    private readonly IKnownPhishingWebsiteRepository _phishingRepo;
+    private readonly ISafeDomainRepository _safeDomainRepo;
 
     public UDAnalysisManager(
         UDUser udUser, 
@@ -30,13 +34,16 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         ASView aSView,
         IConfiguration configuration,
         List<IDomainEventHandler> eventHandlers,
-        IKnownPhishingWebsiteRepository phishingRepo)
+        IKnownPhishingWebsiteRepository phishingRepo,
+        ISafeDomainRepository safeDomainRepo)
     {
         _udUser = udUser;
         _aSView = aSView;
         _loggerFactory = loggerFactory;
         _logger = _loggerFactory.CreateLogger<UDAnalysisManager>();
         _configuration = configuration;
+        _phishingRepo = phishingRepo;
+        _safeDomainRepo = safeDomainRepo;
 
         // Initialize analyzers
         _analyzers = new List<ISpecificAnalyzer>
@@ -60,7 +67,7 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         {
             _analysis.RegisterEventHandler(handler);
         }
-
+        _analysis.RegisterEventHandler(this);
         // Register internal UDUserAnalyzer last so it runs after ASView
         _analysis.RegisterUserAnalyzer();
         
@@ -70,6 +77,7 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
     public void Start()
     {
         _isRunning = true;
+        this.Initialize();
         _logger.LogInformation($"UDAnalysisManager started for user: {_udUser.Key}");
     }
 
@@ -79,13 +87,52 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         _logger.LogInformation($"UDAnalysisManager stopped for user: {_udUser.Key}");
     }
 
+    private void Initialize()
+    {
+        if (isInitialized) return;
+
+        this.LoadUserDevices();
+        // Load active alerts
+        this.LoadActiveAlerts();
+        // Load Bad Url Visits
+        this.LoadRiskyUserUrlSurfData();
+        
+        isInitialized = true;
+        _logger.LogInformation($"UDAnalysisManager initialized for user: {_udUser.Key}");
+    }
+
+    private void LoadUserDevices()
+    {
+        // This method can be used to fetch user devices from the ASView or database if needed
+        this._userDevices = _aSView.GetUserDevices
+            (_udUser.Key);
+        this.UDUser.UserDevices = this._userDevices;
+    }
+
+    private void LoadActiveAlerts()
+    {
+        this._udUser.ActiveAlerts = _aSView.GetActiveDeviceAlertsByUserKey(_udUser.Key);
+    }
+
+    private void LoadRiskyUserUrlSurfData()
+    {
+        var riskyUserUrlSurfData = _aSView.GetRiskyUrlSurfingByUserKey(_udUser.Key);
+        
+        //_udUser.UserUrlSurfDataByDevice = riskyUserUrlSurfData
+             //.ToDictionary(g => g.DeviceUid, g => g.SurfHistory);
+        //.ToDictionary(g => g.DeviceUid, g => g);
+        
+        _udUser.UserUrlSurfDataByDevice = riskyUserUrlSurfData.GroupBy(d => d.DeviceUid)
+                .ToDictionary(g => g.Key, g => g.AsEnumerable());
+    }
+
     public async Task Handle(IDomainEvent evt)
     {
         if (!_isRunning) return;
         switch(evt)
         {
             case DeviceAlertReceived alertEvent:
-                HandleDeviceAlertAdded(alertEvent);
+                await HandleDeviceAlertReceived(alertEvent);
                 break;
             case AnalysisResultReceived analysisResultEvent:
                 HandleAnalysisResultReceived(analysisResultEvent);
@@ -102,7 +149,7 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         };
     }
 
-    private async void HandleDeviceAlertAdded(DeviceAlertReceived alertEvent)
+    private async Task HandleDeviceAlertReceived(DeviceAlertReceived alertEvent)
     {
         var deviceUid = alertEvent.DeviceUid;
         
@@ -119,8 +166,9 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         }
     }
 
-    private async Task HandleAnalysisResultReceived(AnalysisResultReceived analysisResultEvent)
+    private Task HandleAnalysisResultReceived(AnalysisResultReceived analysisResultEvent)
     {
-
+        // TODO: implement post-analysis logic if needed
+        return Task.CompletedTask;
     }
 }

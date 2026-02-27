@@ -1,6 +1,10 @@
+using Business.Views;
+using Common.Entities;
 using Common.Enums;
+using Common.Interfaces;
 using Common.Models;
 using Common.Models.Alerts;
+using System.Collections.Generic;
 
 namespace Business.RealtimeAnalysis.UserDomain;
 
@@ -8,47 +12,87 @@ namespace Business.RealtimeAnalysis.UserDomain;
 /// Runtime representation of a User with active alerts and analysis state.
 /// Each user has their own UDUser instance running in the background.
 /// </summary>
-public class UDUser
+public class UDUser 
 {
-    public UDUser(Key key)
+    //protected UDUser() { }
+    //public UDUser(Key key)
+    //{
+    //    Key = key;
+    //    this.RiskAssessment = new RiskAssessment(0, "", false, 1);
+    //}
+    private IEnumerable<UserDeviceView> _userDevices;
+
+    private int maxRemoteAccessAnalysisResults = 1000;
+    public UDUser(Key key, UserInfo userInfo, RiskAssessment riskAssessment, IEnumerable<UserDeviceView>? userDevices, 
+        IEnumerable<DeviceAlertView>? activeAlerts, IEnumerable<BrowserTab>? browserTabs, bool? isTaregted)
     {
+        RiskAssessment = riskAssessment;
         Key = key;
-        DateCreated = DateTime.UtcNow;
-        this.RiskAssessment = new RiskAssessmentVm(0, "", false, 1);
+        UserInfo = userInfo;
+        ActiveAlerts = activeAlerts ?? new List<DeviceAlertView>();
+        UserDevices = userDevices ?? new List<UserDeviceView>();
+        BrowserTabs = browserTabs ?? new List<BrowserTab>();
+        this.IsTargeted = isTaregted?? false;
     }
 
     // Core identity
-    
-    public RiskAssessmentVm RiskAssessment { get; private set; }
     public Key Key { get; private set; }
+
+    public RiskAssessment RiskAssessment { get; private set; }
+    
     
     // User properties from User entity (excluding IsDeleted and KeyField)
-    public string KeycloakUserId { get; set; } = string.Empty;
-    public string FirstName { get; set; } = string.Empty;
-    public string LastName { get; set; } = string.Empty;
-    public string Address { get; set; } = string.Empty;
-    public string City { get; set; } = string.Empty;
-    public string State { get; set; } = string.Empty;
-    public string Zip { get; set; } = string.Empty;
-    public string Country { get; set; } = string.Empty;
-    public string PhoneNumber { get; set; } = string.Empty;
-    public UserRole Role { get; set; }
-    public int? GuardianKey { get; set; }
-    public string? Locale { get; set; }
-    public int? Timezone { get; set; }
-    public DateTime DateCreated { get; set; }
-    public DateTime? DateModified { get; set; }
-    public DateTime? DateDeleted { get; set; }
-    public bool IsDisabled { get; set; }
+   public UserInfo UserInfo { get; private set; }
+
+    // Runtime analysis parameters
+    public bool IsTargeted { get; private set; }    //True if user contact information is found in darknet lead lists.
+    public IEnumerable<BrowserTab> BrowserTabs { get; private set; }
+    public IEnumerable<DeviceAlertView> ActiveAlerts { get; set; }
+
+    public Dictionary<string, List<RemoteAccessAnalysisResultVm>> RemoteAccessAnalysisResults { get; private set; }
+
+    public Dictionary<string, RemoteAccessAnalysisResultVm> RemoteAccessStatus 
+    { 
+        get
+        {
+            var res = new Dictionary<string, RemoteAccessAnalysisResultVm>();
+            foreach (var d in this._userDevices)
+            {
+                var r = this.RemoteAccessAnalysisResults[d.DeviceUid]
+                    .Where(i => i.Success)
+                    .OrderByDescending(i => i.analyzed_at).FirstOrDefault();
+                if (r is not null)
+                {
+                    res[d.DeviceUid] = r;
+                }
+            }
+            return res;
+        }
+    }
+
+    public IEnumerable<UserDeviceView> UserDevices {
+        get
+        {
+            return this._userDevices ?? new List<UserDeviceView>();
+        } 
+        set
+        {
+            this._userDevices = value;
+        } 
     
-    // Runtime analysis state
-    public IEnumerable<DeviceAlert> ActiveAlerts { get; private set; } = new List<DeviceAlert>();
+    }
     
-    // Constructor
+    //List of phishing & other suspicious urls received in messages (email, sms, WhatsApp):
+    public Dictionary<string, IEnumerable<UserDeviceUrlSurfData>> UserUrlSurfDataByDevice { get; set; }
 
     
+    public void SetUserIsTargeted(bool value)
+    {
+        this.IsTargeted = value;
+    }
+
     // Add an alert to the active alerts list
-    public void AddAlert(DeviceAlert alert)
+    public void AddAlert(DeviceAlertView alert)
     {
         var alerts = ActiveAlerts.ToList();
         alerts.Add(alert);
@@ -58,9 +102,18 @@ public class UDUser
     // Clear all active alerts
     public void ClearAlerts()
     {
-        ActiveAlerts = new List<DeviceAlert>();
+        ActiveAlerts = new List<DeviceAlertView>();
     }
-    
-    // Get full name
-    public string FullName => $"{FirstName} {LastName}".Trim();
+
+    public void AddRemoteAccessAnalysisResult(string deviceUid, RemoteAccessAnalysisResultVm vm)
+    {
+        this.RemoteAccessAnalysisResults[deviceUid].Add(vm);
+        if (this.RemoteAccessAnalysisResults[deviceUid].Count > this.maxRemoteAccessAnalysisResults)
+        {
+            this.RemoteAccessAnalysisResults[deviceUid].Remove(this.RemoteAccessAnalysisResults[deviceUid].Last());
+        }
+    }
+
+
+
 }
