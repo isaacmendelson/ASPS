@@ -77,15 +77,25 @@ class Program
 
                 // Add DbContext with MySQL
                 var connectionString = configuration.GetConnectionString("DefaultConnection");
+                if (string.IsNullOrWhiteSpace(connectionString))
+                    throw new InvalidOperationException(
+                        "ConnectionStrings:DefaultConnection is empty. " +
+                        "Create appsettings.Development.json with your DB connection string, " +
+                        "or set ASPNETCORE_ENVIRONMENT=Development so the file is loaded. " +
+                        "See appsettings.Example.json for the required format.");
+
                 var serverVersion = new MySqlServerVersion(new Version(8, 0, 44));
+                var isDevelopment = hostContext.HostingEnvironment.IsDevelopment();
                 services.AddDbContext<AppDbContext>(options =>
                 {
                     options.UseMySql(connectionString, serverVersion);
-
-                    // Enable logging
-                    options.LogTo(Console.WriteLine, LogLevel.Information)
-                        .EnableSensitiveDataLogging()
-                        .EnableDetailedErrors();
+                    if (isDevelopment)
+                    {
+                        // EnableSensitiveDataLogging only in development — never in production
+                        options.LogTo(Console.WriteLine, LogLevel.Information)
+                               .EnableSensitiveDataLogging()
+                               .EnableDetailedErrors();
+                    }
                 });
 
                 // Add Repositories
