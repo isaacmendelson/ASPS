@@ -29,6 +29,12 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <!-- appsettings.Development.json is gitignored (contains local secrets).
+         Copy to output if it exists on this machine. -->
+    <None Include="appsettings.Development.json"
+          Condition="Exists('appsettings.Development.json')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
