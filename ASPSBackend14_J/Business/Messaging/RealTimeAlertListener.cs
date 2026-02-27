@@ -35,6 +35,7 @@ public class RealTimeAlertListener : IDisposable
     private readonly UserDomainManagerService _userDomainService;
     private readonly TokenStore _tokenStore;
     private readonly CurveKeyManager? _curveKeyManager;
+    private readonly RateLimiter _rateLimiter;
     private readonly List<IDomainEventHandler> _eventHandlers = new();
     private ResponseSocket? _repSocket;
     private PullSocket? _pullSocket;
@@ -59,6 +60,7 @@ public class RealTimeAlertListener : IDisposable
         _userDomainService = userDomainService;
         _tokenStore = tokenStore;
         _curveKeyManager = curveKeyManager;
+        _rateLimiter = new RateLimiter();
         _port = port;
         _mode = mode;
         var scope = _serviceProvider.CreateScope();
@@ -80,6 +82,7 @@ public class RealTimeAlertListener : IDisposable
         if (_mode == SocketMode.Rep)
         {
             _repSocket = new ResponseSocket();
+            _repSocket.Options.Linger = TimeSpan.Zero;
             _curveKeyManager?.ApplyServerCurve(_repSocket);
             _repSocket.Bind($"tcp://*:{_port}");
             var encStatus = _curveKeyManager?.IsEnabled == true ? "CURVE encrypted" : "unencrypted";
@@ -88,6 +91,7 @@ public class RealTimeAlertListener : IDisposable
         else
         {
             _pullSocket = new PullSocket();
+            _pullSocket.Options.Linger = TimeSpan.Zero;
             _curveKeyManager?.ApplyServerCurve(_pullSocket);
             _pullSocket.Bind($"tcp://*:{_port}");
             var encStatus = _curveKeyManager?.IsEnabled == true ? "CURVE encrypted" : "unencrypted";
@@ -188,6 +192,20 @@ public class RealTimeAlertListener : IDisposable
         {
             var jObject = JObject.Parse(message);
             var messageType = jObject["MessageType"]?.ToString();
+
+            // Rate limit token endpoints
+            if (messageType is "RequestToken" or "RegisterDevice" or "RefreshToken")
+            {
+                var deviceUid = jObject["DeviceUid"]?.ToString() ?? "unknown";
+                var maxRequests = messageType == "RegisterDevice" ? 3 : 5;
+                var rateLimitKey = $"{messageType}:{deviceUid}";
+
+                if (!_rateLimiter.IsAllowed(rateLimitKey, maxRequests, TimeSpan.FromMinutes(1)))
+                {
+                    _logger.LogWarning("Rate limit exceeded for {MessageType} from device {DeviceUid}", messageType, deviceUid);
+                    return new { success = false, message = "Rate limit exceeded. Try again later." };
+                }
+            }
 
             return messageType switch
             {

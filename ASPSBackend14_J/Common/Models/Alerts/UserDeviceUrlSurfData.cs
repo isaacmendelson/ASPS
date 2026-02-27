@@ -18,12 +18,13 @@ namespace Common.Models.Alerts
             MessagingApp = messagingApp;
             RiskAssessment = riskAssessment;
             SurfHistory = surfHistory?? new List<SurfHistoryItem>();
+            CreatedAt = DateTime.UtcNow;
         }
 
         public Key UserKey { get; set; }
         public string Url { get; set; }
         public string DeviceUid { get; set; }
-        public DateTime CreatedAt { get; set; }
+        public DateTime CreatedAt { get; private set; }
         //public DateTime? ReceivedAt { get; set; }
         public MessagingApp MessagingApp { get; set; }
         public RiskAssessment? RiskAssessment { get; set; }

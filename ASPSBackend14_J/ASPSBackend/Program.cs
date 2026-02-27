@@ -26,6 +26,10 @@ class Program
         Console.WriteLine("ASPSBackend System2 Starting...");
         Console.WriteLine("========================================");
 
+        // Load persisted tokens from database
+        var tokenStore = host.Services.GetRequiredService<TokenStore>();
+        await tokenStore.LoadFromDatabaseAsync();
+
         // Start ASView
         var asView = host.Services.GetRequiredService<ASView>();
         asView.Start();

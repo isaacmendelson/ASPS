@@ -67,7 +67,7 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         {
             _analysis.RegisterEventHandler(handler);
         }
-
+        _analysis.RegisterEventHandler(this);
         // Register internal UDUserAnalyzer last so it runs after ASView
         _analysis.RegisterUserAnalyzer();
         

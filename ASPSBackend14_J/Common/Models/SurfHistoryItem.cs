@@ -12,7 +12,7 @@ namespace Common.Models
         public SurfHistoryItem(
             string url, 
             DateTime timestamp, 
-            DateTime? leaveTime
+            DateTime? leaveTime = null
             )
         {
             Url = url;

@@ -324,20 +324,27 @@ public class ASView : IDomainEventHandler, IBackgroundTask
 
                 _riskyDomains = _deviceAlerts
                     .OfType<UrlAlertView>()
-                    .Where(u => !string.IsNullOrEmpty(u.Domain) && this._knownPhishingWebsites.Select(i => i.Domain).Contains(u.Domain))
+                    .Where(u => !string.IsNullOrEmpty(u.Url) && this._knownPhishingWebsites.Select(i => i.Domain).Contains(u.Url))
                     //this._urlAnalysisResults.Where(i => (i.AnalysisResult.Success && i.AnalysisResult.risk_assessment?.risk_score > 50))
                     //.Select(r => KnownPhishingWebsite.GetDomainFromUrl((r.Alert as UrlAlert)!.Url))
                     .Distinct()
-                    .Select(u => u.Domain.ToLower())
+                    .Select(u => u.Url.ToLower())
                     .Union(
-                        this._urlAnalysisResults.Where(i => (i.AnalysisResult?.Success == true && i.AnalysisResult?.risk_assessment?.risk_score > 50))
+                        this._urlAnalysisResults.Where(i => (i.AnalysisResult?.Success == true && i.AnalysisResult?.risk_assessment?.risk_score < 25))
                         .Select(r => KnownPhishingWebsite.GetDomainFromUrl((r.Alert as UrlAlert)!.Url.ToLower()))
                     )
                     .ToList();
 
-                this._riskyUrlSurfings = _deviceAlerts
+                var q = _deviceAlerts
                     .OfType<UrlAlertView>()
-                    .Where(u => !string.IsNullOrEmpty(u.Domain) && this._riskyDomains.Contains(u.Domain))
+                    .Where(u => !string.IsNullOrEmpty(u.Url) && this._riskyDomains.Contains(u.Url))
+                    .Distinct();
+
+                this._riskyUrlSurfings = q  //
+                                         //_deviceAlerts
+                    //.OfType<UrlAlertView>()
+                    
+                    .Where(u => !string.IsNullOrEmpty(u.Url) && this._riskyDomains.Contains(u.Url))
                     .Distinct()
                     .Select(u => new UserDeviceUrlSurfData(
                         u.UserKey,
@@ -345,8 +352,9 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                         u.DeviceUid,
                         MessagingApp.Unknown,
                         (this._analysisResults.FirstOrDefault(i => i.Alert?.AlertId == u.AlertId)?.AnalysisResult as UrlAnalysisResultVm)?.risk_assessment,
-                        null)
-                    { CreatedAt = u.Timestamp })
+                        q.Where(i => i.UserKey == u.UserKey && i.Url.ToLower() == u.Url.ToLower()).Select(i => new SurfHistoryItem(u.Url, i.Timestamp)).ToList()
+                        )
+                    {  })
                     .ToList();
 
                 var safeDomainRepository = scope.ServiceProvider.GetRequiredService<ISafeDomainRepository>();

@@ -1,8 +1,10 @@
 using Business.Commands;
 using Business.Queries;
 using Business.Handlers;
+using Business.Services;
 using Business.Views;
 using Common.Messaging;
+using Common.Models;
 using NetMQ;
 using NetMQ.Sockets;
 using Newtonsoft.Json;
@@ -21,6 +23,7 @@ public class CQRSGateway : IDisposable
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<CQRSGateway> _logger;
+    private readonly CurveKeyManager? _curveKeyManager;
     private readonly string _endpoint;
     private ResponseSocket? _socket;
     private bool _running;
@@ -28,20 +31,24 @@ public class CQRSGateway : IDisposable
     public CQRSGateway(
         IServiceProvider serviceProvider,
         ILogger<CQRSGateway> logger,
-        string endpoint = "tcp://*:5556")
+        string endpoint = "tcp://*:5556",
+        CurveKeyManager? curveKeyManager = null)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
         _endpoint = endpoint;
+        _curveKeyManager = curveKeyManager;
     }
 
     public void Start()
     {
         _running = true;
         _socket = new ResponseSocket();
+        _socket.Options.Linger = TimeSpan.Zero;
+        // No CURVE on internal localhost channel — encryption is on external ports 50001/50002
         _socket.Bind(_endpoint);
 
-        _logger.LogInformation("CQRS Gateway started on {Endpoint}", _endpoint);
+        _logger.LogInformation("CQRS Gateway started on {Endpoint} (internal channel, no CURVE)", _endpoint);
         _logger.LogInformation("Listening for Commands and Queries from WebApi...");
 
         Task.Run(() => ListenLoop());
@@ -141,6 +148,7 @@ public class CQRSGateway : IDisposable
             "GetAllAnalysisResultsQuery" => await HandleGetAllAnalysisResultsQuery(messageJson, scope),
             "GetAnalysisResultByAlertKeyQuery" => await HandleGetAnalysisResultByAlertKeyQuery(messageJson, scope),
             "GetAllPhishingWebsitesQuery" => HandleGetAllPhishingWebsitesQuery(messageJson),
+            "ValidateDeviceTokenQuery" => HandleValidateDeviceTokenQuery(messageJson),
             _ => CreateErrorResponse($"Unknown query type: {queryType}")
         };
     }
@@ -393,6 +401,41 @@ public class CQRSGateway : IDisposable
             TypeNameHandling = TypeNameHandling.Auto,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         });
+    }
+
+    private string HandleValidateDeviceTokenQuery(string messageJson)
+    {
+        try
+        {
+            var query = JsonConvert.DeserializeObject<ValidateDeviceTokenQuery>(messageJson);
+            if (query == null) return CreateErrorResponse("Invalid ValidateDeviceTokenQuery format");
+
+            var tokenStore = _serviceProvider.GetRequiredService<TokenStore>();
+            var validationResult = tokenStore.ValidateToken(query.DeviceUid, query.TokenValue);
+
+            var result = new ValidateDeviceTokenQueryResult
+            {
+                Success = true,
+                IsValid = validationResult == TokenValidationResult.Valid
+            };
+
+            if (result.IsValid)
+            {
+                var token = tokenStore.GetToken(query.DeviceUid);
+                result.UserKeyField = token?.UserKeyField;
+            }
+
+            return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+            {
+                TypeNameHandling = TypeNameHandling.Auto,
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating device token");
+            return CreateErrorResponse($"Error: {ex.Message}");
+        }
     }
 
     private string HandleGetAllPhishingWebsitesQuery(string messageJson)

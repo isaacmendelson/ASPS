@@ -48,35 +48,68 @@ public class CurveKeyManager
         _logger.LogDebug("CURVE server mode applied to socket");
     }
 
+    /// <summary>
+    /// Apply CURVE client options to a socket (for REQ/SUB sockets connecting to a CURVE server).
+    /// Generates an ephemeral client keypair and uses the server's public key for authentication.
+    /// </summary>
+    public void ApplyClientCurve(NetMQSocket socket)
+    {
+        if (!_curveEnabled || ServerPublicKey.Length == 0)
+            return;
+
+        var clientCert = new NetMQCertificate();
+        socket.Options.CurveCertificate = clientCert;
+        socket.Options.CurveServerKey = ServerPublicKey;
+        _logger.LogDebug("CURVE client mode applied to socket");
+    }
+
     private void LoadKeysFromConfig(IConfiguration configuration)
     {
         var publicKeyBase64 = configuration.GetValue<string>("Security:ServerPublicKey");
         var secretKeyBase64 = configuration.GetValue<string>("Security:ServerSecretKey");
         var publicKeyZ85 = configuration.GetValue<string>("Security:ServerPublicKeyZ85");
 
-        if (string.IsNullOrEmpty(publicKeyBase64) || string.IsNullOrEmpty(secretKeyBase64))
+        // Server-side: full keypair available (base64 public + secret)
+        if (!string.IsNullOrEmpty(publicKeyBase64) && !string.IsNullOrEmpty(secretKeyBase64))
         {
-            _logger.LogWarning("CURVE keys not found in configuration. Generating new keypair...");
-            GenerateKeys();
-            LogKeyConfiguration();
-            return;
+            try
+            {
+                ServerPublicKey = Convert.FromBase64String(publicKeyBase64);
+                ServerSecretKey = Convert.FromBase64String(secretKeyBase64);
+                ServerPublicKeyZ85 = publicKeyZ85 ?? Z85.Encode(ServerPublicKey);
+
+                _logger.LogInformation("CurveZMQ full keypair loaded from configuration (server mode)");
+                _logger.LogInformation("Server public key (Z85): {PublicKey}", ServerPublicKeyZ85);
+                return;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to parse CURVE base64 keys from configuration");
+            }
         }
 
-        try
+        // Client-side: only server's public key available (Z85)
+        if (!string.IsNullOrEmpty(publicKeyZ85))
         {
-            ServerPublicKey = Convert.FromBase64String(publicKeyBase64);
-            ServerSecretKey = Convert.FromBase64String(secretKeyBase64);
-            ServerPublicKeyZ85 = publicKeyZ85 ?? Z85.Encode(ServerPublicKey);
+            try
+            {
+                ServerPublicKey = Z85.Decode(publicKeyZ85);
+                ServerPublicKeyZ85 = publicKeyZ85;
 
-            _logger.LogInformation("CurveZMQ keypair loaded from configuration");
-            _logger.LogInformation("Server public key (Z85): {PublicKey}", ServerPublicKeyZ85);
+                _logger.LogInformation("CurveZMQ server public key loaded from Z85 (client mode)");
+                _logger.LogInformation("Server public key (Z85): {PublicKey}", ServerPublicKeyZ85);
+                return;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to decode CURVE Z85 key from configuration");
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to parse CURVE keys from configuration. Generating new keypair...");
-            GenerateKeys();
-            LogKeyConfiguration();
-        }
+
+        // No keys found at all — generate new keypair (server first-run)
+        _logger.LogWarning("CURVE keys not found in configuration. Generating new keypair...");
+        GenerateKeys();
+        LogKeyConfiguration();
     }
 
     private void GenerateKeys()
