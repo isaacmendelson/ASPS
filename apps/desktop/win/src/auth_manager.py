@@ -117,7 +117,7 @@ class AuthManager:
                     print(f"[AUTH] Loaded saved email: {self.email}")
 
                 if self.token:
-                    print(f"[AUTH] Loaded saved token: {self.token[:8]}... (truncated)")
+                    print("[AUTH] Loaded saved token: [REDACTED]")
                     print(f"[AUTH] Expires: {self.expires_at}")
                     if self.is_expired():
                         print("[AUTH] Token is expired, will refresh")
@@ -172,7 +172,7 @@ class AuthManager:
 
         if status in ("TokenCreated", "ExistingToken", "TokenRefreshed"):
             new_token = response.get("token", "")
-            print(f"[AUTH] Received token from backend: {new_token[:8] if new_token else 'EMPTY'}... (truncated)")
+            print(f"[AUTH] Received token from backend: {'[REDACTED]' if new_token else 'EMPTY'}")
             print(f"[AUTH] Replacing previous token")
 
             self.token = new_token

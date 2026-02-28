@@ -212,7 +212,7 @@ class MonitorService:
     ):
         """Send remote access alert with automatic retry on auth errors"""
         token = self.auth_manager.get_token()
-        print(f"[MONITOR-RETRY] Sending alert. Token: {token[:20] if token else 'None'}... retry={retry}")
+        print(f"[MONITOR-RETRY] Sending alert. Token: {'[REDACTED]' if token else 'None'}, retry={retry}")
 
         response = await asyncio.to_thread(
             self.zmq_client.send_remote_access_alert,
@@ -239,7 +239,7 @@ class MonitorService:
                 print(f"[MONITOR-RETRY] Re-auth result: {auth_result}")
                 if retry and auth_result:
                     new_token = self.auth_manager.get_token()
-                    print(f"[MONITOR-RETRY] New token after re-auth: {new_token[:20] if new_token else 'None'}...")
+                    print(f"[MONITOR-RETRY] New token after re-auth: {'[REDACTED]' if new_token else 'None'}")
                     print("[MONITOR-RETRY] Retrying alert with new token...")
                     return await self._send_remote_access_alert_with_retry(
                         device_uid=device_uid,
