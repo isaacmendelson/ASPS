@@ -242,10 +242,11 @@ class ZMQClient:
         device_type: int = 1,
         os_type: int = 1,
         # Enhanced detection fields
-        direction: str = "unknown",  # 'incoming', 'outgoing', 'unknown'
-        confidence: str = "low",     # 'low', 'medium', 'high'
-        remote_country: str = "",    # Country name
-        remote_country_code: str = ""  # ISO country code
+        direction: str = "unknown",       # 'incoming', 'outgoing', 'unknown'
+        confidence: str = "low",          # 'low', 'medium', 'high'
+        remote_country: str = "",         # Country name
+        remote_country_code: str = "",    # ISO country code
+        browser_tabs: Optional[List[Dict[str, Any]]] = None  # Open browser tabs
     ) -> Optional[Dict[str, Any]]:
         """
         Send a RemoteAccessAlert with enhanced detection data.
@@ -302,6 +303,11 @@ class ZMQClient:
             "RemoteCountry": remote_country,
             "RemoteCountryCode": remote_country_code
         }
+
+        # Include browser tabs if provided (nullable — omit field entirely when None)
+        if browser_tabs is not None:
+            alert["BrowserTabs"] = browser_tabs
+            print(f"[ZMQ] Including {len(browser_tabs)} browser tab(s) in alert")
 
         if not self.connect():
             return None

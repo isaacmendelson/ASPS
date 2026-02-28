@@ -7,7 +7,7 @@ import asyncio
 import logging
 from typing import Dict, Any
 
-from config import MONITOR_INTERVAL, DEBUG_MODE, ConnectionStatus
+from config import MONITOR_INTERVAL, DEBUG_MODE, ConnectionStatus, REMOTE_ACCESS_BROWSER_TABS_MODE
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +117,43 @@ class MonitorService:
 
             await asyncio.sleep(MONITOR_INTERVAL)
 
+    async def _get_browser_tabs_for_alert(self, has_active_session: bool):
+        """
+        Returns a list of open browser tabs (queried from the extension) if the
+        current config mode warrants it, or None to omit the field entirely.
+
+        Modes (REMOTE_ACCESS_BROWSER_TABS_MODE):
+          "always"              – include tabs with every RemoteAccessAlert
+          "active_session_only" – only when has_active_session=True
+          "never"               – never include tabs
+        """
+        mode = REMOTE_ACCESS_BROWSER_TABS_MODE
+
+        if mode == 'never':
+            return None
+
+        should_query = (
+            mode == 'always' or
+            (mode == 'active_session_only' and has_active_session)
+        )
+        if not should_query:
+            return None
+
+        # No extension connected — return empty list (field present but empty)
+        if not hasattr(self, '_extension_server') or not self._extension_server:
+            return []
+        if not self._extension_server.clients:
+            print("[MONITOR] No extension connected — BrowserTabs will be empty")
+            return []
+
+        try:
+            tabs = await self._extension_server.request_browser_tabs(timeout=3.0)
+            print(f"[MONITOR] Collected {len(tabs)} browser tab(s) for RemoteAccessAlert")
+            return tabs
+        except Exception as e:
+            logger.error(f"Error querying browser tabs: {e}")
+            return []
+
     async def _handle_app_open(self, app_name: str, status, late_detection: bool = False):
         """Handle remote access app opening (not yet session)"""
         detection_note = " (detected on startup)" if late_detection else ""
@@ -137,6 +174,7 @@ class MonitorService:
             if DEBUG_MODE:
                 print(f"[MONITOR] Sending app open alert for {app_name}...")
 
+            browser_tabs = await self._get_browser_tabs_for_alert(has_active_session=False)
             await self._send_remote_access_alert_with_retry(
                 device_uid=self.device_id,
                 remote_app=str(status.app_id),
@@ -147,7 +185,8 @@ class MonitorService:
                 direction=status.direction or "unknown",
                 confidence=status.confidence or "low",
                 remote_country=status.remote_country or "",
-                remote_country_code=status.remote_country_code or ""
+                remote_country_code=status.remote_country_code or "",
+                browser_tabs=browser_tabs
             )
 
     async def _handle_app_close(self, app_name: str, status):
@@ -167,6 +206,7 @@ class MonitorService:
             if DEBUG_MODE:
                 print(f"[MONITOR] Sending app close alert for {app_name}...")
 
+            browser_tabs = await self._get_browser_tabs_for_alert(has_active_session=False)
             await self._send_remote_access_alert_with_retry(
                 device_uid=self.device_id,
                 remote_app=str(status.app_id),
@@ -177,7 +217,8 @@ class MonitorService:
                 direction=status.direction or "unknown",
                 confidence=status.confidence or "low",
                 remote_country=status.remote_country or "",
-                remote_country_code=status.remote_country_code or ""
+                remote_country_code=status.remote_country_code or "",
+                browser_tabs=browser_tabs
             )
 
         # Clear alert state
@@ -208,6 +249,7 @@ class MonitorService:
         confidence: str,
         remote_country: str,
         remote_country_code: str,
+        browser_tabs=None,
         retry: bool = True
     ):
         """Send remote access alert with automatic retry on auth errors"""
@@ -226,7 +268,8 @@ class MonitorService:
             direction=direction,
             confidence=confidence,
             remote_country=remote_country,
-            remote_country_code=remote_country_code
+            remote_country_code=remote_country_code,
+            browser_tabs=browser_tabs
         )
 
         if response:
@@ -252,6 +295,7 @@ class MonitorService:
                         confidence=confidence,
                         remote_country=remote_country,
                         remote_country_code=remote_country_code,
+                        browser_tabs=browser_tabs,
                         retry=False
                     )
                 else:
@@ -281,6 +325,7 @@ class MonitorService:
             if DEBUG_MODE:
                 print("[MONITOR] Sending RemoteAccessAlert...")
 
+            browser_tabs = await self._get_browser_tabs_for_alert(has_active_session=True)
             await self._send_remote_access_alert_with_retry(
                 device_uid=self.device_id,
                 remote_app=str(status.app_id),
@@ -291,7 +336,8 @@ class MonitorService:
                 direction=status.direction or "unknown",
                 confidence=status.confidence or "low",
                 remote_country=status.remote_country or "",
-                remote_country_code=status.remote_country_code or ""
+                remote_country_code=status.remote_country_code or "",
+                browser_tabs=browser_tabs
             )
 
         # Show notification with direction-aware message
@@ -343,6 +389,7 @@ class MonitorService:
             if DEBUG_MODE:
                 print(f"[MONITOR] Sending session end alert for {app_name}...")
 
+            browser_tabs = await self._get_browser_tabs_for_alert(has_active_session=False)
             await self._send_remote_access_alert_with_retry(
                 device_uid=self.device_id,
                 remote_app=str(status.app_id),
@@ -353,7 +400,8 @@ class MonitorService:
                 direction=status.direction or "unknown",
                 confidence=status.confidence or "low",
                 remote_country=status.remote_country or "",
-                remote_country_code=status.remote_country_code or ""
+                remote_country_code=status.remote_country_code or "",
+                browser_tabs=browser_tabs
             )
 
         # Clear alert state

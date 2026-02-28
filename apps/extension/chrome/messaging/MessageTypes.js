@@ -63,6 +63,8 @@ export const MSG = {
   WS_USER_SIGNOUT: 'user_signout',
   WS_NOTIFICATION: 'notification',
   WS_ERROR: 'error',
+  WS_GET_BROWSER_TABS: 'get_browser_tabs',
+  WS_BROWSER_TABS_RESPONSE: 'browser_tabs_response',
 
   // ==========================================
   // Remote Access Warning Messages

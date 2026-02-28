@@ -90,6 +90,14 @@ WHITELIST_PORTS = [
 # Monitoring Settings
 MONITOR_INTERVAL = 5  # seconds between checks (fast polling for quick detection)
 
+# When to include BrowserTabs in a RemoteAccessAlert:
+#   "always"              - include with every RemoteAccessAlert (default — good for testing)
+#   "active_session_only" - only when the device has an active remote session
+#   "never"               - never include (disables the feature)
+REMOTE_ACCESS_BROWSER_TABS_MODE = _os.environ.get(
+    'REMOTE_ACCESS_BROWSER_TABS_MODE', 'always'
+)
+
 # Remote Access Apps to Monitor
 class RemoteAccessApp:
     ANYDESK = 1

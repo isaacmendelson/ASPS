@@ -6,7 +6,8 @@ WebSocket server for Chrome extension communication
 import asyncio
 import json
 import logging
-from typing import Optional, Callable, Set
+import uuid
+from typing import Optional, Callable, Dict, List, Set, Tuple
 import websockets
 from websockets.server import WebSocketServerProtocol
 
@@ -24,6 +25,8 @@ class ExtensionServer:
         self.clients: Set[WebSocketServerProtocol] = set()
         self._on_message_callback: Optional[Callable] = None
         self._running = False
+        # Pending tab requests: key = "{request_id}:{client_id}" → Future[List[dict]]
+        self._tab_request_futures: Dict[str, asyncio.Future] = {}
         
     def on_message(self, callback: Callable):
         """Set callback for incoming messages"""
@@ -52,6 +55,15 @@ class ExtensionServer:
                     if msg_type == 'keepalive':
                         logger.debug("Keepalive received")
                         continue
+
+                    # Handle browser tabs response — resolve the matching pending Future
+                    if msg_type == 'browser_tabs_response':
+                        request_id = data.get('requestId', '')
+                        key = f"{request_id}:{id(websocket)}"
+                        future = self._tab_request_futures.get(key)
+                        if future and not future.done():
+                            future.set_result(data.get('tabs', []))
+                        continue  # Do not pass to regular callback
 
                     # Print ALL other messages - full visibility
                     print("\n" + "=" * 70)
@@ -141,6 +153,59 @@ class ExtensionServer:
             
         logger.info("Extension server stopped")
     
+    async def request_browser_tabs(self, timeout: float = 3.0) -> List[dict]:
+        """
+        Ask all connected extensions for their open browser tabs.
+        Sends a 'get_browser_tabs' message to every client and collects
+        'browser_tabs_response' replies, merging them into a single list.
+        Returns [] if no extensions are connected or none respond in time.
+        """
+        if not self.clients:
+            return []
+
+        request_id = str(uuid.uuid4())
+        loop = asyncio.get_event_loop()
+        futures: List[Tuple[asyncio.Future, str]] = []
+
+        for client in list(self.clients):
+            key = f"{request_id}:{id(client)}"
+            future: asyncio.Future = loop.create_future()
+            self._tab_request_futures[key] = future
+            try:
+                await client.send(json.dumps({
+                    'type':      'get_browser_tabs',
+                    'requestId': request_id
+                }))
+                futures.append((future, key))
+            except Exception as e:
+                logger.error(f"[TABS] Error sending tab request to client: {e}")
+                self._tab_request_futures.pop(key, None)
+                future.cancel()
+
+        if not futures:
+            return []
+
+        all_tabs: List[dict] = []
+        done, pending = await asyncio.wait(
+            [f for f, _ in futures],
+            timeout=timeout
+        )
+
+        for future in done:
+            try:
+                all_tabs.extend(future.result() or [])
+            except Exception:
+                pass
+        for future in pending:
+            future.cancel()
+
+        # Cleanup futures
+        for _, key in futures:
+            self._tab_request_futures.pop(key, None)
+
+        logger.info(f"[TABS] Collected {len(all_tabs)} tabs from {len(done)} extension(s)")
+        return all_tabs
+
     async def broadcast(self, message: dict):
         """Send message to all connected extensions"""
         if not self.clients:

@@ -114,6 +114,36 @@ function setupWebSocketHandlers() {
     handleNotification(data);
   });
 
+  // Handle browser tabs request from desktop agent
+  connectionService.onMessage(MSG.WS_GET_BROWSER_TABS, async (data) => {
+    console.log('[Background] Browser tabs requested by desktop agent');
+    try {
+      const tabs = await chrome.tabs.query({});
+      const tabData = tabs
+        .filter(tab => tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('chrome-extension://'))
+        .map(tab => ({
+          title:     tab.title     || '',
+          url:       tab.url       || '',
+          isActive:  tab.active    || false,
+          userAgent: navigator.userAgent,
+          timestamp: tab.lastAccessed ? new Date(tab.lastAccessed).toISOString() : new Date().toISOString()
+        }));
+      connectionService.send({
+        type:      MSG.WS_BROWSER_TABS_RESPONSE,
+        requestId: data.requestId,
+        tabs:      tabData
+      });
+      console.log(`[Background] Sent ${tabData.length} tabs to desktop agent`);
+    } catch (err) {
+      console.error('[Background] Error querying browser tabs:', err);
+      connectionService.send({
+        type:      MSG.WS_BROWSER_TABS_RESPONSE,
+        requestId: data.requestId,
+        tabs:      []
+      });
+    }
+  });
+
   // Handle remote access alert from desktop
   connectionService.onMessage(MSG.REMOTE_ACCESS_ALERT, async (data) => {
     console.log('[Background] Remote access alert received:', data);
