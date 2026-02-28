@@ -34,12 +34,13 @@ try:
 except ImportError:
     DEFAULT_HOST = "127.0.0.1"
     DEFAULT_PORT = 50001
-    SERVER_PUBLIC_KEY_Z85 = "qPsk#8DY:n9ovp[vQ!YcOnOX[f/.i@.g^f#b:!ik"
+    SERVER_PUBLIC_KEY_Z85 = ""  # No fallback — must be loaded from config or env var
 
 DEFAULT_DEVICE_UID = "DIAGNOSTIC-TEST-001"
 
-# Base64 key for Z85 verification (from backend appsettings.json)
-SERVER_PUBLIC_KEY_BASE64 = "UsaAZRpYTlYc5QPyYmLsr5xvCOMxOThZwYV56CSY9A0="
+# Base64 representation of the server public key — derived at runtime from SERVER_PUBLIC_KEY_Z85
+# (no hardcoded value; use curve_diagnostic --print-key to display the current key)
+SERVER_PUBLIC_KEY_BASE64 = ""
 
 
 def get_auth_json_path():
