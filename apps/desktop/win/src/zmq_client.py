@@ -8,7 +8,7 @@ import zmq
 import json
 import logging
 import uuid
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
