@@ -480,6 +480,14 @@ public class RealTimeAlertListener : IDisposable
                 return Task.FromResult<object>(new { success = false, message = "Failed to deserialize alert" });
             }
 
+            // Reject UrlAlerts for local/loopback addresses — defense-in-depth
+            if (alert is UrlAlert urlAlertCheck && IsLocalUrl(urlAlertCheck.Url))
+            {
+                _logger.LogDebug("Skipping local URL alert from device {DeviceUid}: {Url}",
+                    alert.DeviceInfo.DeviceUid, urlAlertCheck.Url);
+                return Task.FromResult<object>(new { success = false, message = "Local URLs are not analyzed." });
+            }
+
             var deviceUid = alert.DeviceInfo.DeviceUid;
             var tokenValidation = _tokenStore.ValidateToken(deviceUid, alert.Token);
 
@@ -567,6 +575,24 @@ public class RealTimeAlertListener : IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in background analysis dispatch for device {DeviceUid}", deviceUid);
+        }
+    }
+
+    private static bool IsLocalUrl(string? url)
+    {
+        if (string.IsNullOrEmpty(url)) return false;
+        try
+        {
+            var host = new Uri(url).Host.ToLowerInvariant();
+            return host == "localhost"  ||
+                   host == "127.0.0.1" ||
+                   host == "::1"       ||
+                   host == "0.0.0.0"   ||
+                   host.StartsWith("127.");
+        }
+        catch
+        {
+            return false;
         }
     }
 

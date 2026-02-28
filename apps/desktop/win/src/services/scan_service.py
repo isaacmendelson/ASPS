@@ -79,6 +79,22 @@ class ScanService:
             else:
                 cls._pending_urls.clear()
 
+    @staticmethod
+    def _is_local_url(url: str) -> bool:
+        """Returns True if the URL points to a loopback/local address."""
+        try:
+            from urllib.parse import urlparse
+            host = (urlparse(url).hostname or '').lower()
+            return (
+                host == 'localhost' or
+                host == '127.0.0.1' or
+                host.startswith('127.') or
+                host == '::1' or
+                host == '0.0.0.0'
+            )
+        except Exception:
+            return False
+
     def check_url(
         self,
         url: str,
@@ -98,6 +114,11 @@ class ScanService:
         print(f"[SCAN] URL: {url[:100]}...")
         print(f"[SCAN] Trackers: {len(trackers)}")
         print(f"[SCAN] iFrames: {len(iframes)}")
+
+        # Skip local/loopback addresses — never send to backend
+        if self._is_local_url(url):
+            print(f"[SCAN] Skipping local URL: {url}")
+            return self._create_result(url=url, score=0, risk_type=[], protective_action=0, cached=False)
 
         # Step 1: Check cache
         print("[SCAN] Step 1: Checking cache...")

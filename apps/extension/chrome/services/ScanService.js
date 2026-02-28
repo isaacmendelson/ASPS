@@ -14,10 +14,31 @@ class ScanService {
     this.scanTimeout = 30000; // 30 seconds - increased for slower analysis
   }
 
+  // Check if URL points to a local/loopback address — never send to backend
+  isLocalUrl(url) {
+    try {
+      const hostname = new URL(url).hostname.toLowerCase();
+      return (
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname.startsWith('127.') ||
+        hostname === '::1' ||
+        hostname === '0.0.0.0'
+      );
+    } catch {
+      return false;
+    }
+  }
+
   // Scan a URL
   async scan(tabId, url) {
     if (!url || !url.startsWith('http')) {
       console.log('[ScanService] Skipping non-http URL:', url);
+      return null;
+    }
+
+    if (this.isLocalUrl(url)) {
+      console.log('[ScanService] Skipping local URL:', url);
       return null;
     }
 
