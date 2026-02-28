@@ -83,7 +83,10 @@ namespace Business.RealtimeAnalysis.UserDomain
 
         public async Task HandleAnalysisResultReceivedAsync(AnalysisResultReceived analysisEvent)
         {
-            this.UDUser.BrowserTabs[analysisEvent.DeviceUid] = (analysisEvent.AnalyzerResults[nameof(UDRemoteAccessAnalyzer)].Item1 as RemoteAccessAnalysisResultVm)?.BrowserTabs;
+            if (analysisEvent.AnalyzerResults.TryGetValue(nameof(UDRemoteAccessAnalyzer), out var raResult))
+            {
+                this.UDUser.BrowserTabs[analysisEvent.DeviceUid] = (raResult.Item1 as RemoteAccessAnalysisResultVm)?.BrowserTabs;
+            }
             var evAnalysisResult = analysisEvent.AnalyzerResults.First().Value.Item1;
             var evIndicators = analysisEvent.AnalyzerResults.First().Value.Item2;
             var evProtectiveActions = analysisEvent.AnalyzerResults.First().Value.Item3;
