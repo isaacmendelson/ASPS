@@ -185,7 +185,7 @@ public class UserDomainManagerService
             new RiskAssessment(0, "Unknown", false, 0),
             Enumerable.Empty<UserDeviceView>(), 
             Enumerable.Empty<DeviceAlertView>(),
-            Enumerable.Empty<BrowserTab>(),
+            null,
             false
         );
         

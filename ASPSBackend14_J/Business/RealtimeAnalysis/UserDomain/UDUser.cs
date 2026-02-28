@@ -24,14 +24,14 @@ public class UDUser
 
     private int maxRemoteAccessAnalysisResults = 1000;
     public UDUser(Key key, UserInfo userInfo, RiskAssessment riskAssessment, IEnumerable<UserDeviceView>? userDevices, 
-        IEnumerable<DeviceAlertView>? activeAlerts, IEnumerable<BrowserTab>? browserTabs, bool? isTaregted)
+        IEnumerable<DeviceAlertView>? activeAlerts, Dictionary<string, IEnumerable<BrowserTab>>? browserTabs, bool? isTaregted)
     {
         RiskAssessment = riskAssessment;
         Key = key;
         UserInfo = userInfo;
         ActiveAlerts = activeAlerts ?? new List<DeviceAlertView>();
         UserDevices = userDevices ?? new List<UserDeviceView>();
-        BrowserTabs = browserTabs ?? new List<BrowserTab>();
+        BrowserTabs = browserTabs ?? new();
         this.IsTargeted = isTaregted?? false;
     }
 
@@ -46,7 +46,7 @@ public class UDUser
 
     // Runtime analysis parameters
     public bool IsTargeted { get; private set; }    //True if user contact information is found in darknet lead lists.
-    public IEnumerable<BrowserTab> BrowserTabs { get; private set; }
+    public Dictionary<string, IEnumerable<BrowserTab>>? BrowserTabs { get; private set; }
     public IEnumerable<DeviceAlertView> ActiveAlerts { get; set; }
 
     public Dictionary<string, List<RemoteAccessAnalysisResultVm>> RemoteAccessAnalysisResults { get; private set; }
