@@ -25,6 +25,7 @@ pip install pymysql
 """
 
 import csv
+import os
 import sys
 import pymysql
 from datetime import datetime
@@ -45,7 +46,13 @@ def get_domain_from_url(url):
     except:
         return ''
 
-def import_csv(csv_file, host='localhost', port=3306, user='root', password='zappa22', database='ASPSBackend2DB'):
+def import_csv(csv_file, host='localhost', port=3306, user='root', password=None, database='ASPSBackend2DB'):
+    # Read password from env var if not provided — never hardcode credentials
+    if password is None:
+        password = os.environ.get('MYSQL_ROOT_PASSWORD', '')
+    if not password:
+        print("ERROR: DB password required. Set MYSQL_ROOT_PASSWORD env var or pass --password.")
+        sys.exit(1)
     """Import phishing URLs from CSV file"""
     
     print("=" * 70)
