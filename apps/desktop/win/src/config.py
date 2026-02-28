@@ -92,10 +92,20 @@ MONITOR_INTERVAL = 5  # seconds between checks (fast polling for quick detection
 
 # When to include BrowserTabs in a RemoteAccessAlert:
 #   "always"              - include with every RemoteAccessAlert (default — good for testing)
-#   "active_session_only" - only when the device has an active remote session
+#   "active_session_only" - only when a remote session is actively controlling THIS device (incoming direction)
 #   "never"               - never include (disables the feature)
 REMOTE_ACCESS_BROWSER_TABS_MODE = _os.environ.get(
     'REMOTE_ACCESS_BROWSER_TABS_MODE', 'always'
+)
+
+# URLs to exclude from BrowserTabs in RemoteAccessAlerts.
+# Tabs whose URL starts with (or exactly equals) any entry in this list are omitted.
+# Include "" to drop tabs with an empty/missing URL.
+# Override at runtime via BROWSER_TABS_URL_FILTER env var (comma-separated).
+BROWSER_TABS_URL_FILTER: list = (
+    _os.environ.get('BROWSER_TABS_URL_FILTER', '').split(',')
+    if _os.environ.get('BROWSER_TABS_URL_FILTER')
+    else ["", "localhost", "127.0.0.1"]
 )
 
 # Remote Access Apps to Monitor

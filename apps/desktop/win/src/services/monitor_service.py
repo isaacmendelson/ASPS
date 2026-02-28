@@ -7,7 +7,7 @@ import asyncio
 import logging
 from typing import Dict, Any
 
-from config import MONITOR_INTERVAL, DEBUG_MODE, ConnectionStatus, REMOTE_ACCESS_BROWSER_TABS_MODE
+from config import MONITOR_INTERVAL, DEBUG_MODE, ConnectionStatus, REMOTE_ACCESS_BROWSER_TABS_MODE, BROWSER_TABS_URL_FILTER
 
 logger = logging.getLogger(__name__)
 
@@ -117,14 +117,39 @@ class MonitorService:
 
             await asyncio.sleep(MONITOR_INTERVAL)
 
-    async def _get_browser_tabs_for_alert(self, has_active_session: bool):
+    @staticmethod
+    def _apply_browser_tabs_filter(tabs: list) -> list:
+        """
+        Filter out tabs whose URL starts with (or exactly equals) any entry in
+        BROWSER_TABS_URL_FILTER.  An empty-string entry removes tabs with no URL.
+        """
+        if not BROWSER_TABS_URL_FILTER:
+            return tabs
+
+        result = []
+        for tab in tabs:
+            url = tab.get('url', '')
+            blocked = False
+            for pattern in BROWSER_TABS_URL_FILTER:
+                if pattern == '':
+                    if url == '':
+                        blocked = True
+                        break
+                elif url.startswith(pattern):
+                    blocked = True
+                    break
+            if not blocked:
+                result.append(tab)
+        return result
+
+    async def _get_browser_tabs_for_alert(self, has_active_session: bool, direction: str = "unknown"):
         """
         Returns a list of open browser tabs (queried from the extension) if the
         current config mode warrants it, or None to omit the field entirely.
 
         Modes (REMOTE_ACCESS_BROWSER_TABS_MODE):
           "always"              – include tabs with every RemoteAccessAlert
-          "active_session_only" – only when has_active_session=True
+          "active_session_only" – only when an INCOMING session is actively controlling this device
           "never"               – never include tabs
         """
         mode = REMOTE_ACCESS_BROWSER_TABS_MODE
@@ -132,9 +157,11 @@ class MonitorService:
         if mode == 'never':
             return None
 
+        # In active_session_only mode we only care about incoming sessions —
+        # i.e., someone remotely controlling THIS device (not outgoing/unknown).
         should_query = (
             mode == 'always' or
-            (mode == 'active_session_only' and has_active_session)
+            (mode == 'active_session_only' and has_active_session and direction == 'incoming')
         )
         if not should_query:
             return None
@@ -148,8 +175,10 @@ class MonitorService:
 
         try:
             tabs = await self._extension_server.request_browser_tabs(timeout=3.0)
-            print(f"[MONITOR] Collected {len(tabs)} browser tab(s) for RemoteAccessAlert")
-            return tabs
+            filtered = self._apply_browser_tabs_filter(tabs)
+            print(f"[MONITOR] Collected {len(tabs)} browser tab(s), "
+                  f"{len(filtered)} after URL filter, for RemoteAccessAlert")
+            return filtered
         except Exception as e:
             logger.error(f"Error querying browser tabs: {e}")
             return []
@@ -325,7 +354,10 @@ class MonitorService:
             if DEBUG_MODE:
                 print("[MONITOR] Sending RemoteAccessAlert...")
 
-            browser_tabs = await self._get_browser_tabs_for_alert(has_active_session=True)
+            browser_tabs = await self._get_browser_tabs_for_alert(
+                has_active_session=True,
+                direction=status.direction or "unknown"
+            )
             await self._send_remote_access_alert_with_retry(
                 device_uid=self.device_id,
                 remote_app=str(status.app_id),
