@@ -182,7 +182,7 @@ def test_alert_with_token(host, port, server_key_z85, device_uid, token, timeout
                 "DeviceUid": device_uid,
                 "DeviceType": 1,
                 "OperatingSystem": 1,
-                "MAC": "00:00:00:00:00:00"
+                "MACAddress": "00:00:00:00:00:00"
             },
             "Timestamp": datetime.utcnow().isoformat() + "Z",
             "Priority": 1,

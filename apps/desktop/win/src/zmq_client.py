@@ -25,7 +25,7 @@ class ZMQClient:
             "DeviceUid": "PC-JOHN-001",
             "DeviceType": 1,  # PersonalComputer
             "OperatingSystem": 1,  # Windows
-            "MAC": "00:11:22:33:44:55"
+            "MACAddress": "00:11:22:33:44:55"
         },
         "Timestamp": "2024-01-30T12:00:00Z",
         "Priority": 1,  # Medium
@@ -210,7 +210,7 @@ class ZMQClient:
                 "DeviceUid": device_uid,
                 "DeviceType": device_type,
                 "OperatingSystem": os_type,
-                "MAC": mac
+                "MACAddress": mac
             },
             "Timestamp": datetime.utcnow().isoformat() + "Z",
             "Priority": 1,  # Medium
@@ -286,7 +286,7 @@ class ZMQClient:
                 "DeviceUid": device_uid,
                 "DeviceType": device_type,
                 "OperatingSystem": os_type,
-                "MAC": mac
+                "MACAddress": mac
             },
             "Timestamp": datetime.utcnow().isoformat() + "Z",
             "Priority": 1,  # Medium

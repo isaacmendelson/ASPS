@@ -46,7 +46,7 @@ namespace Business.Views
             //string name, 
             string? alertId, string alertType, Priority priority, 
             DateTime timestamp, string token, string deviceUid, 
-            DeviceType deviceType, OperatingSystemType operatingSystem, string mAC, Key? userKey)
+            DeviceType deviceType, OperatingSystemType operatingSystem, string? mAC, Key? userKey)
             : base(key, alertType)
         {
             Key = key ?? throw new ArgumentNullException(nameof(key));
@@ -58,7 +58,7 @@ namespace Business.Views
             DeviceUid = deviceUid ?? throw new ArgumentNullException(nameof(deviceUid));
             DeviceType = deviceType;
             OperatingSystem = operatingSystem;
-            MAC = mAC ?? throw new ArgumentNullException(nameof(mAC));
+            MAC = mAC ?? string.Empty;
             UserKey = userKey;
         }
 
