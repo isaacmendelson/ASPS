@@ -166,12 +166,18 @@ class MonitorService:
         if not should_query:
             return None
 
-        # No extension connected — return empty list (field present but empty)
+        # No extension connected — wait briefly for extension to connect before giving up
         if not hasattr(self, '_extension_server') or not self._extension_server:
             return []
         if not self._extension_server.clients:
-            print("[MONITOR] No extension connected — BrowserTabs will be empty")
-            return []
+            # Extension may still be starting up — wait up to 2s in 0.25s intervals
+            for _ in range(8):
+                await asyncio.sleep(0.25)
+                if self._extension_server.clients:
+                    break
+            if not self._extension_server.clients:
+                print("[MONITOR] No extension connected — BrowserTabs will be empty")
+                return []
 
         try:
             tabs = await self._extension_server.request_browser_tabs(timeout=3.0)
