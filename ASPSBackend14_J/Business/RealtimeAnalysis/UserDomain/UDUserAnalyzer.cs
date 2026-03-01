@@ -87,9 +87,13 @@ namespace Business.RealtimeAnalysis.UserDomain
             {
                 this.UDUser.BrowserTabs[analysisEvent.DeviceUid] = (raResult.Item1 as RemoteAccessAnalysisResultVm)?.BrowserTabs;
             }
-            var evAnalysisResult = analysisEvent.AnalyzerResults.First().Value.Item1;
-            var evIndicators = analysisEvent.AnalyzerResults.First().Value.Item2;
-            var evProtectiveActions = analysisEvent.AnalyzerResults.First().Value.Item3;
+            if (!analysisEvent.AnalyzerResults.Any())
+                return;
+
+            var firstResult = analysisEvent.AnalyzerResults.First().Value;
+            var evAnalysisResult = firstResult.Item1;
+            var evIndicators = firstResult.Item2;
+            var evProtectiveActions = firstResult.Item3;
             this.CleanupExpiredAlerts();
             this.GetLatestAnalysisResults();
             
