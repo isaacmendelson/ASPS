@@ -1,12 +1,12 @@
 /* Custom styles for Admin Dashboard */
 
 :root {
-    --primary-color: #22C55E;
+    --primary-color: #0d6efd;
     --success-color: #198754;
     --danger-color: #dc3545;
     --warning-color: #ffc107;
     --info-color: #0dcaf0;
-    --dark-color: #1A2255;
+    --dark-color: #212529;
     --light-color: #f8f9fa;
 }
 
@@ -19,7 +19,7 @@
     z-index: 100;
     padding: 48px 0 0;
     box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
-    background-color: #1A2255 !important;  /* Dark background */
+    background-color: #1a252f !important;  /* Dark background */
 }
 
 .sidebar-sticky {
@@ -42,15 +42,15 @@
 }
 
 .sidebar .nav-link:hover {
-    background-color: #0F1238 !important;
+    background-color: #2c3e50 !important;
     color: #ffffff !important;
     border-left-color: var(--primary-color);
 }
 
 .sidebar .nav-link.active {
     color: #ffffff !important;
-    background-color: #22C55E !important;
-    border-left-color: #22C55E;
+    background-color: #3498db !important;
+    border-left-color: #3498db;
 }
 
 .sidebar .nav-link i {
