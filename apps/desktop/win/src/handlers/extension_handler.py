@@ -21,7 +21,6 @@ class ExtensionHandler:
         self.auth_manager = auth_manager
         self.device_id = device_id
         self._local_ip: str = get_local_ip()
-        print(f"[EXTENSION] Local IP resolved: {self._local_ip!r}")
 
     async def handle_message(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
