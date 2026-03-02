@@ -25,7 +25,8 @@ EXTENSION_PORTS = [8080, 8181, 8282, 8383, 8484]
 
 # Backend Server - ZeroMQ
 BACKEND_HOST = "127.0.0.1"  # Local testing
-#BACKEND_HOST = "100.88.78.75"  # Production server
+#BACKEND_HOST = "app.asps.io"  # AWS Production
+#BACKEND_HOST = "100.88.78.75"  # Old local server
 BACKEND_REQ_PORT = 50001  # Request/Response (REQ/REP pattern)
 BACKEND_SUB_PORT = 50002  # Notifications (PUB/SUB pattern)
 
@@ -237,4 +238,5 @@ CONFIG_FILE = "config.json"
 
 # WebApi URL (for device registration page)
 WEBAPI_URL = "http://localhost:5001"
-#WEBAPI_URL = "http://100.88.78.75:5001"  # Production server
+#WEBAPI_URL = "https://admin.asps.io"  # AWS Production
+#WEBAPI_URL = "http://100.88.78.75:5001"  # Old local server
