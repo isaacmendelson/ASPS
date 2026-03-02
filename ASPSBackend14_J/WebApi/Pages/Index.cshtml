@@ -25,7 +25,7 @@
 <div class="row">
     <!-- Users Card -->
     <div class="col-xl-3 col-md-6 mb-4">
-        <a href="/Users" class="text-decoration-none">
+        <a asp-page="/Users/Index" class="text-decoration-none">
             <div class="dashboard-card">
                 <h5><i class="fas fa-users me-2"></i>Total Users</h5>
                 <div class="count">@Model.UsersCount</div>
@@ -36,7 +36,7 @@
 
     <!-- Devices Card -->
     <div class="col-xl-3 col-md-6 mb-4">
-        <a href="/Devices" class="text-decoration-none">
+        <a asp-page="/Devices/Index" class="text-decoration-none">
             <div class="dashboard-card">
                 <h5><i class="fas fa-mobile-alt me-2"></i>Total Devices</h5>
                 <div class="count">@Model.DevicesCount</div>
@@ -47,7 +47,7 @@
 
     <!-- Alerts Card -->
     <div class="col-xl-3 col-md-6 mb-4">
-        <a href="/DeviceAlerts" class="text-decoration-none">
+        <a asp-page="/DeviceAlerts/Index" class="text-decoration-none">
             <div class="dashboard-card">
                 <h5><i class="fas fa-bell me-2"></i>Alerts (24h)</h5>
                 <div class="count" style="color: #f39c12;">@Model.AlertsCount</div>
@@ -58,11 +58,13 @@
 
     <!-- Phishing Sites Card -->
     <div class="col-xl-3 col-md-6 mb-4">
-        <div class="dashboard-card">
-            <h5><i class="fas fa-shield-alt me-2"></i>Phishing Sites</h5>
-            <div class="count" style="color: #e74c3c;">@Model.PhishingWebsitesCount</div>
-            <small class="text-muted">In database</small>
-        </div>
+        <a asp-page="/KnownPhishingWebsites/Index" class="text-decoration-none">
+            <div class="dashboard-card">
+                <h5><i class="fas fa-shield-alt me-2"></i>Phishing Sites</h5>
+                <div class="count" style="color: #e74c3c;">@Model.PhishingWebsitesCount</div>
+                <small class="text-muted">In database</small>
+            </div>
+        </a>
     </div>
 </div>
 
@@ -85,13 +87,13 @@
     <div class="col-12">
         <div class="dashboard-card">
             <h5><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
-            <a href="/Users" class="btn btn-success me-2">
+            <a asp-page="/Users/Index" class="btn btn-success me-2">
                 <i class="fas fa-users"></i> Manage Users
             </a>
-            <a href="/Devices" class="btn btn-primary me-2" style="background: var(--sidebar-bg); border-color: var(--sidebar-bg);">
+            <a asp-page="/Devices/Index" class="btn btn-primary me-2" style="background: var(--sidebar-bg); border-color: var(--sidebar-bg);">
                 <i class="fas fa-mobile-alt"></i> View Devices
             </a>
-            <a href="/DeviceAlerts" class="btn btn-warning me-2">
+            <a asp-page="/DeviceAlerts/Index" class="btn btn-warning me-2">
                 <i class="fas fa-list"></i> View Alerts
             </a>
             <button class="btn btn-secondary" onclick="location.reload()">
