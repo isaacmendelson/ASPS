@@ -4,50 +4,6 @@
     ViewData["Title"] = "Admin Dashboard";
 }
 
-<!DOCTYPE html>
-<html>
-<head>
-    <title>@ViewData["Title"]</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <nav class="col-md-2 d-md-block bg-dark sidebar vh-100">
-                <div class="position-sticky pt-3">
-                    <h4 class="text-white px-3">ASPS Admin</h4>
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link active text-white" href="/">
-                                <i class="fas fa-home"></i> Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white" href="/Users">
-                                <i class="fas fa-users"></i> Users
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white" href="/Devices">
-                                <i class="fas fa-mobile-alt"></i> Devices
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white" href="/DeviceAlerts">
-                                <i class="fas fa-exclamation-triangle"></i> Alerts
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </nav>
-
-            <!-- Main content -->
-            <main class="col-md-10 ms-sm-auto px-md-4">
-                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                    <h1 class="h2">Dashboard</h1>
-
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
     <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
@@ -55,202 +11,101 @@
         <strong>Error!</strong> @Model.ErrorMessage
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
-    <div class="alert alert-info mt-2">
-        <strong>Troubleshooting:</strong>
-        <ul class="mb-0">
-            <li>Ensure ASPSBackend is running: <code>dotnet run --project ASPSBackend</code></li>
-            <li>Check logs for "CQRS Gateway started (tcp://*:5556)"</li>
-            <li>Verify port 5556 is listening: <code>netstat -an | grep 5556</code></li>
-        </ul>
-    </div>
 }
-                    <div class="text-muted">
-                        <i class="fas fa-clock"></i> @DateTime.Now.ToString("MMM dd, yyyy HH:mm")
-                    </div>
-                </div>
 
-                <!-- Dashboard Cards -->
-                <div class="row">
-                    <!-- Users Card -->
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <a href="/Users" class="text-decoration-none">
-                            <div class="card border-left-primary shadow h-100 py-2 hover-card">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                                Total Users
-                                            </div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                                @Model.UsersCount
-                                            </div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-users fa-2x text-gray-300"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Devices Card -->
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <a href="/Devices" class="text-decoration-none">
-                            <div class="card border-left-success shadow h-100 py-2 hover-card">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                                Total Devices
-                                            </div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                                @Model.DevicesCount
-                                            </div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-mobile-alt fa-2x text-gray-300"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Alerts Card -->
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <a href="/DeviceAlerts" class="text-decoration-none">
-                            <div class="card border-left-warning shadow h-100 py-2 hover-card">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                                Alerts (24h)
-                                            </div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                                @Model.AlertsCount
-                                            </div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Phishing Websites Card -->
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card border-left-danger shadow h-100 py-2">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                            Phishing Sites
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                            @Model.PhishingWebsitesCount
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-shield-alt fa-2x text-gray-300"></i>
-                                    </div>
-                                </div>
-                            </div>
+<!-- Dashboard Cards -->
+<div class="row">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <a href="/Users" class="text-decoration-none">
+            <div class="card shadow h-100 py-2" style="border-left: 4px solid #4e73df;">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Users</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.UsersCount</div>
                         </div>
+                        <div class="col-auto"><i class="fas fa-users fa-2x text-gray-300"></i></div>
                     </div>
                 </div>
+            </div>
+        </a>
+    </div>
 
-                <!-- System Status -->
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card shadow mb-4">
-                            <div class="card-header py-3">
-                                <h6 class="m-0 font-weight-bold text-primary">System Status</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="alert alert-success" role="alert">
-                                    <i class="fas fa-check-circle"></i> <strong>All systems operational</strong> - Dashboard fully functional with repository integration
-                                </div>
-                                <p><strong>Server Time:</strong> @DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC")</p>
-                                <p><strong>Environment:</strong> Development</p>
-                            </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <a href="/Devices" class="text-decoration-none">
+            <div class="card shadow h-100 py-2" style="border-left: 4px solid #1cc88a;">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Devices</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.DevicesCount</div>
                         </div>
+                        <div class="col-auto"><i class="fas fa-mobile-alt fa-2x text-gray-300"></i></div>
                     </div>
                 </div>
+            </div>
+        </a>
+    </div>
 
-                <!-- Quick Actions -->
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card shadow mb-4">
-                            <div class="card-header py-3">
-                                <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
-                            </div>
-                            <div class="card-body">
-                                <a href="/Users" class="btn btn-primary me-2">
-                                    <i class="fas fa-users"></i> Manage Users
-                                </a>
-                                <a href="/Devices" class="btn btn-success me-2">
-                                    <i class="fas fa-mobile-alt"></i> View Devices
-                                </a>
-                                <a href="/DeviceAlerts" class="btn btn-warning me-2">
-                                    <i class="fas fa-list"></i> View Alerts
-                                </a>
-                                <button class="btn btn-info" onclick="location.reload()">
-                                    <i class="fas fa-sync"></i> Refresh
-                                </button>
-                            </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <a href="/DeviceAlerts" class="text-decoration-none">
+            <div class="card shadow h-100 py-2" style="border-left: 4px solid #f6c23e;">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Alerts (24h)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.AlertsCount</div>
                         </div>
+                        <div class="col-auto"><i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i></div>
                     </div>
                 </div>
-            </main>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card shadow h-100 py-2" style="border-left: 4px solid #e74a3b;">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Phishing Sites</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.PhishingWebsitesCount</div>
+                    </div>
+                    <div class="col-auto"><i class="fas fa-shield-alt fa-2x text-gray-300"></i></div>
+                </div>
+            </div>
         </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    
-    <style>
-        .border-left-primary {
-            border-left: 4px solid #4e73df;
-        }
-        .border-left-success {
-            border-left: 4px solid #1cc88a;
-        }
-        .border-left-warning {
-            border-left: 4px solid #f6c23e;
-        }
-        .border-left-danger {
-            border-left: 4px solid #e74a3b;
-        }
-        .sidebar {
-            position: fixed;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            z-index: 100;
-            padding: 48px 0 0;
-            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
-        }
-        .sidebar .nav-link {
-            font-weight: 500;
-            padding: 0.75rem 1rem;
-            transition: all 0.3s;
-        }
-        .sidebar .nav-link:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        .sidebar .nav-link.active {
-            background-color: rgba(255, 255, 255, 0.2);
-        }
-        .hover-card {
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .hover-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15)!important;
-        }
-    </style>
-</body>
-</html>
+<!-- System Status -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">System Status</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Server Time:</strong> @DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC")</p>
+                <p><strong>Environment:</strong> @(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development")</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <a href="/Users" class="btn btn-primary me-2"><i class="fas fa-users"></i> Manage Users</a>
+                <a href="/Devices" class="btn btn-success me-2"><i class="fas fa-mobile-alt"></i> View Devices</a>
+                <a href="/DeviceAlerts" class="btn btn-warning me-2"><i class="fas fa-list"></i> View Alerts</a>
+                <button class="btn btn-info" onclick="location.reload()"><i class="fas fa-sync"></i> Refresh</button>
+            </div>
+        </div>
+    </div>
+</div>
