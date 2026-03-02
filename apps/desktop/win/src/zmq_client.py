@@ -52,6 +52,7 @@ def get_local_ip() -> str:
     except Exception:
         pass
 
+    logger.warning("get_local_ip: all strategies failed, returning empty string")
     return ""
 
 

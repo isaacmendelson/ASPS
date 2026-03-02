@@ -45,6 +45,7 @@ class MonitorService:
         self._running = False
         self._last_remote_status: Dict[str, Any] = {}
         self._local_ip: str = get_local_ip()
+        print(f"[MONITOR] Local IP resolved: {self._local_ip!r}")
 
     async def start(self, extension_server):
         """Start all monitoring tasks"""
