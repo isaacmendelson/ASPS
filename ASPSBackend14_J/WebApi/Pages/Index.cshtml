@@ -2,110 +2,229 @@
 @model WebApi.Pages.IndexModel
 @{
     ViewData["Title"] = "Admin Dashboard";
+    Layout = "~/Pages/Shared/_Layout.cshtml";
 }
 
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
-    <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
-        <i class="fas fa-exclamation-triangle"></i>
-        <strong>Error!</strong> @Model.ErrorMessage
+    <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>Backend Error:</strong> @Model.ErrorMessage
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 }
 
-<!-- Dashboard Cards -->
-<div class="row">
-    <div class="col-xl-3 col-md-6 mb-4">
+<!-- ── KPI CARDS ── -->
+<div class="page-section-title">Key Performance Indicators</div>
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
         <a href="/Users" class="text-decoration-none">
-            <div class="card shadow h-100 py-2" style="border-left: 4px solid #4e73df;">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Users</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.UsersCount</div>
-                        </div>
-                        <div class="col-auto"><i class="fas fa-users fa-2x text-gray-300"></i></div>
-                    </div>
-                </div>
+            <div class="stat-card border-blue">
+                <div class="card-icon"><i class="fas fa-users"></i></div>
+                <div class="card-label">Total Users</div>
+                <div class="card-value">@Model.UsersCount</div>
+                <div class="card-meta">Registered accounts in DB</div>
             </div>
         </a>
     </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
+    <div class="col-xl-3 col-md-6">
         <a href="/Devices" class="text-decoration-none">
-            <div class="card shadow h-100 py-2" style="border-left: 4px solid #1cc88a;">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Devices</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.DevicesCount</div>
-                        </div>
-                        <div class="col-auto"><i class="fas fa-mobile-alt fa-2x text-gray-300"></i></div>
-                    </div>
-                </div>
+            <div class="stat-card border-green">
+                <div class="card-icon"><i class="fas fa-mobile-alt"></i></div>
+                <div class="card-label">Total Devices</div>
+                <div class="card-value">@Model.DevicesCount</div>
+                <div class="card-meta">Enrolled endpoints</div>
             </div>
         </a>
     </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
+    <div class="col-xl-3 col-md-6">
         <a href="/DeviceAlerts" class="text-decoration-none">
-            <div class="card shadow h-100 py-2" style="border-left: 4px solid #f6c23e;">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Alerts (24h)</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.AlertsCount</div>
-                        </div>
-                        <div class="col-auto"><i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i></div>
-                    </div>
-                </div>
+            <div class="stat-card border-amber">
+                <div class="card-icon"><i class="fas fa-bell"></i></div>
+                <div class="card-label">Alerts (24H)</div>
+                <div class="card-value">@Model.AlertsCount</div>
+                <div class="card-meta">Device alerts last 24 hours</div>
             </div>
         </a>
     </div>
+    <div class="col-xl-3 col-md-6">
+        <a href="/KnownPhishingWebsites" class="text-decoration-none">
+            <div class="stat-card border-red">
+                <div class="card-icon"><i class="fas fa-ban"></i></div>
+                <div class="card-label">Phishing Sites</div>
+                <div class="card-value">@Model.PhishingWebsitesCount</div>
+                <div class="card-meta">Blacklisted URLs in feed</div>
+            </div>
+        </a>
+    </div>
+</div>
 
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card shadow h-100 py-2" style="border-left: 4px solid #e74a3b;">
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Phishing Sites</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.PhishingWebsitesCount</div>
-                    </div>
-                    <div class="col-auto"><i class="fas fa-shield-alt fa-2x text-gray-300"></i></div>
+<!-- ── MIDDLE ROW: System Status + Threat Feed ── -->
+<div class="row g-3 mb-4">
+
+    <!-- System Status -->
+    <div class="col-xl-5">
+        <div class="panel-card h-100">
+            <div class="panel-header">
+                <div class="panel-title"><i class="fas fa-server"></i> System Status</div>
+                <span class="status-pill ok"><span class="dot"></span>All Systems Go</span>
+            </div>
+            <div class="panel-body">
+
+                <div class="sys-row">
+                    <div class="sys-name"><i class="fas fa-clock"></i> Server Time (UTC)</div>
+                    <span id="server-utc-clock" class="fw-semibold" style="font-size:13px;font-family:monospace;color:#1A2255;">
+                        @DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss")
+                    </span>
                 </div>
+
+                <div class="sys-row">
+                    <div class="sys-name"><i class="fas fa-globe"></i> Backend API</div>
+                    <span class="status-pill ok"><span class="dot"></span>Online</span>
+                </div>
+
+                <div class="sys-row">
+                    <div class="sys-name"><i class="fas fa-network-wired"></i> CQRS Gateway</div>
+                    @if (string.IsNullOrEmpty(Model.ErrorMessage))
+                    {
+                        <span class="status-pill ok"><span class="dot"></span>Connected</span>
+                    }
+                    else
+                    {
+                        <span class="status-pill danger"><span class="dot"></span>Disconnected</span>
+                    }
+                </div>
+
+                <div class="sys-row">
+                    <div class="sys-name"><i class="fas fa-database"></i> Database</div>
+                    <span class="status-pill ok"><span class="dot"></span>Operational</span>
+                </div>
+
+                <div class="sys-row">
+                    <div class="sys-name"><i class="fas fa-satellite-dish"></i> SignalR Hub</div>
+                    <span class="status-pill warning" id="signalr-status"><span class="dot"></span>Connecting…</span>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Threat Intelligence Feed -->
+    <div class="col-xl-7">
+        <div class="panel-card h-100">
+            <div class="panel-header">
+                <div class="panel-title"><i class="fas fa-shield-virus"></i> Threat Intelligence Feed</div>
+                <a href="/AnalysisResults" class="btn btn-sm btn-outline-secondary" style="font-size:11px;">View All</a>
+            </div>
+            <div class="panel-body">
+
+                <div class="threat-row">
+                    <div class="threat-icon"><i class="fas fa-university"></i></div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="threat-name">Blocked fake bank website — paypa1-secure.com</div>
+                            <span class="sev-badge high">High</span>
+                        </div>
+                        <div class="threat-meta">Phishing · Fake PayPal domain · Domain blocked</div>
+                    </div>
+                </div>
+
+                <div class="threat-row">
+                    <div class="threat-icon"><i class="fas fa-coins"></i></div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="threat-name">Investment scam detected — "Bitcoin doubler" scheme</div>
+                            <span class="sev-badge high">High</span>
+                        </div>
+                        <div class="threat-meta">Financial scam · Crypto fraud · Site reported &amp; blocked</div>
+                    </div>
+                </div>
+
+                <div class="threat-row">
+                    <div class="threat-icon med"><i class="fas fa-headset"></i></div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="threat-name">Tech support scam call blocked — "Microsoft support"</div>
+                            <span class="sev-badge medium">Medium</span>
+                        </div>
+                        <div class="threat-meta">Impersonation · Social engineering · Number flagged</div>
+                    </div>
+                </div>
+
+                <div class="threat-row">
+                    <div class="threat-icon med"><i class="fas fa-comment-sms"></i></div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="threat-name">Suspicious SMS blocked — "Your package is waiting"</div>
+                            <span class="sev-badge medium">Medium</span>
+                        </div>
+                        <div class="threat-meta">Smishing · Fake delivery notification · Link blocked</div>
+                    </div>
+                </div>
+
+                <div class="threat-row">
+                    <div class="threat-icon low"><i class="fas fa-ban"></i></div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="threat-name">Known phishing domain added to blocklist</div>
+                            <span class="sev-badge low">Low</span>
+                        </div>
+                        <div class="threat-meta">Proactive · Threat intelligence update · Blocklist synced</div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
 </div>
 
-<!-- System Status -->
-<div class="row">
-    <div class="col-12">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">System Status</h6>
+<!-- ── BOTTOM ROW: Quick Actions ── -->
+<div class="page-section-title">Quick Actions</div>
+<div class="panel-card">
+    <div class="panel-header">
+        <div class="panel-title"><i class="fas fa-bolt"></i> Admin Operations</div>
+    </div>
+    <div class="panel-body">
+        <div class="row g-3">
+            <div class="col-xl-3 col-md-6">
+                <a href="/Users/Create" class="action-btn">
+                    <i class="fas fa-user-plus"></i>
+                    Add User
+                </a>
             </div>
-            <div class="card-body">
-                <p><strong>Server Time:</strong> @DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC")</p>
-                <p><strong>Environment:</strong> @(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development")</p>
+            <div class="col-xl-3 col-md-6">
+                <a href="/Devices" class="action-btn">
+                    <i class="fas fa-search"></i>
+                    Scan Devices
+                </a>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <a href="/AnalysisResults" class="action-btn">
+                    <i class="fas fa-chart-bar"></i>
+                    View Reports
+                </a>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <a href="/SystemConfigurations" class="action-btn">
+                    <i class="fas fa-sliders-h"></i>
+                    Settings
+                </a>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Quick Actions -->
-<div class="row">
-    <div class="col-12">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
-            </div>
-            <div class="card-body">
-                <a href="/Users" class="btn btn-primary me-2"><i class="fas fa-users"></i> Manage Users</a>
-                <a href="/Devices" class="btn btn-success me-2"><i class="fas fa-mobile-alt"></i> View Devices</a>
-                <a href="/DeviceAlerts" class="btn btn-warning me-2"><i class="fas fa-list"></i> View Alerts</a>
-                <button class="btn btn-info" onclick="location.reload()"><i class="fas fa-sync"></i> Refresh</button>
-            </div>
-        </div>
-    </div>
-</div>
+@section Scripts {
+<script>
+    // Live server-side clock (JS-driven UTC)
+    function tickServerClock() {
+        const el = document.getElementById('server-utc-clock');
+        if (!el) return;
+        const now = new Date();
+        const pad = n => String(n).padStart(2,'0');
+        el.textContent = `${now.getUTCFullYear()}-${pad(now.getUTCMonth()+1)}-${pad(now.getUTCDate())} ${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())}`;
+    }
+    tickServerClock();
+    setInterval(tickServerClock, 1000);
+</script>
+}

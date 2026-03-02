@@ -1,0 +1,168 @@
+@page
+@model WebApi.Pages.LoginModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Login";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASPS Admin — Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0E1228 0%, #1A2255 50%, #0E1228 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+        }
+        
+        .login-card {
+            background: #fff;
+            border-radius: 24px;
+            padding: 48px 40px;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+            text-align: center;
+        }
+        
+        .logo { margin-bottom: 32px; }
+        .logo svg { height: 48px; }
+        
+        .login-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #1A2255;
+            margin-bottom: 8px;
+        }
+        
+        .login-subtitle {
+            color: #64748B;
+            font-size: 0.95rem;
+            margin-bottom: 32px;
+        }
+        
+        .login-btn {
+            display: inline-flex;
+            width: 100%;
+            padding: 16px 24px;
+            background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+            text-decoration: none;
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
+            color: white;
+        }
+        
+        .login-btn svg { width: 20px; height: 20px; }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 28px 0;
+            color: #94A3B8;
+            font-size: 0.85rem;
+        }
+        
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #E2E8F0;
+        }
+        
+        .divider span { padding: 0 16px; }
+        
+        .security-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: #F0FDF4;
+            border-radius: 50px;
+            color: #15803D;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .security-badge svg { width: 16px; height: 16px; }
+        
+        .footer {
+            margin-top: 24px;
+            color: rgba(255,255,255,0.4);
+            font-size: 0.8rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="logo">
+                <svg width="160" height="48" viewBox="0 0 160 48" fill="none">
+                    <rect x="0" y="4" width="4" height="40" rx="2" fill="url(#loginBarGrad)"/>
+                    <text x="16" y="32" font-family="Syne, sans-serif" font-weight="800" font-size="28" fill="#1A2255" letter-spacing="-1">ASPS</text>
+                    <circle cx="26" cy="10" r="5" fill="#22C55E"/>
+                    <circle cx="26" cy="10" r="2.5" fill="#fff"/>
+                    <defs>
+                        <linearGradient id="loginBarGrad" x1="0" y1="4" x2="0" y2="44" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="#22C55E"/>
+                            <stop offset="100%" stop-color="#16A34A"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            
+            <h1 class="login-title">Admin Portal</h1>
+            <p class="login-subtitle">Sign in to access the dashboard</p>
+            
+            <!-- Direct link to trigger Keycloak -->
+            <a href="/Login?handler=Login" class="login-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                    <polyline points="10 17 15 12 10 7"/>
+                    <line x1="15" y1="12" x2="3" y2="12"/>
+                </svg>
+                Sign in with ASPS
+            </a>
+            
+            <div class="divider"><span>Secure Authentication</span></div>
+            
+            <div class="security-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                Protected by Keycloak SSO
+            </div>
+        </div>
+        
+        <p class="footer">© 2026 ASPS — AI Scam Protection System</p>
+    </div>
+</body>
+</html>
