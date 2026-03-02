@@ -16,13 +16,43 @@ logger = logging.getLogger(__name__)
 
 
 def get_local_ip() -> str:
-    """Return the primary local IPv4 address of this machine."""
+    """Return the primary local IPv4 address of this machine.
+
+    Tries three strategies in order:
+    1. UDP routing trick (connect to 8.8.8.8 — no data sent, just resolves outbound interface)
+    2. hostname resolution
+    3. Enumerate all non-loopback IPv4 addresses and pick the first
+    """
+    # Strategy 1: UDP routing trick
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.settimeout(1)
             s.connect(("8.8.8.8", 80))
-            return s.getsockname()[0]
+            ip = s.getsockname()[0]
+            if ip and not ip.startswith("127."):
+                return ip
     except Exception:
-        return ""
+        pass
+
+    # Strategy 2: hostname resolution
+    try:
+        ip = socket.gethostbyname(socket.gethostname())
+        if ip and not ip.startswith("127."):
+            return ip
+    except Exception:
+        pass
+
+    # Strategy 3: enumerate interfaces via getaddrinfo
+    try:
+        addrs = socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET)
+        for addr in addrs:
+            ip = addr[4][0]
+            if ip and not ip.startswith("127."):
+                return ip
+    except Exception:
+        pass
+
+    return ""
 
 
 class ZMQClient:
