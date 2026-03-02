@@ -54,7 +54,7 @@ class ExtensionHandler:
         url = data.get('url', '')
         trackers = data.get('trackers', [])
         iframes = data.get('iframes', [])
-        ip_address = data.get('ipAddress', '')
+        ip_address = data.get('ipAddress', '') or self._local_ip
 
         return self.scan_service.check_url(url, trackers, iframes, ip_address=ip_address)
 
