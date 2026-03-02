@@ -105,6 +105,11 @@ class ZMQClient:
         self.server_public_key = key
         print(f"[ZMQ] CURVE server public key set ({len(key)} bytes)")
 
+    def clear_server_public_key(self):
+        """Clear the server public key — disables CURVE encryption."""
+        self.server_public_key = None
+        print(f"[ZMQ] CURVE disabled — no server public key")
+
     def connect(self) -> bool:
         """Open a new REQ socket. Context is reused — only socket is created here."""
         try:
