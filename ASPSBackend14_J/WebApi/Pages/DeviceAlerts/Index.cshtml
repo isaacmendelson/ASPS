@@ -49,6 +49,7 @@
                         <th>Device UID</th>
                         <th>Device Type</th>
                         <th>OS</th>
+                        <th>IP Address</th>
                         <th>Details</th>
                         <th>Key</th>
                         <th>Actions</th>
@@ -139,6 +140,16 @@
                                 }
                             </td>
                             <td>@alert.OperatingSystem</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(alert.IPAddress))
+                                {
+                                    <code>@alert.IPAddress</code>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
                             <td>
                                 @if (alert is Common.Entities.UrlAlertEntity urlAlert)
                                 {

@@ -99,7 +99,8 @@ class ScanService:
         self,
         url: str,
         trackers: list = None,
-        iframes: list = None
+        iframes: list = None,
+        ip_address: str = ""
     ) -> Dict[str, Any]:
         """
         Check a URL for risks
@@ -161,15 +162,16 @@ class ScanService:
             url=url,
             token=token,
             trackers=trackers,
-            iframes=iframes
+            iframes=iframes,
+            ip_address=ip_address
         )
 
         self.event_logger.log_sent('SuspiciousUrlAlert', {'url': url})
 
         # Process response
-        return self._process_response(response, url)
+        return self._process_response(response, url, ip_address=ip_address)
 
-    def _process_response(self, response: Optional[dict], url: str, retry: bool = True) -> Dict[str, Any]:
+    def _process_response(self, response: Optional[dict], url: str, retry: bool = True, ip_address: str = "") -> Dict[str, Any]:
         """Process backend response - use server values directly"""
 
         # Check for auth-related errors first
@@ -182,9 +184,10 @@ class ScanService:
                 new_response = self.zmq_client.send_url_alert(
                     device_uid=self.device_id,
                     url=url,
-                    token=token or ""
+                    token=token or "",
+                    ip_address=ip_address
                 )
-                return self._process_response(new_response, url, retry=False)
+                return self._process_response(new_response, url, retry=False, ip_address=ip_address)
             else:
                 return self._create_error(url, "Authentication failed")
 

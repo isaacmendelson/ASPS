@@ -6,6 +6,7 @@ Handles messages from Chrome extension
 import asyncio
 import logging
 from typing import Dict, Any, Optional
+from zmq_client import get_local_ip
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,7 @@ class ExtensionHandler:
         self.scan_service = scan_service
         self.auth_manager = auth_manager
         self.device_id = device_id
+        self._local_ip: str = get_local_ip()
 
     async def handle_message(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
@@ -52,15 +54,17 @@ class ExtensionHandler:
         url = data.get('url', '')
         trackers = data.get('trackers', [])
         iframes = data.get('iframes', [])
+        ip_address = data.get('ipAddress', '')
 
-        return self.scan_service.check_url(url, trackers, iframes)
+        return self.scan_service.check_url(url, trackers, iframes, ip_address=ip_address)
 
     def _handle_ping(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle ping request - includes email so extension gets it automatically"""
+        """Handle ping request - includes email and device IP so extension gets them automatically"""
         return {
             'type': 'pong',
             'status': 'ok',
-            'email': self.auth_manager.email or ''
+            'email': self.auth_manager.email or '',
+            'ipAddress': self._local_ip
         }
 
     def _handle_user_auth(self, data: Dict[str, Any]) -> Dict[str, Any]:

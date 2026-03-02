@@ -7,11 +7,22 @@ Sends alerts and receives responses
 import zmq
 import json
 import logging
+import socket
 import uuid
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+
+def get_local_ip() -> str:
+    """Return the primary local IPv4 address of this machine."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            return s.getsockname()[0]
+    except Exception:
+        return ""
 
 
 class ZMQClient:
@@ -176,7 +187,8 @@ class ZMQClient:
     def send_url_alert(self, device_uid: str, url: str, token: str = "",
                        trackers: list = None, iframes: list = None,
                        mac: str = "00:11:22:33:44:55",
-                       device_type: int = 1, os_type: int = 1) -> Optional[Dict[str, Any]]:
+                       device_type: int = 1, os_type: int = 1,
+                       ip_address: str = "") -> Optional[Dict[str, Any]]:
         """
         Send a UrlAlert.
 
@@ -210,7 +222,8 @@ class ZMQClient:
                 "DeviceUid": device_uid,
                 "DeviceType": device_type,
                 "OperatingSystem": os_type,
-                "MACAddress": mac
+                "MACAddress": mac,
+                "IP": ip_address
             },
             "Timestamp": datetime.utcnow().isoformat() + "Z",
             "Priority": 1,  # Medium
@@ -246,7 +259,8 @@ class ZMQClient:
         confidence: str = "low",          # 'low', 'medium', 'high'
         remote_country: str = "",         # Country name
         remote_country_code: str = "",    # ISO country code
-        browser_tabs: Optional[List[Dict[str, Any]]] = None  # Open browser tabs
+        browser_tabs: Optional[List[Dict[str, Any]]] = None,  # Open browser tabs
+        ip_address: str = ""              # Device IP address
     ) -> Optional[Dict[str, Any]]:
         """
         Send a RemoteAccessAlert with enhanced detection data.
@@ -287,7 +301,8 @@ class ZMQClient:
                 "DeviceUid": device_uid,
                 "DeviceType": device_type,
                 "OperatingSystem": os_type,
-                "MACAddress": mac
+                "MACAddress": mac,
+                "IP": ip_address
             },
             "Timestamp": datetime.utcnow().isoformat() + "Z",
             "Priority": 1,  # Medium

@@ -39,6 +39,7 @@ namespace Business.Views
             DeviceType = entity.DeviceType;
             OperatingSystem = entity.OperatingSystem;
             MAC = entity.MAC;
+            IPAddress = entity.IPAddress;
             UserKey = entity.UserKey;
         }
 
@@ -73,6 +74,7 @@ namespace Business.Views
         public Common.Enums.DeviceType DeviceType { get; private set; }
         public OperatingSystemType OperatingSystem { get; private set; }
         public string MAC { get; private set; }
+        public string? IPAddress { get; private set; }
         public Key? UserKey { get; private set; }
     }
 }

@@ -90,12 +90,16 @@ const CONFIG = {
 // ============================================
 
 function setupWebSocketHandlers() {
-  // Handle pong - store email from agent if provided
+  // Handle pong - store email and device IP from agent
   connectionService.onMessage(MSG.WS_PONG, async (data) => {
     console.log('[Background] Connection verified with desktop app');
     if (data && data.email) {
       await chrome.storage.local.set({ userEmail: data.email });
       console.log('[Background] Email received from agent:', data.email);
+    }
+    if (data && data.ipAddress) {
+      connectionService.setDeviceIpAddress(data.ipAddress);
+      console.log('[Background] Device IP received from agent:', data.ipAddress);
     }
   });
 
