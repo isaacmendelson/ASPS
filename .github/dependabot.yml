@@ -1,0 +1,14 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /ASPSBackend14_J/ASPSBackend
+    schedule:
+      interval: weekly
+  - package-ecosystem: pip
+    directory: /basic-url-analyzer/basic-url-analyzer/basic-url-analyzer
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
