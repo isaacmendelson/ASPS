@@ -788,7 +788,7 @@ Client side (Desktop):
 
 **Key format:** Z85-encoded (ZeroMQ standard)
 ```
-Server Public Key: qPsk#8DY:n9ovp[vQ!YcOnOX[f/.i@.g^f#b:!ik
+Server Public Key: <generated at runtime — read from curve-server-public-key.txt>
 ```
 
 ---
@@ -895,11 +895,11 @@ Server Public Key: qPsk#8DY:n9ovp[vQ!YcOnOX[f/.i@.g^f#b:!ik
     "MaxExpiration": 10080
   },
   "Security": {
-    "CurveEnabled": true,
-    "ServerPublicKeyZ85": "qPsk#8DY:n9ovp[vQ!YcOnOX[f/.i@.g^f#b:!ik"
+    "CurveEnabled": true
   }
 }
 ```
+> `ServerPublicKeyZ85` הוסר — המפתח מנוהל ע"י `CurveKeyManager` בזמן ריצה.
 
 ### 12.2 WebApi (`WebApi/appsettings.json`)
 
@@ -913,10 +913,11 @@ Server Public Key: qPsk#8DY:n9ovp[vQ!YcOnOX[f/.i@.g^f#b:!ik
     "BusinessEndpoint": "tcp://localhost:5555"
   },
   "Security": {
-    "CurveEnabled": true,
-    "ServerPublicKeyZ85": "qPsk#8DY:n9ovp[vQ!YcOnOX[f/.i@.g^f#b:!ik"
+    "CurveEnabled": true
   }
 }
+```
+> `ServerPublicKeyZ85` הוסר — `DeviceLogin` קורא את המפתח מ-`CurveKeyManager` (DI).
 ```
 
 ### 12.3 Desktop App (`config.py`)
