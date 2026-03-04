@@ -34,82 +34,99 @@ builder.Services.AddRazorPages(options =>
 
 // ========================================
 // KEYCLOAK AUTHENTICATION
+// Optional: if Keycloak:ClientId is not configured (e.g. local dev without
+// a Keycloak server), falls back to simple cookie-only auth (no SSO).
 // ========================================
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
-})
-.AddCookie(options =>
-{
-    options.LoginPath = "/Login";
-    options.LogoutPath = "/Logout";
-    options.ExpireTimeSpan = TimeSpan.FromHours(8);
-    options.SlidingExpiration = true;
-    options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-    options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.Name = "ASPS.Auth";
-})
-.AddOpenIdConnect(options =>
-{
-    var keycloakConfig = builder.Configuration.GetSection("Keycloak");
-    
-    options.Authority = keycloakConfig["Authority"];
-    options.ClientId = keycloakConfig["ClientId"];
-    options.ClientSecret = keycloakConfig["ClientSecret"];
-    options.ResponseType = OpenIdConnectResponseType.Code;
-    options.SaveTokens = true;
-    options.GetClaimsFromUserInfoEndpoint = true;
-    options.RequireHttpsMetadata = false;
-    
-    options.Scope.Clear();
-    options.Scope.Add("openid");
-    options.Scope.Add("profile");
-    options.Scope.Add("email");
-    
-    options.NonceCookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-    options.NonceCookie.SameSite = SameSiteMode.Unspecified;
-    options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-    options.CorrelationCookie.SameSite = SameSiteMode.Unspecified;
-    
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        NameClaimType = "preferred_username",
-        RoleClaimType = "roles",
-        ValidateIssuer = true
-    };
-    
-    options.Events = new OpenIdConnectEvents
-    {
-        OnRedirectToIdentityProvider = context =>
-        {
-            // Force HTTPS for redirect URI when behind proxy
-            if (context.Request.Headers.ContainsKey("X-Forwarded-Proto"))
-            {
-                var scheme = context.Request.Headers["X-Forwarded-Proto"].ToString();
-                if (scheme == "https")
-                {
-                    context.ProtocolMessage.RedirectUri = context.ProtocolMessage.RedirectUri?.Replace("http://", "https://");
-                }
-            }
-            return Task.CompletedTask;
-        },
-        OnTokenValidated = context =>
-        {
-            var username = context.Principal?.Identity?.Name;
-            Console.WriteLine($"✓ User authenticated: {username}");
-            return Task.CompletedTask;
-        },
-        OnAuthenticationFailed = context =>
-        {
-            Console.WriteLine($"✗ Auth failed: {context.Exception.Message}");
-            return Task.CompletedTask;
-        }
-    };
-});
+var keycloakSection = builder.Configuration.GetSection("Keycloak");
+var keycloakEnabled = !string.IsNullOrWhiteSpace(keycloakSection["ClientId"]);
 
-Console.WriteLine("✓ Keycloak authentication configured");
+if (keycloakEnabled)
+{
+    builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+    })
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Login";
+        options.LogoutPath = "/Logout";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.Name = "ASPS.Auth";
+    })
+    .AddOpenIdConnect(options =>
+    {
+        options.Authority = keycloakSection["Authority"];
+        options.ClientId = keycloakSection["ClientId"];
+        options.ClientSecret = keycloakSection["ClientSecret"];
+        options.ResponseType = OpenIdConnectResponseType.Code;
+        options.SaveTokens = true;
+        options.GetClaimsFromUserInfoEndpoint = true;
+        options.RequireHttpsMetadata = false;
+
+        options.Scope.Clear();
+        options.Scope.Add("openid");
+        options.Scope.Add("profile");
+        options.Scope.Add("email");
+
+        options.NonceCookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.NonceCookie.SameSite = SameSiteMode.Unspecified;
+        options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.CorrelationCookie.SameSite = SameSiteMode.Unspecified;
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            NameClaimType = "preferred_username",
+            RoleClaimType = "roles",
+            ValidateIssuer = true
+        };
+
+        options.Events = new OpenIdConnectEvents
+        {
+            OnRedirectToIdentityProvider = context =>
+            {
+                if (context.Request.Headers.ContainsKey("X-Forwarded-Proto"))
+                {
+                    var scheme = context.Request.Headers["X-Forwarded-Proto"].ToString();
+                    if (scheme == "https")
+                        context.ProtocolMessage.RedirectUri = context.ProtocolMessage.RedirectUri?.Replace("http://", "https://");
+                }
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                Console.WriteLine($"✓ User authenticated: {context.Principal?.Identity?.Name}");
+                return Task.CompletedTask;
+            },
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine($"✗ Auth failed: {context.Exception.Message}");
+                return Task.CompletedTask;
+            }
+        };
+    });
+
+    Console.WriteLine("✓ Keycloak SSO authentication configured");
+}
+else
+{
+    // Dev fallback: cookie-only auth, no Keycloak required
+    builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+        .AddCookie(options =>
+        {
+            options.LoginPath = "/Login";
+            options.LogoutPath = "/Logout";
+            options.ExpireTimeSpan = TimeSpan.FromHours(8);
+            options.Cookie.HttpOnly = true;
+            options.Cookie.Name = "ASPS.Auth";
+        });
+
+    Console.WriteLine("⚠ Keycloak not configured — running with cookie-only auth (dev mode)");
+}
 
 // ========================================
 // CQRS CLIENT
@@ -166,7 +183,7 @@ app.MapHub<WebApi.Hubs.NotificationsHub>("/notificationshub");
 
 Console.WriteLine("========================================");
 Console.WriteLine("ASPS Admin Dashboard");
-Console.WriteLine("Authentication: Keycloak SSO ✓");
+Console.WriteLine($"Authentication: {(keycloakEnabled ? "Keycloak SSO ✓" : "Cookie-only (dev mode) ⚠")}");
 Console.WriteLine("ForwardedHeaders: Enabled ✓");
 Console.WriteLine("========================================");
 
