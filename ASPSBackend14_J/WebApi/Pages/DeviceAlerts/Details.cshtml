@@ -63,6 +63,18 @@
 
                         <dt class="col-sm-4">MAC Address:</dt>
                         <dd class="col-sm-8"><code>@Model.Alert.MAC</code></dd>
+
+                        <dt class="col-sm-4">IP Address:</dt>
+                        <dd class="col-sm-8">
+                            @if (!string.IsNullOrEmpty(Model.Alert.IPAddress))
+                            {
+                                <code>@Model.Alert.IPAddress</code>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </dd>
                     </dl>
                 </div>
             </div>

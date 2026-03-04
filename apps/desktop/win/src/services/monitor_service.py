@@ -8,6 +8,7 @@ import logging
 from typing import Dict, Any
 
 from config import MONITOR_INTERVAL, DEBUG_MODE, ConnectionStatus, REMOTE_ACCESS_BROWSER_TABS_MODE, BROWSER_TABS_URL_FILTER
+from zmq_client import get_local_ip
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,7 @@ class MonitorService:
         # State
         self._running = False
         self._last_remote_status: Dict[str, Any] = {}
+        self._local_ip: str = get_local_ip()
 
     async def start(self, extension_server):
         """Start all monitoring tasks"""
@@ -221,7 +223,8 @@ class MonitorService:
                 confidence=status.confidence or "low",
                 remote_country=status.remote_country or "",
                 remote_country_code=status.remote_country_code or "",
-                browser_tabs=browser_tabs
+                browser_tabs=browser_tabs,
+                ip_address=self._local_ip
             )
 
     async def _handle_app_close(self, app_name: str, status):
@@ -253,7 +256,8 @@ class MonitorService:
                 confidence=status.confidence or "low",
                 remote_country=status.remote_country or "",
                 remote_country_code=status.remote_country_code or "",
-                browser_tabs=browser_tabs
+                browser_tabs=browser_tabs,
+                ip_address=self._local_ip
             )
 
         # Clear alert state
@@ -285,6 +289,7 @@ class MonitorService:
         remote_country: str,
         remote_country_code: str,
         browser_tabs=None,
+        ip_address: str = "",
         retry: bool = True
     ):
         """Send remote access alert with automatic retry on auth errors"""
@@ -304,7 +309,8 @@ class MonitorService:
             confidence=confidence,
             remote_country=remote_country,
             remote_country_code=remote_country_code,
-            browser_tabs=browser_tabs
+            browser_tabs=browser_tabs,
+            ip_address=ip_address
         )
 
         if response:
@@ -331,6 +337,7 @@ class MonitorService:
                         remote_country=remote_country,
                         remote_country_code=remote_country_code,
                         browser_tabs=browser_tabs,
+                        ip_address=ip_address,
                         retry=False
                     )
                 else:
@@ -375,7 +382,8 @@ class MonitorService:
                 confidence=status.confidence or "low",
                 remote_country=status.remote_country or "",
                 remote_country_code=status.remote_country_code or "",
-                browser_tabs=browser_tabs
+                browser_tabs=browser_tabs,
+                ip_address=self._local_ip
             )
 
         # Show notification with direction-aware message
@@ -439,7 +447,8 @@ class MonitorService:
                 confidence=status.confidence or "low",
                 remote_country=status.remote_country or "",
                 remote_country_code=status.remote_country_code or "",
-                browser_tabs=browser_tabs
+                browser_tabs=browser_tabs,
+                ip_address=self._local_ip
             )
 
         # Clear alert state

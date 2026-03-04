@@ -1,0 +1,6 @@
+{
+  "Security": {
+    "CurveEnabled": false,
+    "ServerPublicKeyZ85": ""
+  }
+}

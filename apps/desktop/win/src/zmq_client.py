@@ -7,11 +7,53 @@ Sends alerts and receives responses
 import zmq
 import json
 import logging
+import socket
 import uuid
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+
+def get_local_ip() -> str:
+    """Return the primary local IPv4 address of this machine.
+
+    Tries three strategies in order:
+    1. UDP routing trick (connect to 8.8.8.8 — no data sent, just resolves outbound interface)
+    2. hostname resolution
+    3. Enumerate all non-loopback IPv4 addresses and pick the first
+    """
+    # Strategy 1: UDP routing trick
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.settimeout(1)
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            if ip and not ip.startswith("127."):
+                return ip
+    except Exception:
+        pass
+
+    # Strategy 2: hostname resolution
+    try:
+        ip = socket.gethostbyname(socket.gethostname())
+        if ip and not ip.startswith("127."):
+            return ip
+    except Exception:
+        pass
+
+    # Strategy 3: enumerate interfaces via getaddrinfo
+    try:
+        addrs = socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET)
+        for addr in addrs:
+            ip = addr[4][0]
+            if ip and not ip.startswith("127."):
+                return ip
+    except Exception:
+        pass
+
+    logger.warning("get_local_ip: all strategies failed, returning empty string")
+    return ""
 
 
 class ZMQClient:
@@ -62,6 +104,11 @@ class ZMQClient:
         """Set the CurveZMQ server public key for encrypted communication."""
         self.server_public_key = key
         print(f"[ZMQ] CURVE server public key set ({len(key)} bytes)")
+
+    def clear_server_public_key(self):
+        """Clear the server public key — disables CURVE encryption."""
+        self.server_public_key = None
+        print(f"[ZMQ] CURVE disabled — no server public key")
 
     def connect(self) -> bool:
         """Open a new REQ socket. Context is reused — only socket is created here."""
@@ -176,7 +223,8 @@ class ZMQClient:
     def send_url_alert(self, device_uid: str, url: str, token: str = "",
                        trackers: list = None, iframes: list = None,
                        mac: str = "00:11:22:33:44:55",
-                       device_type: int = 1, os_type: int = 1) -> Optional[Dict[str, Any]]:
+                       device_type: int = 1, os_type: int = 1,
+                       ip_address: str = "") -> Optional[Dict[str, Any]]:
         """
         Send a UrlAlert.
 
@@ -210,7 +258,8 @@ class ZMQClient:
                 "DeviceUid": device_uid,
                 "DeviceType": device_type,
                 "OperatingSystem": os_type,
-                "MACAddress": mac
+                "MACAddress": mac,
+                "IP": ip_address
             },
             "Timestamp": datetime.utcnow().isoformat() + "Z",
             "Priority": 1,  # Medium
@@ -246,7 +295,8 @@ class ZMQClient:
         confidence: str = "low",          # 'low', 'medium', 'high'
         remote_country: str = "",         # Country name
         remote_country_code: str = "",    # ISO country code
-        browser_tabs: Optional[List[Dict[str, Any]]] = None  # Open browser tabs
+        browser_tabs: Optional[List[Dict[str, Any]]] = None,  # Open browser tabs
+        ip_address: str = ""              # Device IP address
     ) -> Optional[Dict[str, Any]]:
         """
         Send a RemoteAccessAlert with enhanced detection data.
@@ -287,7 +337,8 @@ class ZMQClient:
                 "DeviceUid": device_uid,
                 "DeviceType": device_type,
                 "OperatingSystem": os_type,
-                "MACAddress": mac
+                "MACAddress": mac,
+                "IP": ip_address
             },
             "Timestamp": datetime.utcnow().isoformat() + "Z",
             "Priority": 1,  # Medium

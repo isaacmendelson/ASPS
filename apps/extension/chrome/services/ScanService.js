@@ -77,7 +77,8 @@ class ScanService {
       type: MSG.WS_URL_CHECK,
       url: url,
       trackers: pageInfo?.trackers || [],
-      iframes: pageInfo?.iframes || []
+      iframes: pageInfo?.iframes || [],
+      ipAddress: connectionService.getDeviceIpAddress()
     };
 
     if (!connectionService.send(message)) {

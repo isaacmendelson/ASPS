@@ -76,6 +76,7 @@ namespace Business.RealtimeAnalysis
                         DeviceUid = vm.DeviceInfo.DeviceUid,
                         DeviceType = userDevice.DeviceType,
                         OperatingSystem = userDevice.OperatingSystem,
+                        IPAddress = vm.DeviceInfo.IP,
                         Url = u.Url,
                         UserKeyField = userDevice.UserKeyField,
                     };
@@ -105,6 +106,7 @@ namespace Business.RealtimeAnalysis
                         DeviceUid = vm.DeviceInfo.DeviceUid,
                         DeviceType = userDevice.DeviceType,
                         OperatingSystem = userDevice.OperatingSystem,
+                        IPAddress = vm.DeviceInfo.IP,
                         UserKeyField = userDevice.UserKeyField,
                     };
                     break;

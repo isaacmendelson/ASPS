@@ -1,3 +1,4 @@
+using Business.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using NetMQ;
@@ -52,13 +53,20 @@ public class DeviceLoginModel : PageModel
     public string? SuccessMessage { get; set; }
     public string? ErrorMessage { get; set; }
 
-    public DeviceLoginModel(IConfiguration configuration, ILogger<DeviceLoginModel> logger)
+    public DeviceLoginModel(IConfiguration configuration, ILogger<DeviceLoginModel> logger, CurveKeyManager curveKeyManager)
     {
         _logger = logger;
         _alertListenerEndpoint = configuration.GetValue<string>("NetMQ:AlertListenerEndpoint")
             ?? "tcp://localhost:50001";
-        _curveEnabled = configuration.GetValue<bool>("Security:CurveEnabled", false);
-        _serverPublicKeyZ85 = configuration.GetValue<string>("Security:ServerPublicKeyZ85");
+
+        // Use CurveKeyManager (injected) as the authoritative source for CURVE config.
+        // This reads the live key from the backend's key file — always in sync,
+        // never stale from appsettings.json.
+        _curveEnabled = curveKeyManager.IsEnabled;
+        _serverPublicKeyZ85 = curveKeyManager.IsEnabled ? curveKeyManager.ServerPublicKeyZ85 : null;
+
+        _logger.LogInformation("DeviceLogin: CurveEnabled={Enabled}, KeyPresent={HasKey}",
+            _curveEnabled, !string.IsNullOrEmpty(_serverPublicKeyZ85));
     }
 
     public void OnGet()
