@@ -25,6 +25,17 @@ class ConnectionService {
     this.heartbeatTimer = null;
     this.missedHeartbeats = 0;
     this.messageHandlers = new Map();
+    this.deviceIpAddress = null;   // IP address of the local device (received from agent)
+  }
+
+  // Store device IP address received from the desktop agent
+  setDeviceIpAddress(ip) {
+    this.deviceIpAddress = ip || null;
+  }
+
+  // Get stored device IP address
+  getDeviceIpAddress() {
+    return this.deviceIpAddress || '';
   }
 
   // Register handler for WebSocket messages

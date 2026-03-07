@@ -39,9 +39,17 @@ public class CurveKeyManager
         _publicKeyFilePath = Path.Combine(Path.GetDirectoryName(_keysFilePath)!, "curve-server-public-key.txt");
 
         if (_curveEnabled)
+        {
             LoadOrGenerateKeys();
+        }
         else
+        {
             _logger.LogInformation("CurveZMQ encryption is disabled");
+            // Clear the public key file so clients know CURVE is off.
+            // Without this, a stale file from a previous CURVE-enabled run
+            // causes clients to attempt CURVE → backend ignores → timeout.
+            ClearPublicKeyFile();
+        }
     }
 
     public bool IsEnabled => _curveEnabled;
@@ -171,6 +179,27 @@ public class CurveKeyManager
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Could not write CURVE public key file to {Path}", _publicKeyFilePath);
+        }
+    }
+
+    /// <summary>
+    /// Clear the public key file when CURVE is disabled.
+    /// Clients check this file to decide whether to use CURVE — an empty file
+    /// signals "no encryption", preventing timeout from stale key files.
+    /// </summary>
+    private void ClearPublicKeyFile()
+    {
+        try
+        {
+            if (File.Exists(_publicKeyFilePath))
+            {
+                File.WriteAllText(_publicKeyFilePath, string.Empty);
+                _logger.LogInformation("CURVE public key file cleared (CURVE disabled): {Path}", _publicKeyFilePath);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not clear CURVE public key file at {Path}", _publicKeyFilePath);
         }
     }
 

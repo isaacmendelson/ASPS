@@ -64,19 +64,24 @@ class AuthManager:
         print(f"[AUTH] Manager initialized")
         print(f"[AUTH] Storage: {self.storage_path}")
 
-        # Try to load saved token and server key
+        # Try to load saved token
         self._load_token()
 
-        # Apply server key to zmq_client
-        # Priority: 1) saved key from auth.json, 2) bootstrap key from config
-        if self.server_public_key:
+        # Apply server key to zmq_client.
+        # The curve-server-public-key.txt is the authoritative source —
+        # always re-read it fresh so that if the backend restarts with
+        # CurveEnabled=false (and clears the file), we don't use a stale key
+        # from auth.json and get a CURVE mismatch timeout.
+        live_key = BACKEND_SERVER_PUBLIC_KEY_Z85  # reads from txt file at import time
+        if live_key:
+            self.server_public_key = live_key.encode('utf-8')
             self.zmq_client.set_server_public_key(self.server_public_key)
-            print(f"[AUTH] Server public key loaded from saved auth")
-        elif BACKEND_SERVER_PUBLIC_KEY_Z85:
-            # Use bootstrap key for initial connection
-            self.server_public_key = BACKEND_SERVER_PUBLIC_KEY_Z85.encode('utf-8')
-            self.zmq_client.set_server_public_key(self.server_public_key)
-            print(f"[AUTH] Using bootstrap server public key from config")
+            print(f"[AUTH] CURVE enabled — server public key loaded from key file")
+        else:
+            # Key file is empty or missing → backend has CURVE disabled
+            self.server_public_key = None
+            self.zmq_client.clear_server_public_key()
+            print(f"[AUTH] CURVE disabled — connecting without encryption")
 
     def _load_token(self):
         """Load token from secure storage (keyring) and metadata from disk."""
@@ -107,9 +112,9 @@ class AuthManager:
                 if expires_str:
                     self.expires_at = datetime.fromisoformat(expires_str)
 
-                saved_key = data.get('server_public_key')
-                if saved_key:
-                    self.server_public_key = saved_key.encode('utf-8') if isinstance(saved_key, str) else saved_key
+                # server_public_key is NOT loaded from auth.json —
+                # it is always read fresh from curve-server-public-key.txt
+                # so that backend restarts with CurveEnabled=false are respected.
 
                 saved_email = data.get('email', '')
                 if saved_email and not self.email:
@@ -149,7 +154,8 @@ class AuthManager:
                 'expires_at': self.expires_at.isoformat() if self.expires_at else None,
                 'is_authorized': self.is_authorized,
                 'email': self.email,
-                'server_public_key': self.server_public_key.decode('utf-8') if self.server_public_key else None,
+                # server_public_key intentionally omitted — always read fresh
+                # from curve-server-public-key.txt at startup.
             }
 
             with open(self.storage_path, 'w') as f:

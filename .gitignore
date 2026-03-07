@@ -159,4 +159,5 @@ appsettings.*.local.json
 
 # CURVE key files (generated at runtime)
 curve-server-keys.json
+curve-server-public-key.txt
 *.curve-keys.json
