@@ -116,6 +116,15 @@ public class RealTimeAlertListener : IDisposable
                 {
                     var incoming = _routerSocket!.ReceiveMultipartMessage();
 
+                    _logger.LogDebug("ROUTER received message with {Count} frames", incoming.FrameCount);
+                    for (int i = 0; i < incoming.FrameCount; i++)
+                    {
+                        var frameContent = incoming[i].BufferSize > 100 
+                            ? $"[{incoming[i].BufferSize} bytes]" 
+                            : System.Text.Encoding.UTF8.GetString(incoming[i].Buffer);
+                        _logger.LogDebug("  Frame {Index}: {Content}", i, frameContent);
+                    }
+
                     if (incoming.FrameCount < 3)
                     {
                         _logger.LogWarning("Malformed ROUTER message: expected 3 frames, got {Count}", incoming.FrameCount);
