@@ -201,6 +201,13 @@ public class RemoteAccessAlertEntity : DeviceAlertEntity
     public ConnectionStatus ConnectionStatus { get; set; }
     public int ConnectionsCount { get; set; }
     public int SessionStatus { get; set; }
+
+    // Deep detection fields
+    public string? RemoteOS { get; set; }
+    public string? RemoteVersion { get; set; }
+    public string? ConnectionType { get; set; }
+    public bool FileTransferActive { get; set; }
+    public int FileTransfers { get; set; }
     
     [NotMapped]
     public override string TypeName => "RemoteAccessAlert";

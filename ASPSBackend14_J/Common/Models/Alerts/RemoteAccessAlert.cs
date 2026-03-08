@@ -37,4 +37,11 @@ public class RemoteAccessAlert : DeviceAlert
     public int SessionStatus { get; set; }
 
     public BrowserTab[]? BrowserTabs { get; set; }
+
+    // Deep detection fields
+    public string? RemoteOS { get; set; }
+    public string? RemoteVersion { get; set; }
+    public string? ConnectionType { get; set; }
+    public bool FileTransferActive { get; set; }
+    public int FileTransfers { get; set; }
 }

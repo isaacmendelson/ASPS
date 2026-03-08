@@ -224,7 +224,12 @@ class MonitorService:
                 remote_country=status.remote_country or "",
                 remote_country_code=status.remote_country_code or "",
                 browser_tabs=browser_tabs,
-                ip_address=self._local_ip
+                ip_address=self._local_ip,
+                remote_os=getattr(status, 'remote_os', '') or "",
+                remote_version=getattr(status, 'remote_version', '') or "",
+                connection_type=getattr(status, 'connection_type', '') or "",
+                file_transfer_active=getattr(status, 'file_transfer_active', False),
+                file_transfers=getattr(status, 'file_transfers', 0)
             )
 
     async def _handle_app_close(self, app_name: str, status):
@@ -257,7 +262,12 @@ class MonitorService:
                 remote_country=status.remote_country or "",
                 remote_country_code=status.remote_country_code or "",
                 browser_tabs=browser_tabs,
-                ip_address=self._local_ip
+                ip_address=self._local_ip,
+                remote_os=getattr(status, 'remote_os', '') or "",
+                remote_version=getattr(status, 'remote_version', '') or "",
+                connection_type=getattr(status, 'connection_type', '') or "",
+                file_transfer_active=getattr(status, 'file_transfer_active', False),
+                file_transfers=getattr(status, 'file_transfers', 0)
             )
 
         # Clear alert state
@@ -290,6 +300,11 @@ class MonitorService:
         remote_country_code: str,
         browser_tabs=None,
         ip_address: str = "",
+        remote_os: str = "",
+        remote_version: str = "",
+        connection_type: str = "",
+        file_transfer_active: bool = False,
+        file_transfers: int = 0,
         retry: bool = True
     ):
         """Send remote access alert with automatic retry on auth errors"""
@@ -310,7 +325,12 @@ class MonitorService:
             remote_country=remote_country,
             remote_country_code=remote_country_code,
             browser_tabs=browser_tabs,
-            ip_address=ip_address
+            ip_address=ip_address,
+            remote_os=remote_os,
+            remote_version=remote_version,
+            connection_type=connection_type,
+            file_transfer_active=file_transfer_active,
+            file_transfers=file_transfers
         )
 
         if response:
@@ -338,6 +358,11 @@ class MonitorService:
                         remote_country_code=remote_country_code,
                         browser_tabs=browser_tabs,
                         ip_address=ip_address,
+                        remote_os=remote_os,
+                        remote_version=remote_version,
+                        connection_type=connection_type,
+                        file_transfer_active=file_transfer_active,
+                        file_transfers=file_transfers,
                         retry=False
                     )
                 else:
@@ -383,7 +408,12 @@ class MonitorService:
                 remote_country=status.remote_country or "",
                 remote_country_code=status.remote_country_code or "",
                 browser_tabs=browser_tabs,
-                ip_address=self._local_ip
+                ip_address=self._local_ip,
+                remote_os=getattr(status, 'remote_os', '') or "",
+                remote_version=getattr(status, 'remote_version', '') or "",
+                connection_type=getattr(status, 'connection_type', '') or "",
+                file_transfer_active=getattr(status, 'file_transfer_active', False),
+                file_transfers=getattr(status, 'file_transfers', 0)
             )
 
         # Show notification with direction-aware message
@@ -448,7 +478,12 @@ class MonitorService:
                 remote_country=status.remote_country or "",
                 remote_country_code=status.remote_country_code or "",
                 browser_tabs=browser_tabs,
-                ip_address=self._local_ip
+                ip_address=self._local_ip,
+                remote_os=getattr(status, 'remote_os', '') or "",
+                remote_version=getattr(status, 'remote_version', '') or "",
+                connection_type=getattr(status, 'connection_type', '') or "",
+                file_transfer_active=getattr(status, 'file_transfer_active', False),
+                file_transfers=getattr(status, 'file_transfers', 0)
             )
 
         # Clear alert state

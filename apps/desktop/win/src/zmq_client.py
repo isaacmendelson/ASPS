@@ -296,7 +296,13 @@ class ZMQClient:
         remote_country: str = "",         # Country name
         remote_country_code: str = "",    # ISO country code
         browser_tabs: Optional[List[Dict[str, Any]]] = None,  # Open browser tabs
-        ip_address: str = ""              # Device IP address
+        ip_address: str = "",             # Device IP address
+        # Deep detection fields
+        remote_os: str = "",              # Remote machine OS
+        remote_version: str = "",         # Remote app version
+        connection_type: str = "",        # 'direct' or 'relay'
+        file_transfer_active: bool = False,
+        file_transfers: int = 0
     ) -> Optional[Dict[str, Any]]:
         """
         Send a RemoteAccessAlert with enhanced detection data.
@@ -316,6 +322,11 @@ class ZMQClient:
             confidence: Detection confidence ('low', 'medium', 'high')
             remote_country: Country name from GeoIP
             remote_country_code: ISO country code (e.g., 'US')
+            remote_os: Remote machine operating system
+            remote_version: Remote app version string
+            connection_type: Connection type ('direct' or 'relay')
+            file_transfer_active: Whether file transfer is in progress
+            file_transfers: Total file transfer count
 
         Returns:
             Response dict
@@ -352,7 +363,13 @@ class ZMQClient:
             "Direction": direction,
             "Confidence": confidence,
             "RemoteCountry": remote_country,
-            "RemoteCountryCode": remote_country_code
+            "RemoteCountryCode": remote_country_code,
+            # Deep detection fields
+            "RemoteOS": remote_os,
+            "RemoteVersion": remote_version,
+            "ConnectionType": connection_type,
+            "FileTransferActive": file_transfer_active,
+            "FileTransfers": file_transfers
         }
 
         # Include browser tabs if provided (nullable — omit field entirely when None)

@@ -44,6 +44,11 @@ services:
       - "5556:5556"   # CQRS Gateway (WebApi)
       - "50001:50001" # RealTime Alert Listener (Desktop ZMQ REQ)
       - "50002:50002" # Notification Publisher (Desktop ZMQ SUB)
+    environment:
+      - ConnectionStrings__DefaultConnection=server=mysql;port=3306;database=aspsbackend2db;user=root;password=zappa22;AllowPublicKeyRetrieval=True;SslMode=None;
+      - Security__KeysFilePath=/app/keys/curve-server-keys.json
+    volumes:
+      - curve_keys:/app/keys
     networks:
       - asps-network
 
@@ -65,6 +70,7 @@ services:
 
 volumes:
   mysql_data:
+  curve_keys:
 
 networks:
   asps-network:
