@@ -73,10 +73,10 @@ if (keycloakEnabled)
         options.Scope.Add("profile");
         options.Scope.Add("email");
 
-        options.NonceCookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-        options.NonceCookie.SameSite = SameSiteMode.Unspecified;
-        options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-        options.CorrelationCookie.SameSite = SameSiteMode.Unspecified;
+        options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.NonceCookie.SameSite = SameSiteMode.None;
+        options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.CorrelationCookie.SameSite = SameSiteMode.None;
 
         options.TokenValidationParameters = new TokenValidationParameters
         {
