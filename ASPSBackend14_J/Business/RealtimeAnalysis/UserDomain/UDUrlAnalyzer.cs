@@ -261,12 +261,12 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
                 .Where(r => r.risk_assessment != null)
                 .Any(r => r.risk_assessment!.is_scam);
 
-            if (hasScam || maxRiskScore >= 70)
-                severity = Severity.Critical;
-            else if (maxRiskScore >= 50)
-                severity = Severity.High;
-            else if (maxRiskScore >= 30)
-                severity = Severity.Medium;
+            if (hasScam || maxRiskScore <= 30)
+                severity = Severity.Critical;  // safety score <= 30 = very dangerous
+            else if (maxRiskScore <= 50)
+                severity = Severity.High;      // safety score <= 50 = dangerous
+            else if (maxRiskScore <= 70)
+                severity = Severity.Medium;    // safety score <= 70 = moderate risk
         }
 
         // STEP 5: Create indicators list

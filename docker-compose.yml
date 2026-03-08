@@ -1,22 +1,17 @@
 version: "3.8"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Secrets come from a .env file (gitignored).
-# Copy .env.example → .env and fill in values before deploying.
-# ─────────────────────────────────────────────────────────────────────────────
-
 services:
   # ─────────────────────────────────────────────
   # MySQL Database
   # ─────────────────────────────────────────────
   mysql:
     image: mysql:8.0
-    command: --lower-case-table-names=1
     container_name: asps-mysql
     restart: unless-stopped
+    command: --lower_case_table_names=1
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-ASPSBackend2DB}
+      MYSQL_ROOT_PASSWORD: zappa22
+      MYSQL_DATABASE: ASPSBackend2DB
     ports:
       - "3306:3306"
     volumes:
@@ -24,8 +19,7 @@ services:
       # Initialize DB with dump on first run
       - ./aspsbackend2db_20260130.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      # Shell form: $MYSQL_ROOT_PASSWORD is resolved inside the container at runtime
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pzappa22"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -50,14 +44,6 @@ services:
       - "5556:5556"   # CQRS Gateway (WebApi)
       - "50001:50001" # RealTime Alert Listener (Desktop ZMQ REQ)
       - "50002:50002" # Notification Publisher (Desktop ZMQ SUB)
-    environment:
-      # DB credentials — injected from .env, never hardcoded
-      - ConnectionStrings__DefaultConnection=server=mysql;port=3306;database=${MYSQL_DATABASE:-ASPSBackend2DB};user=root;password=${MYSQL_ROOT_PASSWORD};AllowPublicKeyRetrieval=True;SslMode=None;
-      # CURVE keypair stored in a persistent volume
-      - Security__KeysFilePath=/app/keys/curve-server-keys.json
-    volumes:
-      # CURVE keys must persist across restarts — otherwise all clients lose their keys
-      - curve_keys:/app/keys
     networks:
       - asps-network
 
@@ -73,13 +59,12 @@ services:
     depends_on:
       - backend
     ports:
-      - "80:5001"   # Admin Dashboard + Swagger + SignalR
+      - "5001:5001"   # Admin Dashboard + Swagger + SignalR
     networks:
       - asps-network
 
 volumes:
   mysql_data:
-  curve_keys:   # Persistent CURVE keypair — survives container restarts
 
 networks:
   asps-network:

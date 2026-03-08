@@ -170,7 +170,7 @@ class ReputationChecker:
             # Try exact match first, then broader search
             with DDGS() as ddgs:
                 # First try: domain name without quotes (broader search)
-                results = list(ddgs.text(domain, max_results=max_results))
+                results = list(ddgs.text(f'"{domain}"', max_results=max_results))
 
                 if not results:
                     # Fallback: search with site name (without TLD)
@@ -209,19 +209,16 @@ class ReputationChecker:
                 continue
 
             # Check if result is from a reputable source
+            # IMPORTANT: Only count if the result actually mentions the target domain
+            # Otherwise irrelevant search results from reputable sites get counted
+            content = f"{title} {body}".lower()
+            domain_mentioned = domain.lower() in content or domain.lower() in href.lower()
+
             source = self._get_reputable_source(href)
-            if source:
+            if source and domain_mentioned:
                 reputable_mentions += 1
                 if source not in mention_sources:
                     mention_sources.append(source)
-
-            # Also check if the content mentions the domain positively
-            # (e.g., Wikipedia article about the site)
-            content = f"{title} {body}".lower()
-            if domain.lower() in content:
-                # Domain is mentioned in content from another site
-                # This is additional validation
-                pass
 
         return reputable_mentions, mention_sources
 

@@ -71,6 +71,9 @@ COPY ASPSBackend14_J/ASPSBackend/appsettings.Docker.json ./appsettings.Docker.js
 # Copy Python analyzer
 COPY basic-url-analyzer/basic-url-analyzer/basic-url-analyzer/ /app/analyzer/
 
+# Symlink so the C# code can find it at /app/analyzer/basic-url-analyzer
+RUN ln -s /app/analyzer /app/analyzer/basic-url-analyzer
+
 # Create venv and install Python dependencies
 RUN python3 -m venv /app/analyzer/.venv \
     && /app/analyzer/.venv/bin/pip install --no-cache-dir --upgrade pip \
