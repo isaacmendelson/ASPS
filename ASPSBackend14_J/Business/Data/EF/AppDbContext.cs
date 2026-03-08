@@ -204,6 +204,7 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Token).HasMaxLength(500);
             entity.Property(e => e.DeviceUid).HasMaxLength(255);
             entity.Property(e => e.MAC).HasMaxLength(50);
+            entity.Property(e => e.IPAddress).HasMaxLength(50);
             
             // Configure foreign key relationships
             entity.HasOne(e => e.User)
@@ -234,6 +235,9 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<RemoteAccessAlertEntity>(entity =>
         {
             entity.Property(e => e.ConnectionUrl).HasMaxLength(2000);
+            entity.Property(e => e.RemoteOS).HasMaxLength(100);
+            entity.Property(e => e.RemoteVersion).HasMaxLength(50);
+            entity.Property(e => e.ConnectionType).HasMaxLength(50);
         });
 
         // UrlAlertEntity specific configuration
