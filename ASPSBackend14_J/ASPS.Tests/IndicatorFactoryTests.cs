@@ -241,7 +241,7 @@ namespace ASPS.Tests
         }
 
         [Fact]
-        public void CreateIndicators_WithNullPurpose_CreatesIndicatorDueToBug()
+        public void CreateIndicators_WithNullPurpose_DoesNotCreateIndicator()
         {
             // Arrange
             var urlAnalysis = new UrlAnalysisResultVm
@@ -253,9 +253,9 @@ namespace ASPS.Tests
             // Act
             var result = _factory.CreateIndicators(urlAnalysis);
 
-            // Assert - BUG: null Purpose creates indicator because null != WebsiteType.Unknown
+            // Assert - FIXED: null Purpose should NOT create WebsiteTypeIndicator
             result.Should().NotBeNull();
-            result.OfType<WebsiteTypeIndicator>().Should().HaveCount(1);
+            result.OfType<WebsiteTypeIndicator>().Should().BeEmpty();
         }
 
         [Fact]
@@ -405,7 +405,7 @@ namespace ASPS.Tests
         #region RemoteAccessAnalysisResultVm Tests
 
         [Fact]
-        public void CreateIndicators_WithRemoteAccessSessionOpen_DoesNotReturnIndicatorDueToBug()
+        public void CreateIndicators_WithRemoteAccessSessionOpen_ReturnsIndicator()
         {
             // Arrange
             var remoteAccessAnalysis = new RemoteAccessAnalysisResultVm(
@@ -425,9 +425,10 @@ namespace ASPS.Tests
             // Act
             var result = _factory.CreateIndicators(remoteAccessAnalysis);
 
-            // Assert - BUG: RemoteAccessIndicator is created but never added to result list
+            // Assert - FIXED: RemoteAccessIndicator is now added to result
             result.Should().NotBeNull();
-            result.Should().BeEmpty(); // Bug: indicator created but not returned
+            result.Should().HaveCount(1);
+            result.OfType<RemoteAccessIndicator>().Should().HaveCount(1);
         }
 
         [Fact]
@@ -515,7 +516,7 @@ namespace ASPS.Tests
         }
 
         [Fact]
-        public void CreateIndicators_WithEmptyUrlAnalysis_CreatesIndicatorDueToBug()
+        public void CreateIndicators_WithEmptyUrlAnalysis_ReturnsEmpty()
         {
             // Arrange
             var urlAnalysis = new UrlAnalysisResultVm
@@ -527,10 +528,9 @@ namespace ASPS.Tests
             // Act
             var result = _factory.CreateIndicators(urlAnalysis);
 
-            // Assert - BUG: Empty analysis creates WebsiteTypeIndicator because Purpose is null
+            // Assert - FIXED: Empty analysis should return empty (null Purpose = no indicator)
             result.Should().NotBeNull();
-            result.Should().HaveCount(1);
-            result.OfType<WebsiteTypeIndicator>().Should().HaveCount(1);
+            result.Should().BeEmpty();
         }
 
         [Fact]
@@ -596,9 +596,9 @@ namespace ASPS.Tests
         }
 
         [Fact]
-        public void CreateIndicators_WithMlAnalysisSuccess_DoesNotReturnIndicatorDueToBug()
+        public void CreateIndicators_WithMlAnalysisSuccess_ReturnsMlIndicator()
         {
-            // Arrange - This test exposes a bug: MlAnalysisIndicator is created but not added
+            // Arrange
             var urlAnalysis = new UrlAnalysisResultVm
             {
                 Url = "https://mltest.com",
@@ -614,13 +614,12 @@ namespace ASPS.Tests
             // Act
             var result = _factory.CreateIndicators(urlAnalysis);
 
-            // Assert - BUG: MlAnalysisIndicator is created but never added to res list (line 82)
+            // Assert - FIXED: MlAnalysisIndicator is now added to result
             result.Should().NotBeNull();
-            result.OfType<MlAnalysisIndicator>().Should().BeEmpty(); // Bug: created but not added
+            result.OfType<MlAnalysisIndicator>().Should().HaveCount(1);
             
-            // Also creates WebsiteTypeIndicator due to null Purpose bug
-            result.Should().HaveCount(1);
-            result.OfType<WebsiteTypeIndicator>().Should().HaveCount(1);
+            // No WebsiteTypeIndicator (null Purpose = no indicator after fix)
+            result.OfType<WebsiteTypeIndicator>().Should().BeEmpty();
         }
 
         #endregion

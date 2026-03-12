@@ -105,7 +105,7 @@ namespace Business.RealtimeAnalysis
                     }
                     break;
             }
-            return Array.Empty<IIndicator>();
+            return res.ToArray();
         }
 
          private NumericScore GetScoreFromDomainAge(int domainAgeDays)
