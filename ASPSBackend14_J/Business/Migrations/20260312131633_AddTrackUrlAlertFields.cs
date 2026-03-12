@@ -10,6 +10,32 @@ namespace Business.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // First, convert existing large varchar columns to TEXT to free up row space
+            // Using procedure to check column existence before modifying
+            migrationBuilder.Sql(@"
+                DROP PROCEDURE IF EXISTS ModifyColumnIfExists;
+                CREATE PROCEDURE ModifyColumnIfExists()
+                BEGIN
+                    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'DeviceAlerts' AND COLUMN_NAME = 'Url' AND DATA_TYPE = 'varchar') THEN
+                        ALTER TABLE DeviceAlerts MODIFY COLUMN Url TEXT NULL;
+                    END IF;
+                    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'DeviceAlerts' AND COLUMN_NAME = 'TrackerKeys' AND DATA_TYPE = 'varchar') THEN
+                        ALTER TABLE DeviceAlerts MODIFY COLUMN TrackerKeys TEXT NULL;
+                    END IF;
+                    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'DeviceAlerts' AND COLUMN_NAME = 'IFrameDomains' AND DATA_TYPE = 'varchar') THEN
+                        ALTER TABLE DeviceAlerts MODIFY COLUMN IFrameDomains TEXT NULL;
+                    END IF;
+                    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'DeviceAlerts' AND COLUMN_NAME = 'UserAgent' AND DATA_TYPE = 'varchar') THEN
+                        ALTER TABLE DeviceAlerts MODIFY COLUMN UserAgent TEXT NULL;
+                    END IF;
+                    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'DeviceAlerts' AND COLUMN_NAME = 'ConnectionUrl' AND DATA_TYPE = 'varchar') THEN
+                        ALTER TABLE DeviceAlerts MODIFY COLUMN ConnectionUrl TEXT NULL;
+                    END IF;
+                END;
+                CALL ModifyColumnIfExists();
+                DROP PROCEDURE IF EXISTS ModifyColumnIfExists;
+            ");
+
             // Add TrackerCount if not exists
             migrationBuilder.Sql(@"
                 SET @columnExists = (
