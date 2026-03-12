@@ -26,6 +26,16 @@ class Program
         Console.WriteLine("ASPSBackend System2 Starting...");
         Console.WriteLine("========================================");
 
+        // Auto-migrate database in development
+        var env = host.Services.GetRequiredService<IHostEnvironment>();
+        if (env.IsDevelopment())
+        {
+            using var scope = host.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Database.Migrate();
+            Console.WriteLine("✓ Database migrations applied");
+        }
+
         // Load persisted tokens from database
         var tokenStore = host.Services.GetRequiredService<TokenStore>();
         await tokenStore.LoadFromDatabaseAsync();
