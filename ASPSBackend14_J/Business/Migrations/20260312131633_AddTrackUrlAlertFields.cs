@@ -7,62 +7,24 @@ namespace Business.Migrations
     /// <inheritdoc />
     public partial class AddTrackUrlAlertFields : Migration
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
+        private void AddColumnIfNotExists(MigrationBuilder migrationBuilder, string columnName, string columnDef)
         {
-            // First, convert existing large varchar columns to TEXT to free up row space
-            // Using procedure to check column existence before modifying
-            migrationBuilder.Sql(@"
-                DROP PROCEDURE IF EXISTS ModifyColumnIfExists;
-                CREATE PROCEDURE ModifyColumnIfExists()
-                BEGIN
-                    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'DeviceAlerts' AND COLUMN_NAME = 'Url' AND DATA_TYPE = 'varchar') THEN
-                        ALTER TABLE DeviceAlerts MODIFY COLUMN Url TEXT NULL;
-                    END IF;
-                    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'DeviceAlerts' AND COLUMN_NAME = 'TrackerKeys' AND DATA_TYPE = 'varchar') THEN
-                        ALTER TABLE DeviceAlerts MODIFY COLUMN TrackerKeys TEXT NULL;
-                    END IF;
-                    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'DeviceAlerts' AND COLUMN_NAME = 'IFrameDomains' AND DATA_TYPE = 'varchar') THEN
-                        ALTER TABLE DeviceAlerts MODIFY COLUMN IFrameDomains TEXT NULL;
-                    END IF;
-                    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'DeviceAlerts' AND COLUMN_NAME = 'UserAgent' AND DATA_TYPE = 'varchar') THEN
-                        ALTER TABLE DeviceAlerts MODIFY COLUMN UserAgent TEXT NULL;
-                    END IF;
-                    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'DeviceAlerts' AND COLUMN_NAME = 'ConnectionUrl' AND DATA_TYPE = 'varchar') THEN
-                        ALTER TABLE DeviceAlerts MODIFY COLUMN ConnectionUrl TEXT NULL;
-                    END IF;
-                END;
-                CALL ModifyColumnIfExists();
-                DROP PROCEDURE IF EXISTS ModifyColumnIfExists;
-            ");
-
-            // Add TrackerCount if not exists
-            migrationBuilder.Sql(@"
-                SET @columnExists = (
-                    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-                    WHERE TABLE_SCHEMA = DATABASE() 
-                    AND TABLE_NAME = 'DeviceAlerts' 
-                    AND COLUMN_NAME = 'TrackerCount'
-                );
-                SET @sql = IF(@columnExists = 0, 
-                    'ALTER TABLE DeviceAlerts ADD COLUMN TrackerCount INT NULL', 
-                    'SELECT 1');
+            migrationBuilder.Sql($@"
+                SET @colExists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'DeviceAlerts' AND COLUMN_NAME = '{columnName}');
+                SET @sql = IF(@colExists = 0, 'ALTER TABLE DeviceAlerts ADD COLUMN {columnName} {columnDef}', 'SELECT 1');
                 PREPARE stmt FROM @sql;
                 EXECUTE stmt;
                 DEALLOCATE PREPARE stmt;
             ");
+        }
 
-            // Add TrackingType if not exists
-            migrationBuilder.Sql(@"
-                SET @columnExists = (
-                    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-                    WHERE TABLE_SCHEMA = DATABASE() 
-                    AND TABLE_NAME = 'DeviceAlerts' 
-                    AND COLUMN_NAME = 'TrackingType'
-                );
-                SET @sql = IF(@columnExists = 0, 
-                    'ALTER TABLE DeviceAlerts ADD COLUMN TrackingType VARCHAR(100) NULL', 
-                    'SELECT 1');
+        private void ModifyColumnIfExists(MigrationBuilder migrationBuilder, string columnName, string newDef)
+        {
+            migrationBuilder.Sql($@"
+                SET @colExists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'DeviceAlerts' AND COLUMN_NAME = '{columnName}');
+                SET @sql = IF(@colExists > 0, 'ALTER TABLE DeviceAlerts MODIFY COLUMN {columnName} {newDef}', 'SELECT 1');
                 PREPARE stmt FROM @sql;
                 EXECUTE stmt;
                 DEALLOCATE PREPARE stmt;
@@ -70,15 +32,31 @@ namespace Business.Migrations
         }
 
         /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            // Convert existing large varchar columns to TEXT
+            ModifyColumnIfExists(migrationBuilder, "Url", "TEXT NULL");
+            ModifyColumnIfExists(migrationBuilder, "TrackerKeys", "TEXT NULL");
+            ModifyColumnIfExists(migrationBuilder, "IFrameDomains", "TEXT NULL");
+            ModifyColumnIfExists(migrationBuilder, "UserAgent", "TEXT NULL");
+            ModifyColumnIfExists(migrationBuilder, "ConnectionUrl", "TEXT NULL");
+
+            // Add TrackUrlAlertEntity columns (TPH creates separate columns with prefix)
+            AddColumnIfNotExists(migrationBuilder, "TrackerCount", "INT NULL");
+            AddColumnIfNotExists(migrationBuilder, "TrackingType", "VARCHAR(100) NULL");
+            AddColumnIfNotExists(migrationBuilder, "UrlAlertEntity_Url", "TEXT NULL");
+            AddColumnIfNotExists(migrationBuilder, "UrlAlertEntity_TrackerKeys", "TEXT NULL");
+            AddColumnIfNotExists(migrationBuilder, "UrlAlertEntity_UserAgent", "TEXT NULL");
+        }
+
+        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "TrackerCount",
-                table: "DeviceAlerts");
-
-            migrationBuilder.DropColumn(
-                name: "TrackingType",
-                table: "DeviceAlerts");
+            migrationBuilder.DropColumn(name: "TrackerCount", table: "DeviceAlerts");
+            migrationBuilder.DropColumn(name: "TrackingType", table: "DeviceAlerts");
+            migrationBuilder.DropColumn(name: "UrlAlertEntity_Url", table: "DeviceAlerts");
+            migrationBuilder.DropColumn(name: "UrlAlertEntity_TrackerKeys", table: "DeviceAlerts");
+            migrationBuilder.DropColumn(name: "UrlAlertEntity_UserAgent", table: "DeviceAlerts");
         }
     }
 }
