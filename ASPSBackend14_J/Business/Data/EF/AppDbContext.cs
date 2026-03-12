@@ -244,19 +244,19 @@ public class AppDbContext : DbContext
         // UrlAlertEntity specific configuration
         modelBuilder.Entity<UrlAlertEntity>(entity =>
         {
-            entity.Property(e => e.Url).HasMaxLength(2000);
-            entity.Property(e => e.TrackerKeys).HasMaxLength(5000);
-            entity.Property(e => e.IFrameDomains).HasMaxLength(5000);
-            entity.Property(e => e.UserAgent).HasMaxLength(1000);
+            entity.Property(e => e.Url).HasColumnType("TEXT");
+            entity.Property(e => e.TrackerKeys).HasColumnType("TEXT");
+            entity.Property(e => e.IFrameDomains).HasColumnType("TEXT");
+            entity.Property(e => e.UserAgent).HasColumnType("TEXT");
         });
 
         // TrackUrlAlertEntity specific configuration
         modelBuilder.Entity<TrackUrlAlertEntity>(entity =>
         {
-            entity.Property(e => e.Url).HasMaxLength(2000);
-            entity.Property(e => e.TrackerKeys).HasMaxLength(5000);
+            entity.Property(e => e.Url).HasColumnType("TEXT");
+            entity.Property(e => e.TrackerKeys).HasColumnType("TEXT");
             entity.Property(e => e.TrackingType).HasMaxLength(100);
-            entity.Property(e => e.UserAgent).HasMaxLength(1000);
+            entity.Property(e => e.UserAgent).HasColumnType("TEXT");
         });
 
         // AlertFlag configuration (this entity doesn't inherit from Entity - uses int Key)

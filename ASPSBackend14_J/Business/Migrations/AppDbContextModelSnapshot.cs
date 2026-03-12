@@ -585,8 +585,7 @@ namespace Business.Migrations
 
                     b.Property<string>("TrackerKeys")
                         .IsRequired()
-                        .HasMaxLength(5000)
-                        .HasColumnType("varchar(5000)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("TrackingType")
                         .IsRequired()
@@ -595,14 +594,12 @@ namespace Business.Migrations
 
                     b.Property<string>("Url")
                         .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("varchar(2000)")
+                        .HasColumnType("TEXT")
                         .HasColumnName("UrlAlertEntity_Url");
 
                     b.Property<string>("UserAgent")
                         .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)")
+                        .HasColumnType("TEXT")
                         .HasColumnName("UrlAlertEntity_UserAgent");
 
                     b.HasDiscriminator().HasValue("TrackUrl");
@@ -614,24 +611,20 @@ namespace Business.Migrations
 
                     b.Property<string>("IFrameDomains")
                         .IsRequired()
-                        .HasMaxLength(5000)
-                        .HasColumnType("varchar(5000)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("TrackerKeys")
                         .IsRequired()
-                        .HasMaxLength(5000)
-                        .HasColumnType("varchar(5000)")
+                        .HasColumnType("TEXT")
                         .HasColumnName("UrlAlertEntity_TrackerKeys");
 
                     b.Property<string>("Url")
                         .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("varchar(2000)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("UserAgent")
                         .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
+                        .HasColumnType("TEXT");
 
                     b.HasDiscriminator().HasValue("Url");
                 });
