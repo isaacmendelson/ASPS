@@ -1,0 +1,403 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Xunit;
+using FluentAssertions;
+using Moq;
+using Microsoft.Extensions.Logging;
+using Business.RealtimeAnalysis;
+using Business.DomainEvents;
+using Business.RealtimeAnalysis.UserDomain;
+using Business.RealtimeAnalysis.Indicators;
+using Common.Entities;
+using Common.Enums;
+using Common.Interfaces;
+using Common.Models.Alerts;
+using Interface.Repositories;
+
+namespace ASPS.Tests;
+
+/// <summary>
+/// Unit tests for AnalysisPersistenceActor
+/// Tests persistence of analysis results to database
+/// </summary>
+public class AnalysisPersistenceActorTests
+{
+    private readonly Mock<IAnalysisResultRepository> _mockRepository;
+    private readonly Mock<ILogger<AnalysisPersistenceActor>> _mockLogger;
+    private readonly AnalysisPersistenceActor _actor;
+
+    public AnalysisPersistenceActorTests()
+    {
+        _mockRepository = new Mock<IAnalysisResultRepository>();
+        _mockLogger = new Mock<ILogger<AnalysisPersistenceActor>>();
+        _actor = new AnalysisPersistenceActor(_mockRepository.Object, _mockLogger.Object);
+    }
+
+    #region GetHandleableEvents Tests
+
+    [Fact]
+    public void GetHandleableEvents_ShouldReturnAnalysisResultReceivedType()
+    {
+        // Act
+        var result = _actor.GetHandleableEvents();
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().HaveCount(1);
+        result.Should().Contain(typeof(AnalysisResultReceived));
+    }
+
+    #endregion
+
+    #region Handle Tests - Event Routing
+
+    [Fact]
+    public async Task Handle_WithAnalysisResultReceivedEvent_ShouldProcessEvent()
+    {
+        // Arrange
+        var analysisEvent = CreateValidUrlAnalysisEvent();
+
+        // Act
+        await _actor.Handle(analysisEvent);
+
+        // Assert
+        _mockRepository.Verify(r => r.AddAsync(It.IsAny<AnalysisResultContainer>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WithNonAnalysisResultEvent_ShouldNotProcess()
+    {
+        // Arrange
+        var otherEvent = new Mock<IDomainEvent>().Object;
+
+        // Act
+        await _actor.Handle(otherEvent);
+
+        // Assert
+        _mockRepository.Verify(r => r.AddAsync(It.IsAny<AnalysisResultContainer>()), Times.Never);
+    }
+
+    #endregion
+
+    #region UrlAlert Tests
+
+    [Fact]
+    public async Task Handle_WithValidUrlAlert_ShouldSaveToRepository()
+    {
+        // Arrange
+        var analysisEvent = CreateValidUrlAnalysisEvent();
+        AnalysisResultContainer? savedContainer = null;
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<AnalysisResultContainer>()))
+            .Callback<AnalysisResultContainer>(c => savedContainer = c)
+            .ReturnsAsync((AnalysisResultContainer c) => c);
+
+        // Act
+        await _actor.Handle(analysisEvent);
+
+        // Assert
+        savedContainer.Should().NotBeNull();
+        savedContainer!.UserKeyField.Should().Be("user-123");
+        savedContainer.DeviceAlertKeyField.Should().Be("alert-456");
+        savedContainer.JsonValue.Should().NotBeNullOrEmpty();
+        savedContainer.IsFromCache.Should().BeFalse();
+        savedContainer.HasError.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_WithUrlAlert_ShouldSerializeCorrectly()
+    {
+        // Arrange
+        var analysisEvent = CreateValidUrlAnalysisEvent();
+        AnalysisResultContainer? savedContainer = null;
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<AnalysisResultContainer>()))
+            .Callback<AnalysisResultContainer>(c => savedContainer = c)
+            .ReturnsAsync((AnalysisResultContainer c) => c);
+
+        // Act
+        await _actor.Handle(analysisEvent);
+
+        // Assert
+        savedContainer.Should().NotBeNull();
+        savedContainer!.JsonValue.Should().Contain("TestAnalyzer");
+        savedContainer.JsonValue.Should().Contain("device-001");
+    }
+
+    [Fact]
+    public async Task Handle_WithUrlAlertNoResults_ShouldStillSave()
+    {
+        // Arrange
+        var analysisEvent = new AnalysisResultReceived
+        {
+            UserKeyField = "user-123",
+            DeviceAlertKeyField = "alert-456",
+            DeviceUid = "device-001",
+            AlertType = nameof(UrlAlert),
+            Timestamp = DateTime.UtcNow,
+            Severity = Severity.Medium,
+            AnalyzerResults = new Dictionary<string, Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>>()
+        };
+
+        // Act
+        await _actor.Handle(analysisEvent);
+
+        // Assert
+        _mockRepository.Verify(r => r.AddAsync(It.IsAny<AnalysisResultContainer>()), Times.Once);
+    }
+
+    #endregion
+
+    #region RemoteAccessAlert Tests
+
+    [Fact]
+    public async Task Handle_WithValidRemoteAccessAlert_ShouldSaveToRepository()
+    {
+        // Arrange
+        var analysisEvent = CreateValidRemoteAccessAnalysisEvent();
+        AnalysisResultContainer? savedContainer = null;
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<AnalysisResultContainer>()))
+            .Callback<AnalysisResultContainer>(c => savedContainer = c)
+            .ReturnsAsync((AnalysisResultContainer c) => c);
+
+        // Act
+        await _actor.Handle(analysisEvent);
+
+        // Assert
+        savedContainer.Should().NotBeNull();
+        savedContainer!.UserKeyField.Should().Be("user-789");
+        savedContainer.DeviceAlertKeyField.Should().Be("alert-999");
+        savedContainer.JsonValue.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_WithRemoteAccessAlert_ShouldSerializeWithSystemTextJson()
+    {
+        // Arrange
+        var analysisEvent = CreateValidRemoteAccessAnalysisEvent();
+        AnalysisResultContainer? savedContainer = null;
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<AnalysisResultContainer>()))
+            .Callback<AnalysisResultContainer>(c => savedContainer = c)
+            .ReturnsAsync((AnalysisResultContainer c) => c);
+
+        // Act
+        await _actor.Handle(analysisEvent);
+
+        // Assert
+        savedContainer.Should().NotBeNull();
+        savedContainer!.JsonValue.Should().Contain("Severity");
+        savedContainer.JsonValue.Should().Contain("Message");
+        savedContainer.JsonValue.Should().Contain("Details");
+    }
+
+    [Fact]
+    public async Task Handle_WithRemoteAccessAlertNoResults_ShouldStillSave()
+    {
+        // Arrange
+        var analysisEvent = new AnalysisResultReceived
+        {
+            UserKeyField = "user-789",
+            DeviceAlertKeyField = "alert-999",
+            DeviceUid = "device-002",
+            AlertType = nameof(RemoteAccessAlert),
+            Timestamp = DateTime.UtcNow,
+            Severity = Severity.High,
+            Message = "Remote access detected",
+            Details = new Dictionary<string, object> { { "app", "AnyDesk" } },
+            AnalysisTimestamp = DateTime.UtcNow,
+            AnalyzerResults = new Dictionary<string, Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>>()
+        };
+
+        // Act
+        await _actor.Handle(analysisEvent);
+
+        // Assert
+        _mockRepository.Verify(r => r.AddAsync(It.IsAny<AnalysisResultContainer>()), Times.Once);
+    }
+
+    #endregion
+
+    #region Error Handling Tests
+
+    [Fact]
+    public async Task Handle_WhenRepositoryThrows_ShouldLogError()
+    {
+        // Arrange
+        var analysisEvent = CreateValidUrlAnalysisEvent();
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<AnalysisResultContainer>()))
+            .ThrowsAsync(new Exception("Database connection failed"));
+
+        // Act
+        await _actor.Handle(analysisEvent);
+
+        // Assert
+        _mockLogger.Verify(
+            l => l.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error saving analysis result")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenRepositoryThrows_ShouldNotRethrow()
+    {
+        // Arrange
+        var analysisEvent = CreateValidUrlAnalysisEvent();
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<AnalysisResultContainer>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var act = async () => await _actor.Handle(analysisEvent);
+
+        // Assert
+        await act.Should().NotThrowAsync();
+    }
+
+    #endregion
+
+    #region Edge Cases
+
+    [Fact]
+    public async Task Handle_WithUnknownAlertType_ShouldStillSaveWithEmptyJson()
+    {
+        // Arrange
+        var analysisEvent = new AnalysisResultReceived
+        {
+            UserKeyField = "user-999",
+            DeviceAlertKeyField = "alert-888",
+            DeviceUid = "device-999",
+            AlertType = "UnknownAlertType",
+            Timestamp = DateTime.UtcNow,
+            Severity = Severity.Low,
+            AnalyzerResults = new Dictionary<string, Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>>()
+        };
+
+        // Act
+        await _actor.Handle(analysisEvent);
+
+        // Assert
+        _mockRepository.Verify(r => r.AddAsync(It.IsAny<AnalysisResultContainer>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WithMultipleAnalyzerResults_ShouldUseFirstResult()
+    {
+        // Arrange
+        var urlResult1 = new UrlAnalysisResultVm
+        {
+            Url = "https://example1.com"
+        };
+        var urlResult2 = new UrlAnalysisResultVm
+        {
+            Url = "https://example2.com"
+        };
+
+        var analysisEvent = new AnalysisResultReceived
+        {
+            UserKeyField = "user-123",
+            DeviceAlertKeyField = "alert-456",
+            DeviceUid = "device-001",
+            AlertType = nameof(UrlAlert),
+            Timestamp = DateTime.UtcNow,
+            Severity = Severity.High,
+            AnalyzerResults = new Dictionary<string, Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>>
+            {
+                { "Analyzer1", Tuple.Create<AnalysisResult, IIndicator[], IProtectiveAction[]>(urlResult1, Array.Empty<IIndicator>(), Array.Empty<IProtectiveAction>()) },
+                { "Analyzer2", Tuple.Create<AnalysisResult, IIndicator[], IProtectiveAction[]>(urlResult2, Array.Empty<IIndicator>(), Array.Empty<IProtectiveAction>()) }
+            }
+        };
+
+        AnalysisResultContainer? savedContainer = null;
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<AnalysisResultContainer>()))
+            .Callback<AnalysisResultContainer>(c => savedContainer = c)
+            .ReturnsAsync((AnalysisResultContainer c) => c);
+
+        // Act
+        await _actor.Handle(analysisEvent);
+
+        // Assert
+        savedContainer.Should().NotBeNull();
+        savedContainer!.JsonValue.Should().Contain("example1.com");
+    }
+
+    [Fact]
+    public async Task Handle_WithSuccessfulSave_ShouldLogInformation()
+    {
+        // Arrange
+        var analysisEvent = CreateValidUrlAnalysisEvent();
+
+        // Act
+        await _actor.Handle(analysisEvent);
+
+        // Assert
+        _mockLogger.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Saved analysis result")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    #endregion
+
+    #region Helper Methods
+
+    private AnalysisResultReceived CreateValidUrlAnalysisEvent()
+    {
+        var urlResult = new UrlAnalysisResultVm
+        {
+            Url = "https://phishing.example.com"
+        };
+
+        return new AnalysisResultReceived
+        {
+            UserKeyField = "user-123",
+            DeviceAlertKeyField = "alert-456",
+            DeviceUid = "device-001",
+            AlertType = nameof(UrlAlert),
+            Timestamp = DateTime.UtcNow,
+            Severity = Severity.High,
+            AnalyzerResults = new Dictionary<string, Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>>
+            {
+                { "TestAnalyzer", Tuple.Create<AnalysisResult, IIndicator[], IProtectiveAction[]>(urlResult, Array.Empty<IIndicator>(), Array.Empty<IProtectiveAction>()) }
+            }
+        };
+    }
+
+    private AnalysisResultReceived CreateValidRemoteAccessAnalysisEvent()
+    {
+        var remoteAccessResult = new RemoteAccessAnalysisResultVm(
+            RemoteAccessApp.TeamViewer,
+            1,
+            "https://teamviewer.com/session/12345",
+            ConnectionStatus.Open,
+            1,
+            1,
+            null,
+            null
+        );
+
+        return new AnalysisResultReceived
+        {
+            UserKeyField = "user-789",
+            DeviceAlertKeyField = "alert-999",
+            DeviceUid = "device-002",
+            AlertType = nameof(RemoteAccessAlert),
+            Timestamp = DateTime.UtcNow,
+            Severity = Severity.Critical,
+            Message = "Unauthorized remote access detected",
+            Details = new Dictionary<string, object> { { "app", "TeamViewer" } },
+            AnalysisTimestamp = DateTime.UtcNow,
+            AnalyzerResults = new Dictionary<string, Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>>
+            {
+                { "RemoteAccessAnalyzer", Tuple.Create<AnalysisResult, IIndicator[], IProtectiveAction[]>(remoteAccessResult, Array.Empty<IIndicator>(), Array.Empty<IProtectiveAction>()) }
+            }
+        };
+    }
+
+    #endregion
+}

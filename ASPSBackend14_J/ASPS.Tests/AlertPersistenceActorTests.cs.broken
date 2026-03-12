@@ -1,0 +1,506 @@
+using System;
+using System.Threading.Tasks;
+using Xunit;
+using FluentAssertions;
+using Moq;
+using Business.RealtimeAnalysis;
+using Business.DomainEvents;
+using Business.Messaging;
+using Business.Views;
+using Common.Entities;
+using Common.Exceptions;
+using Common.Models.Alerts;
+using Common.Enums;
+using Common.Models;
+using Interface.Repositories;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using OperatingSystem = Common.Enums.OperatingSystemType;
+
+namespace ASPS.Tests;
+
+/// <summary>
+/// Unit tests for AlertPersistenceActor - validates alert persistence logic
+/// </summary>
+public class AlertPersistenceActorTests
+{
+    private readonly Mock<IDeviceAlertRepository> _mockRepository;
+    private readonly Mock<ILoggerFactory> _mockLoggerFactory;
+    private readonly Mock<ILogger<AlertPersistenceActor>> _mockLogger;
+    private readonly Mock<ASView> _mockAsView;
+    private readonly Mock<IServiceProvider> _mockServiceProvider;
+    private readonly Mock<IServiceScope> _mockScope;
+    private readonly Mock<IServiceProvider> _mockScopedServiceProvider;
+    private readonly AlertPersistenceActor _actor;
+
+    public AlertPersistenceActorTests()
+    {
+        _mockRepository = new Mock<IDeviceAlertRepository>();
+        _mockLoggerFactory = new Mock<ILoggerFactory>();
+        _mockLogger = new Mock<ILogger<AlertPersistenceActor>>();
+        _mockAsView = new Mock<ASView>();
+        _mockServiceProvider = new Mock<IServiceProvider>();
+        _mockScope = new Mock<IServiceScope>();
+        _mockScopedServiceProvider = new Mock<IServiceProvider>();
+
+        // Setup logger factory
+        _mockLoggerFactory
+            .Setup(f => f.CreateLogger<AlertPersistenceActor>())
+            .Returns(_mockLogger.Object);
+
+        // Setup service scope
+        _mockScope
+            .Setup(s => s.ServiceProvider)
+            .Returns(_mockScopedServiceProvider.Object);
+
+        _mockServiceProvider
+            .Setup(sp => sp.CreateScope())
+            .Returns(_mockScope.Object);
+
+        _mockScopedServiceProvider
+            .Setup(sp => sp.GetService(typeof(IDeviceAlertRepository)))
+            .Returns(_mockRepository.Object);
+
+        _actor = new AlertPersistenceActor(
+            _mockRepository.Object,
+            _mockLoggerFactory.Object,
+            _mockAsView.Object,
+            _mockServiceProvider.Object
+        );
+    }
+
+    #region GetHandleableEvents Tests
+
+    [Fact]
+    public void GetHandleableEvents_ShouldReturnDeviceAlertReceivedType()
+    {
+        // Act
+        var types = _actor.GetHandleableEvents();
+
+        // Assert
+        types.Should().NotBeNull();
+        types.Should().HaveCount(1);
+        types.Should().Contain(typeof(DeviceAlertReceived));
+    }
+
+    #endregion
+
+    #region Handle Tests
+
+    [Fact]
+    public async Task Handle_WithDeviceAlertReceived_ShouldCallHandleDeviceAlertReceivedAsync()
+    {
+        // Arrange
+        var deviceInfo = CreateDeviceInfo("TEST-DEVICE-001");
+        var alert = new UrlAlert
+        {
+            AlertType = "UrlAlert",
+            Priority = Priority.Medium,
+            Timestamp = DateTime.UtcNow,
+            Token = "test-token",
+            DeviceInfo = deviceInfo,
+            Url = "https://example.com"
+        };
+
+        var evt = new DeviceAlertReceived(alert);
+        
+        var userDevice = CreateUserDevice("TEST-DEVICE-001");
+        _mockAsView.Setup(v => v.FindUserDeviceByDeviceUid("TEST-DEVICE-001"))
+            .Returns(userDevice);
+
+        // Act & Assert
+        await _actor.Handle(evt);
+        
+        // Verify repository was called
+        _mockRepository.Verify(
+            r => r.AddAsync(It.IsAny<DeviceAlertEntity>()), 
+            Times.Once
+        );
+    }
+
+    [Fact]
+    public async Task Handle_WithNonDeviceAlertReceivedEvent_ShouldNotProcess()
+    {
+        // Arrange
+        var otherEvent = Mock.Of<IDomainEvent>();
+
+        // Act
+        await _actor.Handle(otherEvent);
+
+        // Assert
+        _mockRepository.Verify(
+            r => r.AddAsync(It.IsAny<DeviceAlertEntity>()), 
+            Times.Never
+        );
+    }
+
+    #endregion
+
+    #region HandleDeviceAlertReceivedAsync - UrlAlert Tests
+
+    [Fact]
+    public async Task HandleDeviceAlertReceivedAsync_UrlAlert_ShouldCreateUrlAlertEntity()
+    {
+        // Arrange
+        var deviceInfo = CreateDeviceInfo("TEST-DEVICE-001");
+        var alert = new UrlAlert
+        {
+            AlertType = "UrlAlert",
+            Priority = Priority.High,
+            Timestamp = DateTime.UtcNow,
+            Token = "test-token-123",
+            DeviceInfo = deviceInfo,
+            Url = "https://malicious-site.com"
+        };
+
+        var evt = new DeviceAlertReceived(alert);
+        var userDevice = CreateUserDevice("TEST-DEVICE-001");
+        
+        _mockAsView.Setup(v => v.FindUserDeviceByDeviceUid("TEST-DEVICE-001"))
+            .Returns(userDevice);
+
+        DeviceAlertEntity? capturedEntity = null;
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<DeviceAlertEntity>()))
+            .Callback<DeviceAlertEntity>(e => capturedEntity = e)
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _actor.HandleDeviceAlertReceivedAsync(evt);
+
+        // Assert
+        capturedEntity.Should().NotBeNull();
+        capturedEntity.Should().BeOfType<UrlAlertEntity>();
+        
+        var urlEntity = (UrlAlertEntity)capturedEntity!;
+        urlEntity.AlertType.Should().Be("UrlAlert");
+        urlEntity.Priority.Should().Be(Priority.High);
+        urlEntity.Token.Should().Be("test-token-123");
+        urlEntity.DeviceUid.Should().Be("TEST-DEVICE-001");
+        urlEntity.Url.Should().Be("https://malicious-site.com");
+        urlEntity.UserKeyField.Should().Be(userDevice.UserKeyField);
+    }
+
+    [Fact]
+    public async Task HandleDeviceAlertReceivedAsync_UrlAlert_WithCustomEntityKey_ShouldUseProvidedKey()
+    {
+        // Arrange
+        var customKey = "custom-key-123";
+        var deviceInfo = CreateDeviceInfo("TEST-DEVICE-001");
+        var alert = new UrlAlert
+        {
+            AlertType = "UrlAlert",
+            Priority = Priority.Medium,
+            Timestamp = DateTime.UtcNow,
+            Token = "test-token",
+            DeviceInfo = deviceInfo,
+            Url = "https://example.com"
+        };
+
+        var evt = new DeviceAlertReceived(alert, customKey);
+        var userDevice = CreateUserDevice("TEST-DEVICE-001");
+        
+        _mockAsView.Setup(v => v.FindUserDeviceByDeviceUid("TEST-DEVICE-001"))
+            .Returns(userDevice);
+
+        DeviceAlertEntity? capturedEntity = null;
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<DeviceAlertEntity>()))
+            .Callback<DeviceAlertEntity>(e => capturedEntity = e)
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _actor.HandleDeviceAlertReceivedAsync(evt);
+
+        // Assert
+        capturedEntity.Should().NotBeNull();
+        capturedEntity!.KeyField.Should().Be(customKey);
+    }
+
+    #endregion
+
+    #region HandleDeviceAlertReceivedAsync - RemoteAccessAlert Tests
+
+    [Fact]
+    public async Task HandleDeviceAlertReceivedAsync_RemoteAccessAlert_ShouldCreateRemoteAccessAlertEntity()
+    {
+        // Arrange
+        var deviceInfo = CreateDeviceInfo("TEST-DEVICE-002");
+        var alert = new RemoteAccessAlert
+        {
+            AlertType = "RemoteAccessAlert",
+            Priority = Priority.Critical,
+            Timestamp = DateTime.UtcNow,
+            Token = "test-token-456",
+            DeviceInfo = deviceInfo,
+            RemoteAccessApp = RemoteAccessApp.TeamViewer,
+            ConnectionUrl = "https://teamviewer.com/session/12345",
+            ConnectionStatus = ConnectionStatus.Open,
+            ConnectionsCount = 1,
+            RunningProcesses = 3,
+            SessionStatus = SessionStatus.Active,
+            RemoteOS = "Windows 10",
+            RemoteVersion = "15.0",
+            ConnectionType = "Direct",
+            FileTransferActive = true,
+            FileTransfers = "file1.exe"
+        };
+
+        var evt = new DeviceAlertReceived(alert);
+        var userDevice = CreateUserDevice("TEST-DEVICE-002");
+        
+        _mockAsView.Setup(v => v.FindUserDeviceByDeviceUid("TEST-DEVICE-002"))
+            .Returns(userDevice);
+
+        DeviceAlertEntity? capturedEntity = null;
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<DeviceAlertEntity>()))
+            .Callback<DeviceAlertEntity>(e => capturedEntity = e)
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _actor.HandleDeviceAlertReceivedAsync(evt);
+
+        // Assert
+        capturedEntity.Should().NotBeNull();
+        capturedEntity.Should().BeOfType<RemoteAccessAlertEntity>();
+        
+        var raEntity = (RemoteAccessAlertEntity)capturedEntity!;
+        raEntity.AlertType.Should().Be("RemoteAccessAlert");
+        raEntity.Priority.Should().Be(Priority.Critical);
+        raEntity.RemoteAccessApp.Should().Be(RemoteAccessApp.TeamViewer);
+        raEntity.ConnectionUrl.Should().Be("https://teamviewer.com/session/12345");
+        raEntity.ConnectionStatus.Should().Be(ConnectionStatus.Open);
+        raEntity.ConnectionsCount.Should().Be(1);
+        raEntity.RunningProcesses.Should().Be(3);
+        raEntity.SessionStatus.Should().Be(SessionStatus.Active);
+        raEntity.RemoteOS.Should().Be("Windows 10");
+        raEntity.RemoteVersion.Should().Be("15.0");
+        raEntity.ConnectionType.Should().Be("Direct");
+        raEntity.FileTransferActive.Should().BeTrue();
+        raEntity.FileTransfers.Should().Be("file1.exe");
+    }
+
+    #endregion
+
+    #region HandleDeviceAlertReceivedAsync - TrackUrlAlert Tests
+
+    [Fact]
+    public async Task HandleDeviceAlertReceivedAsync_TrackUrlAlert_ShouldCreateTrackUrlAlertEntity()
+    {
+        // Arrange
+        var deviceInfo = CreateDeviceInfo("TEST-DEVICE-003");
+        var trackers = new[]
+        {
+            new EntityKey { Type = "Tracker", Value = "google-analytics" },
+            new EntityKey { Type = "Tracker", Value = "facebook-pixel" }
+        };
+        
+        var alert = new TrackUrlAlert
+        {
+            AlertType = "TrackUrlAlert",
+            Priority = Priority.Medium,
+            Timestamp = DateTime.UtcNow,
+            Token = "test-token-789",
+            DeviceInfo = deviceInfo,
+            Url = "https://news-site.com/article",
+            Trackers = trackers,
+            TrackerCount = 2,
+            TrackingType = "Analytics",
+            UserAgent = "Chrome/100.0"
+        };
+
+        var evt = new DeviceAlertReceived(alert);
+        var userDevice = CreateUserDevice("TEST-DEVICE-003");
+        
+        _mockAsView.Setup(v => v.FindUserDeviceByDeviceUid("TEST-DEVICE-003"))
+            .Returns(userDevice);
+
+        DeviceAlertEntity? capturedEntity = null;
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<DeviceAlertEntity>()))
+            .Callback<DeviceAlertEntity>(e => capturedEntity = e)
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _actor.HandleDeviceAlertReceivedAsync(evt);
+
+        // Assert
+        capturedEntity.Should().NotBeNull();
+        capturedEntity.Should().BeOfType<TrackUrlAlertEntity>();
+        
+        var trackEntity = (TrackUrlAlertEntity)capturedEntity!;
+        trackEntity.AlertType.Should().Be("TrackUrlAlert");
+        trackEntity.Url.Should().Be("https://news-site.com/article");
+        trackEntity.TrackerCount.Should().Be(2);
+        trackEntity.TrackingType.Should().Be("Analytics");
+        trackEntity.UserAgent.Should().Be("Chrome/100.0");
+        trackEntity.TrackerKeys.Should().NotBeNullOrEmpty();
+    }
+
+    #endregion
+
+    #region Edge Cases
+
+    [Fact]
+    public async Task HandleDeviceAlertReceivedAsync_DeviceNotFound_ShouldThrowDomainException()
+    {
+        // Arrange
+        var deviceInfo = CreateDeviceInfo("NONEXISTENT-DEVICE");
+        var alert = new UrlAlert
+        {
+            AlertType = "UrlAlert",
+            Priority = Priority.Medium,
+            Timestamp = DateTime.UtcNow,
+            Token = "test-token",
+            DeviceInfo = deviceInfo,
+            Url = "https://example.com"
+        };
+
+        var evt = new DeviceAlertReceived(alert);
+        
+        _mockAsView.Setup(v => v.FindUserDeviceByDeviceUid("NONEXISTENT-DEVICE"))
+            .Returns((UserDeviceViewModel?)null);
+
+        // Act
+        Func<Task> act = async () => await _actor.HandleDeviceAlertReceivedAsync(evt);
+
+        // Assert
+        await act.Should().ThrowAsync<DomainException>()
+            .Where(e => e.Error.Code == "DeviceNotFound");
+        
+        _mockRepository.Verify(
+            r => r.AddAsync(It.IsAny<DeviceAlertEntity>()), 
+            Times.Never
+        );
+    }
+
+    [Fact]
+    public async Task HandleDeviceAlertReceivedAsync_WithoutEntityKey_ShouldGenerateGuid()
+    {
+        // Arrange
+        var deviceInfo = CreateDeviceInfo("TEST-DEVICE-001");
+        var alert = new UrlAlert
+        {
+            AlertType = "UrlAlert",
+            Priority = Priority.Medium,
+            Timestamp = DateTime.UtcNow,
+            Token = "test-token",
+            DeviceInfo = deviceInfo,
+            Url = "https://example.com"
+        };
+
+        var evt = new DeviceAlertReceived(alert); // No custom key
+        var userDevice = CreateUserDevice("TEST-DEVICE-001");
+        
+        _mockAsView.Setup(v => v.FindUserDeviceByDeviceUid("TEST-DEVICE-001"))
+            .Returns(userDevice);
+
+        DeviceAlertEntity? capturedEntity = null;
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<DeviceAlertEntity>()))
+            .Callback<DeviceAlertEntity>(e => capturedEntity = e)
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _actor.HandleDeviceAlertReceivedAsync(evt);
+
+        // Assert
+        capturedEntity.Should().NotBeNull();
+        capturedEntity!.KeyField.Should().NotBeNullOrEmpty();
+        Guid.TryParse(capturedEntity.KeyField, out _).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task HandleDeviceAlertReceivedAsync_DifferentAlertTypes_ShouldCreateCorrectEntities()
+    {
+        // Test all three alert types in sequence
+        var deviceInfo = CreateDeviceInfo("TEST-DEVICE-001");
+        var userDevice = CreateUserDevice("TEST-DEVICE-001");
+        
+        _mockAsView.Setup(v => v.FindUserDeviceByDeviceUid("TEST-DEVICE-001"))
+            .Returns(userDevice);
+
+        // Test UrlAlert
+        var urlAlert = new UrlAlert
+        {
+            AlertType = "UrlAlert",
+            DeviceInfo = deviceInfo,
+            Url = "https://test.com"
+        };
+        
+        DeviceAlertEntity? urlEntity = null;
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<DeviceAlertEntity>()))
+            .Callback<DeviceAlertEntity>(e => urlEntity = e)
+            .Returns(Task.CompletedTask);
+        
+        await _actor.HandleDeviceAlertReceivedAsync(new DeviceAlertReceived(urlAlert));
+        urlEntity.Should().BeOfType<UrlAlertEntity>();
+
+        // Test RemoteAccessAlert
+        var raAlert = new RemoteAccessAlert
+        {
+            AlertType = "RemoteAccessAlert",
+            DeviceInfo = deviceInfo,
+            RemoteAccessApp = RemoteAccessApp.AnyDesk,
+            ConnectionStatus = ConnectionStatus.Closed,
+            ConnectionsCount = 0,
+            RunningProcesses = 1,
+            SessionStatus = SessionStatus.Inactive
+        };
+        
+        DeviceAlertEntity? raEntity = null;
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<DeviceAlertEntity>()))
+            .Callback<DeviceAlertEntity>(e => raEntity = e)
+            .Returns(Task.CompletedTask);
+        
+        await _actor.HandleDeviceAlertReceivedAsync(new DeviceAlertReceived(raAlert));
+        raEntity.Should().BeOfType<RemoteAccessAlertEntity>();
+
+        // Test TrackUrlAlert
+        var trackAlert = new TrackUrlAlert
+        {
+            AlertType = "TrackUrlAlert",
+            DeviceInfo = deviceInfo,
+            Url = "https://tracked.com",
+            Trackers = Array.Empty<EntityKey>(),
+            TrackerCount = 0
+        };
+        
+        DeviceAlertEntity? trackEntity = null;
+        _mockRepository.Setup(r => r.AddAsync(It.IsAny<DeviceAlertEntity>()))
+            .Callback<DeviceAlertEntity>(e => trackEntity = e)
+            .Returns(Task.CompletedTask);
+        
+        await _actor.HandleDeviceAlertReceivedAsync(new DeviceAlertReceived(trackAlert));
+        trackEntity.Should().BeOfType<TrackUrlAlertEntity>();
+    }
+
+    #endregion
+
+    #region Helper Methods
+
+    private DeviceInfo CreateDeviceInfo(string deviceUid)
+    {
+        return new DeviceInfo
+        {
+            Key = new Key { Type = "UserDevice", Value = $"device-key-{deviceUid}" },
+            DeviceUid = deviceUid,
+            IP = "192.168.1.100",
+            UserAgent = "TestAgent/1.0",
+            Timezone = 0,
+            OperatingSystem = OperatingSystem.Windows,
+            MACAddress = "00:11:22:33:44:55",
+            UserKey = new Key { Type = "User", Value = "user-key-1" }
+        };
+    }
+
+    private UserDevice CreateUserDevice(string deviceUid)
+    {
+        return new PersonalComputer
+        {
+            DeviceUid = deviceUid,
+            DeviceType = DeviceType.Desktop,
+            OperatingSystem = OperatingSystem.Windows,
+            UserKeyField = "user-key-1",
+            KeyField = $"device-key-{deviceUid}"
+        };
+    }
+
+    #endregion
+}

@@ -62,7 +62,7 @@ namespace Business.RealtimeAnalysis
                         }
                     }
 
-                    if (vm.Purpose?.Category != WebsiteType.Unknown)
+                    if (vm.Purpose is not null && vm.Purpose.Category != WebsiteType.Unknown)
                     {
                         var websiteTypeIndicator = new WebsiteTypeIndicator(vm.Purpose?.Category??0, new NumericScore(0, vm.Purpose is null ? 0 :vm.Purpose.Confidence, true), AnalysisLevel.Device, 1, 1.0f);
                         res.Add(websiteTypeIndicator);
@@ -78,6 +78,7 @@ namespace Business.RealtimeAnalysis
                     {
                         var x = vm.ml_analysis;
                         var mlAnalysisIndicator = new MlAnalysisIndicator(vm.ml_analysis, AnalysisLevel.Device, 1);
+                        res.Add(mlAnalysisIndicator);
                     }
 
                     return res.ToArray();
@@ -100,6 +101,7 @@ namespace Business.RealtimeAnalysis
                         var remoteAccessSessionOpenIndicator = new RemoteAccessIndicator(vm.RemoteAccessApp, vm.RunningProcesses,
                             vm.ConnectionUrl, vm.ConnectionStatus, vm.ConnectionsCount, (SessionStatus)vm.SessionStatus, browserTabs, nScore, AnalysisLevel.Device,
                             0, 1);
+                        res.Add(remoteAccessSessionOpenIndicator);
                     }
                     break;
             }
