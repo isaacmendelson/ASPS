@@ -10,19 +10,37 @@ namespace Business.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<int>(
-                name: "TrackerCount",
-                table: "DeviceAlerts",
-                type: "int",
-                nullable: true);
+            // Add TrackerCount if not exists
+            migrationBuilder.Sql(@"
+                SET @columnExists = (
+                    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_SCHEMA = DATABASE() 
+                    AND TABLE_NAME = 'DeviceAlerts' 
+                    AND COLUMN_NAME = 'TrackerCount'
+                );
+                SET @sql = IF(@columnExists = 0, 
+                    'ALTER TABLE DeviceAlerts ADD COLUMN TrackerCount INT NULL', 
+                    'SELECT 1');
+                PREPARE stmt FROM @sql;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+            ");
 
-            migrationBuilder.AddColumn<string>(
-                name: "TrackingType",
-                table: "DeviceAlerts",
-                type: "varchar(100)",
-                maxLength: 100,
-                nullable: true)
-                .Annotation("MySql:CharSet", "utf8mb4");
+            // Add TrackingType if not exists
+            migrationBuilder.Sql(@"
+                SET @columnExists = (
+                    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_SCHEMA = DATABASE() 
+                    AND TABLE_NAME = 'DeviceAlerts' 
+                    AND COLUMN_NAME = 'TrackingType'
+                );
+                SET @sql = IF(@columnExists = 0, 
+                    'ALTER TABLE DeviceAlerts ADD COLUMN TrackingType VARCHAR(100) NULL', 
+                    'SELECT 1');
+                PREPARE stmt FROM @sql;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+            ");
         }
 
         /// <inheritdoc />
