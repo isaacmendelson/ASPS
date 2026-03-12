@@ -182,6 +182,7 @@ public class UDAnalysis : IBackgroundTask
         switch (deviceAlert)
         {
             case UrlAlert:
+            case TrackUrlAlert:
                 urlAnalyzerResults = analysisResults.Where(i => i.Key == nameof(UDUrlAnalyzer)).ToList();
 
                 foreach (var item in urlAnalyzerResults)

@@ -119,6 +119,7 @@ class Program
                 services.AddScoped<IUserAccountRepository, UserAccountRepository>();
                 services.AddScoped<IAnalysisResultRepository, AnalysisResultRepository>();
                 services.AddScoped<IDeviceAlertRepository, DeviceAlertRepository>();
+                services.AddScoped<ITrackUrlAlertRepository, TrackUrlAlertRepository>();
                 services.AddScoped<IAlertFlagRepository, AlertFlagRepository>();
                 services.AddScoped<IKnownPhishingWebsiteRepository, KnownPhishingWebsiteRepository>();
                 services.AddScoped<ISafeDomainRepository, SafeDomainRepository>();

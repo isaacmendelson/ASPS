@@ -1,6 +1,7 @@
 using Common.Entities;
 using Common.Models;
 using DeviceAlertEntity = Common.Entities.DeviceAlertEntity;
+using TrackUrlAlertEntity = Common.Entities.TrackUrlAlertEntity;
 
 namespace Interface.Repositories;
 
@@ -64,4 +65,11 @@ public interface IKnownPhishingWebsiteRepository
     Task UpdateAsync(KnownPhishingWebsite website);
     Task DeleteAsync(int id);
     Task<int> GetCountAsync();
+}
+
+public interface ITrackUrlAlertRepository : IRepository<TrackUrlAlertEntity>
+{
+    Task<IEnumerable<TrackUrlAlertEntity>> GetAlertsByUrlAsync(string url);
+    Task<IEnumerable<TrackUrlAlertEntity>> GetAlertsByUserKeyAsync(Key? userKey);
+    Task<IEnumerable<TrackUrlAlertEntity>> GetRecentAlertsAsync(TimeSpan timeSpan);
 }

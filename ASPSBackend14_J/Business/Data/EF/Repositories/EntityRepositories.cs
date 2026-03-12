@@ -4,6 +4,7 @@ using Interface.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using DeviceAlertEntity = Common.Entities.DeviceAlertEntity;
+using TrackUrlAlertEntity = Common.Entities.TrackUrlAlertEntity;
 
 namespace Business.Data.EF.Repositories;
 
@@ -199,6 +200,44 @@ public class DeviceAlertRepository : Repository<DeviceAlertEntity>, IDeviceAlert
     }
 
     public async Task<IEnumerable<DeviceAlertEntity>> GetRecentAlertsAsync(TimeSpan timeSpan)
+    {
+        var cutoff = DateTime.UtcNow - timeSpan;
+        return await _dbSet
+            .AsNoTracking()
+            .Where(a => a.Timestamp >= cutoff && !a.IsDeleted)
+            .OrderByDescending(a => a.Timestamp)
+            .ToListAsync();
+    }
+}
+
+public class TrackUrlAlertRepository : Repository<TrackUrlAlertEntity>, ITrackUrlAlertRepository
+{
+    public TrackUrlAlertRepository(AppDbContext context) : base(context) { }
+
+    public async Task<IEnumerable<TrackUrlAlertEntity>> GetAlertsByUrlAsync(string url)
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .Where(a => a.Url == url && !a.IsDeleted)
+            .OrderByDescending(a => a.Timestamp)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<TrackUrlAlertEntity>> GetAlertsByUserKeyAsync(Key? userKey)
+    {
+        if (userKey == null)
+            return Enumerable.Empty<TrackUrlAlertEntity>();
+
+        var userKeyField = Entity.GetDbKey(userKey);
+        
+        return await _dbSet
+            .AsNoTracking()
+            .Where(a => a.UserKeyField == userKeyField && !a.IsDeleted)
+            .OrderByDescending(a => a.Timestamp)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<TrackUrlAlertEntity>> GetRecentAlertsAsync(TimeSpan timeSpan)
     {
         var cutoff = DateTime.UtcNow - timeSpan;
         return await _dbSet

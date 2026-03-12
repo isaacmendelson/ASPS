@@ -63,27 +63,35 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
 
     public bool CanAnalyze(DeviceAlert alert)
     {
-        return alert is UrlAlert;
+        return alert is UrlAlert or TrackUrlAlert;
     }
 
     public async Task<AnalyzerResult> AnalyzeAsync(DeviceAlert alert, List<DeviceAlert> historicalAlerts, IConfiguration configuration)
     {
-        if (alert is not UrlAlert urlAlert)
+        string url;
+        switch (alert)
         {
-            return new AnalyzerResult(Severity.Low, "Alert is not a UrlAlert");
+            case UrlAlert urlAlert:
+                url = urlAlert.Url;
+                break;
+            case TrackUrlAlert trackUrlAlert:
+                url = trackUrlAlert.Url;
+                break;
+            default:
+                return new AnalyzerResult(Severity.Low, "Alert is not a UrlAlert or TrackUrlAlert");
         }
 
-        _logger.LogInformation($"Analyzing URL: {urlAlert.Url}");
+        _logger.LogInformation($"Analyzing URL: {url}");
 
         // STEP 0: Check if domain is whitelisted (SafeDomains)
-        var alertDomain = Common.Entities.KnownPhishingWebsite.GetDomainFromUrl(urlAlert.Url);
+        var alertDomain = Common.Entities.KnownPhishingWebsite.GetDomainFromUrl(url);
         if (!string.IsNullOrEmpty(alertDomain) && _asView.IsSafeDomain(alertDomain))
         {
             _logger.LogInformation($"Domain '{alertDomain}' is whitelisted (SafeDomains). Skipping analysis.");
 
             var whitelistedResult = new UrlAnalysisResultVm
             {
-                Url = urlAlert.Url,
+                Url = url,
                 Domain = alertDomain,
                 analysis_time_ms = 0,
                 IsFromCache = false,
@@ -112,7 +120,7 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
                 {
                     ["results"] = new[] { whitelistedResult },
                     ["errors"] = Array.Empty<string>(),
-                    ["url"] = urlAlert.Url,
+                    ["url"] = url,
                     ["analyzers_run"] = 0,
                     ["analyzers_total"] = ExternalAnalyzers.Length,
                     ["is_whitelisted"] = true
@@ -121,17 +129,17 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
         }
 
         // STEP 1: Check against known phishing database FIRST (fast check)
-        var phishingCheckResult = await CheckKnownPhishingAsync(urlAlert.Url);
+        var phishingCheckResult = await CheckKnownPhishingAsync(url);
         
         // If it's a known phishing URL, we can return immediately with Critical severity
         if (phishingCheckResult.Is_known_phishing)
         {
-            _logger.LogWarning($"⚠️ KNOWN PHISHING URL DETECTED: {urlAlert.Url} (Source: {phishingCheckResult.Source})");
+            _logger.LogWarning($"⚠️ KNOWN PHISHING URL DETECTED: {url} (Source: {phishingCheckResult.Source})");
             
             // Create indicator
             var phishingIndicator = new KnownPhishingIndicator(
-                urlAlert.Url,
-                Common.Entities.KnownPhishingWebsite.GetDomainFromUrl(urlAlert.Url), 
+                url,
+                Common.Entities.KnownPhishingWebsite.GetDomainFromUrl(url), 
                 true,
                 true,
                 phishingCheckResult.Source,
@@ -176,9 +184,9 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
 
                 // STEP 2: Check if a UrlAnalysisResult exists for this URL (cache)
                 var cacheEnabled = configuration.GetValue<bool>("Analysis:CacheEnabled", true);
-                if (cacheEnabled && this._asView.TryGetCachedUrlAnalysis(urlAlert.Url, 0, out var cachedResult) && cachedResult is not null)
+                if (cacheEnabled && this._asView.TryGetCachedUrlAnalysis(url, 0, out var cachedResult) && cachedResult is not null)
                 {
-                    _logger.LogInformation($"Cache hit for URL: {urlAlert.Url}");
+                    _logger.LogInformation($"Cache hit for URL: {url}");
                     cachedResult.IsFromCache = true;
 
                     // Add phishing check result to cached result
@@ -186,8 +194,8 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
 
                     result = new UrlAnalysisResultVm()
                     {
-                        Url = urlAlert.Url,
-                        Domain = Common.Entities.KnownPhishingWebsite.GetDomainFromUrl(urlAlert.Url),
+                        Url = url,
+                        Domain = Common.Entities.KnownPhishingWebsite.GetDomainFromUrl(url),
                         analysis_time_ms = 0,
                         IsFromCache = true,
                         IsWhitelisted = false,
@@ -210,7 +218,7 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
                 }
                 else
                 {
-                    result = await RunPythonAnalyzerAsync(analyzer, urlAlert.Url);
+                    result = await RunPythonAnalyzerAsync(analyzer, url);
                 }
 
                 if (result != null)
@@ -275,9 +283,9 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
         // Add phishing indicator if domain is suspicious
         if (phishingCheckResult.Is_known_phishing_domain)
         {
-            var domain = Common.Entities.KnownPhishingWebsite.GetDomainFromUrl(urlAlert.Url);
+            var domain = Common.Entities.KnownPhishingWebsite.GetDomainFromUrl(url);
             var phishingIndicator = new KnownPhishingIndicator(
-                urlAlert.Url,
+                url,
                 domain,
                 phishingCheckResult.Is_known_phishing,
                 phishingCheckResult.Is_known_phishing_domain,
@@ -317,7 +325,7 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
             {
                 ["results"] = results.ToArray(),
                 ["errors"] = errors.ToArray(),
-                ["url"] = urlAlert.Url,
+                ["url"] = url,
                 ["analyzers_run"] = results.Count,
                 ["analyzers_total"] = ExternalAnalyzers.Length
             }

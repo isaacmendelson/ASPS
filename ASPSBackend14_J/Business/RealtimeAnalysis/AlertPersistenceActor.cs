@@ -115,6 +115,29 @@ namespace Business.RealtimeAnalysis
                         UserKeyField = userDevice.UserKeyField,
                     };
                     break;
+
+                case TrackUrlAlert t:
+                    alertEntity = new TrackUrlAlertEntity()
+                    {
+                        DateCreated = DateTime.UtcNow,
+                        KeyField = entityKey,
+                        AlertType = vm.AlertType,
+                        Priority = vm.Priority,
+                        Timestamp = vm.Timestamp,
+                        Token = vm.Token,
+                        Status = vm.Status,
+                        DeviceUid = vm.DeviceInfo.DeviceUid,
+                        DeviceType = userDevice.DeviceType,
+                        OperatingSystem = userDevice.OperatingSystem,
+                        IPAddress = vm.DeviceInfo.IP,
+                        Url = t.Url,
+                        TrackerKeys = Newtonsoft.Json.JsonConvert.SerializeObject(t.Trackers),
+                        TrackerCount = t.TrackerCount,
+                        TrackingType = t.TrackingType,
+                        UserAgent = t.UserAgent,
+                        UserKeyField = userDevice.UserKeyField,
+                    };
+                    break;
             }
 
             // Save alert entity to database using scoped repository
