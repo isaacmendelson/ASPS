@@ -16,10 +16,14 @@ namespace Business.Views
         public UrlAlertView(UrlAlertEntity entity)
             : base(entity)
         {
-            this.Url = entity.Url;
-            this.TrackerKeys = JsonConvert.DeserializeObject<Key[]>(entity.TrackerKeys);
-            this.IFrameDomains = entity.IFrameDomains.Split(",");
-            this.UserAgent = entity.UserAgent;
+            this.Url = entity.Url ?? string.Empty;
+            this.TrackerKeys = string.IsNullOrEmpty(entity.TrackerKeys) 
+                ? Array.Empty<Key>() 
+                : JsonConvert.DeserializeObject<Key[]>(entity.TrackerKeys) ?? Array.Empty<Key>();
+            this.IFrameDomains = string.IsNullOrEmpty(entity.IFrameDomains) 
+                ? Array.Empty<string>() 
+                : entity.IFrameDomains.Split(",");
+            this.UserAgent = entity.UserAgent ?? string.Empty;
             this.AlertId = entity.AlertId;
         }
 
