@@ -5,6 +5,7 @@ using Business.Services;
 using Business.Views;
 using Common.Messaging;
 using Common.Models;
+using Interface.Repositories;
 using NetMQ;
 using NetMQ.Sockets;
 using Newtonsoft.Json;
@@ -148,6 +149,7 @@ public class CQRSGateway : IDisposable
             "GetAllAnalysisResultsQuery" => await HandleGetAllAnalysisResultsQuery(messageJson, scope),
             "GetAnalysisResultByAlertKeyQuery" => await HandleGetAnalysisResultByAlertKeyQuery(messageJson, scope),
             "GetAllPhishingWebsitesQuery" => HandleGetAllPhishingWebsitesQuery(messageJson),
+            "GetAllTrackedDomainsQuery" => HandleGetAllTrackedDomainsQuery(messageJson),
             "ValidateDeviceTokenQuery" => HandleValidateDeviceTokenQuery(messageJson),
             _ => CreateErrorResponse($"Unknown query type: {queryType}")
         };
@@ -484,6 +486,65 @@ public class CQRSGateway : IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting phishing websites from ASView");
+            return CreateErrorResponse($"Error: {ex.Message}");
+        }
+    }
+
+    private string HandleGetAllTrackedDomainsQuery(string messageJson)
+    {
+        try
+        {
+            var query = JsonConvert.DeserializeObject<GetAllTrackedDomainsQuery>(messageJson) ?? new GetAllTrackedDomainsQuery();
+            
+            using var scope = _serviceProvider.CreateScope();
+            var trackedDomainRepository = scope.ServiceProvider.GetRequiredService<ITrackedDomainRepository>();
+            
+            var domains = trackedDomainRepository.GetAllActiveAsync().Result.ToList();
+
+            // Apply category filter
+            if (!string.IsNullOrWhiteSpace(query.Category))
+            {
+                domains = domains.Where(d => d.Category.Equals(query.Category, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            // Apply search filter
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var search = query.Search.Trim().ToLowerInvariant();
+                domains = domains.Where(d =>
+                    d.Domain.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    d.Category.Contains(search, StringComparison.OrdinalIgnoreCase)
+                ).ToList();
+            }
+
+            var totalCount = domains.Count;
+
+            // Apply paging
+            var page = Math.Max(1, query.Page);
+            var pageSize = Math.Clamp(query.PageSize, 1, 500);
+            var pagedDomains = domains
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var result = new GetAllTrackedDomainsQueryResult
+            {
+                Success = true,
+                TrackedDomains = pagedDomains,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+
+            return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+            {
+                TypeNameHandling = TypeNameHandling.Auto,
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting tracked domains");
             return CreateErrorResponse($"Error: {ex.Message}");
         }
     }

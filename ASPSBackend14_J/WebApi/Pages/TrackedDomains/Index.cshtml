@@ -1,0 +1,158 @@
+@page
+@model WebApi.Pages.TrackedDomains.IndexModel
+@{
+    ViewData["Title"] = "Tracked Domains";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Tracked Domains</h1>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Error!</strong> @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">Tracking Domains (@Model.TotalCount)</h6>
+        <form method="get" class="d-flex" style="max-width: 400px;">
+            <input type="text" name="search" value="@Model.Search" class="form-control form-control-sm me-2" placeholder="Search domain, category..." />
+            <select name="category" class="form-select form-select-sm me-2" style="width: auto;">
+                <option value="">All Categories</option>
+                <option value="Analytics" selected="@(Model.Category == "Analytics")">Analytics</option>
+                <option value="Advertising" selected="@(Model.Category == "Advertising")">Advertising</option>
+                <option value="Social" selected="@(Model.Category == "Social")">Social</option>
+                <option value="Tracking" selected="@(Model.Category == "Tracking")">Tracking</option>
+            </select>
+            <button type="submit" class="btn btn-sm btn-primary">Search</button>
+            @if (!string.IsNullOrEmpty(Model.Search) || !string.IsNullOrEmpty(Model.Category))
+            {
+                <a href="/TrackedDomains" class="btn btn-sm btn-outline-secondary ms-1">Clear</a>
+            }
+        </form>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover" id="trackedDomainsTable">
+                <thead>
+                    <tr>
+                        <th>Key</th>
+                        <th>Domain</th>
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th>Date Created</th>
+                        <th>Date Modified</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var domain in Model.TrackedDomains)
+                    {
+                        <tr>
+                            <td>@domain.Id</td>
+                            <td><code>@domain.Domain</code></td>
+                            <td>
+                                @if (domain.Category == "Analytics")
+                                {
+                                    <span class="badge bg-primary">@domain.Category</span>
+                                }
+                                else if (domain.Category == "Advertising")
+                                {
+                                    <span class="badge bg-warning text-dark">@domain.Category</span>
+                                }
+                                else if (domain.Category == "Social")
+                                {
+                                    <span class="badge bg-info">@domain.Category</span>
+                                }
+                                else if (domain.Category == "Tracking")
+                                {
+                                    <span class="badge bg-danger">@domain.Category</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">@domain.Category</span>
+                                }
+                            </td>
+                            <td>
+                                @if (domain.IsActive)
+                                {
+                                    <span class="badge bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Inactive</span>
+                                }
+                            </td>
+                            <td>@domain.DateCreated.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td>@domain.DateModified.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.TotalPages > 1)
+        {
+            <nav aria-label="Tracked domains pagination">
+                <ul class="pagination justify-content-center mb-0 mt-3">
+                    <li class="page-item @(Model.CurrentPage <= 1 ? "disabled" : "")">
+                        <a class="page-link" href="/TrackedDomains?page=@(Model.CurrentPage - 1)@(BuildQueryString(Model.Search, Model.Category))">Previous</a>
+                    </li>
+
+                    @{
+                        int startPage = Math.Max(1, Model.CurrentPage - 2);
+                        int endPage = Math.Min(Model.TotalPages, Model.CurrentPage + 2);
+
+                        if (startPage > 1)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="/TrackedDomains?page=1@(BuildQueryString(Model.Search, Model.Category))">1</a>
+                            </li>
+                            if (startPage > 2)
+                            {
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            }
+                        }
+
+                        for (int i = startPage; i <= endPage; i++)
+                        {
+                            <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                <a class="page-link" href="/TrackedDomains?page=@i@(BuildQueryString(Model.Search, Model.Category))">@i</a>
+                            </li>
+                        }
+
+                        if (endPage < Model.TotalPages)
+                        {
+                            if (endPage < Model.TotalPages - 1)
+                            {
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            }
+                            <li class="page-item">
+                                <a class="page-link" href="/TrackedDomains?page=@Model.TotalPages@(BuildQueryString(Model.Search, Model.Category))">@Model.TotalPages</a>
+                            </li>
+                        }
+                    }
+
+                    <li class="page-item @(Model.CurrentPage >= Model.TotalPages ? "disabled" : "")">
+                        <a class="page-link" href="/TrackedDomains?page=@(Model.CurrentPage + 1)@(BuildQueryString(Model.Search, Model.Category))">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        }
+    </div>
+</div>
+
+@functions {
+    string BuildQueryString(string? search, string? category)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrEmpty(search))
+            parts.Add($"search={Uri.EscapeDataString(search)}");
+        if (!string.IsNullOrEmpty(category))
+            parts.Add($"category={Uri.EscapeDataString(category)}");
+        return parts.Count > 0 ? "&" + string.Join("&", parts) : "";
+    }
+}

@@ -11,6 +11,7 @@ public class AdminQueryHandlers
     private readonly IUserDeviceRepository _userDeviceRepository;
     private readonly IDeviceAlertRepository _deviceAlertRepository;
     private readonly IKnownPhishingWebsiteRepository _phishingWebsiteRepository;
+    private readonly ITrackedDomainRepository _trackedDomainRepository;
     private readonly IAnalysisResultRepository _analysisResultRepository;
     private readonly ILogger<AdminQueryHandlers> _logger;
 
@@ -19,6 +20,7 @@ public class AdminQueryHandlers
         IUserDeviceRepository userDeviceRepository,
         IDeviceAlertRepository deviceAlertRepository,
         IKnownPhishingWebsiteRepository phishingWebsiteRepository,
+        ITrackedDomainRepository trackedDomainRepository,
         IAnalysisResultRepository analysisResultRepository,
         ILogger<AdminQueryHandlers> logger)
     {
@@ -26,6 +28,7 @@ public class AdminQueryHandlers
         _userDeviceRepository = userDeviceRepository;
         _deviceAlertRepository = deviceAlertRepository;
         _phishingWebsiteRepository = phishingWebsiteRepository;
+        _trackedDomainRepository = trackedDomainRepository;
         _analysisResultRepository = analysisResultRepository;
         _logger = logger;
     }
@@ -414,6 +417,57 @@ public class AdminQueryHandlers
         {
             _logger.LogError(ex, "Error getting analysis result by alert key");
             return new GetAnalysisResultByAlertKeyQueryResult
+            {
+                Success = false,
+                Message = $"Error: {ex.Message}"
+            };
+        }
+    }
+
+    public async Task<GetAllTrackedDomainsQueryResult> HandleAsync(GetAllTrackedDomainsQuery query)
+    {
+        try
+        {
+            var allDomains = await _trackedDomainRepository.GetAllActiveAsync();
+            var domains = allDomains.ToList();
+
+            // Apply category filter
+            if (!string.IsNullOrWhiteSpace(query.Category))
+            {
+                domains = domains.Where(d => d.Category.Equals(query.Category, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            // Apply search filter
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var search = query.Search.Trim().ToLowerInvariant();
+                domains = domains.Where(d =>
+                    d.Domain.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    d.Category.Contains(search, StringComparison.OrdinalIgnoreCase)
+                ).ToList();
+            }
+
+            var totalCount = domains.Count;
+
+            // Pagination
+            var pagedDomains = domains
+                .Skip((query.Page - 1) * query.PageSize)
+                .Take(query.PageSize)
+                .ToList();
+
+            return new GetAllTrackedDomainsQueryResult
+            {
+                Success = true,
+                TrackedDomains = pagedDomains,
+                TotalCount = totalCount,
+                Page = query.Page,
+                PageSize = query.PageSize
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting tracked domains");
+            return new GetAllTrackedDomainsQueryResult
             {
                 Success = false,
                 Message = $"Error: {ex.Message}"

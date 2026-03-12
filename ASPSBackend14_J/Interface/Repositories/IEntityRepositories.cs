@@ -73,3 +73,17 @@ public interface ITrackUrlAlertRepository : IRepository<TrackUrlAlertEntity>
     Task<IEnumerable<TrackUrlAlertEntity>> GetAlertsByUserKeyAsync(Key? userKey);
     Task<IEnumerable<TrackUrlAlertEntity>> GetRecentAlertsAsync(TimeSpan timeSpan);
 }
+
+public interface ITrackedDomainRepository
+{
+    Task<TrackedDomain?> GetByIdAsync(int id);
+    Task<IEnumerable<TrackedDomain>> GetAllActiveAsync();
+    Task<TrackedDomain?> GetByDomainAsync(string domain);
+    Task<IEnumerable<TrackedDomain>> GetByCategoryAsync(string category);
+    Task<bool> IsTrackedDomainAsync(string domain);
+    Task<int> AddAsync(TrackedDomain trackedDomain);
+    Task<int> AddRangeAsync(IEnumerable<TrackedDomain> trackedDomains);
+    Task UpdateAsync(TrackedDomain trackedDomain);
+    Task DeleteAsync(int id);
+    Task<int> GetCountAsync();
+}

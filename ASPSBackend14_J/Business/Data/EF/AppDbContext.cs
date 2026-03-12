@@ -38,6 +38,7 @@ public class AppDbContext : DbContext
     public DbSet<DeviceAlertEntity> DeviceAlerts { get; set; }
     public DbSet<KnownPhishingWebsite> KnownPhishingWebsites { get; set; }
     public DbSet<SafeDomain> SafeDomains { get; set; }
+    public DbSet<TrackedDomain> TrackedDomains { get; set; }
     public DbSet<DeviceTokenEntity> DeviceTokens { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -318,6 +319,42 @@ public class AppDbContext : DbContext
                 .HasDefaultValue(false);
 
             entity.HasIndex(e => e.Domain);
+        });
+
+        // TrackedDomain configuration (INT AUTO_INCREMENT key)
+        modelBuilder.Entity<TrackedDomain>(entity =>
+        {
+            entity.ToTable("TrackedDomains");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id)
+                .HasColumnName("Key")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.Domain)
+                .IsRequired()
+                .HasMaxLength(255);
+
+            entity.Property(e => e.Category)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.IsActive)
+                .IsRequired()
+                .HasDefaultValue(true);
+
+            entity.Property(e => e.DateCreated)
+                .IsRequired();
+
+            entity.Property(e => e.DateModified)
+                .IsRequired();
+
+            entity.Property(e => e.DateDeleted);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.Domain);
+            entity.HasIndex(e => e.Category);
+            entity.HasIndex(e => e.DateDeleted);
+            entity.HasIndex(e => e.IsActive);
         });
 
         // DeviceToken configuration

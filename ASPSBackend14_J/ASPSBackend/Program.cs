@@ -133,6 +133,7 @@ class Program
                 services.AddScoped<IAlertFlagRepository, AlertFlagRepository>();
                 services.AddScoped<IKnownPhishingWebsiteRepository, KnownPhishingWebsiteRepository>();
                 services.AddScoped<ISafeDomainRepository, SafeDomainRepository>();
+                services.AddScoped<ITrackedDomainRepository, TrackedDomainRepository>();
 
                 // Add Handlers
                 services.AddScoped<UserCommandHandlers>();

@@ -230,3 +230,26 @@ public class GetAnalysisResultByAlertKeyQueryResult : QueryResult
 {
     public AnalysisResultContainer? AnalysisResult { get; set; }
 }
+
+// Get all Tracked Domains
+public class GetAllTrackedDomainsQuery : Query
+{
+    public GetAllTrackedDomainsQuery()
+    {
+        QueryType = nameof(GetAllTrackedDomainsQuery);
+    }
+
+    public string QueryType { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 50;
+    public string? Search { get; set; }
+    public string? Category { get; set; }
+}
+
+public class GetAllTrackedDomainsQueryResult : QueryResult
+{
+    public List<TrackedDomain> TrackedDomains { get; set; } = new();
+    public int TotalCount { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+}
