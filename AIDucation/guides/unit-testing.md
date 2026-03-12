@@ -306,6 +306,44 @@ dotnet build && dotnet test
 
 ---
 
+## Self-Check (חובה לפני סיום!) ✅
+
+**כל מתכנת חייב לבצע את הבדיקות האלה בעצמו:**
+
+### 1. Build עובר
+```bash
+dotnet build
+```
+✅ צפוי: `Build succeeded. 0 Error(s)`
+
+### 2. כל הטסטים עוברים
+```bash
+dotnet test
+```
+✅ צפוי: `Passed! Failed: 0`
+
+### 3. הטסט שלי עובר
+```bash
+dotnet test --filter "FullyQualifiedName~{MyClassName}Tests"
+```
+✅ צפוי: כל הטסטים שכתבתי עוברים
+
+### 4. בדיקת כיסוי
+- [ ] כל מתודה ציבורית נבדקת
+- [ ] Edge cases: null, empty, whitespace
+- [ ] חריגות (exceptions) נבדקות
+- [ ] יש לפחות 3-5 טסטים לכל class
+
+### 5. עדכון JIRA
+- [ ] Status: In Progress → Done
+- [ ] Comment: "Self-check passed. X tests written."
+
+---
+
+**רק אחרי Self-Check מוצלח → המשימה עוברת ל-QA לבדיקה מדגמית!**
+
+---
+
 ## Checklist לפני סיום משימה
 
 - [ ] כל המתודות הציבוריות מכוסות
@@ -313,6 +351,7 @@ dotnet build && dotnet test
 - [ ] `dotnet test` עובר (כל הטסטים!)
 - [ ] קוד נקי וקריא
 - [ ] JIRA מעודכן
+- [ ] **Self-Check בוצע!**
 
 ---
 
