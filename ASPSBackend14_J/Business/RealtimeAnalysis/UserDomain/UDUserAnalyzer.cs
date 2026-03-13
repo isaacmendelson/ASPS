@@ -122,7 +122,13 @@ namespace Business.RealtimeAnalysis.UserDomain
 
             var remoteAccessStatus = this.GetRemoteAccessStatus();
             //var x = this._asView.GetUrlAnalysisResultsByUserKey().Select(i => i.Indicators) ?? 
-            switch (analysisEvent.AnalyzerResults.FirstOrDefault().Value.Item1)
+            // SECURITY FIX ASPS-70: Safe null handling for FirstOrDefault
+            var firstAnalyzerResult = analysisEvent.AnalyzerResults.FirstOrDefault();
+            if (firstAnalyzerResult.Value.Item1 == null)
+            {
+                return; // No analyzer result to process
+            }
+            switch (firstAnalyzerResult.Value.Item1)
             {
                 case RemoteAccessAnalysisResultVm r:
                     break;

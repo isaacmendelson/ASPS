@@ -20,10 +20,10 @@ public class NetMQMessageProcessor : IDisposable
     private ResponseSocket? _responseSocket;
     private bool _isRunning;
 
-    // JSON settings with type handling
+    // JSON settings with type handling - SECURITY: Changed from .All to .None (ASPS-66)
     private readonly JsonSerializerSettings _jsonSettings = new JsonSerializerSettings
     {
-        TypeNameHandling = TypeNameHandling.All
+        TypeNameHandling = TypeNameHandling.None
     };
 
     public NetMQMessageProcessor(

@@ -13,10 +13,10 @@ public class NetMQClientService : INetMQClientService, IDisposable
     private RequestSocket? _requestSocket;
     private readonly object _lock = new();
 
-    // JSON settings with type handling
+    // JSON settings with type handling - SECURITY: Changed from .All to .None (ASPS-66)
     private readonly JsonSerializerSettings _jsonSettings = new JsonSerializerSettings
     {
-        TypeNameHandling = TypeNameHandling.All
+        TypeNameHandling = TypeNameHandling.None
     };
 
     public NetMQClientService(string endpoint, ILogger<NetMQClientService> logger, CurveKeyManager? curveKeyManager = null)

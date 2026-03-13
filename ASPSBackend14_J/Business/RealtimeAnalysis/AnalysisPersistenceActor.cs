@@ -54,6 +54,12 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                     if (analysisEvent.AnalyzerResults.Any())
                     {
                         var res1 = analysisEvent.AnalyzerResults.FirstOrDefault(i => i.Value.Item1 is UrlAnalysisResultVm);
+                        // SECURITY FIX ASPS-70: Added null check for FirstOrDefault result
+                        if (res1.Value.Item1 == null)
+                        {
+                            _logger.LogWarning("UrlAnalysisResultVm not found in analyzer results");
+                            break;
+                        }
                         var vm1 = res1.Value.Item1 as UrlAnalysisResultVm;
                         var vm11 = new UrlAnalyzerResultVm(vm1,
                             res1.Value.Item2.Cast<Indicator>().ToArray(),
@@ -61,7 +67,7 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                             res1.Key, analysisEvent.DeviceUid, analysisEvent.Timestamp, analysisEvent.Severity);
                         jsonValue = JsonConvert.SerializeObject(vm11, new JsonSerializerSettings
                         {
-                            TypeNameHandling = TypeNameHandling.Auto,
+                            TypeNameHandling = TypeNameHandling.None,
                             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
                         });
                     }
@@ -70,6 +76,12 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                     if (analysisEvent.AnalyzerResults.Any())
                     {
                         var res2 = analysisEvent.AnalyzerResults.FirstOrDefault(i => i.Value.Item1 is RemoteAccessAnalysisResultVm);
+                        // SECURITY FIX ASPS-70: Added null check for FirstOrDefault result
+                        if (res2.Value.Item1 == null)
+                        {
+                            _logger.LogWarning("RemoteAccessAnalysisResultVm not found in analyzer results");
+                            break;
+                        }
                         var vm2 = res2.Value.Item1 as RemoteAccessAnalysisResultVm;
                         var vm22 = new RemoteAccessAnalyzerResultVm(vm2,
                             res2.Value.Item2.Cast<Indicator>().ToArray(),

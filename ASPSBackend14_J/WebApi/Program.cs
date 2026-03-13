@@ -167,6 +167,13 @@ var app = builder.Build();
 // IMPORTANT: UseForwardedHeaders MUST be first!
 app.UseForwardedHeaders();
 
+// HTTPS configuration
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+app.UseHttpsRedirection();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

@@ -138,7 +138,9 @@ public class UDAnalysis : IBackgroundTask
                 {
                     case UDUrlAnalyzer:
                         _logger.LogInformation($"URL Analyzer result for device {deviceUid}: Severity={result.Severity}, Message={result.Message}");
-                        firstResult = result.Details.FirstOrDefault(i => i.Key == "results").Value;
+                        // SECURITY FIX ASPS-70: Safe null handling for FirstOrDefault
+                        var resultsEntry = result.Details.FirstOrDefault(i => i.Key == "results");
+                        firstResult = resultsEntry.Key != null ? resultsEntry.Value : null;
                         switch (firstResult)
                         {
                             case null:

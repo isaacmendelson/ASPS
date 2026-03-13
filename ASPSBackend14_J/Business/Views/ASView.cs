@@ -46,7 +46,8 @@ public class ASView : IDomainEventHandler, IBackgroundTask
     {
         _logger.LogInformation("ASView starting - loading data into memory...");
         
-        LoadDataAsync().Wait();
+        // Run synchronously in background to avoid blocking - we're in a startup context
+        Task.Run(async () => await LoadDataAsync()).GetAwaiter().GetResult();
         
         _logger.LogInformation($"ASView loaded: {_users.Count} users, {_userDevices.Count} devices, {_userAccounts.Count} accounts");
     }
@@ -299,68 +300,64 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                 var knownPhishingWebsites = await knownPhishingWebsiteRepository.GetAllActiveAsync();
                 _logger.LogInformation($"knownPhishingWebsites fetched: {knownPhishingWebsites.Count()} records");
 
-                _users = users.ToList();
-                _userDevices = devices.ToList();
-                _userAccounts = accounts.ToList();
-
-                _deviceAlerts = (List<DeviceAlertView>)(
-                    deviceAlerts.Where(i => i is UrlAlertEntity).Select(i => new UrlAlertView(i as UrlAlertEntity))
-                    .Union<DeviceAlertView>
-                    (
-                    deviceAlerts.Where(i => i is RemoteAccessAlertEntity).Select(i => new RemoteAccessAlertView(i as RemoteAccessAlertEntity))
-                    )).OrderByDescending(i => i.Timestamp).ToList();
-
-
-                _remoteAccessAnalysisResults = analysisResults.Where(i => i.Discriminator == nameof(RemoteAccessAnalysisResultVm)).Select(i => new RemoteAccessAnalysisResultView(i)).ToList();
-                _urlAnalysisResults = analysisResults.Where(i => i.Discriminator == nameof(UrlAnalysisResultVm) && !i.IsDisabled).
-                    Select(i => new UrlAnalysisResultView(i))
-                    .OrderByDescending(i => i.Timestamp).ToList();
-
-                // Build _analysisResults from typed lists so specific data (AnalysisResult, Alert) is preserved
-                _analysisResults = _urlAnalysisResults.Cast<AnalysisResultView>()
-                    .Concat(_remoteAccessAnalysisResults)
-                    .OrderByDescending(i => i.Timestamp).ToList();
-                _knownPhishingWebsites = knownPhishingWebsites.ToList();
-
-                _riskyDomains = _deviceAlerts
-                    .OfType<UrlAlertView>()
-                    .Where(u => !string.IsNullOrEmpty(u.Url) && this._knownPhishingWebsites.Select(i => i.Domain).Contains(u.Url))
-                    //this._urlAnalysisResults.Where(i => (i.AnalysisResult.Success && i.AnalysisResult.risk_assessment?.risk_score > 50))
-                    //.Select(r => KnownPhishingWebsite.GetDomainFromUrl((r.Alert as UrlAlert)!.Url))
-                    .Distinct()
-                    .Select(u => u.Url.ToLower())
-                    .Union(
-                        this._urlAnalysisResults.Where(i => (i.AnalysisResult?.Success == true && i.AnalysisResult?.risk_assessment?.risk_score < 25))
-                        .Select(r => KnownPhishingWebsite.GetDomainFromUrl((r.Alert as UrlAlert)!.Url.ToLower()))
-                    )
-                    .ToList();
-
-                var q = _deviceAlerts
-                    .OfType<UrlAlertView>()
-                    .Where(u => !string.IsNullOrEmpty(u.Url) && this._riskyDomains.Contains(u.Url))
-                    .Distinct();
-
-                this._riskyUrlSurfings = q  //
-                                         //_deviceAlerts
-                    //.OfType<UrlAlertView>()
-                    
-                    .Where(u => !string.IsNullOrEmpty(u.Url) && this._riskyDomains.Contains(u.Url))
-                    .Distinct()
-                    .Select(u => new UserDeviceUrlSurfData(
-                        u.UserKey,
-                        u.Url,
-                        u.DeviceUid,
-                        MessagingApp.Unknown,
-                        (this._analysisResults.FirstOrDefault(i => i.Alert?.AlertId == u.AlertId)?.AnalysisResult as UrlAnalysisResultVm)?.risk_assessment,
-                        q.Where(i => i.UserKey == u.UserKey && i.Url.ToLower() == u.Url.ToLower()).Select(i => new SurfHistoryItem(u.Url, i.Timestamp)).ToList()
-                        )
-                    {  })
-                    .ToList();
-
                 var safeDomainRepository = scope.ServiceProvider.GetRequiredService<ISafeDomainRepository>();
                 var safeDomains = await safeDomainRepository.GetAllActiveAsync();
                 _logger.LogInformation($"safeDomains fetched: {safeDomains.Count()} records");
-                _safeDomains = safeDomains.ToList();
+                
+                // Use lock when updating shared state
+                lock (_lock)
+                {
+                    _users = users.ToList();
+                    _userDevices = devices.ToList();
+                    _userAccounts = accounts.ToList();
+                    _deviceAlerts = (List<DeviceAlertView>)(
+                        deviceAlerts.Where(i => i is UrlAlertEntity).Select(i => new UrlAlertView(i as UrlAlertEntity))
+                        .Union<DeviceAlertView>
+                        (
+                        deviceAlerts.Where(i => i is RemoteAccessAlertEntity).Select(i => new RemoteAccessAlertView(i as RemoteAccessAlertEntity))
+                        )).OrderByDescending(i => i.Timestamp).ToList();
+
+                    _remoteAccessAnalysisResults = analysisResults.Where(i => i.Discriminator == nameof(RemoteAccessAnalysisResultVm)).Select(i => new RemoteAccessAnalysisResultView(i)).ToList();
+                    _urlAnalysisResults = analysisResults.Where(i => i.Discriminator == nameof(UrlAnalysisResultVm) && !i.IsDisabled).
+                        Select(i => new UrlAnalysisResultView(i))
+                        .OrderByDescending(i => i.Timestamp).ToList();
+
+                    _analysisResults = _urlAnalysisResults.Cast<AnalysisResultView>()
+                        .Concat(_remoteAccessAnalysisResults)
+                        .OrderByDescending(i => i.Timestamp).ToList();
+                    _knownPhishingWebsites = knownPhishingWebsites.ToList();
+                    _safeDomains = safeDomains.ToList();
+                    
+                    _riskyDomains = _deviceAlerts
+                        .OfType<UrlAlertView>()
+                        .Where(u => !string.IsNullOrEmpty(u.Url) && this._knownPhishingWebsites.Select(i => i.Domain).Contains(u.Url))
+                        .Distinct()
+                        .Select(u => u.Url.ToLower())
+                        .Union(
+                            this._urlAnalysisResults.Where(i => (i.AnalysisResult?.Success == true && i.AnalysisResult?.risk_assessment?.risk_score < 25))
+                            .Select(r => KnownPhishingWebsite.GetDomainFromUrl((r.Alert as UrlAlert)!.Url.ToLower()))
+                        )
+                        .ToList();
+
+                    var q = _deviceAlerts
+                        .OfType<UrlAlertView>()
+                        .Where(u => !string.IsNullOrEmpty(u.Url) && this._riskyDomains.Contains(u.Url))
+                        .Distinct();
+
+                    this._riskyUrlSurfings = q
+                        .Where(u => !string.IsNullOrEmpty(u.Url) && this._riskyDomains.Contains(u.Url))
+                        .Distinct()
+                        .Select(u => new UserDeviceUrlSurfData(
+                            u.UserKey,
+                            u.Url,
+                            u.DeviceUid,
+                            MessagingApp.Unknown,
+                            (this._analysisResults.FirstOrDefault(i => i.Alert?.AlertId == u.AlertId)?.AnalysisResult as UrlAnalysisResultVm)?.risk_assessment,
+                            q.Where(i => i.UserKey == u.UserKey && i.Url.ToLower() == u.Url.ToLower()).Select(i => new SurfHistoryItem(u.Url, i.Timestamp)).ToList()
+                            )
+                        {  })
+                        .ToList();
+                }
             }
 
             _logger.LogInformation($"ASView data loaded: {_users.Count} users, {_userDevices.Count} devices, {_userAccounts.Count} accounts");
@@ -387,36 +384,75 @@ public class ASView : IDomainEventHandler, IBackgroundTask
         }
     }
 
-    public List<User> GetUsers() => _users;
-    public List<UserDeviceView> GetUserDevices(Key userKey) => _userDevices.Where(i => i.UserKeyField?.ToString() == userKey.Value).Select(i => new UserDeviceView(i)).ToList();
-    public List<UserAccountView> GetUserAccounts(Key userKey) => _userAccounts.Where(i => i.UserKeyField.ToString() == userKey.Value).Select(i => new UserAccountView(i)).ToList();
+    public List<User> GetUsers()
+    {
+        lock (_lock) { return _users.ToList(); }
+    }
+    
+    public List<UserDeviceView> GetUserDevices(Key userKey)
+    {
+        lock (_lock) 
+        { 
+            return _userDevices
+                .Where(i => i.UserKeyField?.ToString() == userKey.Value)
+                .Select(i => new UserDeviceView(i))
+                .ToList(); 
+        }
+    }
+    
+    public List<UserAccountView> GetUserAccounts(Key userKey)
+    {
+        lock (_lock) 
+        { 
+            return _userAccounts
+                .Where(i => i.UserKeyField.ToString() == userKey.Value)
+                .Select(i => new UserAccountView(i))
+                .ToList(); 
+        }
+    }
     
     public UserDevice? FindUserDeviceByDeviceUid(string deviceUid)
     {
-        return _userDevices.FirstOrDefault(d => d.DeviceUid == deviceUid && !d.IsDeleted);
+        lock (_lock)
+        {
+            return _userDevices.FirstOrDefault(d => d.DeviceUid == deviceUid && !d.IsDeleted);
+        }
     }
 
     public User? FindUserByDeviceUid(string deviceUid)
     {
-        return _users.FirstOrDefault(i => i.KeyField == _userDevices.FirstOrDefault(d => d.DeviceUid == deviceUid && !d.IsDeleted)?.UserKeyField);
+        lock (_lock)
+        {
+            var device = _userDevices.FirstOrDefault(d => d.DeviceUid == deviceUid && !d.IsDeleted);
+            return _users.FirstOrDefault(i => i.KeyField == device?.UserKeyField);
+        }
     }
 
     public User? FindUserByKey(Common.Models.Key userKey)
     {
-        var keyField = Common.Models.Entity.GetDbKey(userKey);
-        return _users.FirstOrDefault(u => u.KeyField == keyField && !u.IsDeleted);
+        lock (_lock)
+        {
+            var keyField = Common.Models.Entity.GetDbKey(userKey);
+            return _users.FirstOrDefault(u => u.KeyField == keyField && !u.IsDeleted);
+        }
     }
 
     public User? FindUserByEmail(string email)
     {
-        return _users.FirstOrDefault(u =>
-            u.Email.Equals(email, StringComparison.OrdinalIgnoreCase) && !u.IsDeleted);
+        lock (_lock)
+        {
+            return _users.FirstOrDefault(u =>
+                u.Email.Equals(email, StringComparison.OrdinalIgnoreCase) && !u.IsDeleted);
+        }
     }
 
     public User? FindUserByEmailActive(string email)
     {
-        return _users.FirstOrDefault(u =>
-            u.Email.Equals(email, StringComparison.OrdinalIgnoreCase) && !u.IsDeleted && !u.IsDisabled);
+        lock (_lock)
+        {
+            return _users.FirstOrDefault(u =>
+                u.Email.Equals(email, StringComparison.OrdinalIgnoreCase) && !u.IsDeleted && !u.IsDisabled);
+        }
     }
 
     /// <summary>
@@ -430,10 +466,13 @@ public class ASView : IDomainEventHandler, IBackgroundTask
 
     internal IEnumerable<DeviceAlertView> GetActiveDeviceAlertsByUserKey(Key key, int? alertExpiryDays = 30)
     {
-        int daysToSubtract = alertExpiryDays ?? 30;
-        return this._deviceAlerts
-            
-            .Where(da => da.UserKey == key && da.Timestamp >= DateTime.UtcNow.AddDays(-daysToSubtract));
+        lock (_lock)
+        {
+            int daysToSubtract = alertExpiryDays ?? 30;
+            return this._deviceAlerts
+                .Where(da => da.UserKey == key && da.Timestamp >= DateTime.UtcNow.AddDays(-daysToSubtract))
+                .ToList();
+        }
     }
 
     //internal IEnumerable<UserDeviceUrlSurfData> GetSuspeciousUserSurfDataByUserKey(Key key, int? alertExpiryDays = 30)
@@ -447,64 +486,78 @@ public class ASView : IDomainEventHandler, IBackgroundTask
 
     internal IEnumerable<UserDeviceUrlSurfData> GetRiskyUrlSurfingByUserKey(Key key, int? alertExpiryDays = 30)
     {
-        int daysToSubtract = alertExpiryDays ?? 30;
-        var res = this._riskyUrlSurfings
-            .Where(da => da.UserKey.Value == key.Value 
-            && (daysToSubtract == 0 || da.CreatedAt >= DateTime.UtcNow.AddDays( -daysToSubtract))
-            );
-        return res.ToList();
+        lock (_lock)
+        {
+            int daysToSubtract = alertExpiryDays ?? 30;
+            var res = this._riskyUrlSurfings
+                .Where(da => da.UserKey.Value == key.Value 
+                && (daysToSubtract == 0 || da.CreatedAt >= DateTime.UtcNow.AddDays(-daysToSubtract)));
+            return res.ToList();
+        }
     }
 
-     internal IEnumerable<RemoteAccessAnalysisResultView> GetRemoteAccessAnalysisResultsByUserKey(Key key, int? alertExpiryDays = 30)
+    internal IEnumerable<RemoteAccessAnalysisResultView> GetRemoteAccessAnalysisResultsByUserKey(Key key, int? alertExpiryDays = 30)
     {
-        int daysToSubtract = alertExpiryDays ?? 30;
-        var res = this._remoteAccessAnalysisResults
-            .Where(da => da.UserKey?.Value == key.Value && da.Timestamp >= DateTime.UtcNow.AddDays(-daysToSubtract));
-        return res;
+        lock (_lock)
+        {
+            int daysToSubtract = alertExpiryDays ?? 30;
+            var res = this._remoteAccessAnalysisResults
+                .Where(da => da.UserKey?.Value == key.Value && da.Timestamp >= DateTime.UtcNow.AddDays(-daysToSubtract));
+            return res.ToList();
+        }
     }
 
-    public List<KnownPhishingWebsite> GetKnownPhishingWebsites() => _knownPhishingWebsites;
+    public List<KnownPhishingWebsite> GetKnownPhishingWebsites()
+    {
+        lock (_lock) { return _knownPhishingWebsites.ToList(); }
+    }
 
-    public List<SafeDomain> GetSafeDomains() => _safeDomains;
+    public List<SafeDomain> GetSafeDomains()
+    {
+        lock (_lock) { return _safeDomains.ToList(); }
+    }
 
     public bool IsSafeDomain(string domain)
     {
         if (string.IsNullOrWhiteSpace(domain))
             return false;
-        var normalized = domain.ToLowerInvariant();
-        return _safeDomains.Any(d => d.Domain.Equals(normalized, StringComparison.OrdinalIgnoreCase) && !d.IsDeleted);
+        
+        lock (_lock)
+        {
+            var normalized = domain.ToLowerInvariant();
+            return _safeDomains.Any(d => d.Domain.Equals(normalized, StringComparison.OrdinalIgnoreCase) && !d.IsDeleted);
+        }
     }
 
     internal IEnumerable<UrlAnalysisResultView> GetUrlAnalysisResultsByUserKey(Key key, int? alertExpiryDays = 30)
     {
-        int daysToSubtract = alertExpiryDays ?? 30;
-        var res = this._urlAnalysisResults
-            .Where(da => da.UserKey.Value == key.Value && da.Timestamp >= DateTime.UtcNow.AddDays(-daysToSubtract));
-        return res;
+        lock (_lock)
+        {
+            int daysToSubtract = alertExpiryDays ?? 30;
+            var res = this._urlAnalysisResults
+                .Where(da => da.UserKey.Value == key.Value && da.Timestamp >= DateTime.UtcNow.AddDays(-daysToSubtract));
+            return res.ToList();
+        }
     }
     internal bool TryGetCachedUrlAnalysis(string url, int numberOfMonthsAgo, out UrlAnalysisResultView? cachedResult)
     {
-        var urlLower = url.ToLower();
-        var urlDomain = KnownPhishingWebsite.GetDomainFromUrl(urlLower);
-        cachedResult = this._urlAnalysisResults
-           .FirstOrDefault(da =>
-           {
-               var cachedUrl = da.AnalysisResult?.Url?.ToLower();
-               if (cachedUrl == null) return false;
-               return (cachedUrl == urlLower ||
-                   KnownPhishingWebsite.GetDomainFromUrl(cachedUrl) == urlDomain);  // &&
-                   //(da.Timestamp >= DateTime.UtcNow.AddMonths(-numberOfMonthsAgo) || numberOfMonthsAgo <= 0);
-           });
-        cachedResult = this._urlAnalysisResults
-   .FirstOrDefault(da =>
-   {
-       var cachedUrl = da.AnalysisResult?.Url?.ToLower();
-       if (cachedUrl == null) return false;
-       return (cachedUrl == urlLower ||
-           KnownPhishingWebsite.GetDomainFromUrl(cachedUrl) == urlDomain)
-       &&
-           (da.Timestamp >= DateTime.UtcNow.AddMonths(-numberOfMonthsAgo) || numberOfMonthsAgo <= 0);
-   });
-        return cachedResult is not null;
+        lock (_lock)
+        {
+            var urlLower = url.ToLower();
+            var urlDomain = KnownPhishingWebsite.GetDomainFromUrl(urlLower);
+            
+            cachedResult = this._urlAnalysisResults
+                .FirstOrDefault(da =>
+                {
+                    var cachedUrl = da.AnalysisResult?.Url?.ToLower();
+                    if (cachedUrl == null) return false;
+                    return (cachedUrl == urlLower ||
+                        KnownPhishingWebsite.GetDomainFromUrl(cachedUrl) == urlDomain)
+                        &&
+                        (da.Timestamp >= DateTime.UtcNow.AddMonths(-numberOfMonthsAgo) || numberOfMonthsAgo <= 0);
+                });
+            
+            return cachedResult is not null;
+        }
     }
 }

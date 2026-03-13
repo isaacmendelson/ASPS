@@ -76,7 +76,7 @@ public class NotificationPublisher : IDisposable
             // Use Newtonsoft.Json with TypeNameHandling to properly serialize polymorphic types
             var jsonSettings = new JsonSerializerSettings
             {
-                TypeNameHandling = TypeNameHandling.Auto,
+                TypeNameHandling = TypeNameHandling.None,
                 ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
                 NullValueHandling = NullValueHandling.Ignore,
                 Formatting = Formatting.None

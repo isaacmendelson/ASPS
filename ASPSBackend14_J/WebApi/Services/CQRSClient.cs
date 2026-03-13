@@ -45,7 +45,7 @@ public class CQRSClient : IDisposable
                 // Serialize query
                 var queryJson = JsonConvert.SerializeObject(query, new JsonSerializerSettings
                 {
-                    TypeNameHandling = TypeNameHandling.Auto
+                    TypeNameHandling = TypeNameHandling.None
                 });
 
                 _logger.LogInformation("Sending query: {Query} to {Endpoint}", 
@@ -80,7 +80,7 @@ public class CQRSClient : IDisposable
                     // Deserialize response with type information
                     var result = JsonConvert.DeserializeObject<TResult>(responseJson, new JsonSerializerSettings
                     {
-                        TypeNameHandling = TypeNameHandling.Auto
+                        TypeNameHandling = TypeNameHandling.None
                     });
 
                     if (result == null)
@@ -132,7 +132,7 @@ public class CQRSClient : IDisposable
                 // Serialize command
                 var commandJson = JsonConvert.SerializeObject(command, new JsonSerializerSettings
                 {
-                    TypeNameHandling = TypeNameHandling.Auto
+                    TypeNameHandling = TypeNameHandling.None
                 });
 
                 _logger.LogInformation("Sending command: {Command} to {Endpoint}", 
@@ -167,7 +167,7 @@ public class CQRSClient : IDisposable
                     // Deserialize response with type information
                     var result = JsonConvert.DeserializeObject<TResult>(responseJson, new JsonSerializerSettings
                     {
-                        TypeNameHandling = TypeNameHandling.Auto
+                        TypeNameHandling = TypeNameHandling.None
                     });
 
                     if (result == null)
