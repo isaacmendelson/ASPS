@@ -25,9 +25,10 @@ public class UserAccountRepositoryTests : IDisposable
         _repository = new UserAccountRepository(_context);
 
         // Create test user
-        _testUser = new User { FirstName = "Test", LastName = "User", Email = "test@example.com", KeycloakUserId = "kc-test" };
+        _testUser = new User { KeyField = Guid.NewGuid().ToString(), FirstName = "Test", LastName = "User", Email = "test@example.com", KeycloakUserId = "kc-test" };
         _context.Users.Add(_testUser);
         _context.SaveChanges();
+        _context.ChangeTracker.Clear();
     }
 
     public void Dispose()
@@ -42,14 +43,17 @@ public class UserAccountRepositoryTests : IDisposable
     public async Task GetByUserKeyAsync_WithValidUserKey_ReturnsAccounts()
     {
         // Arrange
-        var account1 = new UserAccount { UserName = "user@gmail.com", UserKey = _testUser.Key };
-        var account2 = new UserAccount { UserName = "user@outlook.com", UserKey = _testUser.Key };
-        var otherUser = new User { FirstName = "Other", LastName = "User", Email = "other@example.com", KeycloakUserId = "kc-other" };
+        var account1 = new UserAccount { KeyField = Guid.NewGuid().ToString(), UserName = "user@gmail.com", UserKey = _testUser.Key };
+        var account2 = new UserAccount { KeyField = Guid.NewGuid().ToString(), UserName = "user@outlook.com", UserKey = _testUser.Key };
+        var otherUser = new User { KeyField = Guid.NewGuid().ToString(), FirstName = "Other", LastName = "User", Email = "other@example.com", KeycloakUserId = "kc-other" };
         _context.Users.Add(otherUser);
-        var account3 = new UserAccount { UserName = "other@yahoo.com", UserKey = otherUser.Key };
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
+        var account3 = new UserAccount { KeyField = Guid.NewGuid().ToString(), UserName = "other@yahoo.com", UserKey = otherUser.Key };
 
         _context.UserAccounts.AddRange(account1, account2, account3);
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         // Act
         var result = await _repository.GetByUserKeyAsync(_testUser.Key);
@@ -66,11 +70,12 @@ public class UserAccountRepositoryTests : IDisposable
     public async Task GetByUserKeyAsync_ExcludesDeletedAccounts()
     {
         // Arrange
-        var active = new UserAccount { UserName = "active@example.com", UserKey = _testUser.Key };
-        var deleted = new UserAccount { UserName = "deleted@example.com", UserKey = _testUser.Key, IsDeleted = true };
+        var active = new UserAccount { KeyField = Guid.NewGuid().ToString(), UserName = "active@example.com", UserKey = _testUser.Key };
+        var deleted = new UserAccount { KeyField = Guid.NewGuid().ToString(), UserName = "deleted@example.com", UserKey = _testUser.Key, IsDeleted = true };
 
         _context.UserAccounts.AddRange(active, deleted);
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         // Act
         var result = await _repository.GetByUserKeyAsync(_testUser.Key);
@@ -159,12 +164,13 @@ public class UserAccountRepositoryTests : IDisposable
     public async Task MultipleAccounts_CanExistForSameUser()
     {
         // Arrange
-        var account1 = new UserAccount { UserName = "account1@example.com", UserKey = _testUser.Key };
-        var account2 = new UserAccount { UserName = "account2@example.com", UserKey = _testUser.Key };
-        var account3 = new UserAccount { UserName = "account3@example.com", UserKey = _testUser.Key };
+        var account1 = new UserAccount { KeyField = Guid.NewGuid().ToString(), UserName = "account1@example.com", UserKey = _testUser.Key };
+        var account2 = new UserAccount { KeyField = Guid.NewGuid().ToString(), UserName = "account2@example.com", UserKey = _testUser.Key };
+        var account3 = new UserAccount { KeyField = Guid.NewGuid().ToString(), UserName = "account3@example.com", UserKey = _testUser.Key };
 
         _context.UserAccounts.AddRange(account1, account2, account3);
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         // Act
         var result = await _repository.GetByUserKeyAsync(_testUser.Key);
@@ -196,14 +202,17 @@ public class UserAccountRepositoryTests : IDisposable
     public async Task DifferentUsers_CanHaveSameUserName()
     {
         // Arrange
-        var user2 = new User { FirstName = "User", LastName = "Two", Email = "user2@example.com", KeycloakUserId = "kc-2" };
+        var user2 = new User { KeyField = Guid.NewGuid().ToString(), FirstName = "User", LastName = "Two", Email = "user2@example.com", KeycloakUserId = "kc-2" };
         _context.Users.Add(user2);
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
         
-        var account1 = new UserAccount { UserName = "shared@example.com", UserKey = _testUser.Key };
-        var account2 = new UserAccount { UserName = "shared@example.com", UserKey = user2.Key };
+        var account1 = new UserAccount { KeyField = Guid.NewGuid().ToString(), UserName = "shared@example.com", UserKey = _testUser.Key };
+        var account2 = new UserAccount { KeyField = Guid.NewGuid().ToString(), UserName = "shared@example.com", UserKey = user2.Key };
 
         _context.UserAccounts.AddRange(account1, account2);
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         // Act
         var result = await _repository.GetByUserNameAsync("shared@example.com");

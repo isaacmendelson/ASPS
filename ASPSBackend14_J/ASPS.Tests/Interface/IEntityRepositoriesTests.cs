@@ -1,535 +1,436 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Common.Entities;
-using Common.Models;
+using Xunit;
+using Moq;
 using FluentAssertions;
 using Interface.Repositories;
-using Moq;
-using Xunit;
+using Common.Entities;
+using Common.Models;
 
-namespace ASPS.Tests.Interface;
-
-/// <summary>
-/// Tests for IUserRepository interface contract
-/// </summary>
-public class IUserRepositoryTests
+namespace ASPS.Tests.Interface
 {
-    private readonly Mock<IUserRepository> _mockRepo;
-
-    public IUserRepositoryTests()
+    /// <summary>
+    /// Tests for entity-specific repository interfaces.
+    /// Validates that specialized repositories extend IRepository and add domain-specific methods.
+    /// Note: These are CONTRACT tests - we verify method signatures, not implementations.
+    /// </summary>
+    public class IEntityRepositoriesTests
     {
-        _mockRepo = new Mock<IUserRepository>();
-    }
+        #region IUserRepository Tests
 
-    #region Interface Contract Tests
-
-    [Fact]
-    public void IUserRepository_InheritsFromIRepositoryOfUser()
-    {
-        // Assert
-        typeof(IUserRepository).Should().Implement<IRepository<User>>();
-    }
-
-    [Fact]
-    public async Task GetByKeycloakIdAsync_ReturnsUser_WhenExists()
-    {
-        // Arrange
-        var keycloakId = "keycloak-123";
-        var expectedUser = new User { KeyField = "user-1", FullName = "Test User" };
-        _mockRepo.Setup(r => r.GetByKeycloakIdAsync(keycloakId))
-                 .ReturnsAsync(expectedUser);
-
-        // Act
-        var result = await _mockRepo.Object.GetByKeycloakIdAsync(keycloakId);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.FullName.Should().Be("Test User");
-        _mockRepo.Verify(r => r.GetByKeycloakIdAsync(keycloakId), Times.Once);
-    }
-
-    [Fact]
-    public async Task GetByKeycloakIdAsync_ReturnsNull_WhenNotExists()
-    {
-        // Arrange
-        var keycloakId = "nonexistent";
-        _mockRepo.Setup(r => r.GetByKeycloakIdAsync(keycloakId))
-                 .ReturnsAsync((User?)null);
-
-        // Act
-        var result = await _mockRepo.Object.GetByKeycloakIdAsync(keycloakId);
-
-        // Assert
-        result.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task GetUserWithDetailsAsync_ReturnsUserWithKey()
-    {
-        // Arrange
-        var key = new Key("User", "user-123");
-        var expectedUser = new User { KeyField = "user-123", FullName = "Detailed User" };
-        _mockRepo.Setup(r => r.GetUserWithDetailsAsync(key))
-                 .ReturnsAsync(expectedUser);
-
-        // Act
-        var result = await _mockRepo.Object.GetUserWithDetailsAsync(key);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.FullName.Should().Be("Detailed User");
-    }
-
-    [Fact]
-    public async Task GetActiveUsersAsync_ReturnsActiveUsers()
-    {
-        // Arrange
-        var users = new List<User>
+        [Fact]
+        public void IUserRepository_InheritsFromIRepository()
         {
-            new User { KeyField = "user-1", FullName = "User 1" },
-            new User { KeyField = "user-2", FullName = "User 2" }
-        };
-        _mockRepo.Setup(r => r.GetActiveUsersAsync())
-                 .ReturnsAsync(users);
+            // Arrange & Act
+            var type = typeof(IUserRepository);
 
-        // Act
-        var result = await _mockRepo.Object.GetActiveUsersAsync();
+            // Assert
+            type.Should().BeAssignableTo<IRepository<User>>();
+        }
 
-        // Assert
-        result.Should().HaveCount(2);
-        result.Should().Contain(u => u.FullName == "User 1");
-    }
-
-    #endregion
-}
-
-/// <summary>
-/// Tests for IUserDeviceRepository interface contract
-/// </summary>
-public class IUserDeviceRepositoryTests
-{
-    private readonly Mock<IUserDeviceRepository> _mockRepo;
-
-    public IUserDeviceRepositoryTests()
-    {
-        _mockRepo = new Mock<IUserDeviceRepository>();
-    }
-
-    #region Interface Contract Tests
-
-    [Fact]
-    public void IUserDeviceRepository_InheritsFromIRepositoryOfUserDevice()
-    {
-        // Assert
-        typeof(IUserDeviceRepository).Should().Implement<IRepository<UserDevice>>();
-    }
-
-    [Fact]
-    public async Task GetByUserKeyAsync_ReturnsDevicesForUser()
-    {
-        // Arrange
-        var userKey = new Key("User", "user-123");
-        var devices = new List<UserDevice>
+        [Fact]
+        public void IUserRepository_HasGetByKeycloakIdAsyncMethod()
         {
-            new UserDevice { DeviceUid = "device-1" },
-            new UserDevice { DeviceUid = "device-2" }
-        };
-        _mockRepo.Setup(r => r.GetByUserKeyAsync(userKey))
-                 .ReturnsAsync(devices);
+            // Arrange & Act
+            var method = typeof(IUserRepository).GetMethod("GetByKeycloakIdAsync");
 
-        // Act
-        var result = await _mockRepo.Object.GetByUserKeyAsync(userKey);
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<User?>));
+        }
 
-        // Assert
-        result.Should().HaveCount(2);
-        result.Should().Contain(d => d.DeviceUid == "device-1");
-    }
-
-    [Fact]
-    public async Task GetByDeviceUidAsync_ReturnsDevice_WhenExists()
-    {
-        // Arrange
-        var deviceUid = "device-abc";
-        var device = new UserDevice { DeviceUid = deviceUid };
-        _mockRepo.Setup(r => r.GetByDeviceUidAsync(deviceUid))
-                 .ReturnsAsync(device);
-
-        // Act
-        var result = await _mockRepo.Object.GetByDeviceUidAsync(deviceUid);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.DeviceUid.Should().Be(deviceUid);
-    }
-
-    [Fact]
-    public async Task GetMonitoredDevicesAsync_ReturnsMonitoredDevices()
-    {
-        // Arrange
-        var devices = new List<UserDevice>
+        [Fact]
+        public void IUserRepository_HasGetUserWithDetailsAsyncMethod()
         {
-            new UserDevice { DeviceUid = "monitored-1" }
-        };
-        _mockRepo.Setup(r => r.GetMonitoredDevicesAsync())
-                 .ReturnsAsync(devices);
+            // Arrange & Act
+            var method = typeof(IUserRepository).GetMethod("GetUserWithDetailsAsync");
 
-        // Act
-        var result = await _mockRepo.Object.GetMonitoredDevicesAsync();
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<User?>));
+        }
 
-        // Assert
-        result.Should().HaveCount(1);
-    }
-
-    #endregion
-}
-
-/// <summary>
-/// Tests for IUserAccountRepository interface contract
-/// </summary>
-public class IUserAccountRepositoryTests
-{
-    private readonly Mock<IUserAccountRepository> _mockRepo;
-
-    public IUserAccountRepositoryTests()
-    {
-        _mockRepo = new Mock<IUserAccountRepository>();
-    }
-
-    #region Interface Contract Tests
-
-    [Fact]
-    public void IUserAccountRepository_InheritsFromIRepositoryOfUserAccount()
-    {
-        // Assert
-        typeof(IUserAccountRepository).Should().Implement<IRepository<UserAccount>>();
-    }
-
-    [Fact]
-    public async Task GetByUserKeyAsync_ReturnsAccountsForUser()
-    {
-        // Arrange
-        var userKey = new Key("User", "user-123");
-        var accounts = new List<UserAccount>
+        [Fact]
+        public void IUserRepository_HasGetActiveUsersAsyncMethod()
         {
-            new UserAccount { UserName = "account1" }
-        };
-        _mockRepo.Setup(r => r.GetByUserKeyAsync(userKey))
-                 .ReturnsAsync(accounts);
+            // Arrange & Act
+            var method = typeof(IUserRepository).GetMethod("GetActiveUsersAsync");
 
-        // Act
-        var result = await _mockRepo.Object.GetByUserKeyAsync(userKey);
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<IEnumerable<User>>));
+        }
 
-        // Assert
-        result.Should().HaveCount(1);
-    }
+        #endregion
 
-    [Fact]
-    public async Task GetByUserNameAsync_ReturnsAccount_WhenExists()
-    {
-        // Arrange
-        var userName = "testuser";
-        var account = new UserAccount { UserName = userName };
-        _mockRepo.Setup(r => r.GetByUserNameAsync(userName))
-                 .ReturnsAsync(account);
+        #region IUserDeviceRepository Tests
 
-        // Act
-        var result = await _mockRepo.Object.GetByUserNameAsync(userName);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.UserName.Should().Be(userName);
-    }
-
-    #endregion
-}
-
-/// <summary>
-/// Tests for IDeviceAlertRepository interface contract
-/// </summary>
-public class IDeviceAlertRepositoryTests
-{
-    private readonly Mock<IDeviceAlertRepository> _mockRepo;
-
-    public IDeviceAlertRepositoryTests()
-    {
-        _mockRepo = new Mock<IDeviceAlertRepository>();
-    }
-
-    #region Interface Contract Tests
-
-    [Fact]
-    public void IDeviceAlertRepository_InheritsFromIRepositoryOfDeviceAlertEntity()
-    {
-        // Assert
-        typeof(IDeviceAlertRepository).Should().Implement<IRepository<DeviceAlertEntity>>();
-    }
-
-    [Fact]
-    public async Task GetAlertsByDeviceUidAsync_ReturnsAlertsForDevice()
-    {
-        // Arrange
-        var deviceUid = "device-123";
-        var alerts = new List<DeviceAlertEntity>
+        [Fact]
+        public void IUserDeviceRepository_InheritsFromIRepository()
         {
-            new DeviceAlertEntity { DeviceUid = deviceUid }
-        };
-        _mockRepo.Setup(r => r.GetAlertsByDeviceUidAsync(deviceUid))
-                 .ReturnsAsync(alerts);
+            // Arrange & Act
+            var type = typeof(IUserDeviceRepository);
 
-        // Act
-        var result = await _mockRepo.Object.GetAlertsByDeviceUidAsync(deviceUid);
+            // Assert
+            type.Should().BeAssignableTo<IRepository<UserDevice>>();
+        }
 
-        // Assert
-        result.Should().HaveCount(1);
-        result.First().DeviceUid.Should().Be(deviceUid);
-    }
-
-    [Fact]
-    public async Task GetAlertsByUserKeyAsync_ReturnsAlertsForUser()
-    {
-        // Arrange
-        var userKey = new Key("User", "user-123");
-        var alerts = new List<DeviceAlertEntity>
+        [Fact]
+        public void IUserDeviceRepository_HasGetByUserKeyAsyncMethod()
         {
-            new DeviceAlertEntity { DeviceUid = "device-1" }
-        };
-        _mockRepo.Setup(r => r.GetAlertsByUserKeyAsync(userKey))
-                 .ReturnsAsync(alerts);
+            // Arrange & Act
+            var method = typeof(IUserDeviceRepository).GetMethod("GetByUserKeyAsync");
 
-        // Act
-        var result = await _mockRepo.Object.GetAlertsByUserKeyAsync(userKey);
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<IEnumerable<UserDevice>>));
+        }
 
-        // Assert
-        result.Should().HaveCount(1);
-    }
-
-    [Fact]
-    public async Task GetRecentAlertsAsync_ReturnsAlertsWithinTimeSpan()
-    {
-        // Arrange
-        var timeSpan = TimeSpan.FromHours(24);
-        var alerts = new List<DeviceAlertEntity>
+        [Fact]
+        public void IUserDeviceRepository_HasGetByDeviceUidAsyncMethod()
         {
-            new DeviceAlertEntity { DeviceUid = "device-1" }
-        };
-        _mockRepo.Setup(r => r.GetRecentAlertsAsync(timeSpan))
-                 .ReturnsAsync(alerts);
+            // Arrange & Act
+            var method = typeof(IUserDeviceRepository).GetMethod("GetByDeviceUidAsync");
 
-        // Act
-        var result = await _mockRepo.Object.GetRecentAlertsAsync(timeSpan);
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<UserDevice?>));
+        }
 
-        // Assert
-        result.Should().HaveCount(1);
-    }
-
-    #endregion
-}
-
-/// <summary>
-/// Tests for IAnalysisResultRepository interface contract
-/// </summary>
-public class IAnalysisResultRepositoryTests
-{
-    private readonly Mock<IAnalysisResultRepository> _mockRepo;
-
-    public IAnalysisResultRepositoryTests()
-    {
-        _mockRepo = new Mock<IAnalysisResultRepository>();
-    }
-
-    #region Interface Contract Tests
-
-    [Fact]
-    public void IAnalysisResultRepository_InheritsFromIRepositoryOfAnalysisResultContainer()
-    {
-        // Assert
-        typeof(IAnalysisResultRepository).Should().Implement<IRepository<AnalysisResultContainer>>();
-    }
-
-    [Fact]
-    public async Task GetByUserKeyAsync_ReturnsResultsForUser()
-    {
-        // Arrange
-        var userKey = new Key("User", "user-123");
-        var results = new List<AnalysisResultContainer>
+        [Fact]
+        public void IUserDeviceRepository_HasGetMonitoredDevicesAsyncMethod()
         {
-            new AnalysisResultContainer("result-1", "user-123", "Test", DateTime.UtcNow, "{}", false, null)
-        };
-        _mockRepo.Setup(r => r.GetByUserKeyAsync(userKey))
-                 .ReturnsAsync(results);
+            // Arrange & Act
+            var method = typeof(IUserDeviceRepository).GetMethod("GetMonitoredDevicesAsync");
 
-        // Act
-        var result = await _mockRepo.Object.GetByUserKeyAsync(userKey);
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<IEnumerable<UserDevice>>));
+        }
 
-        // Assert
-        result.Should().HaveCount(1);
-    }
+        #endregion
 
-    [Fact]
-    public async Task GetLatestAsync_ReturnsLatestResult()
-    {
-        // Arrange
-        var userKey = new Key("User", "user-123");
-        var latest = new AnalysisResultContainer("result-latest", "user-123", "Test", DateTime.UtcNow, "{}", false, null);
-        _mockRepo.Setup(r => r.GetLatestAsync(userKey))
-                 .ReturnsAsync(latest);
+        #region IUserAccountRepository Tests
 
-        // Act
-        var result = await _mockRepo.Object.GetLatestAsync(userKey);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.Discriminator.Should().Be("Test");
-    }
-
-    #endregion
-}
-
-/// <summary>
-/// Tests for IAlertFlagRepository interface contract
-/// </summary>
-public class IAlertFlagRepositoryTests
-{
-    private readonly Mock<IAlertFlagRepository> _mockRepo;
-
-    public IAlertFlagRepositoryTests()
-    {
-        _mockRepo = new Mock<IAlertFlagRepository>();
-    }
-
-    #region Interface Contract Tests
-
-    [Fact]
-    public async Task AddAsync_ReturnsAddedFlag()
-    {
-        // Arrange
-        var flag = new AlertFlag { Key = 1, UserKey = 123 };
-        _mockRepo.Setup(r => r.AddAsync(flag))
-                 .ReturnsAsync(flag);
-
-        // Act
-        var result = await _mockRepo.Object.AddAsync(flag);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Key.Should().Be(1);
-    }
-
-    [Fact]
-    public async Task UpdateAsync_UpdatesFlag()
-    {
-        // Arrange
-        var flag = new AlertFlag { Key = 1, UserKey = 123 };
-        _mockRepo.Setup(r => r.UpdateAsync(flag))
-                 .Returns(Task.CompletedTask);
-
-        // Act
-        await _mockRepo.Object.UpdateAsync(flag);
-
-        // Assert
-        _mockRepo.Verify(r => r.UpdateAsync(flag), Times.Once);
-    }
-
-    [Fact]
-    public async Task GetOpenFlagsByUserAsync_ReturnsOpenFlags()
-    {
-        // Arrange
-        var userKey = 123;
-        var flags = new List<AlertFlag>
+        [Fact]
+        public void IUserAccountRepository_InheritsFromIRepository()
         {
-            new AlertFlag { Key = 1, UserKey = userKey }
-        };
-        _mockRepo.Setup(r => r.GetOpenFlagsByUserAsync(userKey))
-                 .ReturnsAsync(flags);
+            // Arrange & Act
+            var type = typeof(IUserAccountRepository);
 
-        // Act
-        var result = await _mockRepo.Object.GetOpenFlagsByUserAsync(userKey);
+            // Assert
+            type.Should().BeAssignableTo<IRepository<UserAccount>>();
+        }
 
-        // Assert
-        result.Should().HaveCount(1);
-    }
-
-    [Fact]
-    public async Task CloseFlag_ClosesFlag()
-    {
-        // Arrange
-        var flagKey = 1;
-        _mockRepo.Setup(r => r.CloseFlag(flagKey))
-                 .Returns(Task.CompletedTask);
-
-        // Act
-        await _mockRepo.Object.CloseFlag(flagKey);
-
-        // Assert
-        _mockRepo.Verify(r => r.CloseFlag(flagKey), Times.Once);
-    }
-
-    #endregion
-}
-
-/// <summary>
-/// Tests for ISafeDomainRepository interface contract
-/// </summary>
-public class ISafeDomainRepositoryTests
-{
-    private readonly Mock<ISafeDomainRepository> _mockRepo;
-
-    public ISafeDomainRepositoryTests()
-    {
-        _mockRepo = new Mock<ISafeDomainRepository>();
-    }
-
-    #region Interface Contract Tests
-
-    [Fact]
-    public async Task GetAllActiveAsync_ReturnsActiveDomains()
-    {
-        // Arrange
-        var domains = new List<SafeDomain>
+        [Fact]
+        public void IUserAccountRepository_HasGetByUserKeyAsyncMethod()
         {
-            new SafeDomain { Domain = "google.com" }
-        };
-        _mockRepo.Setup(r => r.GetAllActiveAsync())
-                 .ReturnsAsync(domains);
+            // Arrange & Act
+            var method = typeof(IUserAccountRepository).GetMethod("GetByUserKeyAsync");
 
-        // Act
-        var result = await _mockRepo.Object.GetAllActiveAsync();
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<IEnumerable<UserAccount>>));
+        }
 
-        // Assert
-        result.Should().HaveCount(1);
+        [Fact]
+        public void IUserAccountRepository_HasGetByUserNameAsyncMethod()
+        {
+            // Arrange & Act
+            var method = typeof(IUserAccountRepository).GetMethod("GetByUserNameAsync");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<UserAccount?>));
+        }
+
+        #endregion
+
+        #region IDeviceAlertRepository Tests
+
+        [Fact]
+        public void IDeviceAlertRepository_InheritsFromIRepository()
+        {
+            // Arrange & Act
+            var type = typeof(IDeviceAlertRepository);
+
+            // Assert
+            type.Should().BeAssignableTo<IRepository<DeviceAlertEntity>>();
+        }
+
+        [Fact]
+        public void IDeviceAlertRepository_HasGetAlertsByDeviceUidAsyncMethod()
+        {
+            // Arrange & Act
+            var method = typeof(IDeviceAlertRepository).GetMethod("GetAlertsByDeviceUidAsync");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<IEnumerable<DeviceAlertEntity>>));
+        }
+
+        [Fact]
+        public void IDeviceAlertRepository_HasGetAlertsByUserKeyAsyncMethod()
+        {
+            // Arrange & Act
+            var method = typeof(IDeviceAlertRepository).GetMethod("GetAlertsByUserKeyAsync");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<IEnumerable<DeviceAlertEntity>>));
+        }
+
+        [Fact]
+        public void IDeviceAlertRepository_HasGetRecentAlertsAsyncMethod()
+        {
+            // Arrange & Act
+            var method = typeof(IDeviceAlertRepository).GetMethod("GetRecentAlertsAsync");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<IEnumerable<DeviceAlertEntity>>));
+        }
+
+        #endregion
+
+        #region IAnalysisResultRepository Tests
+
+        [Fact]
+        public void IAnalysisResultRepository_InheritsFromIRepository()
+        {
+            // Arrange & Act
+            var type = typeof(IAnalysisResultRepository);
+
+            // Assert
+            type.Should().BeAssignableTo<IRepository<AnalysisResultContainer>>();
+        }
+
+        [Fact]
+        public void IAnalysisResultRepository_HasGetByUserKeyAsyncMethod()
+        {
+            // Arrange & Act
+            var method = typeof(IAnalysisResultRepository).GetMethod("GetByUserKeyAsync");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<IEnumerable<AnalysisResultContainer>>));
+        }
+
+        [Fact]
+        public void IAnalysisResultRepository_HasGetLatestAsyncMethod()
+        {
+            // Arrange & Act
+            var method = typeof(IAnalysisResultRepository).GetMethod("GetLatestAsync");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<AnalysisResultContainer?>));
+        }
+
+        #endregion
+
+        #region IAlertFlagRepository Tests
+
+        [Fact]
+        public void IAlertFlagRepository_HasAddAsyncMethod()
+        {
+            // Arrange & Act
+            var method = typeof(IAlertFlagRepository).GetMethod("AddAsync");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<AlertFlag>));
+        }
+
+        [Fact]
+        public void IAlertFlagRepository_HasUpdateAsyncMethod()
+        {
+            // Arrange & Act
+            var method = typeof(IAlertFlagRepository).GetMethod("UpdateAsync");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task));
+        }
+
+        [Fact]
+        public void IAlertFlagRepository_HasGetOpenFlagsByUserAsyncMethod()
+        {
+            // Arrange & Act
+            var method = typeof(IAlertFlagRepository).GetMethod("GetOpenFlagsByUserAsync");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<IEnumerable<AlertFlag>>));
+        }
+
+        [Fact]
+        public void IAlertFlagRepository_HasCloseFlagMethod()
+        {
+            // Arrange & Act
+            var method = typeof(IAlertFlagRepository).GetMethod("CloseFlag");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task));
+        }
+
+        #endregion
+
+        #region ISafeDomainRepository Tests
+
+        [Fact]
+        public void ISafeDomainRepository_HasGetAllActiveAsyncMethod()
+        {
+            // Arrange & Act
+            var method = typeof(ISafeDomainRepository).GetMethod("GetAllActiveAsync");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<IEnumerable<SafeDomain>>));
+        }
+
+        [Fact]
+        public void ISafeDomainRepository_HasIsSafeDomainAsyncMethod()
+        {
+            // Arrange & Act
+            var method = typeof(ISafeDomainRepository).GetMethod("IsSafeDomainAsync");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<bool>));
+        }
+
+        #endregion
+
+        #region IKnownPhishingWebsiteRepository Tests
+
+        [Fact]
+        public void IKnownPhishingWebsiteRepository_HasGetByIdAsyncMethod()
+        {
+            // Arrange & Act
+            var method = typeof(IKnownPhishingWebsiteRepository).GetMethod("GetByIdAsync");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<KnownPhishingWebsite?>));
+        }
+
+        [Fact]
+        public void IKnownPhishingWebsiteRepository_HasIsPhishingUrlAsyncMethod()
+        {
+            // Arrange & Act
+            var method = typeof(IKnownPhishingWebsiteRepository).GetMethod("IsPhishingUrlAsync");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<bool>));
+        }
+
+        [Fact]
+        public void IKnownPhishingWebsiteRepository_HasIsPhishingDomainAsyncMethod()
+        {
+            // Arrange & Act
+            var method = typeof(IKnownPhishingWebsiteRepository).GetMethod("IsPhishingDomainAsync");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<bool>));
+        }
+
+        [Fact]
+        public void IKnownPhishingWebsiteRepository_HasAddAsyncMethod()
+        {
+            // Arrange & Act
+            var method = typeof(IKnownPhishingWebsiteRepository).GetMethod("AddAsync");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<int>));
+        }
+
+        [Fact]
+        public void IKnownPhishingWebsiteRepository_HasAddRangeAsyncMethod()
+        {
+            // Arrange & Act
+            var method = typeof(IKnownPhishingWebsiteRepository).GetMethod("AddRangeAsync");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<int>));
+        }
+
+        #endregion
+
+        #region ITrackUrlAlertRepository Tests
+
+        [Fact]
+        public void ITrackUrlAlertRepository_InheritsFromIRepository()
+        {
+            // Arrange & Act
+            var type = typeof(ITrackUrlAlertRepository);
+
+            // Assert
+            type.Should().BeAssignableTo<IRepository<TrackUrlAlertEntity>>();
+        }
+
+        [Fact]
+        public void ITrackUrlAlertRepository_HasGetAlertsByUrlAsyncMethod()
+        {
+            // Arrange & Act
+            var method = typeof(ITrackUrlAlertRepository).GetMethod("GetAlertsByUrlAsync");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<IEnumerable<TrackUrlAlertEntity>>));
+        }
+
+        [Fact]
+        public void ITrackUrlAlertRepository_HasGetAlertsByUserKeyAsyncMethod()
+        {
+            // Arrange & Act
+            var method = typeof(ITrackUrlAlertRepository).GetMethod("GetAlertsByUserKeyAsync");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<IEnumerable<TrackUrlAlertEntity>>));
+        }
+
+        #endregion
+
+        #region ITrackedDomainRepository Tests
+
+        [Fact]
+        public void ITrackedDomainRepository_HasGetByIdAsyncMethod()
+        {
+            // Arrange & Act
+            var method = typeof(ITrackedDomainRepository).GetMethod("GetByIdAsync");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<TrackedDomain?>));
+        }
+
+        [Fact]
+        public void ITrackedDomainRepository_HasGetAllActiveAsyncMethod()
+        {
+            // Arrange & Act
+            var method = typeof(ITrackedDomainRepository).GetMethod("GetAllActiveAsync");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<IEnumerable<TrackedDomain>>));
+        }
+
+        [Fact]
+        public void ITrackedDomainRepository_HasIsTrackedDomainAsyncMethod()
+        {
+            // Arrange & Act
+            var method = typeof(ITrackedDomainRepository).GetMethod("IsTrackedDomainAsync");
+
+            // Assert
+            method.Should().NotBeNull();
+            method!.ReturnType.Should().Be(typeof(Task<bool>));
+        }
+
+        #endregion
     }
-
-    [Fact]
-    public async Task IsSafeDomainAsync_ReturnsTrue_WhenDomainIsSafe()
-    {
-        // Arrange
-        var domain = "google.com";
-        _mockRepo.Setup(r => r.IsSafeDomainAsync(domain))
-                 .ReturnsAsync(true);
-
-        // Act
-        var result = await _mockRepo.Object.IsSafeDomainAsync(domain);
-
-        // Assert
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task IsSafeDomainAsync_ReturnsFalse_WhenDomainIsNotSafe()
-    {
-        // Arrange
-        var domain = "malicious.com";
-        _mockRepo.Setup(r => r.IsSafeDomainAsync(domain))
-                 .ReturnsAsync(false);
-
-        // Act
-        var result = await _mockRepo.Object.IsSafeDomainAsync(domain);
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    #endregion
 }

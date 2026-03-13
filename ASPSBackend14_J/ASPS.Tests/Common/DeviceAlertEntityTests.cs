@@ -25,7 +25,7 @@ namespace ASPS.Tests.Common
             // Assert
             alert.Should().NotBeNull();
             alert.Should().BeAssignableTo<DeviceAlertEntity>();
-            alert.Should().Be("RemoteAccessAlert");
+            alert.TypeName.Should().Be("RemoteAccessAlert");
         }
 
         [Fact]
@@ -310,7 +310,7 @@ namespace ASPS.Tests.Common
             tag.Should().NotBeNull();
             tag.Name.Should().Contain("RemoteAccess");
             tag.Name.Should().Contain("DEVICE-001");
-            tag.Should().Be("RemoteAccessAlert");
+            tag.Type.Should().Be("RemoteAccessAlert");
         }
 
         [Fact]

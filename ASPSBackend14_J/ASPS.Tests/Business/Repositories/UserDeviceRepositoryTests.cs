@@ -28,6 +28,7 @@ public class UserDeviceRepositoryTests : IDisposable
         // Create test user
         _testUser = new User 
         { 
+            KeyField = Guid.NewGuid().ToString(),
             FirstName = "Test", 
             LastName = "User", 
             Email = "test@example.com", 
@@ -35,6 +36,7 @@ public class UserDeviceRepositoryTests : IDisposable
         };
         _context.Users.Add(_testUser);
         _context.SaveChanges();
+        _context.ChangeTracker.Clear();
     }
 
     public void Dispose()
@@ -49,20 +51,24 @@ public class UserDeviceRepositoryTests : IDisposable
     public async Task GetByUserKeyAsync_WithValidUserKey_ReturnsDevices()
     {
         // Arrange
-        var device1 = new SmartPhone { DeviceUid = "device-uid-1", Make = "Apple", Model = "iPhone 13", UserKey = _testUser.Key };
-        var device2 = new PersonalComputer { DeviceUid = "device-uid-2", Make = "Apple", Model = "MacBook Pro", UserKey = _testUser.Key };
+        var device1 = new SmartPhone { KeyField = Guid.NewGuid().ToString(), DeviceUid = "device-uid-1", Make = "Apple", Model = "iPhone 13", UserKey = _testUser.Key };
+        var device2 = new PersonalComputer { KeyField = Guid.NewGuid().ToString(), DeviceUid = "device-uid-2", Make = "Apple", Model = "MacBook Pro", UserKey = _testUser.Key };
         var otherUser = new User 
         { 
+            KeyField = Guid.NewGuid().ToString(),
             FirstName = "Other", 
             LastName = "User", 
             Email = "other@example.com", 
             KeycloakUserId = "kc-other" 
         };
         _context.Users.Add(otherUser);
-        var device3 = new SmartPhone { DeviceUid = "device-uid-3", Make = "Apple", Model = "iPad", UserKey = otherUser.Key };
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
+        var device3 = new SmartPhone { KeyField = Guid.NewGuid().ToString(), DeviceUid = "device-uid-3", Make = "Apple", Model = "iPad", UserKey = otherUser.Key };
 
         _context.UserDevices.AddRange(device1, device2, device3);
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         // Act
         var result = await _repository.GetByUserKeyAsync(_testUser.Key);
@@ -79,11 +85,12 @@ public class UserDeviceRepositoryTests : IDisposable
     public async Task GetByUserKeyAsync_ExcludesDeletedDevices()
     {
         // Arrange
-        var device1 = new SmartPhone { DeviceUid = "device-active", Make = "Apple", Model = "iPhone", UserKey = _testUser.Key };
-        var device2 = new SmartPhone { DeviceUid = "device-deleted", Make = "Samsung", Model = "Android", UserKey = _testUser.Key, IsDeleted = true };
+        var device1 = new SmartPhone { KeyField = Guid.NewGuid().ToString(), DeviceUid = "device-active", Make = "Apple", Model = "iPhone", UserKey = _testUser.Key };
+        var device2 = new SmartPhone { KeyField = Guid.NewGuid().ToString(), DeviceUid = "device-deleted", Make = "Samsung", Model = "Android", UserKey = _testUser.Key, IsDeleted = true };
 
         _context.UserDevices.AddRange(device1, device2);
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         // Act
         var result = await _repository.GetByUserKeyAsync(_testUser.Key);
@@ -160,14 +167,15 @@ public class UserDeviceRepositoryTests : IDisposable
     public async Task GetMonitoredDevicesAsync_ReturnsOnlyEnabledDevices()
     {
         // Arrange
-        var enabled1 = new SmartPhone { DeviceUid = "enabled-1", Make = "Device", Model = "1", UserKey = _testUser.Key, MonitoringStatus = DeviceMonitoringStatus.Enabled };
+        var enabled1 = new SmartPhone { KeyField = Guid.NewGuid().ToString(), DeviceUid = "enabled-1", Make = "Device", Model = "1", UserKey = _testUser.Key, MonitoringStatus = DeviceMonitoringStatus.Enabled };
         
-        var enabled2 = new SmartPhone { DeviceUid = "enabled-2", Make = "Device", Model = "2", UserKey = _testUser.Key, MonitoringStatus = DeviceMonitoringStatus.Enabled };
+        var enabled2 = new SmartPhone { KeyField = Guid.NewGuid().ToString(), DeviceUid = "enabled-2", Make = "Device", Model = "2", UserKey = _testUser.Key, MonitoringStatus = DeviceMonitoringStatus.Enabled };
         
-        var disabled = new SmartPhone { DeviceUid = "disabled", Make = "Device", Model = "3", UserKey = _testUser.Key, MonitoringStatus = DeviceMonitoringStatus.Disabled };
+        var disabled = new SmartPhone { KeyField = Guid.NewGuid().ToString(), DeviceUid = "disabled", Make = "Device", Model = "3", UserKey = _testUser.Key, MonitoringStatus = DeviceMonitoringStatus.Disabled };
 
         _context.UserDevices.AddRange(enabled1, enabled2, disabled);
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         // Act
         var result = await _repository.GetMonitoredDevicesAsync();
@@ -184,12 +192,13 @@ public class UserDeviceRepositoryTests : IDisposable
     public async Task GetMonitoredDevicesAsync_ExcludesDeletedDevices()
     {
         // Arrange
-        var enabled = new SmartPhone { DeviceUid = "enabled", Make = "Enabled", Model = "Phone", UserKey = _testUser.Key, MonitoringStatus = DeviceMonitoringStatus.Enabled };
+        var enabled = new SmartPhone { KeyField = Guid.NewGuid().ToString(), DeviceUid = "enabled", Make = "Enabled", Model = "Phone", UserKey = _testUser.Key, MonitoringStatus = DeviceMonitoringStatus.Enabled };
         
-        var enabledButDeleted = new SmartPhone { DeviceUid = "deleted", Make = "Deleted", Model = "Phone", UserKey = _testUser.Key, MonitoringStatus = DeviceMonitoringStatus.Enabled, IsDeleted = true };
+        var enabledButDeleted = new SmartPhone { KeyField = Guid.NewGuid().ToString(), DeviceUid = "deleted", Make = "Deleted", Model = "Phone", UserKey = _testUser.Key, MonitoringStatus = DeviceMonitoringStatus.Enabled, IsDeleted = true };
 
         _context.UserDevices.AddRange(enabled, enabledButDeleted);
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         // Act
         var result = await _repository.GetMonitoredDevicesAsync();
@@ -238,18 +247,22 @@ public class UserDeviceRepositoryTests : IDisposable
         // Arrange
         var user2 = new User 
         { 
+            KeyField = Guid.NewGuid().ToString(),
             FirstName = "User", 
             LastName = "Two", 
             Email = "user2@example.com", 
             KeycloakUserId = "kc-2" 
         };
         _context.Users.Add(user2);
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
         
-        var device1 = new SmartPhone { DeviceUid = "uid-1", Make = "Apple", Model = "iPhone", UserKey = _testUser.Key };
-        var device2 = new SmartPhone { DeviceUid = "uid-2", Make = "Apple", Model = "iPhone", UserKey = user2.Key };
+        var device1 = new SmartPhone { KeyField = Guid.NewGuid().ToString(), DeviceUid = "uid-1", Make = "Apple", Model = "iPhone", UserKey = _testUser.Key };
+        var device2 = new SmartPhone { KeyField = Guid.NewGuid().ToString(), DeviceUid = "uid-2", Make = "Apple", Model = "iPhone", UserKey = user2.Key };
 
         _context.UserDevices.AddRange(device1, device2);
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         // Act
         var user1Devices = await _repository.GetByUserKeyAsync(_testUser.Key);

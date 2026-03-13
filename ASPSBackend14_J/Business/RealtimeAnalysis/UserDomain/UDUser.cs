@@ -33,6 +33,8 @@ public class UDUser
         UserDevices = userDevices ?? new List<UserDeviceView>();
         BrowserTabs = browserTabs ?? new();
         this.IsTargeted = isTaregted?? false;
+        RemoteAccessAnalysisResults = new Dictionary<string, List<RemoteAccessAnalysisResultVm>>();
+        UserUrlSurfDataByDevice = new Dictionary<string, IEnumerable<UserDeviceUrlSurfData>>();
     }
 
     // Core identity
@@ -107,6 +109,11 @@ public class UDUser
 
     public void AddRemoteAccessAnalysisResult(string deviceUid, RemoteAccessAnalysisResultVm vm)
     {
+        if (!this.RemoteAccessAnalysisResults.ContainsKey(deviceUid))
+        {
+            this.RemoteAccessAnalysisResults[deviceUid] = new List<RemoteAccessAnalysisResultVm>();
+        }
+        
         this.RemoteAccessAnalysisResults[deviceUid].Add(vm);
         if (this.RemoteAccessAnalysisResults[deviceUid].Count > this.maxRemoteAccessAnalysisResults)
         {

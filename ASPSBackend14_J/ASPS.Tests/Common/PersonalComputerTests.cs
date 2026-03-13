@@ -155,7 +155,7 @@ public class PersonalComputerTests
             MotherboardSerial = "SERIAL-123",
             UserAgent = "Mozilla/5.0",
             Timezone = 2,
-            Model = "Work Laptop",
+            DeviceUid = "Work Laptop",
             MAC = "AA:BB:CC:DD:EE:FF",
             OperatingSystem = OperatingSystemType.Windows
         };
@@ -300,17 +300,17 @@ public class PersonalComputerTests
     #region Type Distinction Tests
 
     [Fact]
-    public void Desktop_Laptop_Workstation_AreDifferentTypes()
+    public void Desktop_Laptop_Tablet_AreDifferentTypes()
     {
         // Arrange
         var desktop = new PersonalComputer { Type = PersonalComputerType.Desktop };
         var laptop = new PersonalComputer { Type = PersonalComputerType.Laptop };
-        var workstation = new PersonalComputer { Type = PersonalComputerType.Desktop };
+        var tablet = new PersonalComputer { Type = PersonalComputerType.Tablet };
 
         // Assert
         desktop.Type.Should().NotBe(laptop.Type);
-        laptop.Type.Should().NotBe(workstation.Type);
-        workstation.Type.Should().NotBe(desktop.Type);
+        laptop.Type.Should().NotBe(tablet.Type);
+        tablet.Type.Should().NotBe(desktop.Type);
     }
 
     #endregion

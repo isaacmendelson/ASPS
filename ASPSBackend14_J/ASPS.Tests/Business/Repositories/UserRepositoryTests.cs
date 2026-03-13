@@ -161,6 +161,7 @@ public class UserRepositoryTests : IDisposable
         // Arrange
         var active1 = new User 
         { 
+            KeyField = Guid.NewGuid().ToString(),
             FirstName = "Active", 
             LastName = "One", 
             Email = "active1@example.com", 
@@ -168,6 +169,7 @@ public class UserRepositoryTests : IDisposable
         };
         var active2 = new User 
         { 
+            KeyField = Guid.NewGuid().ToString(),
             FirstName = "Active", 
             LastName = "Two", 
             Email = "active2@example.com", 
@@ -175,6 +177,7 @@ public class UserRepositoryTests : IDisposable
         };
         var disabled = new User 
         { 
+            KeyField = Guid.NewGuid().ToString(),
             FirstName = "Disabled", 
             LastName = "User", 
             Email = "disabled@example.com", 
@@ -183,6 +186,7 @@ public class UserRepositoryTests : IDisposable
         };
         var deleted = new User 
         { 
+            KeyField = Guid.NewGuid().ToString(),
             FirstName = "Deleted", 
             LastName = "User", 
             Email = "deleted@example.com", 
@@ -192,6 +196,7 @@ public class UserRepositoryTests : IDisposable
 
         _context.Users.AddRange(active1, active2, disabled, deleted);
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         // Act
         var result = await _repository.GetActiveUsersAsync();
@@ -220,6 +225,7 @@ public class UserRepositoryTests : IDisposable
         // Arrange
         var active = new User 
         { 
+            KeyField = Guid.NewGuid().ToString(),
             FirstName = "Active", 
             LastName = "User", 
             Email = "active@example.com", 
@@ -227,6 +233,7 @@ public class UserRepositoryTests : IDisposable
         };
         var disabled = new User 
         { 
+            KeyField = Guid.NewGuid().ToString(),
             FirstName = "Disabled", 
             LastName = "User", 
             Email = "disabled@example.com", 
@@ -235,6 +242,7 @@ public class UserRepositoryTests : IDisposable
         };
         var deleted = new User 
         { 
+            KeyField = Guid.NewGuid().ToString(),
             FirstName = "Deleted", 
             LastName = "User", 
             Email = "deleted@example.com", 
@@ -244,6 +252,7 @@ public class UserRepositoryTests : IDisposable
 
         _context.Users.AddRange(active, disabled, deleted);
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         // Act
         var result = await _repository.GetActiveUsersAsync();
@@ -277,6 +286,7 @@ public class UserRepositoryTests : IDisposable
         // Arrange
         var user1 = new User 
         { 
+            KeyField = Guid.NewGuid().ToString(),
             FirstName = "User", 
             LastName = "One", 
             Email = "same@example.com", 
@@ -284,6 +294,7 @@ public class UserRepositoryTests : IDisposable
         };
         var user2 = new User 
         { 
+            KeyField = Guid.NewGuid().ToString(),
             FirstName = "User", 
             LastName = "Two", 
             Email = "same@example.com", 
@@ -292,6 +303,7 @@ public class UserRepositoryTests : IDisposable
 
         _context.Users.AddRange(user1, user2);
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         // Act
         var activeUsers = await _repository.GetActiveUsersAsync();

@@ -23,7 +23,7 @@ namespace ASPS.Tests.Common
             // Assert
             device.Should().NotBeNull();
             device.Should().BeAssignableTo<UserDevice>();
-            device.Should().Be("SmartPhone");
+            device.TypeName.Should().Be("SmartPhone");
         }
 
         [Fact]
@@ -258,7 +258,7 @@ namespace ASPS.Tests.Common
             // Assert
             tag.Should().NotBeNull();
             tag.Name.Should().Be("DEVICE-XYZ");
-            tag.Should().Be("SmartPhone");
+            tag.Type.Should().Be("SmartPhone");
         }
 
         [Fact]
@@ -276,7 +276,7 @@ namespace ASPS.Tests.Common
             // Assert
             tag.Should().NotBeNull();
             tag.Name.Should().Be("Apple iPhone 13");
-            tag.Should().Be("SmartPhone");
+            tag.Type.Should().Be("SmartPhone");
         }
 
         [Fact]
@@ -292,7 +292,7 @@ namespace ASPS.Tests.Common
             // Assert
             tag.Should().NotBeNull();
             tag.Name.Should().Be("Unknown Device");
-            tag.Should().Be("SmartPhone");
+            tag.Type.Should().Be("SmartPhone");
         }
 
         [Fact]

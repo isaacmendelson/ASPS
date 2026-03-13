@@ -109,12 +109,16 @@ public class IRepositoryTests : IDisposable
     {
         // Arrange
         var device1 = CreateSmartPhone("device-1", "+11111111111");
+        device1.KeyField = Guid.NewGuid().ToString();
         var device2 = CreateSmartPhone("device-2", "+22222222222");
+        device2.KeyField = Guid.NewGuid().ToString();
         var device3 = CreateSmartPhone("device-3", "+33333333333");
+        device3.KeyField = Guid.NewGuid().ToString();
         device3.IsDeleted = true; // Deleted device
         
         _context.UserDevices.AddRange(device1, device2, device3);
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         // Act
         var result = await _repository.GetAllAsync();
@@ -142,12 +146,15 @@ public class IRepositoryTests : IDisposable
     {
         // Arrange
         var device1 = CreateSmartPhone("device-1");
+        device1.KeyField = Guid.NewGuid().ToString();
         var device2 = CreateSmartPhone("device-2");
+        device2.KeyField = Guid.NewGuid().ToString();
         device1.IsDeleted = true;
         device2.IsDeleted = true;
         
         _context.UserDevices.AddRange(device1, device2);
         await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
 
         // Act
         var result = await _repository.GetAllAsync();
