@@ -1,0 +1,6 @@
+The following tests in EntityRepositoriesTests.cs have compilation errors:
+- AnalysisResultContainerRepositoryTests: protected constructor
+- DeviceAlertRepositoryTests: abstract class
+- TrackUrlAlerts tests: missing DbSet
+
+These tests need to be rewritten after the API changes.

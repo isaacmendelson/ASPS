@@ -10,12 +10,21 @@ namespace ASPS.Tests.Business.Services
     public class CurveKeyManagerTests
     {
         private readonly Mock<ILogger<CurveKeyManager>> _loggerMock;
-        private readonly Mock<IConfiguration> _configMock;
 
         public CurveKeyManagerTests()
         {
             _loggerMock = new Mock<ILogger<CurveKeyManager>>();
-            _configMock = new Mock<IConfiguration>();
+        }
+
+        private IConfiguration BuildConfiguration(bool curveEnabled, string? keysFilePath = null)
+        {
+            var configBuilder = new ConfigurationBuilder();
+            configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Security:CurveEnabled"] = curveEnabled.ToString(),
+                ["Security:KeysFilePath"] = keysFilePath
+            });
+            return configBuilder.Build();
         }
 
         #region Constructor Tests
@@ -24,11 +33,10 @@ namespace ASPS.Tests.Business.Services
         public void Constructor_WhenCurveDisabled_DoesNotGenerateKeys()
         {
             // Arrange
-            _configMock.Setup(c => c.GetValue<bool>("Security:CurveEnabled", true)).Returns(false);
-            _configMock.Setup(c => c.GetValue<string>("Security:KeysFilePath")).Returns((string?)null);
+            var config = BuildConfiguration(curveEnabled: false);
 
             // Act
-            var sut = new CurveKeyManager(_configMock.Object, _loggerMock.Object);
+            var sut = new CurveKeyManager(config, _loggerMock.Object);
 
             // Assert
             sut.IsEnabled.Should().BeFalse();
@@ -42,13 +50,12 @@ namespace ASPS.Tests.Business.Services
         {
             // Arrange
             var tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString(), "curve-server-keys.json");
-            _configMock.Setup(c => c.GetValue<bool>("Security:CurveEnabled", true)).Returns(true);
-            _configMock.Setup(c => c.GetValue<string>("Security:KeysFilePath")).Returns(tempPath);
+            var config = BuildConfiguration(curveEnabled: true, keysFilePath: tempPath);
 
             try
             {
                 // Act
-                var sut = new CurveKeyManager(_configMock.Object, _loggerMock.Object);
+                var sut = new CurveKeyManager(config, _loggerMock.Object);
 
                 // Assert
                 sut.IsEnabled.Should().BeTrue();
@@ -74,19 +81,18 @@ namespace ASPS.Tests.Business.Services
         {
             // Arrange
             var tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString(), "curve-server-keys.json");
-            _configMock.Setup(c => c.GetValue<bool>("Security:CurveEnabled", true)).Returns(true);
-            _configMock.Setup(c => c.GetValue<string>("Security:KeysFilePath")).Returns(tempPath);
+            var config = BuildConfiguration(curveEnabled: true, keysFilePath: tempPath);
 
             try
             {
                 // Create first instance to generate keys
-                var sut1 = new CurveKeyManager(_configMock.Object, _loggerMock.Object);
+                var sut1 = new CurveKeyManager(config, _loggerMock.Object);
                 var publicKey1 = sut1.ServerPublicKey;
                 var secretKey1 = sut1.ServerSecretKey;
                 var publicKeyZ85_1 = sut1.ServerPublicKeyZ85;
 
                 // Act - Create second instance that should load the same keys
-                var sut2 = new CurveKeyManager(_configMock.Object, _loggerMock.Object);
+                var sut2 = new CurveKeyManager(config, _loggerMock.Object);
 
                 // Assert
                 sut2.ServerPublicKey.Should().BeEquivalentTo(publicKey1);
@@ -114,11 +120,10 @@ namespace ASPS.Tests.Business.Services
         public void IsEnabled_ReflectsConfiguration(bool curveEnabled, bool expected)
         {
             // Arrange
-            _configMock.Setup(c => c.GetValue<bool>("Security:CurveEnabled", true)).Returns(curveEnabled);
-            _configMock.Setup(c => c.GetValue<string>("Security:KeysFilePath")).Returns((string?)null);
+            var config = BuildConfiguration(curveEnabled: curveEnabled);
 
             // Act
-            var sut = new CurveKeyManager(_configMock.Object, _loggerMock.Object);
+            var sut = new CurveKeyManager(config, _loggerMock.Object);
 
             // Assert
             sut.IsEnabled.Should().Be(expected);
@@ -161,13 +166,12 @@ namespace ASPS.Tests.Business.Services
         {
             // Arrange
             var tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString(), "curve-server-keys.json");
-            _configMock.Setup(c => c.GetValue<bool>("Security:CurveEnabled", true)).Returns(true);
-            _configMock.Setup(c => c.GetValue<string>("Security:KeysFilePath")).Returns(tempPath);
+            var config = BuildConfiguration(curveEnabled: true, keysFilePath: tempPath);
 
             try
             {
                 // Act
-                var sut = new CurveKeyManager(_configMock.Object, _loggerMock.Object);
+                var sut = new CurveKeyManager(config, _loggerMock.Object);
 
                 // Assert
                 sut.ServerPublicKeyZ85.Should().NotBeNullOrEmpty();

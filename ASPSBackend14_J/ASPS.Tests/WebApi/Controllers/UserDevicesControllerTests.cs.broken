@@ -1,0 +1,261 @@
+using Xunit;
+using Moq;
+using FluentAssertions;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using WebApi.Controllers;
+using WebApi.DTOs;
+using WebApi.Services;
+using Common.Models;
+using Business.Commands;
+
+namespace ASPS.Tests.WebApi.Controllers;
+
+public class UserDevicesControllerTests
+{
+    // Dependencies
+    private readonly Mock<NetMQClientService> _netMQClientMock;
+    private readonly Mock<ILogger<UserDevicesController>> _loggerMock;
+    
+    // System Under Test
+    private readonly UserDevicesController _sut;
+
+    public UserDevicesControllerTests()
+    {
+        // Setup mocks
+        _netMQClientMock = new Mock<NetMQClientService>("tcp://localhost:50000", Mock.Of<ILogger<NetMQClientService>>(), null);
+        _loggerMock = new Mock<ILogger<UserDevicesController>>();
+        
+        // Create instance
+        _sut = new UserDevicesController(_netMQClientMock.Object, _loggerMock.Object);
+    }
+
+    #region Create Tests
+
+    [Fact]
+    public async Task Create_WithValidRequest_ReturnsOk()
+    {
+        // Arrange
+        var request = new CreateUserDeviceRequest
+        {
+            UserKeyType = "email",
+            UserKeyValue = "test@example.com",
+            DeviceType = Common.Enums.DeviceType.MobilePhone,
+            DeviceUid = "device-123",
+            PhoneNumber = "+1234567890"
+        };
+
+        var commandResult = new CreateUserDeviceCommandResult
+        {
+            Success = true,
+            DeviceKey = new Key("device_uid", "device-123"),
+            Message = "Device created successfully"
+        };
+
+        _netMQClientMock
+            .Setup(c => c.SendCommandAsync<CreateUserDeviceCommand, CreateUserDeviceCommandResult>(It.IsAny<CreateUserDeviceCommand>()))
+            .ReturnsAsync(commandResult);
+
+        // Act
+        var result = await _sut.Create(request);
+
+        // Assert
+        result.Should().BeOfType<OkObjectResult>();
+        var okResult = result as OkObjectResult;
+        okResult!.Value.Should().NotBeNull();
+        _netMQClientMock.Verify(c => c.SendCommandAsync<CreateUserDeviceCommand, CreateUserDeviceCommandResult>(
+            It.Is<CreateUserDeviceCommand>(cmd => 
+                cmd.UserKey.Type == "email" && 
+                cmd.UserKey.Value == "test@example.com" &&
+                cmd.DeviceUid == "device-123"
+            )), Times.Once);
+    }
+
+    [Fact]
+    public async Task Create_WhenCommandFails_ReturnsBadRequest()
+    {
+        // Arrange
+        var request = new CreateUserDeviceRequest
+        {
+            UserKeyType = "email",
+            UserKeyValue = "test@example.com",
+            DeviceType = Common.Enums.DeviceType.Android,
+            DeviceUid = "device-123"
+        };
+
+        var commandResult = new CreateUserDeviceCommandResult
+        {
+            Success = false,
+            Message = "User not found"
+        };
+
+        _netMQClientMock
+            .Setup(c => c.SendCommandAsync<CreateUserDeviceCommand, CreateUserDeviceCommandResult>(It.IsAny<CreateUserDeviceCommand>()))
+            .ReturnsAsync(commandResult);
+
+        // Act
+        var result = await _sut.Create(request);
+
+        // Assert
+        result.Should().BeOfType<BadRequestObjectResult>();
+        var badResult = result as BadRequestObjectResult;
+        badResult!.Value.Should().Be("User not found");
+    }
+
+    [Fact]
+    public async Task Create_WhenExceptionThrown_ReturnsInternalServerError()
+    {
+        // Arrange
+        var request = new CreateUserDeviceRequest
+        {
+            UserKeyType = "email",
+            UserKeyValue = "test@example.com",
+            DeviceType = Common.Enums.DeviceType.Android,
+            DeviceUid = "device-123"
+        };
+
+        _netMQClientMock
+            .Setup(c => c.SendCommandAsync<CreateUserDeviceCommand, CreateUserDeviceCommandResult>(It.IsAny<CreateUserDeviceCommand>()))
+            .ThrowsAsync(new Exception("Network error"));
+
+        // Act
+        var result = await _sut.Create(request);
+
+        // Assert
+        result.Should().BeOfType<ObjectResult>();
+        var objectResult = result as ObjectResult;
+        objectResult!.StatusCode.Should().Be(500);
+    }
+
+    #endregion
+
+    #region Update Tests
+
+    [Fact]
+    public async Task Update_WithValidRequest_ReturnsOk()
+    {
+        // Arrange
+        var request = new UpdateUserDeviceRequest
+        {
+            MonitoringStatus = Common.Enums.MonitoringStatus.Active
+        };
+
+        var commandResult = new UpdateUserDeviceCommandResult
+        {
+            Success = true,
+            Message = "Device updated successfully"
+        };
+
+        _netMQClientMock
+            .Setup(c => c.SendCommandAsync<UpdateUserDeviceCommand, UpdateUserDeviceCommandResult>(It.IsAny<UpdateUserDeviceCommand>()))
+            .ReturnsAsync(commandResult);
+
+        // Act
+        var result = await _sut.Update("device_uid", "device-123", request);
+
+        // Assert
+        result.Should().BeOfType<OkObjectResult>();
+        _netMQClientMock.Verify(c => c.SendCommandAsync<UpdateUserDeviceCommand, UpdateUserDeviceCommandResult>(
+            It.Is<UpdateUserDeviceCommand>(cmd => 
+                cmd.DeviceKey.Type == "device_uid" && 
+                cmd.DeviceKey.Value == "device-123" &&
+                cmd.MonitoringStatus == Common.Enums.MonitoringStatus.Active
+            )), Times.Once);
+    }
+
+    [Fact]
+    public async Task Update_WhenCommandFails_ReturnsBadRequest()
+    {
+        // Arrange
+        var request = new UpdateUserDeviceRequest
+        {
+            MonitoringStatus = Common.Enums.MonitoringStatus.Active
+        };
+
+        var commandResult = new UpdateUserDeviceCommandResult
+        {
+            Success = false,
+            Message = "Device not found"
+        };
+
+        _netMQClientMock
+            .Setup(c => c.SendCommandAsync<UpdateUserDeviceCommand, UpdateUserDeviceCommandResult>(It.IsAny<UpdateUserDeviceCommand>()))
+            .ReturnsAsync(commandResult);
+
+        // Act
+        var result = await _sut.Update("device_uid", "device-123", request);
+
+        // Assert
+        result.Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    #endregion
+
+    #region Delete Tests
+
+    [Fact]
+    public async Task Delete_WithValidKey_ReturnsOk()
+    {
+        // Arrange
+        var commandResult = new DeleteUserDeviceCommandResult
+        {
+            Success = true,
+            Message = "Device deleted successfully"
+        };
+
+        _netMQClientMock
+            .Setup(c => c.SendCommandAsync<DeleteUserDeviceCommand, DeleteUserDeviceCommandResult>(It.IsAny<DeleteUserDeviceCommand>()))
+            .ReturnsAsync(commandResult);
+
+        // Act
+        var result = await _sut.Delete("device_uid", "device-123");
+
+        // Assert
+        result.Should().BeOfType<OkObjectResult>();
+        _netMQClientMock.Verify(c => c.SendCommandAsync<DeleteUserDeviceCommand, DeleteUserDeviceCommandResult>(
+            It.Is<DeleteUserDeviceCommand>(cmd => 
+                cmd.DeviceKey.Type == "device_uid" && 
+                cmd.DeviceKey.Value == "device-123"
+            )), Times.Once);
+    }
+
+    [Fact]
+    public async Task Delete_WhenCommandFails_ReturnsBadRequest()
+    {
+        // Arrange
+        var commandResult = new DeleteUserDeviceCommandResult
+        {
+            Success = false,
+            Message = "Device not found"
+        };
+
+        _netMQClientMock
+            .Setup(c => c.SendCommandAsync<DeleteUserDeviceCommand, DeleteUserDeviceCommandResult>(It.IsAny<DeleteUserDeviceCommand>()))
+            .ReturnsAsync(commandResult);
+
+        // Act
+        var result = await _sut.Delete("device_uid", "device-123");
+
+        // Assert
+        result.Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    [Fact]
+    public async Task Delete_WhenExceptionThrown_ReturnsInternalServerError()
+    {
+        // Arrange
+        _netMQClientMock
+            .Setup(c => c.SendCommandAsync<DeleteUserDeviceCommand, DeleteUserDeviceCommandResult>(It.IsAny<DeleteUserDeviceCommand>()))
+            .ThrowsAsync(new Exception("Network error"));
+
+        // Act
+        var result = await _sut.Delete("device_uid", "device-123");
+
+        // Assert
+        result.Should().BeOfType<ObjectResult>();
+        var objectResult = result as ObjectResult;
+        objectResult!.StatusCode.Should().Be(500);
+    }
+
+    #endregion
+}

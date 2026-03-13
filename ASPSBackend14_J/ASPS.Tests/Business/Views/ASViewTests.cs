@@ -1,0 +1,433 @@
+using Xunit;
+using Moq;
+using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
+using Business.Views;
+using Business.Data.EF;
+using Business.Data.EF.Repositories;
+using Interface.Repositories;
+using Common.Entities;
+using Common.Models;
+
+namespace ASPS.Tests.Business.Views;
+
+public class ASViewTests : IDisposable
+{
+    private readonly ServiceProvider _serviceProvider;
+    private readonly AppDbContext _context;
+    private readonly Mock<ILogger<ASView>> _loggerMock;
+    private readonly ASView _asView;
+
+    public ASViewTests()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        _context = new AppDbContext(options);
+        _loggerMock = new Mock<ILogger<ASView>>();
+
+        // Setup service provider with repositories
+        var services = new ServiceCollection();
+        services.AddScoped(_ => _context);
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IUserDeviceRepository, UserDeviceRepository>();
+        services.AddScoped<IUserAccountRepository, UserAccountRepository>();
+        services.AddScoped<IDeviceAlertRepository, DeviceAlertRepository>();
+        services.AddScoped<IAnalysisResultRepository, AnalysisResultRepository>();
+        services.AddScoped<IKnownPhishingWebsiteRepository, KnownPhishingWebsiteRepository>();
+        services.AddScoped<ISafeDomainRepository, SafeDomainRepository>();
+        
+        // Add loggers for repositories
+        services.AddSingleton(Mock.Of<ILogger<UserRepository>>());
+        services.AddSingleton(Mock.Of<ILogger<UserDeviceRepository>>());
+        services.AddSingleton(Mock.Of<ILogger<UserAccountRepository>>());
+        services.AddSingleton(Mock.Of<ILogger<DeviceAlertRepository>>());
+        services.AddSingleton(Mock.Of<ILogger<AnalysisResultRepository>>());
+        services.AddSingleton(Mock.Of<ILogger<KnownPhishingWebsiteRepository>>());
+        services.AddSingleton(Mock.Of<ILogger<SafeDomainRepository>>());
+
+        _serviceProvider = services.BuildServiceProvider();
+        _asView = new ASView(_serviceProvider, _loggerMock.Object);
+    }
+
+    public void Dispose()
+    {
+        _serviceProvider.Dispose();
+    }
+
+    #region Constructor Tests
+
+    [Fact]
+    public void Constructor_CreatesInstance()
+    {
+        // Act & Assert
+        _asView.Should().NotBeNull();
+    }
+
+    #endregion
+
+    #region Start/Stop Tests
+
+    [Fact]
+    public void Start_LoadsDataFromDatabase()
+    {
+        // Arrange
+        var user = new User
+        {
+            FirstName = "Test",
+            LastName = "User",
+            Email = "test@example.com"
+        };
+        _context.Users.Add(user);
+        _context.SaveChanges();
+
+        // Act
+        _asView.Start();
+
+        // Assert
+        var users = _asView.GetUsers();
+        users.Should().HaveCount(1);
+        users.First().Email.Should().Be("test@example.com");
+    }
+
+    [Fact]
+    public void Stop_DoesNotThrow()
+    {
+        // Act
+        Action act = () => _asView.Stop();
+
+        // Assert
+        act.Should().NotThrow();
+    }
+
+    #endregion
+
+    #region GetHandleableEvents Tests
+
+    [Fact]
+    public void GetHandleableEvents_ReturnsExpectedTypes()
+    {
+        // Act
+        var result = _asView.GetHandleableEvents();
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().HaveCountGreaterThan(0);
+    }
+
+    #endregion
+
+    #region FindUserByKey Tests
+
+    [Fact]
+    public void FindUserByKey_WhenUserExists_ReturnsUser()
+    {
+        // Arrange
+        var user = new User
+        {
+            FirstName = "Test",
+            LastName = "User",
+            Email = "test@example.com"
+        };
+        _context.Users.Add(user);
+        _context.SaveChanges();
+
+        _asView.Start();
+
+        // Act
+        var result = _asView.FindUserByKey(user.Key);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.Email.Should().Be("test@example.com");
+    }
+
+    [Fact]
+    public void FindUserByKey_WhenUserDoesNotExist_ReturnsNull()
+    {
+        // Arrange
+        _asView.Start();
+        var nonExistentKey = new Key("User", "999");
+
+        // Act
+        var result = _asView.FindUserByKey(nonExistentKey);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    #endregion
+
+    #region FindUserByEmail Tests
+
+    [Fact]
+    public void FindUserByEmail_WhenUserExists_ReturnsUser()
+    {
+        // Arrange
+        var user = new User
+        {
+            FirstName = "Test",
+            LastName = "User",
+            Email = "find@example.com"
+        };
+        _context.Users.Add(user);
+        _context.SaveChanges();
+
+        _asView.Start();
+
+        // Act
+        var result = _asView.FindUserByEmail("find@example.com");
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.Email.Should().Be("find@example.com");
+    }
+
+    [Fact]
+    public void FindUserByEmail_CaseInsensitive()
+    {
+        // Arrange
+        var user = new User
+        {
+            FirstName = "Test",
+            LastName = "User",
+            Email = "case@example.com"
+        };
+        _context.Users.Add(user);
+        _context.SaveChanges();
+
+        _asView.Start();
+
+        // Act
+        var result = _asView.FindUserByEmail("CASE@EXAMPLE.COM");
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.Email.Should().Be("case@example.com");
+    }
+
+    [Fact]
+    public void FindUserByEmail_WhenUserDoesNotExist_ReturnsNull()
+    {
+        // Arrange
+        _asView.Start();
+
+        // Act
+        var result = _asView.FindUserByEmail("nonexistent@example.com");
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    #endregion
+
+    #region FindUserByEmailActive Tests
+
+    [Fact]
+    public void FindUserByEmailActive_WhenUserIsActive_ReturnsUser()
+    {
+        // Arrange
+        var user = new User
+        {
+            FirstName = "Active",
+            LastName = "User",
+            Email = "active@example.com",
+            IsDisabled = false
+        };
+        _context.Users.Add(user);
+        _context.SaveChanges();
+
+        _asView.Start();
+
+        // Act
+        var result = _asView.FindUserByEmailActive("active@example.com");
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.Email.Should().Be("active@example.com");
+    }
+
+    [Fact]
+    public void FindUserByEmailActive_WhenUserIsDisabled_ReturnsNull()
+    {
+        // Arrange
+        var user = new User
+        {
+            FirstName = "Disabled",
+            LastName = "User",
+            Email = "disabled@example.com",
+            IsDisabled = true
+        };
+        _context.Users.Add(user);
+        _context.SaveChanges();
+
+        _asView.Start();
+
+        // Act
+        var result = _asView.FindUserByEmailActive("disabled@example.com");
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    #endregion
+
+    #region GetUsers Tests
+
+    [Fact]
+    public void GetUsers_ReturnsAllUsers()
+    {
+        // Arrange
+        var user1 = new User { KeyField = Guid.NewGuid().ToString(), FirstName = "User", LastName = "One", Email = "user1@example.com" };
+        var user2 = new User { KeyField = Guid.NewGuid().ToString(), FirstName = "User", LastName = "Two", Email = "user2@example.com" };
+        _context.Users.AddRange(user1, user2);
+        _context.SaveChanges();
+
+        _asView.Start();
+
+        // Act
+        var result = _asView.GetUsers();
+
+        // Assert
+        result.Should().HaveCount(2);
+        result.Should().Contain(u => u.Email == "user1@example.com");
+        result.Should().Contain(u => u.Email == "user2@example.com");
+    }
+
+    [Fact]
+    public void GetUsers_WhenNoUsers_ReturnsEmptyList()
+    {
+        // Arrange
+        _asView.Start();
+
+        // Act
+        var result = _asView.GetUsers();
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    #endregion
+
+    #region IsSafeDomain Tests
+
+    [Fact]
+    public void IsSafeDomain_WhenDomainIsSafe_ReturnsTrue()
+    {
+        // Arrange
+        var safeDomain = new SafeDomain
+        {
+            Domain = "safe.com",
+            DateCreated = DateTime.UtcNow
+        };
+        _context.SafeDomains.Add(safeDomain);
+        _context.SaveChanges();
+
+        _asView.Start();
+
+        // Act
+        var result = _asView.IsSafeDomain("safe.com");
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsSafeDomain_CaseInsensitive()
+    {
+        // Arrange
+        var safeDomain = new SafeDomain
+        {
+            Domain = "safe.com",
+            DateCreated = DateTime.UtcNow
+        };
+        _context.SafeDomains.Add(safeDomain);
+        _context.SaveChanges();
+
+        _asView.Start();
+
+        // Act
+        var result = _asView.IsSafeDomain("SAFE.COM");
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsSafeDomain_WhenDomainIsNotSafe_ReturnsFalse()
+    {
+        // Arrange
+        _asView.Start();
+
+        // Act
+        var result = _asView.IsSafeDomain("unsafe.com");
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void IsSafeDomain_WhenDomainIsNullOrWhitespace_ReturnsFalse(string? domain)
+    {
+        // Arrange
+        _asView.Start();
+
+        // Act
+        var result = _asView.IsSafeDomain(domain!);
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    #endregion
+
+    #region GetKnownPhishingWebsites Tests
+
+    [Fact]
+    public void GetKnownPhishingWebsites_ReturnsAllPhishingWebsites()
+    {
+        // Arrange
+        var phishing1 = new KnownPhishingWebsite("http://phishing1.com");
+        var phishing2 = new KnownPhishingWebsite("http://phishing2.com");
+        _context.KnownPhishingWebsites.AddRange(phishing1, phishing2);
+        _context.SaveChanges();
+
+        _asView.Start();
+
+        // Act
+        var result = _asView.GetKnownPhishingWebsites();
+
+        // Assert
+        result.Should().HaveCount(2);
+    }
+
+    #endregion
+
+    #region GetSafeDomains Tests
+
+    [Fact]
+    public void GetSafeDomains_ReturnsAllSafeDomains()
+    {
+        // Arrange
+        var safe1 = new SafeDomain { Domain = "safe1.com", DateCreated = DateTime.UtcNow };
+        var safe2 = new SafeDomain { Domain = "safe2.com", DateCreated = DateTime.UtcNow };
+        _context.SafeDomains.AddRange(safe1, safe2);
+        _context.SaveChanges();
+
+        _asView.Start();
+
+        // Act
+        var result = _asView.GetSafeDomains();
+
+        // Assert
+        result.Should().HaveCount(2);
+    }
+
+    #endregion
+}

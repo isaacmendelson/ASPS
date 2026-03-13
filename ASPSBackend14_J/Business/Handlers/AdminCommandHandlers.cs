@@ -17,7 +17,7 @@ public class AdminCommandHandlers
         _asView = asView;
     }
 
-    public async Task<CreateUserAdminCommandResult> HandleAsync(CreateUserAdminCommand command)
+    public virtual async Task<CreateUserAdminCommandResult> HandleAsync(CreateUserAdminCommand command)
     {
         try
         {

@@ -11,10 +11,10 @@ namespace WebApi.Controllers;
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
 {
-    private readonly NetMQClientService _netMQClient;
+    private readonly INetMQClientService _netMQClient;
     private readonly ILogger<UsersController> _logger;
 
-    public UsersController(NetMQClientService netMQClient, ILogger<UsersController> logger)
+    public UsersController(INetMQClientService netMQClient, ILogger<UsersController> logger)
     {
         _netMQClient = netMQClient;
         _logger = logger;

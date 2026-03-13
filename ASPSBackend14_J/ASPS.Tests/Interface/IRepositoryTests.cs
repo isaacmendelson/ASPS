@@ -107,7 +107,7 @@ namespace ASPS.Tests.Interface
 
         #region Mock Implementation Tests
 
-        private class TestEntity
+        public class TestEntity
         {
             public int Id { get; set; }
             public string Name { get; set; } = string.Empty;

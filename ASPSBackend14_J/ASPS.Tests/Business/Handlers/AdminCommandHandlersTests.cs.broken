@@ -1,0 +1,207 @@
+using Xunit;
+using Moq;
+using FluentAssertions;
+using Business.Handlers;
+using Business.Commands;
+using Business.Views;
+using Common.Entities;
+using Interface.Repositories;
+
+namespace ASPS.Tests.Business.Handlers;
+
+public class AdminCommandHandlersTests
+{
+    private readonly Mock<IUserRepository> _userRepositoryMock;
+    private readonly Mock<ASView> _asViewMock;
+    private readonly AdminCommandHandlers _sut;
+
+    public AdminCommandHandlersTests()
+    {
+        _userRepositoryMock = new Mock<IUserRepository>();
+        _asViewMock = new Mock<ASView>();
+        _sut = new AdminCommandHandlers(_userRepositoryMock.Object, _asViewMock.Object);
+    }
+
+    #region HandleAsync Tests
+
+    [Fact]
+    public async Task HandleAsync_WithValidCommand_ReturnsSuccessResult()
+    {
+        // Arrange
+        var command = new CreateUserAdminCommand
+        {
+            KeycloakUserId = "kc-123",
+            FirstName = "John",
+            LastName = "Doe",
+            Email = "john@example.com",
+            Role = "User",
+            Locale = "en-US",
+            Timezone = "UTC",
+            GuardianKey = "guardian-key"
+        };
+
+        var expectedUser = new User
+        {
+            Key = "user-key-123",
+            KeycloakUserId = command.KeycloakUserId,
+            FirstName = command.FirstName,
+            LastName = command.LastName,
+            Email = command.Email,
+            Role = command.Role,
+            Locale = command.Locale,
+            Timezone = command.Timezone,
+            GuardianKey = command.GuardianKey
+        };
+
+        _userRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<User>()))
+            .ReturnsAsync(expectedUser);
+
+        // Act
+        var result = await _sut.HandleAsync(command);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Success.Should().BeTrue();
+        result.Message.Should().Be("User created successfully");
+        result.UserKey.Should().Be("user-key-123");
+        
+        _userRepositoryMock.Verify(r => r.AddAsync(It.Is<User>(u => 
+            u.FirstName == "John" && 
+            u.LastName == "Doe" && 
+            u.Email == "john@example.com")), Times.Once);
+        
+        _asViewMock.Verify(v => v.Handle(It.IsAny<object>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithNullOptionalFields_CreatesUserWithEmptyStrings()
+    {
+        // Arrange
+        var command = new CreateUserAdminCommand
+        {
+            FirstName = "Jane",
+            LastName = "Smith",
+            Role = "Admin",
+            Locale = "en-US",
+            Timezone = "UTC",
+            GuardianKey = "guardian-key",
+            Address = null,
+            City = null,
+            State = null,
+            Zip = null,
+            Country = null,
+            PhoneNumber = null,
+            Email = null
+        };
+
+        var createdUser = new User { Key = "new-key" };
+        _userRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<User>()))
+            .ReturnsAsync(createdUser);
+
+        // Act
+        var result = await _sut.HandleAsync(command);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        _userRepositoryMock.Verify(r => r.AddAsync(It.Is<User>(u =>
+            u.Address == string.Empty &&
+            u.City == string.Empty &&
+            u.State == string.Empty &&
+            u.Zip == string.Empty &&
+            u.Country == string.Empty &&
+            u.PhoneNumber == string.Empty &&
+            u.Email == string.Empty)), Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenRepositoryThrowsException_ReturnsFailureResult()
+    {
+        // Arrange
+        var command = new CreateUserAdminCommand
+        {
+            FirstName = "Error",
+            LastName = "User",
+            Role = "User",
+            Locale = "en-US",
+            Timezone = "UTC",
+            GuardianKey = "guardian-key"
+        };
+
+        _userRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<User>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _sut.HandleAsync(command);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Success.Should().BeFalse();
+        result.Message.Should().Contain("Error creating user");
+        result.Message.Should().Contain("Database error");
+        result.UserKey.Should().BeNull();
+        
+        _asViewMock.Verify(v => v.Handle(It.IsAny<object>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task HandleAsync_GeneratesUniqueKeyField_ForEachUser()
+    {
+        // Arrange
+        var command = new CreateUserAdminCommand
+        {
+            FirstName = "Test",
+            LastName = "User",
+            Role = "User",
+            Locale = "en-US",
+            Timezone = "UTC",
+            GuardianKey = "guardian-key"
+        };
+
+        string capturedKeyField = null;
+        _userRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<User>()))
+            .Callback<User>(u => capturedKeyField = u.KeyField)
+            .ReturnsAsync(new User { Key = "result-key" });
+
+        // Act
+        await _sut.HandleAsync(command);
+
+        // Assert
+        capturedKeyField.Should().NotBeNullOrEmpty();
+        Guid.TryParse(capturedKeyField, out _).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithoutKeycloakUserId_GeneratesNewGuid()
+    {
+        // Arrange
+        var command = new CreateUserAdminCommand
+        {
+            KeycloakUserId = null,
+            FirstName = "Test",
+            LastName = "User",
+            Role = "User",
+            Locale = "en-US",
+            Timezone = "UTC",
+            GuardianKey = "guardian-key"
+        };
+
+        string capturedKeycloakUserId = null;
+        _userRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<User>()))
+            .Callback<User>(u => capturedKeycloakUserId = u.KeycloakUserId)
+            .ReturnsAsync(new User { Key = "result-key" });
+
+        // Act
+        await _sut.HandleAsync(command);
+
+        // Assert
+        capturedKeycloakUserId.Should().NotBeNullOrEmpty();
+        Guid.TryParse(capturedKeycloakUserId, out _).Should().BeTrue();
+    }
+
+    #endregion
+}

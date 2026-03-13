@@ -1,0 +1,578 @@
+using Xunit;
+using Moq;
+using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Business.Data.EF;
+using Business.Data.EF.Repositories;
+using Common.Entities;
+using Common.Models;
+using Common.Enums;
+
+namespace ASPS.Tests.Business.Repositories;
+
+public class EntityRepositoriesTests
+{
+    #region UserRepository Tests
+
+    public class UserRepositoryTests : IDisposable
+    {
+        private readonly AppDbContext _context;
+        private readonly UserRepository _sut;
+
+        public UserRepositoryTests()
+        {
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            _context = new AppDbContext(options);
+            _sut = new UserRepository(_context);
+        }
+
+        [Fact]
+        public async Task GetByKeycloakIdAsync_WhenUserExists_ReturnsUser()
+        {
+            // Arrange
+            var user = new User
+            {
+                KeyField = Guid.NewGuid().ToString(),
+                KeycloakUserId = "kc-123",
+                FirstName = "John",
+                IsDeleted = false
+            };
+            await _context.Users.AddAsync(user);
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _sut.GetByKeycloakIdAsync("kc-123");
+
+            // Assert
+            result.Should().NotBeNull();
+            result.FirstName.Should().Be("John");
+        }
+
+        [Fact]
+        public async Task GetByKeycloakIdAsync_WhenUserDeleted_ReturnsNull()
+        {
+            // Arrange
+            var user = new User
+            {
+                KeyField = Guid.NewGuid().ToString(),
+                KeycloakUserId = "kc-deleted",
+                IsDeleted = true
+            };
+            await _context.Users.AddAsync(user);
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _sut.GetByKeycloakIdAsync("kc-deleted");
+
+            // Assert
+            result.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task GetUserWithDetailsAsync_WhenUserExists_ReturnsUser()
+        {
+            // Arrange
+            var keyField = Guid.NewGuid().ToString();
+            var user = new User
+            {
+                KeyField = keyField,
+                FirstName = "Jane",
+                IsDeleted = false
+            };
+            await _context.Users.AddAsync(user);
+            await _context.SaveChangesAsync();
+
+            var key = new Key("User", keyField, "default");
+
+            // Act
+            var result = await _sut.GetUserWithDetailsAsync(key);
+
+            // Assert
+            result.Should().NotBeNull();
+            result.FirstName.Should().Be("Jane");
+        }
+
+        [Fact]
+        public async Task GetActiveUsersAsync_ReturnsOnlyActiveUsers()
+        {
+            // Arrange
+            await _context.Users.AddRangeAsync(
+                new User { KeyField = Guid.NewGuid().ToString(), FirstName = "Active1", IsDeleted = false, IsDisabled = false },
+                new User { KeyField = Guid.NewGuid().ToString(), FirstName = "Deleted", IsDeleted = true, IsDisabled = false },
+                new User { KeyField = Guid.NewGuid().ToString(), FirstName = "Disabled", IsDeleted = false, IsDisabled = true },
+                new User { KeyField = Guid.NewGuid().ToString(), FirstName = "Active2", IsDeleted = false, IsDisabled = false }
+            );
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _sut.GetActiveUsersAsync();
+
+            // Assert
+            result.Should().HaveCount(2);
+            result.Should().OnlyContain(u => !u.IsDeleted && !u.IsDisabled);
+        }
+
+        public void Dispose()
+        {
+            _context.Database.EnsureDeleted();
+            _context.Dispose();
+        }
+    }
+
+    #endregion
+
+    #region UserDeviceRepository Tests
+
+    public class UserDeviceRepositoryTests : IDisposable
+    {
+        private readonly AppDbContext _context;
+        private readonly UserDeviceRepository _sut;
+
+        public UserDeviceRepositoryTests()
+        {
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            _context = new AppDbContext(options);
+            _sut = new UserDeviceRepository(_context);
+        }
+
+        [Fact]
+        public async Task GetByUserKeyAsync_ReturnsUserDevices()
+        {
+            // Arrange
+            var userKeyField = Guid.NewGuid().ToString();
+            await _context.UserDevices.AddRangeAsync(
+                new PersonalComputer { KeyField = Guid.NewGuid().ToString(), UserKeyField = userKeyField, Model = "Device1", IsDeleted = false },
+                new PersonalComputer { KeyField = Guid.NewGuid().ToString(), UserKeyField = userKeyField, Model = "Device2", IsDeleted = false },
+                new PersonalComputer { KeyField = Guid.NewGuid().ToString(), UserKeyField = Guid.NewGuid().ToString(), Model = "OtherUser", IsDeleted = false }
+            );
+            await _context.SaveChangesAsync();
+
+            var userKey = new Key("User", userKeyField, "default");
+
+            // Act
+            var result = await _sut.GetByUserKeyAsync(userKey);
+
+            // Assert
+            result.Should().HaveCount(2);
+            result.Should().OnlyContain(d => d.UserKeyField == userKeyField);
+        }
+
+        [Fact]
+        public async Task GetByDeviceUidAsync_WhenDeviceExists_ReturnsDevice()
+        {
+            // Arrange
+            var device = new PersonalComputer
+            {
+                KeyField = Guid.NewGuid().ToString(),
+                DeviceUid = "unique-device-id",
+                Model = "Test Device",
+                IsDeleted = false
+            };
+            await _context.UserDevices.AddAsync(device);
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _sut.GetByDeviceUidAsync("unique-device-id");
+
+            // Assert
+            result.Should().NotBeNull();
+            result.Model.Should().Be("Test Device");
+        }
+
+        [Fact]
+        public async Task GetMonitoredDevicesAsync_ReturnsOnlyEnabledDevices()
+        {
+            // Arrange
+            await _context.UserDevices.AddRangeAsync(
+                new PersonalComputer { KeyField = Guid.NewGuid().ToString(), MonitoringStatus = DeviceMonitoringStatus.Enabled, Model = "Enabled1", IsDeleted = false },
+                new PersonalComputer { KeyField = Guid.NewGuid().ToString(), MonitoringStatus = DeviceMonitoringStatus.Disabled, Model = "Disabled", IsDeleted = false },
+                new PersonalComputer { KeyField = Guid.NewGuid().ToString(), MonitoringStatus = DeviceMonitoringStatus.Enabled, Model = "Enabled2", IsDeleted = false }
+            );
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _sut.GetMonitoredDevicesAsync();
+
+            // Assert
+            result.Should().HaveCount(2);
+            result.Should().OnlyContain(d => d.MonitoringStatus == DeviceMonitoringStatus.Enabled);
+        }
+
+        public void Dispose()
+        {
+            _context.Database.EnsureDeleted();
+            _context.Dispose();
+        }
+    }
+
+    #endregion
+
+    #region UserAccountRepository Tests
+
+    public class UserAccountRepositoryTests : IDisposable
+    {
+        private readonly AppDbContext _context;
+        private readonly UserAccountRepository _sut;
+
+        public UserAccountRepositoryTests()
+        {
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            _context = new AppDbContext(options);
+            _sut = new UserAccountRepository(_context);
+        }
+
+        [Fact]
+        public async Task GetByUserKeyAsync_ReturnsUserAccounts()
+        {
+            // Arrange
+            var userKeyField = Guid.NewGuid().ToString();
+            await _context.UserAccounts.AddRangeAsync(
+                new UserAccount { KeyField = Guid.NewGuid().ToString(), UserKeyField = userKeyField, UserName = "account1", IsDeleted = false },
+                new UserAccount { KeyField = Guid.NewGuid().ToString(), UserKeyField = userKeyField, UserName = "account2", IsDeleted = false }
+            );
+            await _context.SaveChangesAsync();
+
+            var userKey = new Key("User", userKeyField, "default");
+
+            // Act
+            var result = await _sut.GetByUserKeyAsync(userKey);
+
+            // Assert
+            result.Should().HaveCount(2);
+        }
+
+        [Fact]
+        public async Task GetByUserNameAsync_WhenAccountExists_ReturnsAccount()
+        {
+            // Arrange
+            var account = new UserAccount
+            {
+                KeyField = Guid.NewGuid().ToString(),
+                UserName = "testuser",
+                IsDeleted = false
+            };
+            await _context.UserAccounts.AddAsync(account);
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _sut.GetByUserNameAsync("testuser");
+
+            // Assert
+            result.Should().NotBeNull();
+            result.UserName.Should().Be("testuser");
+        }
+
+        public void Dispose()
+        {
+            _context.Database.EnsureDeleted();
+            _context.Dispose();
+        }
+    }
+
+    #endregion
+
+    #region AnalysisResultRepository Tests
+
+    public class AnalysisResultRepositoryTests : IDisposable
+    {
+        private readonly AppDbContext _context;
+        private readonly Mock<ILogger<AnalysisResultRepository>> _loggerMock;
+        private readonly AnalysisResultRepository _sut;
+
+        public AnalysisResultRepositoryTests()
+        {
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            _context = new AppDbContext(options);
+            _loggerMock = new Mock<ILogger<AnalysisResultRepository>>();
+            _sut = new AnalysisResultRepository(_context, _loggerMock.Object);
+        }
+
+        [Fact]
+        public async Task GetAllAsync_ReturnsNonDeletedResults()
+        {
+            // Arrange
+            await _context.AnalysisResults.AddRangeAsync(
+                new AnalysisResultContainer { KeyField = Guid.NewGuid().ToString(), IsDeleted = false },
+                new AnalysisResultContainer { KeyField = Guid.NewGuid().ToString(), IsDeleted = true },
+                new AnalysisResultContainer { KeyField = Guid.NewGuid().ToString(), IsDeleted = false }
+            );
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _sut.GetAllAsync();
+
+            // Assert
+            result.Should().HaveCount(2);
+            result.Should().OnlyContain(r => !r.IsDeleted);
+        }
+
+        [Fact]
+        public async Task GetByUserKeyAsync_ReturnsUserResults()
+        {
+            // Arrange
+            var userKeyField = Guid.NewGuid().ToString();
+            await _context.AnalysisResults.AddRangeAsync(
+                new AnalysisResultContainer { KeyField = Guid.NewGuid().ToString(), UserKeyField = userKeyField, Timestamp = DateTime.UtcNow, IsDeleted = false },
+                new AnalysisResultContainer { KeyField = Guid.NewGuid().ToString(), UserKeyField = Guid.NewGuid().ToString(), Timestamp = DateTime.UtcNow, IsDeleted = false }
+            );
+            await _context.SaveChangesAsync();
+
+            var userKey = new Key("User", userKeyField, "default");
+
+            // Act
+            var result = await _sut.GetByUserKeyAsync(userKey);
+
+            // Assert
+            result.Should().HaveCount(1);
+            result.First().UserKeyField.Should().Be(userKeyField);
+        }
+
+        [Fact]
+        public async Task GetLatestAsync_ReturnsNewestResult()
+        {
+            // Arrange
+            var userKeyField = Guid.NewGuid().ToString();
+            await _context.AnalysisResults.AddRangeAsync(
+                new AnalysisResultContainer { KeyField = Guid.NewGuid().ToString(), UserKeyField = userKeyField, Timestamp = DateTime.UtcNow.AddHours(-2), IsDeleted = false },
+                new AnalysisResultContainer { KeyField = Guid.NewGuid().ToString(), UserKeyField = userKeyField, Timestamp = DateTime.UtcNow.AddHours(-1), IsDeleted = false }
+            );
+            await _context.SaveChangesAsync();
+
+            var userKey = new Key("User", userKeyField, "default");
+
+            // Act
+            var result = await _sut.GetLatestAsync(userKey);
+
+            // Assert
+            result.Should().NotBeNull();
+            result.Timestamp.Should().BeCloseTo(DateTime.UtcNow.AddHours(-1), TimeSpan.FromMinutes(1));
+        }
+
+        public void Dispose()
+        {
+            _context.Database.EnsureDeleted();
+            _context.Dispose();
+        }
+    }
+
+    #endregion
+
+    #region DeviceAlertRepository Tests
+
+    public class DeviceAlertRepositoryTests : IDisposable
+    {
+        private readonly AppDbContext _context;
+        private readonly DeviceAlertRepository _sut;
+
+        public DeviceAlertRepositoryTests()
+        {
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            _context = new AppDbContext(options);
+            _sut = new DeviceAlertRepository(_context);
+        }
+
+        [Fact]
+        public async Task GetAlertsByDeviceUidAsync_ReturnsDeviceAlerts()
+        {
+            // Arrange
+            await _context.DeviceAlerts.AddRangeAsync(
+                new DeviceAlertEntity { KeyField = Guid.NewGuid().ToString(), DeviceUid = "device-123", Timestamp = DateTime.UtcNow, IsDeleted = false },
+                new DeviceAlertEntity { KeyField = Guid.NewGuid().ToString(), DeviceUid = "device-123", Timestamp = DateTime.UtcNow.AddHours(-1), IsDeleted = false },
+                new DeviceAlertEntity { KeyField = Guid.NewGuid().ToString(), DeviceUid = "other-device", Timestamp = DateTime.UtcNow, IsDeleted = false }
+            );
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _sut.GetAlertsByDeviceUidAsync("device-123");
+
+            // Assert
+            result.Should().HaveCount(2);
+            result.Should().OnlyContain(a => a.DeviceUid == "device-123");
+        }
+
+        [Fact]
+        public async Task GetRecentAlertsAsync_ReturnsAlertsWithinTimeSpan()
+        {
+            // Arrange
+            await _context.DeviceAlerts.AddRangeAsync(
+                new DeviceAlertEntity { KeyField = Guid.NewGuid().ToString(), Timestamp = DateTime.UtcNow.AddHours(-1), IsDeleted = false },
+                new DeviceAlertEntity { KeyField = Guid.NewGuid().ToString(), Timestamp = DateTime.UtcNow.AddHours(-25), IsDeleted = false }
+            );
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _sut.GetRecentAlertsAsync(TimeSpan.FromHours(24));
+
+            // Assert
+            result.Should().HaveCount(1);
+        }
+
+        public void Dispose()
+        {
+            _context.Database.EnsureDeleted();
+            _context.Dispose();
+        }
+    }
+
+    #endregion
+
+    #region TrackUrlAlertRepository Tests
+
+    public class TrackUrlAlertRepositoryTests : IDisposable
+    {
+        private readonly AppDbContext _context;
+        private readonly TrackUrlAlertRepository _sut;
+
+        public TrackUrlAlertRepositoryTests()
+        {
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            _context = new AppDbContext(options);
+            _sut = new TrackUrlAlertRepository(_context);
+        }
+
+        [Fact]
+        public async Task GetAlertsByUrlAsync_ReturnsUrlAlerts()
+        {
+            // Arrange
+            await _context.TrackUrlAlerts.AddRangeAsync(
+                new TrackUrlAlertEntity { KeyField = Guid.NewGuid().ToString(), Url = "https://evil.com", Timestamp = DateTime.UtcNow, IsDeleted = false },
+                new TrackUrlAlertEntity { KeyField = Guid.NewGuid().ToString(), Url = "https://evil.com", Timestamp = DateTime.UtcNow.AddHours(-1), IsDeleted = false },
+                new TrackUrlAlertEntity { KeyField = Guid.NewGuid().ToString(), Url = "https://other.com", Timestamp = DateTime.UtcNow, IsDeleted = false }
+            );
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _sut.GetAlertsByUrlAsync("https://evil.com");
+
+            // Assert
+            result.Should().HaveCount(2);
+            result.Should().OnlyContain(a => a.Url == "https://evil.com");
+        }
+
+        [Fact]
+        public async Task GetRecentAlertsAsync_ReturnsAlertsWithinTimeSpan()
+        {
+            // Arrange
+            await _context.TrackUrlAlerts.AddRangeAsync(
+                new TrackUrlAlertEntity { KeyField = Guid.NewGuid().ToString(), Timestamp = DateTime.UtcNow.AddHours(-1), IsDeleted = false },
+                new TrackUrlAlertEntity { KeyField = Guid.NewGuid().ToString(), Timestamp = DateTime.UtcNow.AddHours(-48), IsDeleted = false }
+            );
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _sut.GetRecentAlertsAsync(TimeSpan.FromHours(24));
+
+            // Assert
+            result.Should().HaveCount(1);
+        }
+
+        public void Dispose()
+        {
+            _context.Database.EnsureDeleted();
+            _context.Dispose();
+        }
+    }
+
+    #endregion
+
+    #region AlertFlagRepository Tests
+
+    public class AlertFlagRepositoryTests : IDisposable
+    {
+        private readonly AppDbContext _context;
+        private readonly AlertFlagRepository _sut;
+
+        public AlertFlagRepositoryTests()
+        {
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            _context = new AppDbContext(options);
+            _sut = new AlertFlagRepository(_context);
+        }
+
+        [Fact]
+        public async Task AddAsync_SetsCreatedAndModifiedTimestamps()
+        {
+            // Arrange
+            var flag = new AlertFlag { UserKey = 1, Status = AlertFlagStatus.Open };
+
+            // Act
+            var result = await _sut.AddAsync(flag);
+
+            // Assert
+            result.Created.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+            result.Modified.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
+        }
+
+        [Fact]
+        public async Task GetOpenFlagsByUserAsync_ReturnsOnlyOpenFlags()
+        {
+            // Arrange
+            await _context.AlertFlags.AddRangeAsync(
+                new AlertFlag { UserKey = 1, Status = AlertFlagStatus.Open, IsDeleted = false, Created = DateTime.UtcNow, Modified = DateTime.UtcNow },
+                new AlertFlag { UserKey = 1, Status = AlertFlagStatus.Closed, IsDeleted = false, Created = DateTime.UtcNow, Modified = DateTime.UtcNow },
+                new AlertFlag { UserKey = 2, Status = AlertFlagStatus.Open, IsDeleted = false, Created = DateTime.UtcNow, Modified = DateTime.UtcNow }
+            );
+            await _context.SaveChangesAsync();
+
+            // Act
+            var result = await _sut.GetOpenFlagsByUserAsync(1);
+
+            // Assert
+            result.Should().HaveCount(1);
+            result.Should().OnlyContain(f => f.UserKey == 1 && f.Status == AlertFlagStatus.Open);
+        }
+
+        [Fact]
+        public async Task CloseFlag_UpdatesStatusToClosed()
+        {
+            // Arrange
+            var flag = new AlertFlag
+            {
+                UserKey = 1,
+                Status = AlertFlagStatus.Open,
+                Created = DateTime.UtcNow,
+                Modified = DateTime.UtcNow
+            };
+            await _context.AlertFlags.AddAsync(flag);
+            await _context.SaveChangesAsync();
+
+            // Act
+            await _sut.CloseFlag(flag.Key);
+
+            // Assert
+            var updated = await _context.AlertFlags.FindAsync(flag.Key);
+            updated.Status.Should().Be(AlertFlagStatus.Closed);
+            updated.Modified.Should().BeAfter(updated.Created);
+        }
+
+        public void Dispose()
+        {
+            _context.Database.EnsureDeleted();
+            _context.Dispose();
+        }
+    }
+
+    #endregion
+}

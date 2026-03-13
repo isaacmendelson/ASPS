@@ -33,7 +33,7 @@ public class AdminQueryHandlers
         _logger = logger;
     }
 
-    public async Task<GetDashboardStatsQueryResult> HandleAsync(GetDashboardStatsQuery query)
+    public virtual async Task<GetDashboardStatsQueryResult> HandleAsync(GetDashboardStatsQuery query)
     {
         try
         {
@@ -64,7 +64,7 @@ public class AdminQueryHandlers
         }
     }
 
-    public async Task<GetAllDevicesQueryResult> HandleAsync(GetAllDevicesQuery query)
+    public virtual async Task<GetAllDevicesQueryResult> HandleAsync(GetAllDevicesQuery query)
     {
         try
         {
@@ -107,7 +107,7 @@ public class AdminQueryHandlers
         }
     }
 
-    public async Task<GetAllPhishingWebsitesQueryResult> HandleAsync(GetAllPhishingWebsitesQuery query)
+    public virtual async Task<GetAllPhishingWebsitesQueryResult> HandleAsync(GetAllPhishingWebsitesQuery query)
     {
         try
         {
@@ -130,7 +130,7 @@ public class AdminQueryHandlers
         }
     }
 
-    public async Task<GetUsersWithDeviceCountsQueryResult> HandleAsync(GetUsersWithDeviceCountsQuery query)
+    public virtual async Task<GetUsersWithDeviceCountsQueryResult> HandleAsync(GetUsersWithDeviceCountsQuery query)
     {
         try
         {
@@ -169,7 +169,7 @@ public class AdminQueryHandlers
         }
     }
 
-    public async Task<GetRecentAlertsQueryResult> HandleAsync(GetRecentAlertsQuery query)
+    public virtual async Task<GetRecentAlertsQueryResult> HandleAsync(GetRecentAlertsQuery query)
     {
         try
         {
@@ -207,7 +207,7 @@ public class AdminQueryHandlers
         }
     }
 
-    public async Task<GetDevicesByUserQueryResult> HandleAsync(GetDevicesByUserQuery query)
+    public virtual async Task<GetDevicesByUserQueryResult> HandleAsync(GetDevicesByUserQuery query)
     {
         try
         {
@@ -230,7 +230,7 @@ public class AdminQueryHandlers
         }
     }
 
-    public async Task<GetDeviceByKeyQueryResult> HandleAsync(GetDeviceByKeyQuery query)
+    public virtual async Task<GetDeviceByKeyQueryResult> HandleAsync(GetDeviceByKeyQuery query)
     {
         try
         {
@@ -262,7 +262,7 @@ public class AdminQueryHandlers
         }
     }
 
-    public async Task<GetDeviceByUidQueryResult> HandleAsync(GetDeviceByUidQuery query)
+    public virtual async Task<GetDeviceByUidQueryResult> HandleAsync(GetDeviceByUidQuery query)
     {
         try
         {
@@ -294,7 +294,7 @@ public class AdminQueryHandlers
         }
     }
 
-    public async Task<GetAlertsByDeviceQueryResult> HandleAsync(GetAlertsByDeviceQuery query)
+    public virtual async Task<GetAlertsByDeviceQueryResult> HandleAsync(GetAlertsByDeviceQuery query)
     {
         try
         {
@@ -323,7 +323,7 @@ public class AdminQueryHandlers
         }
     }
 
-    public async Task<GetAlertByKeyQueryResult> HandleAsync(GetAlertByKeyQuery query)
+    public virtual async Task<GetAlertByKeyQueryResult> HandleAsync(GetAlertByKeyQuery query)
     {
         try
         {
@@ -355,7 +355,7 @@ public class AdminQueryHandlers
         }
     }
 
-    public async Task<GetAllAnalysisResultsQueryResult> HandleAsync(GetAllAnalysisResultsQuery query)
+    public virtual async Task<GetAllAnalysisResultsQueryResult> HandleAsync(GetAllAnalysisResultsQuery query)
     {
         try
         {
@@ -400,7 +400,7 @@ public class AdminQueryHandlers
         }
     }
 
-    public async Task<GetAnalysisResultByAlertKeyQueryResult> HandleAsync(GetAnalysisResultByAlertKeyQuery query)
+    public virtual async Task<GetAnalysisResultByAlertKeyQueryResult> HandleAsync(GetAnalysisResultByAlertKeyQuery query)
     {
         try
         {
@@ -424,7 +424,7 @@ public class AdminQueryHandlers
         }
     }
 
-    public async Task<GetAllTrackedDomainsQueryResult> HandleAsync(GetAllTrackedDomainsQuery query)
+    public virtual async Task<GetAllTrackedDomainsQueryResult> HandleAsync(GetAllTrackedDomainsQuery query)
     {
         try
         {

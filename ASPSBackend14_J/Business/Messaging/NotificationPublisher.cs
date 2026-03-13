@@ -19,13 +19,20 @@ public class NotificationPublisher : IDisposable
     private readonly string _endpoint;
     private bool _isRunning;
 
-    public NotificationPublisher(IConfiguration configuration, ILogger<NotificationPublisher> logger, CurveKeyManager? curveKeyManager = null)
+    public NotificationPublisher(IConfiguration configuration, ILogger<NotificationPublisher> logger, string? endpoint = null, CurveKeyManager? curveKeyManager = null)
     {
         _logger = logger;
 
-        // Get notification port from configuration
-        var port = configuration.GetValue<int>("NetMQ:NotificationPublisherPort", 50002);
-        _endpoint = $"tcp://*:{port}";
+        // Use provided endpoint or get from configuration
+        if (!string.IsNullOrEmpty(endpoint))
+        {
+            _endpoint = endpoint;
+        }
+        else
+        {
+            var port = configuration.GetValue<int>("NetMQ:NotificationPublisherPort", 50002);
+            _endpoint = $"tcp://*:{port}";
+        }
 
         // Create PUB socket with optional CURVE encryption
         _publisherSocket = new PublisherSocket();
@@ -41,7 +48,7 @@ public class NotificationPublisher : IDisposable
     /// Publish analysis result notification to subscribers
     /// Topic format: "device:{deviceUid}" or "user:{userKey}"
     /// </summary>
-    public void PublishAnalysisResult(string? deviceUid, string? userKeyField, AnalysisResultNotification? analysisResultNotification)
+    public virtual void PublishAnalysisResult(string? deviceUid, string? userKeyField, AnalysisResultNotification? analysisResultNotification)
     {
         if (!_isRunning || analysisResultNotification == null)
         {
@@ -100,7 +107,7 @@ public class NotificationPublisher : IDisposable
         }
     }
 
-    public void Stop()
+    public virtual void Stop()
     {
         _isRunning = false;
         _logger.LogInformation("NotificationPublisher stopped");

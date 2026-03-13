@@ -56,7 +56,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
         _logger.LogInformation("ASView stopping...");
     }
 
-    public async Task Handle(IDomainEvent evt)
+    public virtual async Task Handle(IDomainEvent evt)
     {
         switch (evt)
         {

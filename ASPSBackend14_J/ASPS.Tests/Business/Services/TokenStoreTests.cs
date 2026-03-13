@@ -15,7 +15,7 @@ namespace ASPS.Tests.Business.Services
     public class TokenStoreTests : IDisposable
     {
         private readonly Mock<ILogger<TokenStore>> _loggerMock;
-        private readonly Mock<IConfiguration> _configMock;
+        private readonly IConfiguration _config;
         private readonly ServiceProvider _serviceProvider;
         private readonly AppDbContext _dbContext;
         private readonly TokenStore _sut;
@@ -23,11 +23,15 @@ namespace ASPS.Tests.Business.Services
         public TokenStoreTests()
         {
             _loggerMock = new Mock<ILogger<TokenStore>>();
-            _configMock = new Mock<IConfiguration>();
 
             // Setup configuration defaults
-            _configMock.Setup(c => c.GetValue<int>("TokenManagement:TokenExpirationPeriod", 1440)).Returns(1440);
-            _configMock.Setup(c => c.GetValue<int>("TokenManagement:MaxExpiration", 10080)).Returns(10080);
+            var configBuilder = new ConfigurationBuilder();
+            configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["TokenManagement:TokenExpirationPeriod"] = "1440",
+                ["TokenManagement:MaxExpiration"] = "10080"
+            });
+            _config = configBuilder.Build();
 
             // Setup in-memory database
             var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -42,7 +46,7 @@ namespace ASPS.Tests.Business.Services
             _serviceProvider = services.BuildServiceProvider();
 
             // Create TokenStore instance
-            _sut = new TokenStore(_configMock.Object, _loggerMock.Object, _serviceProvider);
+            _sut = new TokenStore(_config, _loggerMock.Object, _serviceProvider);
         }
 
         public void Dispose()

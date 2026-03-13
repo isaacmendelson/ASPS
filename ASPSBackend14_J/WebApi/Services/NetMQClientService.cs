@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace WebApi.Services;
 
-public class NetMQClientService : IDisposable
+public class NetMQClientService : INetMQClientService, IDisposable
 {
     private readonly string _endpoint;
     private readonly ILogger<NetMQClientService> _logger;

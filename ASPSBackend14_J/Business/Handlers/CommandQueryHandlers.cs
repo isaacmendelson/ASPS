@@ -20,7 +20,7 @@ public class UserCommandHandlers
         _asView = asView;
     }
 
-    public async Task<CreateUserCommandResult> HandleAsync(CreateUserCommand command)
+    public virtual async Task<CreateUserCommandResult> HandleAsync(CreateUserCommand command)
     {
         try
         {
@@ -54,7 +54,7 @@ public class UserCommandHandlers
         }
     }
 
-    public async Task<UpdateUserCommandResult> HandleAsync(UpdateUserCommand command)
+    public virtual async Task<UpdateUserCommandResult> HandleAsync(UpdateUserCommand command)
     {
         try
         {
@@ -82,7 +82,7 @@ public class UserCommandHandlers
         }
     }
 
-    public async Task<DeleteUserCommandResult> HandleAsync(DeleteUserCommand command)
+    public virtual async Task<DeleteUserCommandResult> HandleAsync(DeleteUserCommand command)
     {
         try
         {
@@ -108,7 +108,7 @@ public class UserQueryHandlers
         _userRepository = userRepository;
     }
 
-    public async Task<GetAllUsersQueryResult> HandleAsync(GetAllUsersQuery query)
+    public virtual async Task<GetAllUsersQueryResult> HandleAsync(GetAllUsersQuery query)
     {
         try
         {
@@ -130,7 +130,7 @@ public class UserQueryHandlers
         }
     }
 
-    public async Task<GetUserByKeyQueryResult> HandleAsync(GetUserByKeyQuery query)
+    public virtual async Task<GetUserByKeyQueryResult> HandleAsync(GetUserByKeyQuery query)
     {
         try
         {
@@ -148,7 +148,7 @@ public class UserQueryHandlers
         }
     }
 
-    public async Task<GetUserDetailsQueryResult> HandleAsync(GetUserDetailsQuery query)
+    public virtual async Task<GetUserDetailsQueryResult> HandleAsync(GetUserDetailsQuery query)
     {
         try
         {
@@ -166,7 +166,7 @@ public class UserQueryHandlers
         }
     }
     
-    public async Task<GetUserDevicesQueryResult> HandleAsync(GetUserDevicesQuery query)
+    public virtual async Task<GetUserDevicesQueryResult> HandleAsync(GetUserDevicesQuery query)
     {
         try
         {
@@ -184,7 +184,7 @@ public class UserQueryHandlers
         }
     }
     
-    public async Task<GetUserAccountsQueryResult> HandleAsync(GetUserAccountsQuery query)
+    public virtual async Task<GetUserAccountsQueryResult> HandleAsync(GetUserAccountsQuery query)
     {
         try
         {
@@ -212,7 +212,7 @@ public class UserDeviceCommandHandlers
         _deviceRepository = deviceRepository;
     }
 
-    public async Task<CreateUserDeviceCommandResult> HandleAsync(CreateUserDeviceCommand command)
+    public virtual async Task<CreateUserDeviceCommandResult> HandleAsync(CreateUserDeviceCommand command)
     {
         try
         {
@@ -262,7 +262,7 @@ public class UserDeviceCommandHandlers
         }
     }
 
-    public async Task<UpdateUserDeviceCommandResult> HandleAsync(UpdateUserDeviceCommand command)
+    public virtual async Task<UpdateUserDeviceCommandResult> HandleAsync(UpdateUserDeviceCommand command)
     {
         try
         {
@@ -283,7 +283,7 @@ public class UserDeviceCommandHandlers
         }
     }
 
-    public async Task<DeleteUserDeviceCommandResult> HandleAsync(DeleteUserDeviceCommand command)
+    public virtual async Task<DeleteUserDeviceCommandResult> HandleAsync(DeleteUserDeviceCommand command)
     {
         try
         {

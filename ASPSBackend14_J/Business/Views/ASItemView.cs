@@ -23,6 +23,7 @@ namespace Business.Views
             name = name ?? string.Empty;
             Tag = new Tag(key, name, "");
             Key = key;
+            Name = name;
         }
 
         public Key Key { get; set; }
