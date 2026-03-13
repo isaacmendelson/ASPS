@@ -32,6 +32,12 @@ public class Repository<T> : IRepository<T> where T : Entity
 
     public virtual async Task<T> AddAsync(T entity)
     {
+        // Validate entity is not null
+        if (entity == null)
+        {
+            throw new ArgumentNullException(nameof(entity), "Entity cannot be null");
+        }
+
         // Generate new GUID if not set
         // Note: KeyField setter is protected, so entities should set it before calling AddAsync
         // or we rely on database default/trigger
