@@ -80,7 +80,7 @@ public class CQRSClient : IDisposable
                     // Deserialize response with type information
                     var result = JsonConvert.DeserializeObject<TResult>(responseJson, new JsonSerializerSettings
                     {
-                        TypeNameHandling = TypeNameHandling.None
+                        TypeNameHandling = TypeNameHandling.Auto
                     });
 
                     if (result == null)
@@ -167,7 +167,7 @@ public class CQRSClient : IDisposable
                     // Deserialize response with type information
                     var result = JsonConvert.DeserializeObject<TResult>(responseJson, new JsonSerializerSettings
                     {
-                        TypeNameHandling = TypeNameHandling.None
+                        TypeNameHandling = TypeNameHandling.Auto
                     });
 
                     if (result == null)

@@ -1,16 +1,17 @@
-using Business.Views;
+using Business.Commands;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using WebApi.Services;
 
 namespace WebApi.Pages.SystemConfigurations
 {
     public class IndexModel : PageModel
     {
-        private readonly ASView _asView;
+        private readonly CQRSClient _cqrsClient;
 
-        public IndexModel(ASView asView)
+        public IndexModel(CQRSClient cqrsClient)
         {
-            _asView = asView;
+            _cqrsClient = cqrsClient;
         }
 
         [TempData]
@@ -20,12 +21,21 @@ namespace WebApi.Pages.SystemConfigurations
         {
         }
 
-        public IActionResult OnPostInitializeASView()
+        public async Task<IActionResult> OnPostInitializeASView()
         {
             try
             {
-                _asView.ReInitialize();
-                StatusMessage = "ASView re-initialized successfully!";
+                var command = new ReInitializeASViewCommand();
+                var result = await _cqrsClient.SendCommandAsync<ReInitializeASViewCommandResult>(command);
+
+                if (result.Success)
+                {
+                    StatusMessage = result.Message;
+                }
+                else
+                {
+                    StatusMessage = $"Error: {result.Message}";
+                }
             }
             catch (System.Exception ex)
             {

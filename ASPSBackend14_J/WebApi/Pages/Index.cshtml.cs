@@ -22,6 +22,9 @@ namespace WebApi.Pages
         public int AlertsCount { get; set; }
         public int PhishingWebsitesCount { get; set; }
         public string? ErrorMessage { get; set; }
+        public string SystemVersion { get; set; } = ThisAssembly.AssemblyInformationalVersion;
+        public string GitCommitId { get; set; } = ThisAssembly.GitCommitId;
+        public bool IsPrerelease { get; set; } = ThisAssembly.IsPrerelease;
 
         public async Task OnGetAsync()
         {

@@ -173,6 +173,7 @@ public class CQRSGateway : IDisposable
             "CreateUserAdminCommand" => await HandleCreateUserAdminCommand(messageJson, scope),
             "CreateUserDeviceCommand" => await HandleCreateUserDeviceCommand(messageJson, scope),
             "DeleteUserCommand" => await HandleDeleteUserCommand(messageJson, scope),
+            "ReInitializeASViewCommand" => await HandleReInitializeASViewCommand(messageJson, scope),
             _ => CreateErrorResponse($"Unknown command type: {commandType}")
         };
     }
@@ -184,7 +185,7 @@ public class CQRSGateway : IDisposable
         var result = await handler.HandleAsync(new GetDashboardStatsQuery());
         return JsonConvert.SerializeObject(result, new JsonSerializerSettings
         {
-            TypeNameHandling = TypeNameHandling.None,
+            TypeNameHandling = TypeNameHandling.Auto,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         });
     }
@@ -196,7 +197,7 @@ public class CQRSGateway : IDisposable
         var result = await handler.HandleAsync(query);
         return JsonConvert.SerializeObject(result, new JsonSerializerSettings
         {
-            TypeNameHandling = TypeNameHandling.None,
+            TypeNameHandling = TypeNameHandling.Auto,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         });
     }
@@ -208,7 +209,7 @@ public class CQRSGateway : IDisposable
         var result = await handler.HandleAsync(query);
         return JsonConvert.SerializeObject(result, new JsonSerializerSettings
         {
-            TypeNameHandling = TypeNameHandling.None,
+            TypeNameHandling = TypeNameHandling.Auto,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         });
     }
@@ -222,7 +223,7 @@ public class CQRSGateway : IDisposable
         var result = await handler.HandleAsync(query);
         return JsonConvert.SerializeObject(result, new JsonSerializerSettings
         {
-            TypeNameHandling = TypeNameHandling.None,
+            TypeNameHandling = TypeNameHandling.Auto,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         });
     }
@@ -236,7 +237,7 @@ public class CQRSGateway : IDisposable
         var result = await handler.HandleAsync(query);
         return JsonConvert.SerializeObject(result, new JsonSerializerSettings
         {
-            TypeNameHandling = TypeNameHandling.None,
+            TypeNameHandling = TypeNameHandling.Auto,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         });
     }
@@ -251,7 +252,7 @@ public class CQRSGateway : IDisposable
         var result = await handler.HandleAsync(command);
         return JsonConvert.SerializeObject(result, new JsonSerializerSettings
         {
-            TypeNameHandling = TypeNameHandling.None,
+            TypeNameHandling = TypeNameHandling.Auto,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         });
     }
@@ -265,7 +266,7 @@ public class CQRSGateway : IDisposable
         var result = await handler.HandleAsync(command);
         return JsonConvert.SerializeObject(result, new JsonSerializerSettings
         {
-            TypeNameHandling = TypeNameHandling.None,
+            TypeNameHandling = TypeNameHandling.Auto,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         });
     }
@@ -279,7 +280,21 @@ public class CQRSGateway : IDisposable
         var result = await handler.HandleAsync(command);
         return JsonConvert.SerializeObject(result, new JsonSerializerSettings
         {
-            TypeNameHandling = TypeNameHandling.None,
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleReInitializeASViewCommand(string messageJson, IServiceScope scope)
+    {
+        var command = JsonConvert.DeserializeObject<ReInitializeASViewCommand>(messageJson);
+        if (command == null) return CreateErrorResponse("Invalid ReInitializeASViewCommand format");
+
+        var handler = scope.ServiceProvider.GetRequiredService<SystemCommandHandlers>();
+        var result = await handler.HandleAsync(command);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         });
     }
@@ -315,7 +330,7 @@ public class CQRSGateway : IDisposable
         var result = await handler.HandleAsync(query);
         return JsonConvert.SerializeObject(result, new JsonSerializerSettings
         {
-            TypeNameHandling = TypeNameHandling.None,
+            TypeNameHandling = TypeNameHandling.Auto,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         });
     }
@@ -329,7 +344,7 @@ public class CQRSGateway : IDisposable
         var result = await handler.HandleAsync(query);
         return JsonConvert.SerializeObject(result, new JsonSerializerSettings
         {
-            TypeNameHandling = TypeNameHandling.None,
+            TypeNameHandling = TypeNameHandling.Auto,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         });
     }
@@ -343,7 +358,7 @@ public class CQRSGateway : IDisposable
         var result = await handler.HandleAsync(query);
         return JsonConvert.SerializeObject(result, new JsonSerializerSettings
         {
-            TypeNameHandling = TypeNameHandling.None,
+            TypeNameHandling = TypeNameHandling.Auto,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         });
     }
@@ -357,7 +372,7 @@ public class CQRSGateway : IDisposable
         var result = await handler.HandleAsync(query);
         return JsonConvert.SerializeObject(result, new JsonSerializerSettings
         {
-            TypeNameHandling = TypeNameHandling.None,
+            TypeNameHandling = TypeNameHandling.Auto,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         });
     }
@@ -371,7 +386,7 @@ public class CQRSGateway : IDisposable
         var result = await handler.HandleAsync(query);
         return JsonConvert.SerializeObject(result, new JsonSerializerSettings
         {
-            TypeNameHandling = TypeNameHandling.None,
+            TypeNameHandling = TypeNameHandling.Auto,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         });
     }
@@ -386,7 +401,7 @@ public class CQRSGateway : IDisposable
         var result = await handler.HandleAsync(query);
         return JsonConvert.SerializeObject(result, new JsonSerializerSettings
         {
-            TypeNameHandling = TypeNameHandling.None,
+            TypeNameHandling = TypeNameHandling.Auto,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         });
     }
@@ -400,7 +415,7 @@ public class CQRSGateway : IDisposable
         var result = await handler.HandleAsync(query);
         return JsonConvert.SerializeObject(result, new JsonSerializerSettings
         {
-            TypeNameHandling = TypeNameHandling.None,
+            TypeNameHandling = TypeNameHandling.Auto,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         });
     }
@@ -429,7 +444,7 @@ public class CQRSGateway : IDisposable
 
             return JsonConvert.SerializeObject(result, new JsonSerializerSettings
             {
-                TypeNameHandling = TypeNameHandling.None,
+                TypeNameHandling = TypeNameHandling.Auto,
                 ReferenceLoopHandling = ReferenceLoopHandling.Ignore
             });
         }
@@ -479,7 +494,7 @@ public class CQRSGateway : IDisposable
 
             return JsonConvert.SerializeObject(result, new JsonSerializerSettings
             {
-                TypeNameHandling = TypeNameHandling.None,
+                TypeNameHandling = TypeNameHandling.Auto,
                 ReferenceLoopHandling = ReferenceLoopHandling.Ignore
             });
         }
@@ -538,7 +553,7 @@ public class CQRSGateway : IDisposable
 
             return JsonConvert.SerializeObject(result, new JsonSerializerSettings
             {
-                TypeNameHandling = TypeNameHandling.None,
+                TypeNameHandling = TypeNameHandling.Auto,
                 ReferenceLoopHandling = ReferenceLoopHandling.Ignore
             });
         }

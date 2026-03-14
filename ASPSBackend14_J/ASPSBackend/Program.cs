@@ -140,6 +140,7 @@ class Program
                 services.AddScoped<UserQueryHandlers>();
                 services.AddScoped<AdminCommandHandlers>();
                 services.AddScoped<AdminQueryHandlers>();
+                services.AddScoped<SystemCommandHandlers>();
 
                 // Add CQRS Gateway (listens for Commands/Queries from WebApi)
                 services.AddSingleton<CQRSGateway>();

@@ -214,6 +214,30 @@
     </div>
 </div>
 
+<!-- ── SYSTEM VERSION INFO ── -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-body py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-muted small">
+                        <i class="fas fa-code-branch me-2"></i>
+                        <strong>Version:</strong> @Model.SystemVersion
+                        @if (Model.IsPrerelease)
+                        {
+                            <span class="badge bg-warning text-dark ms-2">BETA</span>
+                        }
+                    </div>
+                    <div class="text-muted small">
+                        <i class="fab fa-git-alt me-2"></i>
+                        <strong>Commit:</strong> <code class="text-muted">@Model.GitCommitId.Substring(0, 8)</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
     // Live server-side clock (JS-driven UTC)
