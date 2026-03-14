@@ -1,3 +1,4 @@
+using Common.Enums;
 using Business.RealtimeAnalysis.UserDomain;
 using Business.Views;
 using Common.Entities;
@@ -25,7 +26,7 @@ public class UDUserAnalyzerTests
         var testKey = new Key("test", "user", "123");
         var testUser = new UDUser(
             key: testKey,
-            userInfo: new UserInfo(testKey, "test-keycloak", "Test", "User", "test@example.com", "", null, null, ""),
+            userInfo: new UserInfo(testKey, "test-keycloak", "Test", "User", "", "", "", "", "", "1234567890", UserRole.Self, false, DateTime.UtcNow, null, null, null),
             riskAssessment: new RiskAssessment(0, "Safe", false, 1),
             userDevices: null,
             activeAlerts: null,
