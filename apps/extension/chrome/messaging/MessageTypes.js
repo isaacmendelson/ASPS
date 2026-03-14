@@ -65,6 +65,7 @@ export const MSG = {
   WS_ERROR: 'error',
   WS_GET_BROWSER_TABS: 'get_browser_tabs',
   WS_BROWSER_TABS_RESPONSE: 'browser_tabs_response',
+  WS_TRACK_URL_ALERT: 'track_url_alert',
 
   // ==========================================
   // Remote Access Warning Messages

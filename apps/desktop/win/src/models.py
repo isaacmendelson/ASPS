@@ -174,6 +174,42 @@ class RemoteAccessAlertResponse:
         )
 
 
+@dataclass
+class TrackUrlAlert:
+    """Track URL alert - tracks URL navigation and time spent on pages"""
+    token: str
+    deviceInfo: DeviceInfo
+    Url: str
+    FromUrl: str = ""
+    Duration: int = 0
+    ScamInProgressKey: str = ""
+    IPAddress: str = ""
+    UserAgent: str = ""
+    TabId: str = ""
+    Timezone: str = ""
+    jsonTypeName: str = "TrackUrlAlert"
+    priority: int = Priority.MEDIUM
+    timestamp: str = field(default_factory=get_timestamp)
+    
+    def to_json(self) -> str:
+        data = {
+            "jsonTypeName": self.jsonTypeName,
+            "token": self.token,
+            "priority": self.priority,
+            "timestamp": self.timestamp,
+            "deviceInfo": self.deviceInfo.to_dict(),
+            "Url": self.Url,
+            "FromUrl": self.FromUrl,
+            "Duration": self.Duration,
+            "ScamInProgressKey": self.ScamInProgressKey,
+            "IPAddress": self.IPAddress,
+            "UserAgent": self.UserAgent,
+            "TabId": self.TabId,
+            "Timezone": self.Timezone
+        }
+        return json.dumps(data)
+
+
 # Extension <-> App Messages
 
 @dataclass

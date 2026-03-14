@@ -480,6 +480,94 @@ function setupMessageHandlers() {
 }
 
 // ============================================
+// URL Tracking Helper
+// ============================================
+
+// Track URL navigation history per tab
+const tabNavigationHistory = new Map();
+const tabActivationTimes = new Map();
+
+/**
+ * Send TrackUrlAlert to desktop app via WebSocket
+ * @param {number} tabId - Browser tab ID
+ * @param {string} currentUrl - Current URL being visited
+ * @param {string} fromUrl - Previous URL (referrer)
+ * @param {number} duration - Time spent on previous page (seconds)
+ */
+async function sendTrackUrlAlert(tabId, currentUrl, fromUrl = '', duration = 0) {
+  // Only track http/https URLs
+  if (!currentUrl || !currentUrl.startsWith('http')) {
+    return;
+  }
+
+  // Get IP address from connection service (received from desktop app)
+  const ipAddress = connectionService.getDeviceIpAddress();
+  
+  // Get timezone offset in hours
+  const timezoneOffset = new Date().getTimezoneOffset() / -60;
+  const timezone = `UTC${timezoneOffset >= 0 ? '+' : ''}${timezoneOffset}`;
+  
+  // Create TrackUrlAlert message
+  const alert = {
+    type: MSG.WS_TRACK_URL_ALERT,
+    Url: currentUrl,
+    FromUrl: fromUrl,
+    Duration: duration,
+    ScamInProgressKey: '', // Will be populated by backend if needed
+    IPAddress: ipAddress,
+    UserAgent: navigator.userAgent,
+    TabId: tabId.toString(),
+    Timezone: timezone
+  };
+
+  console.log('[Background] Sending TrackUrlAlert:', { 
+    url: currentUrl, 
+    fromUrl, 
+    duration,
+    tabId,
+    ipAddress,
+    timezone 
+  });
+
+  // Send via WebSocket
+  connectionService.send(alert);
+}
+
+/**
+ * Track tab navigation and calculate duration
+ * @param {number} tabId - Browser tab ID
+ * @param {string} url - New URL
+ */
+function trackTabNavigation(tabId, url) {
+  // Skip non-http URLs
+  if (!url || !url.startsWith('http')) {
+    return;
+  }
+
+  const now = Date.now();
+  
+  // Get previous navigation for this tab
+  const previousNav = tabNavigationHistory.get(tabId);
+  
+  if (previousNav) {
+    // Calculate duration on previous page (in seconds)
+    const duration = Math.floor((now - previousNav.timestamp) / 1000);
+    
+    // Send TrackUrlAlert with previous page info
+    sendTrackUrlAlert(tabId, url, previousNav.url, duration);
+  } else {
+    // First navigation for this tab - no previous URL
+    sendTrackUrlAlert(tabId, url, '', 0);
+  }
+  
+  // Update history for this tab
+  tabNavigationHistory.set(tabId, {
+    url: url,
+    timestamp: now
+  });
+}
+
+// ============================================
 // Tab Event Handlers
 // ============================================
 
@@ -547,6 +635,11 @@ function setupTabListeners() {
   chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     console.log('[Background] tabs.onUpdated:', { tabId, changeInfo: JSON.stringify(changeInfo), url: tab?.url });
 
+    // Track URL navigation when URL changes
+    if (changeInfo.url) {
+      trackTabNavigation(tabId, changeInfo.url);
+    }
+
     // Trigger scan when page finishes loading
     if (changeInfo.status === 'complete' && tab.url) {
       console.log('[Background] Triggering scan (status complete):', tab.url);
@@ -562,6 +655,11 @@ function setupTabListeners() {
   // Tab closed - cleanup per-tab storage
   chrome.tabs.onRemoved.addListener((tabId) => {
     lastScannedUrl.delete(tabId);
+    
+    // Clean up navigation tracking
+    tabNavigationHistory.delete(tabId);
+    tabActivationTimes.delete(tabId);
+    
     chrome.storage.local.remove([
       `tab_${tabId}`,
       `tab_${tabId}_score`,
@@ -576,6 +674,9 @@ function setupTabListeners() {
     console.log('[Background] webNavigation.onCompleted:', { tabId: details.tabId, frameId: details.frameId, url: details.url });
     // Only handle main frame navigations (not iframes)
     if (details.frameId === 0) {
+      // Track URL navigation
+      trackTabNavigation(details.tabId, details.url);
+      
       console.log('[Background] Triggering scan (webNavigation):', details.url);
       triggerScan(details.tabId, details.url);
     }
