@@ -143,6 +143,9 @@ namespace Business.RealtimeAnalysis.UserDomain
                         }
                     }
                     break;
+                case TrackUrlAnalysisResultVm t:
+                    HandleTrackUrlAnalysisResultReceived(t, remoteAccessStatus);
+                    break;
             }
             
         }
@@ -153,6 +156,26 @@ namespace Business.RealtimeAnalysis.UserDomain
             var isRemoteAccessAppActive = this._remoteAccessAnalysisResults.FirstOrDefault()?.AnalysisResult?.RunningProcesses > 0;
             var isRemoteAccessSessionActive = this._remoteAccessAnalysisResults.FirstOrDefault()?.AnalysisResult?.SessionStatus > 0;
             return new RemoteAccessStatusObject(isRemoteAccessAppActive, isRemoteAccessSessionActive);
+        }
+
+        private void HandleTrackUrlAnalysisResultReceived(TrackUrlAnalysisResultVm trackUrlResult, RemoteAccessStatusObject remoteAccessStatus)
+        {
+            _logger.LogInformation($"Handling TrackUrlAnalysisResult: URL={trackUrlResult.Url}, Duration={trackUrlResult.Duration}s, IsSafe={trackUrlResult.IsSafeDomain}");
+
+            // Log scam-in-progress scenarios
+            if (!string.IsNullOrWhiteSpace(trackUrlResult.ScamInProgressKey))
+            {
+                _logger.LogWarning($"Scam-in-progress detected for user {this.UDUser.Key}: {trackUrlResult.ScamInProgressKey}");
+            }
+
+            // Check for high-risk scenarios when remote access is active
+            if (remoteAccessStatus.IsRemoteAccessAppActive && remoteAccessStatus.isRemoteAccessSessionActive)
+            {
+                if (!trackUrlResult.IsSafeDomain && trackUrlResult.Duration > 300)
+                {
+                    _logger.LogWarning($"High-risk: User {this.UDUser.Key} spending extended time on non-safe domain {trackUrlResult.Domain} while remote access is active");
+                }
+            }
         }
 
         private void CleanupExpiredAlerts()
