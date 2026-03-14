@@ -430,4 +430,82 @@ public class ASViewTests : IDisposable
     }
 
     #endregion
+
+    #region Initialize and ReInitialize Tests
+
+    [Fact]
+    public void Initialize_OnFirstCall_LoadsData()
+    {
+        // Arrange
+        var user = new User
+        {
+            FirstName = "Test",
+            LastName = "User",
+            Email = "test@example.com",
+            PhoneNumber = "1234567890"
+        };
+        _context.Users.Add(user);
+        _context.SaveChanges();
+
+        // Act
+        _asView.Start();
+
+        // Assert
+        var users = _asView.GetUsers();
+        users.Should().HaveCount(1);
+        users[0].Email.Should().Be("test@example.com");
+    }
+
+    [Fact]
+    public void Start_CalledTwice_DoesNotThrowException()
+    {
+        // Arrange
+        var user = new User
+        {
+            FirstName = "Test",
+            LastName = "User",
+            Email = "test@example.com",
+            PhoneNumber = "1234567890"
+        };
+        _context.Users.Add(user);
+        _context.SaveChanges();
+
+        // Act
+        _asView.Start();
+        
+        // Second call to Start() - should not throw (IsInitialized check)
+        Action secondStart = () => _asView.Start();
+
+        // Assert
+        secondStart.Should().NotThrow();
+    }
+
+    [Fact]
+    public void ReInitialize_CanBeCalledSuccessfully()
+    {
+        // Arrange
+        var user = new User
+        {
+            FirstName = "Test",
+            LastName = "User",
+            Email = "test@example.com",
+            PhoneNumber = "1234567890"
+        };
+        _context.Users.Add(user);
+        _context.SaveChanges();
+
+        _asView.Start();
+
+        // Act - ReInitialize() should reset IsInitialized and reload
+        Action reInit = () => _asView.ReInitialize();
+
+        // Assert - Should not throw
+        reInit.Should().NotThrow();
+        
+        // Data should still be accessible
+        var users = _asView.GetUsers();
+        users.Should().HaveCount(1);
+    }
+
+    #endregion
 }

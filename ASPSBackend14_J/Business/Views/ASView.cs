@@ -19,6 +19,8 @@ public class ASView : IDomainEventHandler, IBackgroundTask
     private readonly ILogger<ASView> _logger;
     private readonly object _lock = new();
 
+    private bool IsInitialized = false;
+
     private List<User> _users = new();
     private List<UserDevice> _userDevices = new();
     private List<UserAccount> _userAccounts = new();
@@ -44,12 +46,33 @@ public class ASView : IDomainEventHandler, IBackgroundTask
 
     public void Start()
     {
-        _logger.LogInformation("ASView starting - loading data into memory...");
+        _logger.LogInformation("ASView starting...");
+        Initialize();
+    }
+
+    private void Initialize()
+    {
+        if (this.IsInitialized)
+        {
+            _logger.LogInformation("ASView already initialized, skipping...");
+            return;
+        }
+
+        _logger.LogInformation("ASView initializing - loading data into memory...");
         
         // Run synchronously in background to avoid blocking - we're in a startup context
         Task.Run(async () => await LoadDataAsync()).GetAwaiter().GetResult();
         
-        _logger.LogInformation($"ASView loaded: {_users.Count} users, {_userDevices.Count} devices, {_userAccounts.Count} accounts");
+        this.IsInitialized = true;
+        
+        _logger.LogInformation($"ASView initialized: {_users.Count} users, {_userDevices.Count} devices, {_userAccounts.Count} accounts");
+    }
+
+    public void ReInitialize()
+    {
+        _logger.LogInformation("ASView re-initialization requested...");
+        this.IsInitialized = false;
+        this.Initialize();
     }
 
     public void Stop()
