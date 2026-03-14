@@ -217,13 +217,13 @@ public class RealTimeAlertListenerTests
                 ""OperatingSystem"": 1,
                 ""MACAddress"": ""11:22:33:44:55:66""
             },
-            ""Url"": ""https://news-site.com/article?utm_source=google"",
-            ""Trackers"": [
-                { ""Type"": ""Tracker"", ""Value"": ""google-analytics"" },
-                { ""Type"": ""Tracker"", ""Value"": ""facebook-pixel"" }
-            ],
-            ""TrackerCount"": 2,
-            ""TrackingType"": ""Analytics"",
+            ""Url"": ""https://suspicious-site.com"",
+            ""FromUrl"": ""https://google.com"",
+            ""Duration"": 180,
+            ""ScamInProgressKey"": ""scam-key-456"",
+            ""IPAddress"": ""192.168.1.102"",
+            ""TabId"": ""tab-789"",
+            ""Timezone"": ""America/New_York"",
             ""UserAgent"": ""Safari/15.0""
         }";
 
@@ -234,15 +234,15 @@ public class RealTimeAlertListenerTests
         alert.Should().NotBeNull();
         alert!.AlertType.Should().Be("TrackUrlAlert");
         alert.Priority.Should().Be(Priority.Medium);
-        alert.Url.Should().Be("https://news-site.com/article?utm_source=google");
-        alert.Trackers.Should().HaveCount(2);
-        alert.TrackerCount.Should().Be(2);
-        alert.TrackingType.Should().Be("Analytics");
+        alert.Url.Should().Be("https://suspicious-site.com");
+        alert.FromUrl.Should().Be("https://google.com");
+        alert.Duration.Should().Be(180);
+        alert.ScamInProgressKey.Should().Be("scam-key-456");
         alert.UserAgent.Should().Be("Safari/15.0");
     }
 
     [Fact]
-    public void TrackUrlAlert_NoTrackers_ShouldDeserializeCorrectly()
+    public void TrackUrlAlert_NoFromUrl_ShouldDeserializeCorrectly()
     {
         // Arrange
         var json = @"{
@@ -255,9 +255,9 @@ public class RealTimeAlertListenerTests
                 ""OperatingSystem"": 0
             },
             ""Url"": ""https://clean-site.com"",
-            ""Trackers"": [],
-            ""TrackerCount"": 0,
-            ""TrackingType"": ""None"",
+            ""FromUrl"": """",
+            ""Duration"": 0,
+            ""ScamInProgressKey"": """",
             ""UserAgent"": ""Chrome""
         }";
 
@@ -266,8 +266,8 @@ public class RealTimeAlertListenerTests
 
         // Assert
         alert.Should().NotBeNull();
-        alert!.Trackers.Should().BeEmpty();
-        alert.TrackerCount.Should().Be(0);
+        alert!.FromUrl.Should().BeEmpty();
+        alert.Duration.Should().Be(0);
     }
 
     #endregion

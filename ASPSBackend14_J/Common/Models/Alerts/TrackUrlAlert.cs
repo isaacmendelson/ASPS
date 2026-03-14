@@ -1,7 +1,7 @@
 namespace Common.Models.Alerts;
 
 /// <summary>
-/// Track URL alert - detects tracker URLs in visited sites
+/// Track URL alert - tracks URL navigation and time spent on pages
 /// </summary>
 public class TrackUrlAlert : DeviceAlert
 {
@@ -11,27 +11,42 @@ public class TrackUrlAlert : DeviceAlert
     }
 
     /// <summary>
-    /// The URL that contains tracking elements
+    /// The current URL being visited
     /// </summary>
     public string Url { get; set; } = string.Empty;
     
     /// <summary>
-    /// Array of tracker keys detected in the URL
+    /// The previous URL (referrer)
     /// </summary>
-    public Key[] Trackers { get; set; } = Array.Empty<Key>();
+    public string FromUrl { get; set; } = string.Empty;
     
     /// <summary>
-    /// Number of trackers detected
+    /// Duration spent on the page in seconds
     /// </summary>
-    public int TrackerCount { get; set; }
+    public int Duration { get; set; }
     
     /// <summary>
-    /// Type of tracking detected (e.g., "Analytics", "Advertising", "Social")
+    /// Key for identifying scam-in-progress scenarios
     /// </summary>
-    public string TrackingType { get; set; } = string.Empty;
+    public string ScamInProgressKey { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// IP address of the request
+    /// </summary>
+    public string IPAddress { get; set; } = string.Empty;
     
     /// <summary>
     /// User agent string from the browser
     /// </summary>
     public string UserAgent { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Browser tab identifier
+    /// </summary>
+    public string TabId { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// User's timezone
+    /// </summary>
+    public string Timezone { get; set; } = string.Empty;
 }

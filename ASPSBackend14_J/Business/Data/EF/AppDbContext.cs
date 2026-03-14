@@ -255,9 +255,13 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<TrackUrlAlertEntity>(entity =>
         {
             entity.Property(e => e.Url).HasColumnType("TEXT");
-            entity.Property(e => e.TrackerKeys).HasColumnType("TEXT");
-            entity.Property(e => e.TrackingType).HasMaxLength(100);
+            entity.Property(e => e.FromUrl).HasColumnType("TEXT");
+            entity.Property(e => e.Duration);
+            entity.Property(e => e.ScamInProgressKey).HasMaxLength(255);
+            entity.Property(e => e.IPAddress).HasMaxLength(50);
             entity.Property(e => e.UserAgent).HasColumnType("TEXT");
+            entity.Property(e => e.TabId).HasMaxLength(100);
+            entity.Property(e => e.Timezone).HasMaxLength(100);
         });
 
         // AlertFlag configuration (this entity doesn't inherit from Entity - uses int Key)

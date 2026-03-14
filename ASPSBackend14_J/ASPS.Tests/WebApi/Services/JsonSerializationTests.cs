@@ -62,13 +62,16 @@ public class JsonSerializationTests
         {
             new TrackUrlAlertEntity
             {
-                Url = "http://tracker-test.com",
-                TrackerCount = 5,
-                TrackingType = "Analytics",
+                Url = "http://suspicious-site.com",
+                FromUrl = "http://google.com",
+                Duration = 120,
+                ScamInProgressKey = "scam-key-123",
                 DeviceUid = "test-device-2",
                 AlertType = "TrackUrlAlert",
                 Priority = Priority.High,
-                MAC = "AA:BB:CC:DD:EE:FF"
+                MAC = "AA:BB:CC:DD:EE:FF",
+                TabId = "tab-456",
+                Timezone = "UTC"
             }
         };
         var json = JsonConvert.SerializeObject(alerts, _jsonSettings);
@@ -81,9 +84,9 @@ public class JsonSerializationTests
         result.Should().HaveCount(1);
         result![0].Should().BeOfType<TrackUrlAlertEntity>();
         var trackAlert = (TrackUrlAlertEntity)result[0];
-        trackAlert.Url.Should().Be("http://tracker-test.com");
-        trackAlert.TrackerCount.Should().Be(5);
-        trackAlert.TrackingType.Should().Be("Analytics");
+        trackAlert.Url.Should().Be("http://suspicious-site.com");
+        trackAlert.Duration.Should().Be(120);
+        trackAlert.FromUrl.Should().Be("http://google.com");
     }
 
     [Fact]
@@ -134,8 +137,9 @@ public class JsonSerializationTests
             },
             new TrackUrlAlertEntity 
             { 
-                Url = "http://tracker.com",
-                TrackerCount = 3,
+                Url = "http://suspicious.com",
+                Duration = 60,
+                FromUrl = "http://google.com",
                 DeviceUid = "device-2",
                 AlertType = "TrackUrlAlert",
                 MAC = "00:00:00:00:00:02"

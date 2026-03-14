@@ -129,12 +129,14 @@ namespace Business.RealtimeAnalysis
                         DeviceUid = vm.DeviceInfo.DeviceUid,
                         DeviceType = userDevice.DeviceType,
                         OperatingSystem = userDevice.OperatingSystem,
-                        IPAddress = vm.DeviceInfo.IP,
+                        IPAddress = t.IPAddress,
                         Url = t.Url,
-                        TrackerKeys = Newtonsoft.Json.JsonConvert.SerializeObject(t.Trackers),
-                        TrackerCount = t.TrackerCount,
-                        TrackingType = t.TrackingType,
+                        FromUrl = t.FromUrl,
+                        Duration = t.Duration,
+                        ScamInProgressKey = t.ScamInProgressKey,
                         UserAgent = t.UserAgent,
+                        TabId = t.TabId,
+                        Timezone = t.Timezone,
                         UserKeyField = userDevice.UserKeyField,
                     };
                     break;
