@@ -443,3 +443,75 @@ public enum PhishingCheckResultSource
     Self = 2
 }
 
+/// <summary>
+/// Analysis result for TrackUrlAlert
+/// </summary>
+[Serializable]
+[DataContract]
+public class TrackUrlAnalysisResultVm : AnalysisResult
+{
+    public TrackUrlAnalysisResultVm(
+        string url,
+        string fromUrl,
+        int duration,
+        string scamInProgressKey,
+        string ipAddress,
+        string userAgent,
+        string tabId,
+        string timezone,
+        string domain,
+        bool isSafeDomain,
+        RiskAssessment? riskAssessment)
+    {
+        Url = url;
+        FromUrl = fromUrl;
+        Duration = duration;
+        ScamInProgressKey = scamInProgressKey;
+        IPAddress = ipAddress;
+        UserAgent = userAgent;
+        TabId = tabId;
+        Timezone = timezone;
+        Domain = domain;
+        IsSafeDomain = isSafeDomain;
+        risk_assessment = riskAssessment;
+    }
+
+    protected TrackUrlAnalysisResultVm() { }
+
+    [DataMember]
+    public string TypeName => "TrackUrlAnalysisResultVm";
+
+    [DataMember]
+    public string Url { get; set; } = string.Empty;
+
+    [DataMember]
+    public string FromUrl { get; set; } = string.Empty;
+
+    [DataMember]
+    public int Duration { get; set; }
+
+    [DataMember]
+    public string ScamInProgressKey { get; set; } = string.Empty;
+
+    [DataMember]
+    public string IPAddress { get; set; } = string.Empty;
+
+    [DataMember]
+    public string UserAgent { get; set; } = string.Empty;
+
+    [DataMember]
+    public string TabId { get; set; } = string.Empty;
+
+    [DataMember]
+    public string Timezone { get; set; } = string.Empty;
+
+    [DataMember]
+    public string Domain { get; set; } = string.Empty;
+
+    [DataMember]
+    public bool IsSafeDomain { get; set; }
+
+    [DataMember]
+    public RiskAssessment? risk_assessment { get; set; }
+}
+
