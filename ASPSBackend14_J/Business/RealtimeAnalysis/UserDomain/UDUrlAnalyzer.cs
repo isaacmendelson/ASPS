@@ -312,6 +312,33 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
                 protectiveActions.Add(action);
             }
         }
+
+        // Check if URL tracking should be enabled based on risk threshold
+        var riskThreshold = _configuration.GetValue<int>("TrackUrl:RiskThresholdToEnableTracking", 40);
+        var trackingDurationMinutes = _configuration.GetValue<int>("TrackUrl:TrackingDurationMinutes", 30);
+        
+        if (results.Any())
+        {
+            var maxRiskScore = results
+                .Where(r => r.risk_assessment != null)
+                .Max(r => r.risk_assessment!.risk_score);
+            
+            // Enable URL tracking if risk score exceeds threshold (lower safety score = higher risk)
+            // Safety score of 40 or below means high risk
+            if (maxRiskScore <= riskThreshold)
+            {
+                var domain = Common.Entities.KnownPhishingWebsite.GetDomainFromUrl(url);
+                _logger.LogInformation($"⚠️ Risk threshold exceeded for {domain}. Safety score: {maxRiskScore} <= {riskThreshold}. Enabling URL tracking for {trackingDurationMinutes} minutes.");
+                
+                var trackingAction = new ProtectiveAction(
+                    ProtectiveActionSubject.Device,
+                    ProtectiveActionType.EnableUrlTracking,
+                    AnalysisLevel.Device,
+                    $"EnableUrlTracking|{domain}|{trackingDurationMinutes}",
+                    alert.AlertId);
+                protectiveActions.Add(trackingAction);
+            }
+        }
         // Aggregate results
         var analyzerResult = new AnalyzerResult
         (

@@ -92,7 +92,8 @@ export const PROTECTIVE_ACTION = {
   NOTIFY: 1,
   WARN_BANNER: 2,
   WARN_MODAL: 3,
-  BLOCK: 4
+  BLOCK: 4,
+  ENABLE_URL_TRACKING: 8  // Matches backend ProtectiveActionType.EnableUrlTracking
 };
 
 // Risk types (matching backend)

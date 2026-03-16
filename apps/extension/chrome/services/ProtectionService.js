@@ -32,6 +32,12 @@ class ProtectionService {
         await this.showNotification(riskType, score);
         break;
 
+      case PROTECTIVE_ACTION.ENABLE_URL_TRACKING:
+        // URL tracking is handled separately via enableUrlTracking in background.js
+        // This action contains the domain and duration in the action message
+        console.log('[ProtectionService] EnableUrlTracking action received - handled by background.js');
+        break;
+
       case PROTECTIVE_ACTION.NONE:
       default:
         // No action needed

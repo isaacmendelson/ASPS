@@ -136,6 +136,7 @@ public enum ProtectiveActionType
     UserDisplayNotification = 5,
     QuarantineDevice = 6,
     BlockRemoteAccess = 7,
+    EnableUrlTracking = 8,
 }
 
 public enum ProtectiveActionSubject

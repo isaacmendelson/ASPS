@@ -244,6 +244,20 @@ function handleUrlResult(data) {
   // Stop loading animation when we have a final result
   stopLoadingState();
 
+  // Check for EnableUrlTracking in protective actions
+  if (data.protectiveActions && Array.isArray(data.protectiveActions)) {
+    for (const action of data.protectiveActions) {
+      if (action.message && action.message.startsWith('EnableUrlTracking|')) {
+        const parts = action.message.split('|');
+        if (parts.length >= 3) {
+          const domain = parts[1];
+          const durationMinutes = parseInt(parts[2], 10) || 30;
+          enableUrlTracking(domain, durationMinutes);
+        }
+      }
+    }
+  }
+
   const result = scanService.handleResult(data);
 
   if (result) {
@@ -487,6 +501,50 @@ function setupMessageHandlers() {
 const tabNavigationHistory = new Map();
 const tabActivationTimes = new Map();
 
+// Domains that should be tracked (set by backend EnableUrlTracking)
+// Map of domain -> expiration timestamp
+const trackedDomains = new Map();
+
+/**
+ * Check if a domain should be tracked
+ * @param {string} url - URL to check
+ * @returns {boolean} - True if domain is in tracked list and not expired
+ */
+function shouldTrackDomain(url) {
+  try {
+    const urlObj = new URL(url);
+    const domain = urlObj.hostname;
+    
+    // Check if domain is tracked
+    const expiresAt = trackedDomains.get(domain);
+    if (!expiresAt) {
+      return false;
+    }
+    
+    // Check if tracking has expired
+    if (Date.now() > expiresAt) {
+      trackedDomains.delete(domain);
+      console.log(`[Background] URL tracking expired for domain: ${domain}`);
+      return false;
+    }
+    
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Enable URL tracking for a domain
+ * @param {string} domain - Domain to track
+ * @param {number} durationMinutes - How long to track (in minutes)
+ */
+function enableUrlTracking(domain, durationMinutes) {
+  const expiresAt = Date.now() + (durationMinutes * 60 * 1000);
+  trackedDomains.set(domain, expiresAt);
+  console.log(`[Background] URL tracking enabled for domain: ${domain} (${durationMinutes} minutes)`);
+}
+
 /**
  * Send TrackUrlAlert to desktop app via WebSocket
  * @param {number} tabId - Browser tab ID
@@ -553,10 +611,13 @@ function trackTabNavigation(tabId, url) {
     // Calculate duration on previous page (in seconds)
     const duration = Math.floor((now - previousNav.timestamp) / 1000);
     
-    // Send TrackUrlAlert with previous page info
-    sendTrackUrlAlert(tabId, url, previousNav.url, duration);
+    // Only send TrackUrlAlert if the domain is being tracked by backend
+    if (shouldTrackDomain(url) || shouldTrackDomain(previousNav.url)) {
+      sendTrackUrlAlert(tabId, url, previousNav.url, duration);
+    }
   } else {
-    // First navigation for this tab - no previous URL
+    // First navigation for this tab - only track if domain is in tracked list
+    if (shouldTrackDomain(url)) {
     sendTrackUrlAlert(tabId, url, '', 0);
   }
   
