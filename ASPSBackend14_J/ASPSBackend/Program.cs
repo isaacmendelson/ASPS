@@ -22,8 +22,9 @@ class Program
     {
         var host = CreateHostBuilder(args).Build();
 
+        var version = typeof(Program).Assembly.GetName().Version?.ToString() ?? "0.0.0.1";
         Console.WriteLine("========================================");
-        Console.WriteLine("ASPSBackend System2 Starting...");
+        Console.WriteLine($"[INFO] ASPSBackend v{version} starting...");
         Console.WriteLine("========================================");
 
         // Auto-migrate database in development

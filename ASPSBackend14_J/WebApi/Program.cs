@@ -189,7 +189,9 @@ app.MapControllers();
 app.MapRazorPages();
 app.MapHub<WebApi.Hubs.NotificationsHub>("/notificationshub");
 
+var webApiVersion = typeof(Program).Assembly.GetName().Version?.ToString() ?? "0.0.0.1";
 Console.WriteLine("========================================");
+Console.WriteLine($"[INFO] WebApi v{webApiVersion} starting...");
 Console.WriteLine("ASPS Admin Dashboard");
 Console.WriteLine($"Authentication: {(keycloakEnabled ? "Keycloak SSO ✓" : "Cookie-only (dev mode) ⚠")}");
 Console.WriteLine("ForwardedHeaders: Enabled ✓");
