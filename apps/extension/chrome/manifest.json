@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AntiScam Protection",
-  "version": "0.0.0.1",
+  "version": "0.0.0.2",
   "description": "Protection against online scams and fraud",
   "permissions": [
     "activeTab",
@@ -33,9 +33,15 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "css": ["content.css"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
       "run_at": "document_end"
     }
   ]
