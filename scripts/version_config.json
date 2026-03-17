@@ -1,0 +1,40 @@
+{
+  "version_files": [
+    {
+      "path": "ASPSBackend14_J/ASPSBackend/ASPSBackend.csproj",
+      "type": "xml",
+      "xpath": ".//PropertyGroup/Version",
+      "description": "Backend main project"
+    },
+    {
+      "path": "ASPSBackend14_J/WebApi/WebApi.csproj",
+      "type": "xml",
+      "xpath": ".//PropertyGroup/Version",
+      "description": "Web API project"
+    },
+    {
+      "path": "apps/desktop/win/src/version.py",
+      "type": "python",
+      "pattern": "VERSION = \"{{version}}\"",
+      "description": "Desktop application version"
+    },
+    {
+      "path": "apps/extension/chrome/manifest.json",
+      "type": "json",
+      "key": "version",
+      "description": "Chrome extension manifest"
+    }
+  ],
+  "github": {
+    "owner": "yehudaz136",
+    "repo": "asps",
+    "token_env": "GITHUB_TOKEN",
+    "api_base": "https://api.github.com"
+  },
+  "versions_dir": "versions",
+  "git_auto_commit": true,
+  "git_auto_tag": true,
+  "tag_prefix": "v",
+  "commit_message_template": "Version bump: {version}",
+  "tag_message_template": "Release {version}"
+}
