@@ -305,6 +305,10 @@ public class RealTimeAlertListener : IDisposable
         }
 
         // Device + email verified — check if there's already a valid token
+        // Get user email for response
+        var owner = userDevice.UserKey != null ? _asView.FindUserByKey(userDevice.UserKey) : null;
+        var userEmail = owner?.Email ?? email ?? "";
+
         var existingToken = _tokenStore.GetToken(deviceUid);
         if (existingToken != null)
         {
@@ -318,6 +322,7 @@ public class RealTimeAlertListener : IDisposable
                     token = existingToken.TokenValue,
                     expiration = existingToken.Expiration.ToString("o"),
                     deviceUid,
+                    email = userEmail,
                     serverPublicKey = _curveKeyManager?.ServerPublicKeyZ85 ?? string.Empty
                 };
             }
@@ -331,6 +336,7 @@ public class RealTimeAlertListener : IDisposable
             token = newToken.TokenValue,
             expiration = newToken.Expiration.ToString("o"),
             deviceUid,
+            email = userEmail,
             serverPublicKey = _curveKeyManager?.ServerPublicKeyZ85 ?? string.Empty
         };
     }

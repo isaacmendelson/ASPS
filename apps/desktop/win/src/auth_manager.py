@@ -185,6 +185,12 @@ class AuthManager:
             self.is_authorized = True
             self.user_id = 0
 
+            # Get email from response
+            response_email = response.get("email", "")
+            if response_email:
+                self.email = response_email
+                print(f"[AUTH] Email from backend: {self.email}")
+
             exp_str = response.get("expiration", "")
             if exp_str:
                 try:
