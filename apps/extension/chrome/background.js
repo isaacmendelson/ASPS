@@ -81,8 +81,9 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 // Configuration
 // ============================================
 
+const manifest = chrome.runtime.getManifest();
 const CONFIG = {
-  VERSION: '0.1.0'
+  VERSION: manifest.version
 };
 
 // ============================================
@@ -863,8 +864,7 @@ function setupStateListeners() {
 // ============================================
 
 async function init() {
-  console.log('[Background] AntiScam Extension starting...');
-  console.log('[Background] Version:', CONFIG.VERSION);
+  console.log(`[Background] AntiScam Extension v${CONFIG.VERSION} starting...`);
 
   // Initialize state manager
   await stateManager.init();

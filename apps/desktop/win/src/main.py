@@ -39,6 +39,7 @@ class AntiScamApp:
 
     def __init__(self, device_id: str):
         print("\n" + "=" * 60)
+        print(f"[INFO] ASPS Agent v{VERSION} starting...")
         print("[INIT] Initializing AntiScam Desktop App")
         print("=" * 60)
 

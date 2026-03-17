@@ -118,8 +118,9 @@
         const response = await chrome.runtime.sendMessage({ type: 'getStatus' });
         console.log('[Popup] Status:', response);
 
-        // Version
-        Elements.versionNumber.textContent = response.version || '0.1.0';
+        // Version (from manifest)
+        const manifest = chrome.runtime.getManifest();
+        Elements.versionNumber.textContent = manifest.version;
 
         // Get reconnecting state from state manager (via storage sync)
         const data = await chrome.storage.local.get(['connection.reconnecting']);

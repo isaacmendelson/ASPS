@@ -275,6 +275,19 @@ class TrayPopup(ctk.CTkToplevel):
         )
         exit_btn.pack(side="right")
 
+        # Version label (centered below buttons)
+        try:
+            from version import VERSION
+            version_label = ctk.CTkLabel(
+                self,
+                text=f"v{VERSION}",
+                font=ctk.CTkFont(size=9),
+                text_color=COLORS["text_muted"]
+            )
+            version_label.pack(pady=(0, 8))
+        except ImportError:
+            pass  # Fail silently if version not available
+
     def _on_focus_out(self, event):
         """Handle focus loss - close popup after brief delay."""
         self.after(150, self._check_focus)

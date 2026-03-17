@@ -4,6 +4,7 @@ AntiScam Desktop App - Configuration
 
 import os
 from dotenv import load_dotenv
+from version import VERSION
 
 # Load environment variables from .env file
 load_dotenv()
@@ -12,10 +13,6 @@ load_dotenv()
 def _parse_bool(value: str) -> bool:
     """Parse string to boolean."""
     return value.lower() in ('true', '1', 'yes', 'on')
-
-
-# Version
-VERSION = "0.1.0"
 
 # Debug Mode - defaults to False for production safety
 DEBUG_MODE = _parse_bool(os.environ.get('DEBUG_MODE', 'false'))
