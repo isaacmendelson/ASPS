@@ -114,13 +114,19 @@
 
   const StatusService = {
     async update() {
+      // Version (from manifest) - always update, even if status fails
+      try {
+        const manifest = chrome.runtime.getManifest();
+        if (Elements.versionNumber) {
+          Elements.versionNumber.textContent = manifest.version;
+        }
+      } catch (e) {
+        console.warn('[Popup] Failed to get version:', e);
+      }
+
       try {
         const response = await chrome.runtime.sendMessage({ type: 'getStatus' });
         console.log('[Popup] Status:', response);
-
-        // Version (from manifest)
-        const manifest = chrome.runtime.getManifest();
-        Elements.versionNumber.textContent = manifest.version;
 
         // Get reconnecting state from state manager (via storage sync)
         const data = await chrome.storage.local.get(['connection.reconnecting']);
