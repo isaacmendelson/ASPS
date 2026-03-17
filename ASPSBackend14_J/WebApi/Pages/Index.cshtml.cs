@@ -25,6 +25,11 @@ namespace WebApi.Pages
         public string SystemVersion { get; set; } = ThisAssembly.AssemblyInformationalVersion;
         public string GitCommitId { get; set; } = ThisAssembly.GitCommitId;
         public bool IsPrerelease { get; set; } = ThisAssembly.IsPrerelease;
+        
+        // Component versions
+        public string BackendVersion { get; set; } = "N/A";
+        public string WebApiVersion { get; set; } = ThisAssembly.AssemblyInformationalVersion;
+        public string AdminVersion { get; set; } = ThisAssembly.AssemblyInformationalVersion;
 
         public async Task OnGetAsync()
         {

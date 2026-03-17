@@ -218,11 +218,11 @@
 <div class="row mt-4">
     <div class="col-12">
         <div class="card shadow-sm border-0">
-            <div class="card-body py-2">
-                <div class="d-flex justify-content-between align-items-center">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
                     <div class="text-muted small">
                         <i class="fas fa-code-branch me-2"></i>
-                        <strong>Version:</strong> @Model.SystemVersion
+                        <strong>System Version:</strong> @Model.SystemVersion
                         @if (Model.IsPrerelease)
                         {
                             <span class="badge bg-warning text-dark ms-2">BETA</span>
@@ -231,6 +231,22 @@
                     <div class="text-muted small">
                         <i class="fab fa-git-alt me-2"></i>
                         <strong>Commit:</strong> <code class="text-muted">@Model.GitCommitId.Substring(0, 8)</code>
+                    </div>
+                </div>
+                <div class="border-top pt-2 mt-2">
+                    <div class="row text-muted small">
+                        <div class="col-md-4">
+                            <i class="fas fa-server me-2"></i>
+                            <strong>Backend:</strong> <code>v@Model.BackendVersion</code>
+                        </div>
+                        <div class="col-md-4">
+                            <i class="fas fa-globe me-2"></i>
+                            <strong>WebApi:</strong> <code>v@Model.WebApiVersion</code>
+                        </div>
+                        <div class="col-md-4">
+                            <i class="fas fa-tachometer-alt me-2"></i>
+                            <strong>Admin:</strong> <code>v@Model.AdminVersion</code>
+                        </div>
                     </div>
                 </div>
             </div>
