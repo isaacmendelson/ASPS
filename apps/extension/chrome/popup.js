@@ -757,6 +757,18 @@
     // Init DOM references
     Elements.init();
 
+    // Set version immediately (before anything else can fail)
+    try {
+      const manifest = chrome.runtime.getManifest();
+      const versionEl = document.getElementById('versionNumber');
+      if (versionEl && manifest.version) {
+        versionEl.textContent = manifest.version;
+        console.log('[Popup] Version set to:', manifest.version);
+      }
+    } catch (e) {
+      console.error('[Popup] Failed to set version:', e);
+    }
+
     // Init services
     await FeedbackService.init();
 
