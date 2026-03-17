@@ -253,3 +253,19 @@ public class GetAllTrackedDomainsQueryResult : QueryResult
     public int Page { get; set; }
     public int PageSize { get; set; }
 }
+
+public class GetVersionQuery : Query 
+{
+    public GetVersionQuery()
+    {
+        QueryType = nameof(GetVersionQuery);
+    }
+
+    public string QueryType { get; set; }
+}
+
+public class GetVersionQueryResult : QueryResult
+{
+    public string Version { get; set; } = "N/A";
+    public string Component { get; set; } = "Backend";
+}

@@ -151,6 +151,7 @@ public class CQRSGateway : IDisposable
             "GetAllPhishingWebsitesQuery" => HandleGetAllPhishingWebsitesQuery(messageJson),
             "GetAllTrackedDomainsQuery" => await HandleGetAllTrackedDomainsQuery(messageJson),
             "ValidateDeviceTokenQuery" => HandleValidateDeviceTokenQuery(messageJson),
+            "GetVersionQuery" => HandleGetVersionQuery(),
             _ => CreateErrorResponse($"Unknown query type: {queryType}")
         };
     }
@@ -451,6 +452,30 @@ public class CQRSGateway : IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error validating device token");
+            return CreateErrorResponse($"Error: {ex.Message}");
+        }
+    }
+
+    private string HandleGetVersionQuery()
+    {
+        try
+        {
+            var version = typeof(CQRSGateway).Assembly.GetName().Version?.ToString() ?? "0.0.0.0";
+            var result = new GetVersionQueryResult
+            {
+                Success = true,
+                Version = version,
+                Component = "Backend"
+            };
+            return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+            {
+                TypeNameHandling = TypeNameHandling.Auto,
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting version");
             return CreateErrorResponse($"Error: {ex.Message}");
         }
     }

@@ -37,6 +37,21 @@ namespace WebApi.Pages
             {
                 _logger.LogInformation("Loading dashboard via CQRS (NetMQ)");
                 
+                // Get Backend version
+                try
+                {
+                    var versionQuery = new GetVersionQuery();
+                    var versionResult = await _cqrsClient.SendQueryAsync<GetVersionQueryResult>(versionQuery);
+                    if (versionResult?.Success == true)
+                    {
+                        BackendVersion = versionResult.Version ?? "N/A";
+                    }
+                }
+                catch (Exception vex)
+                {
+                    _logger.LogWarning(vex, "Failed to get backend version");
+                }
+
                 // Send query to Business layer via NetMQ
                 var query = new GetDashboardStatsQuery();
                 var result = await _cqrsClient.SendQueryAsync<GetDashboardStatsQueryResult>(query);
