@@ -460,7 +460,9 @@ public class CQRSGateway : IDisposable
     {
         try
         {
-            var version = typeof(CQRSGateway).Assembly.GetName().Version?.ToString() ?? "0.0.0.0";
+            // Get version from entry assembly (ASPSBackend) not from this library
+            var entryAssembly = System.Reflection.Assembly.GetEntryAssembly();
+            var version = entryAssembly?.GetName().Version?.ToString() ?? "0.0.0.0";
             var result = new GetVersionQueryResult
             {
                 Success = true,
