@@ -118,6 +118,35 @@ class AntiScamApp:
             self._notification_connected = False
             print(f"[NOTIFY] Failed to start: {e}")
 
+    def _background_reconnect(self, interval: int = 30):
+        """
+        Background task that retries authentication periodically if not connected.
+        Runs in a separate thread.
+        
+        Args:
+            interval: Seconds between reconnection attempts (default 30)
+        """
+        import time
+        
+        while self._running:
+            time.sleep(interval)
+            
+            if not self._running:
+                break
+                
+            if not self.container.auth_manager.is_valid():
+                print(f"\n[RECONNECT] Backend not connected, attempting reconnection...")
+                if self.container.auth_manager.authenticate():
+                    print("[RECONNECT] Successfully reconnected to backend!")
+                    # Update tray status
+                    self.container.tray_icon.set_status(
+                        connected=True,
+                        extension_connected=self.container.extension_server.client_count > 0,
+                        backend_connected=True
+                    )
+                else:
+                    print(f"[RECONNECT] Failed, will retry in {interval}s")
+
     async def start(self):
         """Start the application"""
         print("\n" + "=" * 60)
@@ -157,6 +186,15 @@ class AntiScamApp:
             daemon=True
         )
         notification_thread.start()
+
+        # Start background reconnect task (retries if backend connection lost)
+        if not self.container.auth_manager.is_valid():
+            print("\n[STARTUP] Starting background reconnect task...")
+            reconnect_thread = threading.Thread(
+                target=self._background_reconnect,
+                daemon=True
+            )
+            reconnect_thread.start()
 
         # Start background monitors
         print("\n[STARTUP] Starting background monitors...")

@@ -287,13 +287,32 @@ class AuthManager:
         print(f"[AUTH] Token refresh failed: {response.get('status', 'unknown')}")
         return False
 
-    def ensure_authenticated(self) -> bool:
+    def ensure_authenticated(self, max_retries: int = 3, initial_delay: float = 2.0) -> bool:
         """
         Ensure we have a valid token registered with the backend.
         Always calls RequestToken on startup to ensure backend's TokenStore is populated
         (in-memory TokenStore doesn't survive backend restarts).
+        
+        Retries with exponential backoff if backend is unavailable.
+        
+        Args:
+            max_retries: Maximum number of retry attempts (default 3)
+            initial_delay: Initial delay between retries in seconds (default 2.0)
         """
-        return self.authenticate()
+        import time
+        
+        delay = initial_delay
+        for attempt in range(max_retries):
+            if self.authenticate():
+                return True
+            
+            if attempt < max_retries - 1:
+                print(f"[AUTH] Retry {attempt + 1}/{max_retries} failed, waiting {delay:.1f}s...")
+                time.sleep(delay)
+                delay *= 2  # Exponential backoff
+        
+        print(f"[AUTH] All {max_retries} authentication attempts failed")
+        return False
 
     def get_token(self) -> Optional[str]:
         """
