@@ -283,13 +283,17 @@ public class UDAnalysis : IBackgroundTask
         };
 
         // Notify all registered event handlers
+        _logger.LogInformation($"[DEBUG] FireAnalysisResultEvent: {_eventHandlers.Count} handlers registered");
         foreach (var handler in _eventHandlers)
         {
+            _logger.LogInformation($"[DEBUG] Checking handler: {handler.GetType().Name}, handles AnalysisResultReceived: {handler.GetHandleableEvents().Contains(typeof(AnalysisResultReceived))}");
             if (handler.GetHandleableEvents().Contains(typeof(AnalysisResultReceived)))
             {
                 try
                 {
+                    _logger.LogInformation($"[DEBUG] Calling handler.Handle for {handler.GetType().Name}");
                     handler.Handle(analysisEvent); 
+                    _logger.LogInformation($"[DEBUG] Handler.Handle completed for {handler.GetType().Name}");
                 }
                 catch (Exception ex)
                 {
@@ -298,7 +302,7 @@ public class UDAnalysis : IBackgroundTask
             }
         }
 
-        _logger.LogDebug($"Fired AnalysisResultReceived event for device: {activeAlert.DeviceUid}, at {activeAlert.Timestamp} Severity: {result.OverallSeverity}");
+        _logger.LogInformation($"Fired AnalysisResultReceived event for device: {activeAlert.DeviceUid}, at {activeAlert.Timestamp} Severity: {result.OverallSeverity}");
     }
 
     /// <summary>
