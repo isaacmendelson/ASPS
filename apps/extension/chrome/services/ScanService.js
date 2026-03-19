@@ -11,6 +11,8 @@ import { MSG, PROTECTIVE_ACTION } from '../messaging/MessageTypes.js';
 class ScanService {
   constructor() {
     this.pendingScans = new Map();
+    this.recentlyScanned = new Map(); // Track recently scanned URLs to avoid duplicates
+    this.recentScanTTL = 60000; // 60 seconds - don't rescan same URL within this time
     this.scanTimeout = 30000; // 30 seconds - increased for slower analysis
   }
 
@@ -59,6 +61,18 @@ class ScanService {
       this.handleResult(cached, true);
       return cached;
     }
+
+    // Check if we recently scanned this URL (avoid duplicate scans during analyzing phase)
+    const recentScan = this.recentlyScanned.get(url);
+    if (recentScan && (Date.now() - recentScan) < this.recentScanTTL) {
+      console.log(`[ScanService] Already scanned recently, skipping: ${domain}`);
+      return null;
+    }
+
+    // Mark as recently scanned
+    this.recentlyScanned.set(url, Date.now());
+    // Cleanup old entries
+    this.cleanupRecentlyScanned();
 
     // Set scanning state in storage for this tab
     chrome.storage.local.set({
@@ -159,6 +173,11 @@ class ScanService {
     const protectiveAction = data.protectiveAction ?? PROTECTIVE_ACTION.NONE;
     const ttl = data.ttl || 3600;
 
+    // Clear from recently scanned - we have final result, allow future rescans
+    if (data.url) {
+      this.clearRecentlyScan(data.url);
+    }
+
     // Update state
     stateManager.update({
       'scan.score': score,
@@ -255,6 +274,21 @@ class ScanService {
       clearTimeout(timeoutId);
     }
     this.pendingScans.clear();
+  }
+
+  // Cleanup old entries from recentlyScanned
+  cleanupRecentlyScanned() {
+    const now = Date.now();
+    for (const [url, timestamp] of this.recentlyScanned) {
+      if (now - timestamp > this.recentScanTTL) {
+        this.recentlyScanned.delete(url);
+      }
+    }
+  }
+
+  // Clear recently scanned URL (call when we get final result)
+  clearRecentlyScan(url) {
+    this.recentlyScanned.delete(url);
   }
 }
 
