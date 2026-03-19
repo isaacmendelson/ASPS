@@ -51,6 +51,9 @@ public class NotificationPublisherActor : IDomainEventHandler
                 case UrlAnalysisResultVm urlAnalyzerResult:
                     riskAssessment = urlAnalyzerResult.risk_assessment;
                     break;
+                case TrackUrlAnalysisResultVm trackUrlAnalyzerResult:
+                    riskAssessment = trackUrlAnalyzerResult.risk_assessment;
+                    break;
                 case RemoteAccessAnalysisResultVm remoteAccessAnalyzerResult:
                     riskAssessment = remoteAccessAnalyzerResult.risk_assessment;
                     break;
