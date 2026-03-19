@@ -627,6 +627,7 @@ function trackTabNavigation(tabId, url) {
     url: url,
     timestamp: now
   });
+  }
 }
 
 // ============================================
