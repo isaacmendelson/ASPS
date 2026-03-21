@@ -539,8 +539,18 @@ function getTrackingInfo(url) {
     const urlObj = new URL(url);
     const domain = urlObj.hostname;
     
-    // Check if domain is tracked
-    const trackInfo = trackedDomains.get(domain);
+    // Check if domain is tracked (try with and without www)
+    let trackInfo = trackedDomains.get(domain);
+    if (!trackInfo) {
+      // Try without www prefix
+      const domainWithoutWww = domain.replace(/^www\./, '');
+      trackInfo = trackedDomains.get(domainWithoutWww);
+    }
+    if (!trackInfo) {
+      // Try with www prefix
+      const domainWithWww = domain.startsWith('www.') ? domain : 'www.' + domain;
+      trackInfo = trackedDomains.get(domainWithWww);
+    }
     if (!trackInfo) {
       return defaultResult;
     }
