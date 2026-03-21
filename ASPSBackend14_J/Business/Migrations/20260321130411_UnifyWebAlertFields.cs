@@ -10,57 +10,60 @@ namespace Business.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // Drop the duplicate columns that were created for UrlAlertEntity
-            // (Url, UserAgent are now shared via WebAlertEntity base class)
-            migrationBuilder.DropColumn(
-                name: "UrlAlertEntity_TrackerKeys",
-                table: "DeviceAlerts");
+            // Drop duplicate columns IF THEY EXIST (they may not exist in all environments)
+            // Using raw SQL with IF EXISTS for MySQL compatibility
+            migrationBuilder.Sql(@"
+                SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_NAME = 'DeviceAlerts' AND COLUMN_NAME = 'UrlAlertEntity_TrackerKeys' AND TABLE_SCHEMA = DATABASE());
+                SET @sql = IF(@col_exists > 0, 'ALTER TABLE DeviceAlerts DROP COLUMN UrlAlertEntity_TrackerKeys', 'SELECT 1');
+                PREPARE stmt FROM @sql;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+            ");
 
-            migrationBuilder.DropColumn(
-                name: "UrlAlertEntity_Url",
-                table: "DeviceAlerts");
+            migrationBuilder.Sql(@"
+                SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_NAME = 'DeviceAlerts' AND COLUMN_NAME = 'UrlAlertEntity_Url' AND TABLE_SCHEMA = DATABASE());
+                SET @sql = IF(@col_exists > 0, 'ALTER TABLE DeviceAlerts DROP COLUMN UrlAlertEntity_Url', 'SELECT 1');
+                PREPARE stmt FROM @sql;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+            ");
 
-            migrationBuilder.DropColumn(
-                name: "UrlAlertEntity_UserAgent",
-                table: "DeviceAlerts");
+            migrationBuilder.Sql(@"
+                SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_NAME = 'DeviceAlerts' AND COLUMN_NAME = 'UrlAlertEntity_UserAgent' AND TABLE_SCHEMA = DATABASE());
+                SET @sql = IF(@col_exists > 0, 'ALTER TABLE DeviceAlerts DROP COLUMN UrlAlertEntity_UserAgent', 'SELECT 1');
+                PREPARE stmt FROM @sql;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+            ");
 
-            // Add TabId column for WebAlertEntity (shared by UrlAlert and TrackUrlAlert)
-            migrationBuilder.AddColumn<string>(
-                name: "TabId",
-                table: "DeviceAlerts",
-                type: "varchar(100)",
-                maxLength: 100,
-                nullable: true)
-                .Annotation("MySql:CharSet", "utf8mb4");
+            // Add TabId column IF NOT EXISTS
+            migrationBuilder.Sql(@"
+                SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_NAME = 'DeviceAlerts' AND COLUMN_NAME = 'TabId' AND TABLE_SCHEMA = DATABASE());
+                SET @sql = IF(@col_exists = 0, 'ALTER TABLE DeviceAlerts ADD COLUMN TabId VARCHAR(100) NULL', 'SELECT 1');
+                PREPARE stmt FROM @sql;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+            ");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "TabId",
-                table: "DeviceAlerts");
+            migrationBuilder.Sql(@"
+                SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_NAME = 'DeviceAlerts' AND COLUMN_NAME = 'TabId' AND TABLE_SCHEMA = DATABASE());
+                SET @sql = IF(@col_exists > 0, 'ALTER TABLE DeviceAlerts DROP COLUMN TabId', 'SELECT 1');
+                PREPARE stmt FROM @sql;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+            ");
 
-            migrationBuilder.AddColumn<string>(
-                name: "UrlAlertEntity_TrackerKeys",
-                table: "DeviceAlerts",
-                type: "TEXT",
-                nullable: true)
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.AddColumn<string>(
-                name: "UrlAlertEntity_Url",
-                table: "DeviceAlerts",
-                type: "TEXT",
-                nullable: true)
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.AddColumn<string>(
-                name: "UrlAlertEntity_UserAgent",
-                table: "DeviceAlerts",
-                type: "TEXT",
-                nullable: true)
-                .Annotation("MySql:CharSet", "utf8mb4");
+            // Note: We don't recreate the duplicate columns in Down() 
+            // since they shouldn't exist in the new schema
         }
     }
 }
