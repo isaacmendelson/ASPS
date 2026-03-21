@@ -280,13 +280,12 @@ class ScamAnalyzer:
             mapped_category = _CATEGORY_TO_WEBSITE_TYPE.get(raw_category, 'Unknown')
 
             # Build complete result
-            # Convert risk_score to safety_score: 0 = dangerous, 100 = safe
-            raw_risk = analysis.get('risk_score', 0)
-            safety_score = 100 - raw_risk
+            # Use raw risk score: 0 = error/no result, 1 = safest, 100 = most dangerous
+            risk_score = analysis.get('risk_score', 0)
 
             result.update({
                 'risk_assessment': {
-                    'risk_score': safety_score,  # Now: 0 = dangerous, 100 = safe
+                    'risk_score': risk_score,  # New scale: 0 = error, 1 = safe, 100 = dangerous
                     'risk_level': analysis.get('risk_level', 'UNKNOWN'),
                     'is_scam': analysis.get('is_scam', False),
                     'confidence': self._calculate_confidence(missing_data)
@@ -524,7 +523,7 @@ class ScamAnalyzer:
             'analyzed_at': datetime.now().isoformat(),
             'error': error,
             'risk_assessment': {
-                'risk_score': 50,  # Unknown = neutral (0=dangerous, 100=safe)
+                'risk_score': 0,  # Error = 0 (new scale: 0=error, 1=safe, 100=dangerous)
                 'risk_level': 'UNKNOWN',
                 'is_scam': False,
                 'confidence': 0.0
