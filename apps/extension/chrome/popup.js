@@ -364,14 +364,15 @@
         // Fallback to score-based display if protectiveAction is 0 or 1
         // This handles cases where server doesn't set protectiveAction correctly
         // NEW SCALE: 0=error, 1=safe, 100=dangerous
+        // IMPORTANT: Use score-based labels, not riskType from server (may be using old scale)
         if (score !== null && score !== undefined) {
           if (score >= 61) {
-            return { color: 'red', label: riskType[0] || 'High Risk' };
+            return { color: 'red', label: 'HIGH' };
           } else if (score >= 31) {
-            return { color: 'yellow', label: riskType[0] || 'Medium Risk' };
+            return { color: 'yellow', label: 'MEDIUM' };
           }
         }
-        return { color: 'green', label: 'Safe' };
+        return { color: 'green', label: 'LOW' };
       }
     },
 
