@@ -98,12 +98,36 @@ public class AlertsController : ControllerBase
 
         try
         {
-            var host = new Uri(url).Host.ToLowerInvariant();
-            return host == "localhost" ||
-                   host == "127.0.0.1" ||
-                   host == "::1" ||
-                   host == "0.0.0.0" ||
-                   host.StartsWith("127.");
+            var uri = new Uri(url);
+            var host = uri.Host.ToLowerInvariant();
+            
+            // Check common localhost names
+            if (host == "localhost" || host == "0.0.0.0")
+                return true;
+            
+            // Try to parse as IP address
+            if (System.Net.IPAddress.TryParse(host, out var ip))
+            {
+                // IPv4 loopback (127.0.0.0/8)
+                var bytes = ip.GetAddressBytes();
+                if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                {
+                    if (bytes[0] == 127) return true;                    // 127.x.x.x
+                    if (bytes[0] == 10) return true;                     // 10.x.x.x
+                    if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) return true;  // 172.16-31.x.x
+                    if (bytes[0] == 192 && bytes[1] == 168) return true; // 192.168.x.x
+                    if (bytes[0] == 169 && bytes[1] == 254) return true; // 169.254.x.x (link-local)
+                    if (bytes[0] == 0) return true;                      // 0.x.x.x
+                }
+                // IPv6 loopback and link-local
+                else if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
+                {
+                    if (ip.IsIPv6LinkLocal) return true;  // fe80::/10
+                    if (System.Net.IPAddress.IsLoopback(ip)) return true;  // ::1
+                }
+            }
+            
+            return false;
         }
         catch
         {

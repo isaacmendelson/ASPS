@@ -135,6 +135,15 @@ public class AlertsControllerTests
     [InlineData("http://127.0.0.2")]
     [InlineData("http://localhost")]
     [InlineData("http://0.0.0.0")]
+    [InlineData("http://10.0.0.1")]           // Private: 10.x.x.x
+    [InlineData("http://10.255.255.255")]
+    [InlineData("http://172.16.0.1")]         // Private: 172.16-31.x.x
+    [InlineData("http://172.31.255.255")]
+    [InlineData("http://192.168.0.1")]        // Private: 192.168.x.x
+    [InlineData("http://192.168.1.100")]
+    [InlineData("http://169.254.1.1")]        // Link-local
+    [InlineData("http://[::1]")]              // IPv6 loopback
+    [InlineData("http://[fe80::1]")]          // IPv6 link-local
     public async Task SubmitTrackUrlAlert_WithVariousLocalUrls_ShouldReturnBadRequest(string localUrl)
     {
         // Arrange
