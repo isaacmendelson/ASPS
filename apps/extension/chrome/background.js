@@ -869,13 +869,14 @@ function setupTabListeners() {
     }
   });
 
-  // Tab activated
+  // Tab activated - only load cached score, never trigger new scan
+  // Assumption: tab was already scanned when it was first opened (onUpdated/onCompleted)
   chrome.tabs.onActivated.addListener(async (activeInfo) => {
     try {
       const tabId = activeInfo.tabId;
       const tab = await chrome.tabs.get(tabId);
 
-      // First, load per-tab score into global state (so popup shows correct score)
+      // Load per-tab score into global state (so popup shows correct score)
       const data = await chrome.storage.local.get([
         `tab_${tabId}_score`,
         `tab_${tabId}_riskType`,
@@ -909,35 +910,14 @@ function setupTabListeners() {
           });
           console.log(`[Background] Loaded URL cache for tab ${tabId}: ${cached.score}`);
         } else {
-          // No cache at all - start loading animation and scan
-          startLoadingState();
+          // No cache - tab should have been scanned when opened, don't scan on focus change
+          console.log(`[Background] No cache for tab ${tabId}, not scanning on focus change`);
           chrome.storage.local.set({
             currentPageScore: null,
             currentPageRiskType: [],
             currentPageAction: 0,
-            currentPageScanning: true
+            currentPageScanning: false
           });
-          console.log(`[Background] No cache for tab ${tabId}, scanning...`);
-
-          // Trigger scan immediately
-          if (tab.url) {
-            scanService.scan(tabId, tab.url);
-
-            // 30-second timeout for scan (user decision: show neutral gray on timeout)
-            setTimeout(() => {
-              chrome.storage.local.get(['currentPageScanning'], (data) => {
-                if (data.currentPageScanning) {
-                  stopLoadingState();
-                  iconService.setColor('gray');
-                  chrome.storage.local.set({
-                    currentPageScore: null,
-                    currentPageScanning: false
-                  });
-                  console.log('[Background] Scan timeout - showing neutral state');
-                }
-              });
-            }, 30000);
-          }
         }
       }
     } catch (e) {
