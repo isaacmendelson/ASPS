@@ -50,7 +50,8 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         {
             new UDRemoteAccessAnalyzer(loggerFactory.CreateLogger<UDRemoteAccessAnalyzer>()),
             new UDPhishingAnalyzer(loggerFactory.CreateLogger<UDPhishingAnalyzer>()),
-            new UDUrlAnalyzer(loggerFactory.CreateLogger<UDUrlAnalyzer>(), configuration, phishingRepo, aSView)
+            new UDUrlAnalyzer(loggerFactory.CreateLogger<UDUrlAnalyzer>(), configuration, phishingRepo, aSView),
+            new UDTrackUrlAnalyzer(loggerFactory.CreateLogger<UDTrackUrlAnalyzer>(), configuration, aSView)
         };
         //_userAnalyzer = new UDUserAnalyzer(_udUser, loggerFactory.CreateLogger<UDUserAnalyzer>());
 

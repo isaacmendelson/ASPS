@@ -63,23 +63,17 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
 
     public bool CanAnalyze(DeviceAlert alert)
     {
-        return alert is UrlAlert or TrackUrlAlert;
+        return alert is UrlAlert;
     }
 
     public async Task<AnalyzerResult> AnalyzeAsync(DeviceAlert alert, List<DeviceAlert> historicalAlerts, IConfiguration configuration)
     {
-        string url;
-        switch (alert)
+        if (alert is not UrlAlert urlAlert)
         {
-            case UrlAlert urlAlert:
-                url = urlAlert.Url;
-                break;
-            case TrackUrlAlert trackUrlAlert:
-                url = trackUrlAlert.Url;
-                break;
-            default:
-                return new AnalyzerResult(Severity.Low, "Alert is not a UrlAlert or TrackUrlAlert");
+            return new AnalyzerResult(Severity.Low, "Alert is not a UrlAlert");
         }
+
+        string url = urlAlert.Url;
 
         _logger.LogInformation($"Analyzing URL: {url}");
 

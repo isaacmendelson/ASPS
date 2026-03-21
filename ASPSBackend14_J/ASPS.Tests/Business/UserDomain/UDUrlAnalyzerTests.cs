@@ -127,22 +127,9 @@ public class UDUrlAnalyzerTests
         result.Should().BeTrue();
     }
 
-    [Fact]
-    public void CanAnalyze_WithTrackUrlAlert_ReturnsTrue()
-    {
-        // Arrange
-        var alert = new TrackUrlAlert
-        {
-            AlertId = "test-123",
-            Url = "http://test.com"
-        };
-
-        // Act
-        var result = _sut.CanAnalyze(alert);
-
-        // Assert
-        result.Should().BeTrue();
-    }
+    // Test removed - TrackUrlAlert is now handled by UDTrackUrlAnalyzer
+    // [Fact]
+    // public void CanAnalyze_WithTrackUrlAlert_ReturnsTrue()
 
     [Theory]
     [InlineData("http://example.com")]
@@ -225,34 +212,9 @@ public class UDUrlAnalyzerTests
         _phishingRepoMock.Verify(r => r.IsPhishingUrlAsync(url), Times.Once);
     }
 
-    [Fact]
-    public async Task AnalyzeAsync_WithTrackUrlAlert_CallsPhishingRepository()
-    {
-        // Arrange
-        var url = "http://tracked.com";
-        var alert = new TrackUrlAlert
-        {
-            AlertId = "test-123",
-            Url = url
-        };
-
-        _phishingRepoMock.Setup(r => r.IsPhishingUrlAsync(It.IsAny<string>())).ReturnsAsync(false);
-        _phishingRepoMock.Setup(r => r.IsPhishingDomainAsync(It.IsAny<string>())).ReturnsAsync(false);
-        _configurationMock.Setup(c => c.GetSection("Analysis:CacheEnabled").Value).Returns("false");
-
-        // Act
-        try
-        {
-            var result = await _sut.AnalyzeAsync(alert, new List<DeviceAlert>(), _configurationMock.Object);
-        }
-        catch
-        {
-            // Expected to fail (Python script execution), but repository calls should happen
-        }
-
-        // Assert
-        _phishingRepoMock.Verify(r => r.IsPhishingUrlAsync(url), Times.Once);
-    }
+    // Test removed - TrackUrlAlert is now handled by UDTrackUrlAnalyzer
+    // [Fact]
+    // public async Task AnalyzeAsync_WithTrackUrlAlert_CallsPhishingRepository()
 
     [Theory]
     [InlineData("http://example.com", "example.com")]

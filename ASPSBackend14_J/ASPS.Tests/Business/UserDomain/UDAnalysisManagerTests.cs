@@ -55,6 +55,8 @@ public class UDAnalysisManagerTests
             .Returns(_mockRemoteAnalyzerLogger.Object);
         _mockLoggerFactory.Setup(f => f.CreateLogger(It.Is<string>(s => s.EndsWith("UDPhishingAnalyzer"))))
             .Returns(_mockPhishingAnalyzerLogger.Object);
+        _mockLoggerFactory.Setup(f => f.CreateLogger(It.Is<string>(s => s.EndsWith("UDTrackUrlAnalyzer"))))
+            .Returns(Mock.Of<ILogger<UDTrackUrlAnalyzer>>());
 
         _mockConfiguration = new Mock<IConfiguration>();
         SetupConfiguration();
