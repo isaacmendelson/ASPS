@@ -213,7 +213,7 @@ public class TrackUrlAnalyzerTests
         var results = result.Details["results"] as TrackUrlAnalysisResultVm[];
         results.Should().NotBeNull();
         results.Should().HaveCount(1);
-        results![0].risk_assessment?.risk_score.Should().Be(0);
+        results![0].risk_assessment?.risk_score.Should().Be(5); // ASPS-318: NEW scale - LOW risk (safe domain)
     }
 
     [Fact]
@@ -239,7 +239,7 @@ public class TrackUrlAnalyzerTests
         
         var results = result.Details["results"] as TrackUrlAnalysisResultVm[];
         results.Should().NotBeNull();
-        results![0].risk_assessment?.risk_score.Should().Be(20);
+        results![0].risk_assessment?.risk_score.Should().Be(40); // ASPS-318: NEW scale - MEDIUM risk (long duration)
     }
 
     [Fact]
@@ -265,7 +265,7 @@ public class TrackUrlAnalyzerTests
         
         var results = result.Details["results"] as TrackUrlAnalysisResultVm[];
         results.Should().NotBeNull();
-        results![0].risk_assessment?.risk_score.Should().Be(40);
+        results![0].risk_assessment?.risk_score.Should().Be(60); // ASPS-318: NEW scale - HIGH risk (very long duration)
     }
 
     [Fact]
@@ -295,7 +295,7 @@ public class TrackUrlAnalyzerTests
         
         var results = result.Details["results"] as TrackUrlAnalysisResultVm[];
         results.Should().NotBeNull();
-        results![0].risk_assessment?.risk_score.Should().Be(60);
+        results![0].risk_assessment?.risk_score.Should().Be(90); // ASPS-318: NEW scale - HIGH risk (scam in progress)
         results[0].ScamInProgressKey.Should().Be("scam-session-12345");
     }
 

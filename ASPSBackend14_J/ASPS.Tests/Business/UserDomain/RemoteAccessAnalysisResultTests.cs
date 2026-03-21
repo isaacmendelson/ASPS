@@ -23,7 +23,7 @@ public class RemoteAccessAnalysisResultVmTests
         { 
             new BrowserTab("Test", "Mozilla/5.0", "http://test.com", DateTime.UtcNow, true) 
         };
-        var riskAssessment = new RiskAssessment(50, "Medium risk", false, 1);
+        var riskAssessment = new RiskAssessment(50f, "Medium risk", false, 1f); // MEDIUM risk
 
         // Act
         var result = new RemoteAccessAnalysisResultVm(
@@ -138,7 +138,7 @@ public class RemoteAccessAnalysisResultVmTests
     public void RiskAssessment_WithHighScore_ShouldBeStored()
     {
         // Arrange
-        var highRisk = new RiskAssessment(95, "Critical risk", true, 1);
+        var highRisk = new RiskAssessment(95f, "Critical risk", true, 1f); // HIGH risk - dangerous
 
         // Act
         var result = new RemoteAccessAnalysisResultVm(
@@ -147,7 +147,7 @@ public class RemoteAccessAnalysisResultVmTests
 
         // Assert
         Assert.NotNull(result.risk_assessment);
-        Assert.Equal(95, result.risk_assessment.risk_score);
+        Assert.Equal(95f, result.risk_assessment.risk_score);
         Assert.True(result.risk_assessment.is_scam);
     }
 }

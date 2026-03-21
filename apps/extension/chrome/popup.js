@@ -363,10 +363,11 @@
       } else {
         // Fallback to score-based display if protectiveAction is 0 or 1
         // This handles cases where server doesn't set protectiveAction correctly
+        // NEW SCALE: 0=error, 1=safe, 100=dangerous
         if (score !== null && score !== undefined) {
-          if (score <= 30) {
+          if (score >= 61) {
             return { color: 'red', label: riskType[0] || 'High Risk' };
-          } else if (score <= 60) {
+          } else if (score >= 31) {
             return { color: 'yellow', label: riskType[0] || 'Medium Risk' };
           }
         }
@@ -375,10 +376,11 @@
     },
 
     // Legacy: for backward compatibility
+    // NEW SCALE: 0=error, 1=safe, 100=dangerous
     getScoreInfo(score) {
-      if (score <= 30) {
+      if (score >= 61) {
         return { color: 'red', label: 'High Risk' };
-      } else if (score <= 60) {
+      } else if (score >= 31) {
         return { color: 'yellow', label: 'Medium Risk' };
       } else {
         return { color: 'green', label: 'Safe' };

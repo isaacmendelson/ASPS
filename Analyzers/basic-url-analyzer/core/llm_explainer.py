@@ -53,7 +53,7 @@ Your explanation must:
 === ANALYSIS DATA ===
 URL: {url}
 Risk Level: {risk_level}
-Risk Score: {risk_score}/100 (0=dangerous, 100=safe)
+Risk Score: {risk_score}/100 (0=error, 1=safe, 100=dangerous)
 Classification: {classification}
 Confidence: {confidence}%
 
