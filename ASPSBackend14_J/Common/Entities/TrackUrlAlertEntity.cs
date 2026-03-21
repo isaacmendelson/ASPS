@@ -1,24 +1,17 @@
 using System.ComponentModel.DataAnnotations.Schema;
-using Common.Enums;
-using Common.Models;
 
 namespace Common.Entities;
 
 /// <summary>
 /// Track URL alert stored in database - tracks URL navigation and time spent on pages
 /// </summary>
-public class TrackUrlAlertEntity : DeviceAlertEntity
+public class TrackUrlAlertEntity : WebAlertEntity
 {
     public TrackUrlAlertEntity()
     {
         // Parameterless constructor for EF Core
     }
 
-    /// <summary>
-    /// The current URL being visited
-    /// </summary>
-    public string Url { get; set; } = string.Empty;
-    
     /// <summary>
     /// The previous URL (referrer)
     /// </summary>
@@ -33,21 +26,6 @@ public class TrackUrlAlertEntity : DeviceAlertEntity
     /// Key for identifying scam-in-progress scenarios
     /// </summary>
     public string ScamInProgressKey { get; set; } = string.Empty;
-    
-    /// <summary>
-    /// IP address of the request
-    /// </summary>
-    public new string IPAddress { get; set; } = string.Empty;
-    
-    /// <summary>
-    /// User agent string from the browser
-    /// </summary>
-    public string UserAgent { get; set; } = string.Empty;
-    
-    /// <summary>
-    /// Browser tab identifier
-    /// </summary>
-    public string TabId { get; set; } = string.Empty;
     
     /// <summary>
     /// User's timezone

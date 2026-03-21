@@ -242,25 +242,27 @@ public class AppDbContext : DbContext
             entity.Property(e => e.ConnectionType).HasMaxLength(50);
         });
 
+        // WebAlertEntity shared configuration (base for UrlAlertEntity and TrackUrlAlertEntity)
+        modelBuilder.Entity<WebAlertEntity>(entity =>
+        {
+            entity.Property(e => e.Url).HasColumnType("TEXT");
+            entity.Property(e => e.UserAgent).HasColumnType("TEXT");
+            entity.Property(e => e.TabId).HasMaxLength(100);
+        });
+
         // UrlAlertEntity specific configuration
         modelBuilder.Entity<UrlAlertEntity>(entity =>
         {
-            entity.Property(e => e.Url).HasColumnType("TEXT");
             entity.Property(e => e.TrackerKeys).HasColumnType("TEXT");
             entity.Property(e => e.IFrameDomains).HasColumnType("TEXT");
-            entity.Property(e => e.UserAgent).HasColumnType("TEXT");
         });
 
         // TrackUrlAlertEntity specific configuration
         modelBuilder.Entity<TrackUrlAlertEntity>(entity =>
         {
-            entity.Property(e => e.Url).HasColumnType("TEXT");
             entity.Property(e => e.FromUrl).HasColumnType("TEXT");
             entity.Property(e => e.Duration);
             entity.Property(e => e.ScamInProgressKey).HasMaxLength(255);
-            entity.Property(e => e.IPAddress).HasMaxLength(50);
-            entity.Property(e => e.UserAgent).HasColumnType("TEXT");
-            entity.Property(e => e.TabId).HasMaxLength(100);
             entity.Property(e => e.Timezone).HasMaxLength(100);
         });
 

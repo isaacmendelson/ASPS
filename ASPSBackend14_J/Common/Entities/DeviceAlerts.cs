@@ -216,29 +216,10 @@ public class RemoteAccessAlertEntity : DeviceAlertEntity
 /// <summary>
 /// URL alert stored in database
 /// </summary>
-public class UrlAlertEntity : DeviceAlertEntity
+public class UrlAlertEntity : WebAlertEntity
 {
-    //protected UrlAlertEntity()
-    //{
-    //}
-
-    //public UrlAlertEntity(Tag? tag, UrlAlert alert, string alertType, Priority priority, DateTime timestamp, string token, string deviceUid, 
-    //    DeviceType deviceType, OperatingSystemType operatingSystem, string mAC, string? userKeyField, AlertFlagStatus status, User? user, 
-    //    string? deviceKeyField, UserDevice? device, Key? userKey, Key? deviceKey)
-    //    : base(tag, alert, alertType, priority, timestamp, token, deviceUid, deviceType, operatingSystem, mAC, userKeyField, 
-    //        status, user, deviceKeyField, device, userKey, deviceKey)
-    //{
-    //    this.Url = (alert as UrlAlert)?.Url ?? string.Empty;
-    //    this.IFrameDomains = alert?.IFrameDomains != null ? System.Text.Json.JsonSerializer.Serialize(alert?.IFrameDomains) : string.Empty;
-    //    this.TrackerKeys = alert?.Trackers != null ? System.Text.Json.JsonSerializer.Serialize(alert?.Trackers) : string.Empty;
-    //    this.UserAgent = alert?.UserAgent ?? string.Empty;
-
-    //}
-
-    public string Url { get; set; } = string.Empty;
     public string TrackerKeys { get; set; } = string.Empty; // JSON array of Keys
     public string IFrameDomains { get; set; } = string.Empty; // JSON array
-    public string UserAgent { get; set; } = string.Empty;
     
     [NotMapped]
     public override string TypeName => "UrlAlert";
