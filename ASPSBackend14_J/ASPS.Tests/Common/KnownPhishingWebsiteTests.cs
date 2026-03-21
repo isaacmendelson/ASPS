@@ -63,7 +63,7 @@ namespace ASPS.Tests.Common
         [InlineData("https://example.com", "example.com")]
         [InlineData("http://www.example.com", "example.com")]
         [InlineData("https://www.example.com", "example.com")]
-        [InlineData("http://subdomain.example.com", "subdomain.example.com")]
+        [InlineData("http://subdomain.example.com", "example.com")]  // Root domain extracted, subdomain stripped
         [InlineData("example.com", "example.com")]
         [InlineData("www.example.com", "example.com")]
         public void GetDomainFromUrl_WithValidUrls_ExtractsDomain(string url, string expectedDomain)

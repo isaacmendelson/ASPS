@@ -245,15 +245,29 @@ function handleUrlResult(data) {
   // Stop loading animation when we have a final result
   stopLoadingState();
 
-  // Check for EnableUrlTracking in protective actions
+  // Check for EnableUrlTracking and SetTrackMode in protective actions
   if (data.protectiveActions && Array.isArray(data.protectiveActions)) {
     for (const action of data.protectiveActions) {
-      if (action.message && action.message.startsWith('EnableUrlTracking|')) {
-        const parts = action.message.split('|');
-        if (parts.length >= 3) {
-          const domain = parts[1];
-          const durationMinutes = parseInt(parts[2], 10) || 30;
-          enableUrlTracking(domain, durationMinutes);
+      if (action.message) {
+        // EnableUrlTracking|domain|durationMinutes
+        if (action.message.startsWith('EnableUrlTracking|')) {
+          const parts = action.message.split('|');
+          if (parts.length >= 3) {
+            const domain = parts[1];
+            const durationMinutes = parseInt(parts[2], 10) || 30;
+            enableUrlTracking(domain, durationMinutes, TrackMode.Surf);
+          }
+        }
+        // SetTrackMode|domain|trackMode|scamInProgressKey|durationMinutes
+        else if (action.message.startsWith('SetTrackMode|')) {
+          const parts = action.message.split('|');
+          if (parts.length >= 3) {
+            const domain = parts[1];
+            const mode = parseInt(parts[2], 10) || TrackMode.Surf;
+            const scamKey = parts[3] || '';
+            const durationMinutes = parseInt(parts[4], 10) || 30;
+            setTrackMode(domain, mode, scamKey, durationMinutes);
+          }
         }
       }
     }
@@ -502,48 +516,117 @@ function setupMessageHandlers() {
 const tabNavigationHistory = new Map();
 const tabActivationTimes = new Map();
 
+// TrackMode enum - matches backend Common.Enums.TrackMode
+const TrackMode = {
+  None: 0,    // No tracking
+  Surf: 1,    // Default - send UrlAlert once per domain with silence interval
+  Click: 2    // Send TrackUrlAlert on every click
+};
+
 // Domains that should be tracked (set by backend EnableUrlTracking)
-// Map of domain -> expiration timestamp
+// Map of domain -> { expiresAt: timestamp, trackMode: TrackMode, scamInProgressKey: string }
 const trackedDomains = new Map();
 
 /**
  * Check if a domain should be tracked
  * @param {string} url - URL to check
- * @returns {boolean} - True if domain is in tracked list and not expired
+ * @returns {{shouldTrack: boolean, trackMode: number, scamInProgressKey: string}} - Tracking info
  */
-function shouldTrackDomain(url) {
+/**
+ * Extract root domain from hostname (e.g., www.news.example.com -> example.com)
+ */
+function getRootDomain(hostname) {
+  let h = hostname.toLowerCase();
+  
+  // Remove www prefix
+  if (h.startsWith('www.')) {
+    h = h.substring(4);
+  }
+  
+  const parts = h.split('.');
+  if (parts.length <= 2) {
+    return h;
+  }
+  
+  // Check for known two-part TLDs
+  const knownTwoPartTlds = ['co.uk', 'com.au', 'co.nz', 'co.jp', 'com.br', 'co.il', 'org.uk', 'net.au'];
+  const lastTwo = `${parts[parts.length - 2]}.${parts[parts.length - 1]}`;
+  
+  if (knownTwoPartTlds.includes(lastTwo)) {
+    // Return last 3 parts (e.g., example.co.uk)
+    return parts.length >= 3 ? `${parts[parts.length - 3]}.${lastTwo}` : h;
+  }
+  
+  // Return last 2 parts (e.g., example.com)
+  return lastTwo;
+}
+
+function getTrackingInfo(url) {
+  const defaultResult = { shouldTrack: false, trackMode: TrackMode.None, scamInProgressKey: '' };
+  
   try {
     const urlObj = new URL(url);
-    const domain = urlObj.hostname;
+    const rootDomain = getRootDomain(urlObj.hostname);
     
-    // Check if domain is tracked
-    const expiresAt = trackedDomains.get(domain);
-    if (!expiresAt) {
-      return false;
+    // Check if root domain is tracked
+    const trackInfo = trackedDomains.get(rootDomain);
+    if (!trackInfo) {
+      return defaultResult;
     }
     
     // Check if tracking has expired
-    if (Date.now() > expiresAt) {
+    if (Date.now() > trackInfo.expiresAt) {
       trackedDomains.delete(domain);
       console.log(`[Background] URL tracking expired for domain: ${domain}`);
-      return false;
+      return defaultResult;
     }
     
-    return true;
+    return {
+      shouldTrack: true,
+      trackMode: trackInfo.trackMode || TrackMode.Surf,
+      scamInProgressKey: trackInfo.scamInProgressKey || ''
+    };
   } catch (e) {
-    return false;
+    return defaultResult;
   }
+}
+
+/**
+ * Legacy function for backwards compatibility
+ * @param {string} url - URL to check
+ * @returns {boolean} - True if domain is in tracked list and not expired
+ */
+function shouldTrackDomain(url) {
+  return getTrackingInfo(url).shouldTrack;
 }
 
 /**
  * Enable URL tracking for a domain
  * @param {string} domain - Domain to track
  * @param {number} durationMinutes - How long to track (in minutes)
+ * @param {number} trackMode - TrackMode (Surf=1, Click=2)
+ * @param {string} scamInProgressKey - Optional ScamInProgress key
  */
-function enableUrlTracking(domain, durationMinutes) {
+function enableUrlTracking(domain, durationMinutes, trackMode = TrackMode.Surf, scamInProgressKey = '') {
   const expiresAt = Date.now() + (durationMinutes * 60 * 1000);
-  trackedDomains.set(domain, expiresAt);
-  console.log(`[Background] URL tracking enabled for domain: ${domain} (${durationMinutes} minutes)`);
+  trackedDomains.set(domain, {
+    expiresAt,
+    trackMode,
+    scamInProgressKey
+  });
+  const modeName = trackMode === TrackMode.Click ? 'Click' : 'Surf';
+  console.log(`[Background] URL tracking enabled for domain: ${domain} (${durationMinutes} min, mode: ${modeName})`);
+}
+
+/**
+ * Set track mode for a domain (called by backend SetTrackMode command)
+ * @param {string} domain - Domain to set mode for
+ * @param {number} trackMode - TrackMode (Surf=1, Click=2)
+ * @param {string} scamInProgressKey - ScamInProgress key
+ * @param {number} durationMinutes - Duration in minutes (default 30)
+ */
+function setTrackMode(domain, trackMode, scamInProgressKey = '', durationMinutes = 30) {
+  enableUrlTracking(domain, durationMinutes, trackMode, scamInProgressKey);
 }
 
 /**
@@ -552,8 +635,9 @@ function enableUrlTracking(domain, durationMinutes) {
  * @param {string} currentUrl - Current URL being visited
  * @param {string} fromUrl - Previous URL (referrer)
  * @param {number} duration - Time spent on previous page (seconds)
+ * @param {string} scamInProgressKey - ScamInProgress key from tracking info
  */
-async function sendTrackUrlAlert(tabId, currentUrl, fromUrl = '', duration = 0) {
+async function sendTrackUrlAlert(tabId, currentUrl, fromUrl = '', duration = 0, scamInProgressKey = '') {
   // Only track http/https URLs
   if (!currentUrl || !currentUrl.startsWith('http')) {
     return;
@@ -572,7 +656,7 @@ async function sendTrackUrlAlert(tabId, currentUrl, fromUrl = '', duration = 0) 
     Url: currentUrl,
     FromUrl: fromUrl,
     Duration: duration,
-    ScamInProgressKey: '', // Will be populated by backend if needed
+    ScamInProgressKey: scamInProgressKey,
     IPAddress: ipAddress,
     UserAgent: navigator.userAgent,
     TabId: tabId.toString(),
@@ -605,21 +689,46 @@ function trackTabNavigation(tabId, url) {
 
   const now = Date.now();
   
+  // Get tracking info for current URL
+  const currentTrackInfo = getTrackingInfo(url);
+  
   // Get previous navigation for this tab
   const previousNav = tabNavigationHistory.get(tabId);
   
   if (previousNav) {
     // Calculate duration on previous page (in seconds)
     const duration = Math.floor((now - previousNav.timestamp) / 1000);
+    const prevTrackInfo = getTrackingInfo(previousNav.url);
     
-    // Only send TrackUrlAlert if the domain is being tracked by backend
-    if (shouldTrackDomain(url) || shouldTrackDomain(previousNav.url)) {
-      sendTrackUrlAlert(tabId, url, previousNav.url, duration);
+    // Determine if we should send TrackUrlAlert based on TrackMode
+    let shouldSendAlert = false;
+    let scamKey = '';
+    
+    if (currentTrackInfo.shouldTrack) {
+      // Current URL is tracked
+      if (currentTrackInfo.trackMode === TrackMode.Click) {
+        // Click mode: always send on every navigation
+        shouldSendAlert = true;
+        scamKey = currentTrackInfo.scamInProgressKey;
+      } else {
+        // Surf mode: send only if different from previous
+        shouldSendAlert = previousNav.url !== url;
+        scamKey = currentTrackInfo.scamInProgressKey;
+      }
+    } else if (prevTrackInfo.shouldTrack && prevTrackInfo.trackMode === TrackMode.Click) {
+      // Previous URL was in Click mode - track navigation away
+      shouldSendAlert = true;
+      scamKey = prevTrackInfo.scamInProgressKey;
+    }
+    
+    if (shouldSendAlert) {
+      sendTrackUrlAlert(tabId, url, previousNav.url, duration, scamKey);
     }
   } else {
     // First navigation for this tab - only track if domain is in tracked list
-    if (shouldTrackDomain(url)) {
-    sendTrackUrlAlert(tabId, url, '', 0);
+    if (currentTrackInfo.shouldTrack) {
+      sendTrackUrlAlert(tabId, url, '', 0, currentTrackInfo.scamInProgressKey);
+    }
   }
   
   // Update history for this tab
@@ -627,7 +736,6 @@ function trackTabNavigation(tabId, url) {
     url: url,
     timestamp: now
   });
-  }
 }
 
 // ============================================
@@ -645,6 +753,14 @@ function setupTabListeners() {
     // Skip non-http URLs
     if (!url || !url.startsWith('http')) {
       console.log('[Background] Skipping non-http URL:', url);
+      return;
+    }
+
+    // Check if tab still exists (avoid scanning when tab is closing)
+    try {
+      await chrome.tabs.get(tabId);
+    } catch (e) {
+      console.log('[Background] Tab no longer exists, skipping scan:', tabId);
       return;
     }
 
@@ -753,13 +869,14 @@ function setupTabListeners() {
     }
   });
 
-  // Tab activated
+  // Tab activated - only load cached score, never trigger new scan
+  // Assumption: tab was already scanned when it was first opened (onUpdated/onCompleted)
   chrome.tabs.onActivated.addListener(async (activeInfo) => {
     try {
       const tabId = activeInfo.tabId;
       const tab = await chrome.tabs.get(tabId);
 
-      // First, load per-tab score into global state (so popup shows correct score)
+      // Load per-tab score into global state (so popup shows correct score)
       const data = await chrome.storage.local.get([
         `tab_${tabId}_score`,
         `tab_${tabId}_riskType`,
@@ -793,35 +910,14 @@ function setupTabListeners() {
           });
           console.log(`[Background] Loaded URL cache for tab ${tabId}: ${cached.score}`);
         } else {
-          // No cache at all - start loading animation and scan
-          startLoadingState();
+          // No cache - tab should have been scanned when opened, don't scan on focus change
+          console.log(`[Background] No cache for tab ${tabId}, not scanning on focus change`);
           chrome.storage.local.set({
             currentPageScore: null,
             currentPageRiskType: [],
             currentPageAction: 0,
-            currentPageScanning: true
+            currentPageScanning: false
           });
-          console.log(`[Background] No cache for tab ${tabId}, scanning...`);
-
-          // Trigger scan immediately
-          if (tab.url) {
-            scanService.scan(tabId, tab.url);
-
-            // 30-second timeout for scan (user decision: show neutral gray on timeout)
-            setTimeout(() => {
-              chrome.storage.local.get(['currentPageScanning'], (data) => {
-                if (data.currentPageScanning) {
-                  stopLoadingState();
-                  iconService.setColor('gray');
-                  chrome.storage.local.set({
-                    currentPageScore: null,
-                    currentPageScanning: false
-                  });
-                  console.log('[Background] Scan timeout - showing neutral state');
-                }
-              });
-            }, 30000);
-          }
         }
       }
     } catch (e) {

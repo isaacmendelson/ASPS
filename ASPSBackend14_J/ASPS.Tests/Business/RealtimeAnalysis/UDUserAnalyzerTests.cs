@@ -5,6 +5,7 @@ using Common.Entities;
 using Common.Models;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -14,10 +15,8 @@ public class UDUserAnalyzerTests
 {
     private UDUserAnalyzer CreateSut()
     {
-        var loggerFactoryMock = new Mock<ILoggerFactory>();
-        var loggerMock = new Mock<ILogger<UDUserAnalyzer>>();
-        loggerFactoryMock.Setup(x => x.CreateLogger<UDUserAnalyzer>())
-            .Returns(loggerMock.Object);
+        // Use NullLoggerFactory instead of mocking extension methods
+        var loggerFactory = NullLoggerFactory.Instance;
 
         var mockServiceProvider = new Mock<System.IServiceProvider>();
         var mockASViewLogger = new Mock<ILogger<ASView>>();
@@ -39,7 +38,7 @@ public class UDUserAnalyzerTests
             asViewMock.Object,
             alertExpiryDays: 30,
             alertDeletionDays: 90,
-            loggerFactoryMock.Object
+            loggerFactory
         );
     }
 

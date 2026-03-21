@@ -278,6 +278,76 @@ class ZMQClient:
         finally:
             self.close()
 
+    def send_track_url_alert(
+        self,
+        device_uid: str,
+        url: str,
+        from_url: str = '',
+        duration: int = 0,
+        scam_in_progress_key: str = '',
+        ip_address: str = '',
+        user_agent: str = '',
+        tab_id: str = '',
+        timezone: str = '',
+        token: str = '',
+        mac: str = "00:11:22:33:44:55",
+        device_type: int = 1,
+        os_type: int = 1
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Send a TrackUrlAlert.
+
+        Args:
+            device_uid: Unique device identifier
+            url: Current URL
+            from_url: Previous URL (referrer)
+            duration: Time spent on previous page (seconds)
+            scam_in_progress_key: ScamInProgress GUID if tracking a scam
+            ip_address: Device IP
+            user_agent: Browser user agent
+            tab_id: Browser tab ID
+            timezone: Device timezone
+            token: Auth token
+
+        Returns:
+            Response dict from backend
+        """
+        print("\n" + "=" * 70)
+        print("[ZMQ] SENDING TRACK URL ALERT")
+        print("=" * 70)
+        print(f"[ZMQ] URL: {url}")
+        print(f"[ZMQ] From: {from_url}")
+        print(f"[ZMQ] Duration: {duration}s")
+
+        alert = {
+            "AlertType": "TrackUrlAlert",
+            "DeviceInfo": {
+                "DeviceUid": device_uid,
+                "DeviceType": device_type,
+                "OperatingSystem": os_type,
+                "MACAddress": mac,
+                "IP": ip_address
+            },
+            "Timestamp": datetime.utcnow().isoformat() + "Z",
+            "Priority": 1,
+            "Token": token or "",
+            "Url": url,
+            "FromUrl": from_url,
+            "Duration": duration,
+            "ScamInProgressKey": scam_in_progress_key,
+            "UserAgent": user_agent or "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+            "TabId": tab_id,
+            "Timezone": timezone
+        }
+
+        if not self.connect():
+            return None
+
+        try:
+            return self.send_alert(alert)
+        finally:
+            self.close()
+
     def send_remote_access_alert(
         self,
         device_uid: str,

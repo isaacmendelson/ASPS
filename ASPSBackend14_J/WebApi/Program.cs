@@ -198,3 +198,6 @@ Console.WriteLine("ForwardedHeaders: Enabled ✓");
 Console.WriteLine("========================================");
 
 app.Run();
+
+// Make the Program class accessible for integration tests
+public partial class Program { }

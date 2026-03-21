@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Business.RealtimeAnalysis;
 using Business.RealtimeAnalysis.UserDomain;
@@ -9,6 +10,7 @@ using Common.Enums;
 using Common.Models;
 using Common.Models.Alerts;
 using FluentAssertions;
+using Interface.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -19,12 +21,14 @@ namespace ASPS.Tests.Business.UserDomain;
 /// <summary>
 /// Unit tests for TrackUrlAnalyzer
 /// ASPS-247: TrackUrlAnalyzer - New Analyzer Implementation
+/// ASPS-254: TrackedDomains Integration - URL Matching
 /// </summary>
 public class TrackUrlAnalyzerTests
 {
     // Dependencies
     private readonly Mock<ILogger<TrackUrlAnalyzer>> _loggerMock;
     private readonly Mock<ASView> _asViewMock;
+    private readonly Mock<ITrackedDomainRepository> _trackedDomainRepositoryMock;
     private readonly Mock<IConfiguration> _configurationMock;
 
     // System Under Test
@@ -35,16 +39,23 @@ public class TrackUrlAnalyzerTests
         // Setup mocks
         _loggerMock = new Mock<ILogger<TrackUrlAnalyzer>>();
         _configurationMock = new Mock<IConfiguration>();
+        _trackedDomainRepositoryMock = new Mock<ITrackedDomainRepository>();
         
         // ASView requires IServiceProvider and ILogger<ASView>
         var mockServiceProvider = new Mock<IServiceProvider>();
         var mockASViewLogger = new Mock<ILogger<ASView>>();
         _asViewMock = new Mock<ASView>(mockServiceProvider.Object, mockASViewLogger.Object);
 
+        // Default: no tracked domains
+        _trackedDomainRepositoryMock
+            .Setup(x => x.GetAllActiveAsync())
+            .ReturnsAsync(new List<TrackedDomain>());
+
         // Create instance
         _sut = new TrackUrlAnalyzer(
             _loggerMock.Object,
-            _asViewMock.Object
+            _asViewMock.Object,
+            _trackedDomainRepositoryMock.Object
         );
     }
 
@@ -56,7 +67,8 @@ public class TrackUrlAnalyzerTests
         // Act
         var instance = new TrackUrlAnalyzer(
             _loggerMock.Object,
-            _asViewMock.Object
+            _asViewMock.Object,
+            _trackedDomainRepositoryMock.Object
         );
 
         // Assert
@@ -398,6 +410,222 @@ public class TrackUrlAnalyzerTests
         // Assert
         result.Should().NotBeNull();
         result.Severity.Should().Be(Severity.Low);
+    }
+
+    #endregion
+
+    #region TrackedDomain Integration Tests (ASPS-254)
+
+    [Fact]
+    public async Task AnalyzeAsync_WithExactDomainMatch_ReturnsTrackedDomainInfo()
+    {
+        // Arrange
+        var trackedDomains = new List<TrackedDomain>
+        {
+            new TrackedDomain("google-analytics.com", "Analytics"),
+            new TrackedDomain("facebook.com", "Social")
+        };
+
+        _trackedDomainRepositoryMock
+            .Setup(x => x.GetAllActiveAsync())
+            .ReturnsAsync(trackedDomains);
+
+        var alert = new TrackUrlAlert
+        {
+            Url = "https://google-analytics.com/collect",
+            Duration = 30,
+            AlertId = "test-tracked-exact"
+        };
+        var historicalAlerts = new List<DeviceAlert>();
+        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
+
+        // Act
+        var result = await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Details["is_tracked_domain"].Should().Be(true);
+        
+        var trackedDomainDict = result.Details["tracked_domain"] as Dictionary<string, object>;
+        trackedDomainDict.Should().NotBeNull();
+        trackedDomainDict!["domain"].Should().Be("google-analytics.com");
+        trackedDomainDict["category"].Should().Be("Analytics");
+        trackedDomainDict["is_exact_match"].Should().Be(true);
+
+        var results = result.Details["results"] as TrackUrlAnalysisResultVm[];
+        results.Should().NotBeNull();
+        results![0].TrackedDomain.Should().NotBeNull();
+        results[0].TrackedDomain!.Domain.Should().Be("google-analytics.com");
+        results[0].TrackedDomain.Category.Should().Be("Analytics");
+        results[0].TrackedDomain.IsExactMatch.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_WithSubdomainMatch_ReturnsTrackedDomainInfo()
+    {
+        // Arrange
+        var trackedDomains = new List<TrackedDomain>
+        {
+            new TrackedDomain("google.com", "Search"),
+            new TrackedDomain("doubleclick.net", "Advertising")
+        };
+
+        _trackedDomainRepositoryMock
+            .Setup(x => x.GetAllActiveAsync())
+            .ReturnsAsync(trackedDomains);
+
+        var alert = new TrackUrlAlert
+        {
+            Url = "https://ads.google.com/pagead",
+            Duration = 45,
+            AlertId = "test-tracked-subdomain"
+        };
+        var historicalAlerts = new List<DeviceAlert>();
+        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
+
+        // Act
+        var result = await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Details["is_tracked_domain"].Should().Be(true);
+        
+        var trackedDomainDict = result.Details["tracked_domain"] as Dictionary<string, object>;
+        trackedDomainDict.Should().NotBeNull();
+        trackedDomainDict!["domain"].Should().Be("google.com");
+        trackedDomainDict["category"].Should().Be("Search");
+        trackedDomainDict["is_exact_match"].Should().Be(false);
+
+        var results = result.Details["results"] as TrackUrlAnalysisResultVm[];
+        results.Should().NotBeNull();
+        results![0].TrackedDomain.Should().NotBeNull();
+        results[0].TrackedDomain!.Domain.Should().Be("google.com");
+        results[0].TrackedDomain.Category.Should().Be("Search");
+        results[0].TrackedDomain.IsExactMatch.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_WithNoTrackedDomainMatch_ReturnsNullTrackedDomain()
+    {
+        // Arrange
+        var trackedDomains = new List<TrackedDomain>
+        {
+            new TrackedDomain("facebook.com", "Social"),
+            new TrackedDomain("twitter.com", "Social")
+        };
+
+        _trackedDomainRepositoryMock
+            .Setup(x => x.GetAllActiveAsync())
+            .ReturnsAsync(trackedDomains);
+
+        var alert = new TrackUrlAlert
+        {
+            Url = "https://example.com/page",
+            Duration = 60,
+            AlertId = "test-no-tracked"
+        };
+        var historicalAlerts = new List<DeviceAlert>();
+        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
+
+        // Act
+        var result = await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Details["is_tracked_domain"].Should().Be(false);
+        result.Details["tracked_domain"].Should().BeNull();
+
+        var results = result.Details["results"] as TrackUrlAnalysisResultVm[];
+        results.Should().NotBeNull();
+        results![0].TrackedDomain.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_WithEmptyTrackedDomainsList_ReturnsNullTrackedDomain()
+    {
+        // Arrange
+        _trackedDomainRepositoryMock
+            .Setup(x => x.GetAllActiveAsync())
+            .ReturnsAsync(new List<TrackedDomain>());
+
+        var alert = new TrackUrlAlert
+        {
+            Url = "https://example.com/page",
+            Duration = 60,
+            AlertId = "test-empty-tracked"
+        };
+        var historicalAlerts = new List<DeviceAlert>();
+        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
+
+        // Act
+        var result = await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Details["is_tracked_domain"].Should().Be(false);
+        result.Details["tracked_domain"].Should().BeNull();
+
+        var results = result.Details["results"] as TrackUrlAnalysisResultVm[];
+        results.Should().NotBeNull();
+        results![0].TrackedDomain.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_WithMultiLevelSubdomain_MatchesCorrectly()
+    {
+        // Arrange
+        var trackedDomains = new List<TrackedDomain>
+        {
+            new TrackedDomain("google.com", "Search")
+        };
+
+        _trackedDomainRepositoryMock
+            .Setup(x => x.GetAllActiveAsync())
+            .ReturnsAsync(trackedDomains);
+
+        var alert = new TrackUrlAlert
+        {
+            Url = "https://www.ads.google.com/pagead",
+            Duration = 20,
+            AlertId = "test-multilevel-subdomain"
+        };
+        var historicalAlerts = new List<DeviceAlert>();
+        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
+
+        // Act
+        var result = await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Details["is_tracked_domain"].Should().Be(true);
+        
+        var results = result.Details["results"] as TrackUrlAnalysisResultVm[];
+        results.Should().NotBeNull();
+        results![0].TrackedDomain.Should().NotBeNull();
+        results[0].TrackedDomain!.Domain.Should().Be("google.com");
+        results[0].TrackedDomain.IsExactMatch.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_TrackedDomainRepository_CalledOnce()
+    {
+        // Arrange
+        var alert = new TrackUrlAlert
+        {
+            Url = "https://example.com",
+            Duration = 30,
+            AlertId = "test-repo-call"
+        };
+        var historicalAlerts = new List<DeviceAlert>();
+        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
+
+        // Act
+        await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);
+
+        // Assert
+        _trackedDomainRepositoryMock.Verify(
+            x => x.GetAllActiveAsync(), 
+            Times.Once);
     }
 
     #endregion

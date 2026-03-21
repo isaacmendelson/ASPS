@@ -272,3 +272,45 @@ class ScanService:
             'error': True,
             'message': message
         }
+
+    def send_track_url_alert(
+        self,
+        url: str,
+        from_url: str = '',
+        duration: int = 0,
+        scam_in_progress_key: str = '',
+        ip_address: str = '',
+        user_agent: str = '',
+        tab_id: str = '',
+        timezone: str = ''
+    ) -> Dict[str, Any]:
+        """Send TrackUrlAlert to backend"""
+        try:
+            print(f"\n[TRACK] Sending TrackUrlAlert to backend...")
+            print(f"[TRACK] URL: {url}")
+            print(f"[TRACK] From: {from_url}")
+            print(f"[TRACK] Duration: {duration}s")
+            
+            response = self.zmq_client.send_track_url_alert(
+                device_uid=self.device_id,
+                url=url,
+                from_url=from_url,
+                duration=duration,
+                scam_in_progress_key=scam_in_progress_key,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                tab_id=tab_id,
+                timezone=timezone,
+                token=self.auth_manager.token or ''
+            )
+            
+            if response:
+                print(f"[TRACK] Backend response: {response.get('Status', 'unknown')}")
+                return {'type': 'track_url_ack', 'status': 'ok'}
+            else:
+                print("[TRACK] No response from backend")
+                return {'type': 'track_url_ack', 'status': 'error', 'message': 'No response'}
+                
+        except Exception as e:
+            print(f"[TRACK] Error: {e}")
+            return {'type': 'track_url_ack', 'status': 'error', 'message': str(e)}

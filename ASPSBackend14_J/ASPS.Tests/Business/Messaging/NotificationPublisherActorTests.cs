@@ -436,5 +436,90 @@ public class NotificationPublisherActorTests : IDisposable
         };
     }
 
+    private AnalysisResultReceived CreateAnalysisResultReceivedEventWithTrackUrlAnalysis()
+    {
+        var riskAssessment = new RiskAssessment(25, "High", true, 0.85f);
+        var trackUrlAnalysisResult = new TrackUrlAnalysisResultVm(
+            url: "http://risky-site.com",
+            fromUrl: "http://referrer.com",
+            duration: 120,
+            scamInProgressKey: "scam-key-123",
+            ipAddress: "192.168.1.1",
+            userAgent: "Mozilla/5.0",
+            tabId: "tab-123",
+            timezone: "UTC+2",
+            domain: "risky-site.com",
+            isSafeDomain: false,
+            riskAssessment: riskAssessment);
+
+        var analyzerResults = new Dictionary<string, Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>>
+        {
+            {
+                "TrackUrlAnalyzer",
+                new Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>(
+                    trackUrlAnalysisResult,
+                    Array.Empty<IIndicator>(),
+                    Array.Empty<IProtectiveAction>())
+            }
+        };
+
+        return new AnalysisResultReceived
+        {
+            DeviceUid = "device-track-123",
+            UserKeyField = "user-track-456",
+            AlertType = "TrackUrlAlert",
+            Severity = Severity.High,
+            AnalyzerResults = analyzerResults,
+            AnalysisTimestamp = DateTime.UtcNow
+        };
+    }
+
+    #endregion
+
+    #region TrackUrlAnalysisResultVm Tests
+
+    [Fact]
+    public void TrackUrlAnalysisResultVm_ShouldHaveCorrectProperties()
+    {
+        // Arrange
+        var riskAssessment = new RiskAssessment(30, "Medium", false, 0.75f);
+        var trackResult = new TrackUrlAnalysisResultVm(
+            url: "http://test.com",
+            fromUrl: "http://prev.com",
+            duration: 60,
+            scamInProgressKey: "",
+            ipAddress: "10.0.0.1",
+            userAgent: "TestAgent",
+            tabId: "tab-1",
+            timezone: "UTC",
+            domain: "test.com",
+            isSafeDomain: true,
+            riskAssessment: riskAssessment);
+
+        // Assert
+        trackResult.Url.Should().Be("http://test.com");
+        trackResult.FromUrl.Should().Be("http://prev.com");
+        trackResult.Duration.Should().Be(60);
+        trackResult.TabId.Should().Be("tab-1");
+        trackResult.risk_assessment.Should().NotBeNull();
+        trackResult.risk_assessment!.risk_score.Should().Be(30);
+    }
+
+    [Fact]
+    public void Handle_WithTrackUrlAnalysisResult_ShouldExtractRiskAssessment()
+    {
+        // Arrange
+        var analysisEvent = CreateAnalysisResultReceivedEventWithTrackUrlAnalysis();
+        
+        // Act & Assert - verify the structure contains TrackUrlAnalysisResultVm
+        analysisEvent.AnalyzerResults.Should().ContainKey("TrackUrlAnalyzer");
+        var result = analysisEvent.AnalyzerResults["TrackUrlAnalyzer"].Item1;
+        result.Should().BeOfType<TrackUrlAnalysisResultVm>();
+        
+        var trackResult = result as TrackUrlAnalysisResultVm;
+        trackResult!.risk_assessment.Should().NotBeNull();
+        trackResult.risk_assessment!.risk_score.Should().Be(25);
+    }
+
     #endregion
 }

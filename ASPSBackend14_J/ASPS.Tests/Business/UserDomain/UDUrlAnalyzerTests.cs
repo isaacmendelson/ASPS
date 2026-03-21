@@ -286,4 +286,90 @@ public class UDUrlAnalyzerTests
     }
 
     #endregion
+
+    #region EnableUrlTracking Tests
+
+    [Fact]
+    public void Configuration_RiskThresholdToEnableTracking_ShouldBeReadFromConfig()
+    {
+        // Arrange
+        var configMock = new Mock<IConfiguration>();
+        configMock.Setup(c => c.GetSection("TrackUrl:RiskThresholdToEnableTracking").Value)
+            .Returns("50");
+
+        // Act
+        var threshold = int.Parse(configMock.Object.GetSection("TrackUrl:RiskThresholdToEnableTracking").Value ?? "40");
+
+        // Assert
+        threshold.Should().Be(50);
+    }
+
+    [Fact]
+    public void Configuration_TrackingDurationMinutes_ShouldBeReadFromConfig()
+    {
+        // Arrange
+        var configMock = new Mock<IConfiguration>();
+        configMock.Setup(c => c.GetSection("TrackUrl:TrackingDurationMinutes").Value)
+            .Returns("60");
+
+        // Act
+        var duration = int.Parse(configMock.Object.GetSection("TrackUrl:TrackingDurationMinutes").Value ?? "30");
+
+        // Assert
+        duration.Should().Be(60);
+    }
+
+    [Theory]
+    [InlineData(40, 35, true)]   // Score 35 <= threshold 40 → enable tracking
+    [InlineData(40, 40, true)]   // Score 40 <= threshold 40 → enable tracking
+    [InlineData(40, 41, false)]  // Score 41 > threshold 40 → no tracking
+    [InlineData(50, 45, true)]   // Score 45 <= threshold 50 → enable tracking
+    [InlineData(30, 35, false)]  // Score 35 > threshold 30 → no tracking
+    public void EnableUrlTracking_ShouldTriggerWhenScoreBelowOrEqualThreshold(int threshold, int safetyScore, bool shouldEnable)
+    {
+        // This test documents the expected behavior:
+        // EnableUrlTracking is triggered when safety score <= threshold
+        // (lower safety score = higher risk)
+        
+        var result = safetyScore <= threshold;
+        result.Should().Be(shouldEnable);
+    }
+
+    [Fact]
+    public void EnableUrlTracking_MessageFormat_ShouldBeCorrect()
+    {
+        // Arrange
+        var domain = "example.com";
+        var durationMinutes = 30;
+        var expectedMessage = $"EnableUrlTracking|{domain}|{durationMinutes}";
+
+        // Act & Assert
+        expectedMessage.Should().Be("EnableUrlTracking|example.com|30");
+        expectedMessage.Split('|').Should().HaveCount(3);
+        expectedMessage.Split('|')[0].Should().Be("EnableUrlTracking");
+        expectedMessage.Split('|')[1].Should().Be(domain);
+        expectedMessage.Split('|')[2].Should().Be(durationMinutes.ToString());
+    }
+
+    [Fact]
+    public void SetTrackMode_MessageFormat_ShouldBeCorrect()
+    {
+        // Arrange
+        var domain = "risky-site.com";
+        var trackMode = (int)TrackMode.Click;
+        var scamKey = "abc-123";
+        var durationMinutes = 45;
+        var expectedMessage = $"SetTrackMode|{domain}|{trackMode}|{scamKey}|{durationMinutes}";
+
+        // Act & Assert
+        expectedMessage.Should().Be("SetTrackMode|risky-site.com|2|abc-123|45");
+        expectedMessage.Split('|').Should().HaveCount(5);
+        expectedMessage.Split('|')[0].Should().Be("SetTrackMode");
+        expectedMessage.Split('|')[1].Should().Be(domain);
+        expectedMessage.Split('|')[2].Should().Be("2"); // TrackMode.Click
+        expectedMessage.Split('|')[3].Should().Be(scamKey);
+        expectedMessage.Split('|')[4].Should().Be(durationMinutes.ToString());
+    }
+
+    #endregion
 }

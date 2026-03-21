@@ -137,6 +137,7 @@ public enum ProtectiveActionType
     QuarantineDevice = 6,
     BlockRemoteAccess = 7,
     EnableUrlTracking = 8,
+    SetTrackMode = 9,
 }
 
 public enum ProtectiveActionSubject
@@ -165,6 +166,19 @@ public enum MessagingApp
     Discord = 6,
     WhatsApp = 7,
     Telegram = 8
+}
+
+/// <summary>
+/// Track mode for URL monitoring in the Extension
+/// </summary>
+public enum TrackMode
+{
+    /// <summary>No tracking</summary>
+    None = 0,
+    /// <summary>Default - send UrlAlert once per domain with silence interval</summary>
+    Surf = 1,
+    /// <summary>Send TrackUrlAlert on every click</summary>
+    Click = 2
 }
 
 
