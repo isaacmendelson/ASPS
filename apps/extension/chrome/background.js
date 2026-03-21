@@ -532,25 +532,44 @@ const trackedDomains = new Map();
  * @param {string} url - URL to check
  * @returns {{shouldTrack: boolean, trackMode: number, scamInProgressKey: string}} - Tracking info
  */
+/**
+ * Extract root domain from hostname (e.g., www.news.example.com -> example.com)
+ */
+function getRootDomain(hostname) {
+  let h = hostname.toLowerCase();
+  
+  // Remove www prefix
+  if (h.startsWith('www.')) {
+    h = h.substring(4);
+  }
+  
+  const parts = h.split('.');
+  if (parts.length <= 2) {
+    return h;
+  }
+  
+  // Check for known two-part TLDs
+  const knownTwoPartTlds = ['co.uk', 'com.au', 'co.nz', 'co.jp', 'com.br', 'co.il', 'org.uk', 'net.au'];
+  const lastTwo = `${parts[parts.length - 2]}.${parts[parts.length - 1]}`;
+  
+  if (knownTwoPartTlds.includes(lastTwo)) {
+    // Return last 3 parts (e.g., example.co.uk)
+    return parts.length >= 3 ? `${parts[parts.length - 3]}.${lastTwo}` : h;
+  }
+  
+  // Return last 2 parts (e.g., example.com)
+  return lastTwo;
+}
+
 function getTrackingInfo(url) {
   const defaultResult = { shouldTrack: false, trackMode: TrackMode.None, scamInProgressKey: '' };
   
   try {
     const urlObj = new URL(url);
-    const domain = urlObj.hostname;
+    const rootDomain = getRootDomain(urlObj.hostname);
     
-    // Check if domain is tracked (try with and without www)
-    let trackInfo = trackedDomains.get(domain);
-    if (!trackInfo) {
-      // Try without www prefix
-      const domainWithoutWww = domain.replace(/^www\./, '');
-      trackInfo = trackedDomains.get(domainWithoutWww);
-    }
-    if (!trackInfo) {
-      // Try with www prefix
-      const domainWithWww = domain.startsWith('www.') ? domain : 'www.' + domain;
-      trackInfo = trackedDomains.get(domainWithWww);
-    }
+    // Check if root domain is tracked
+    const trackInfo = trackedDomains.get(rootDomain);
     if (!trackInfo) {
       return defaultResult;
     }

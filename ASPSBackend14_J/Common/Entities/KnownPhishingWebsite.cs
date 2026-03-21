@@ -90,13 +90,30 @@ public class KnownPhishingWebsite
 
             if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
                 return string.Empty;
+            
             var h = uri.Host.ToLowerInvariant();
+            
+            // Remove www prefix
             if (h.StartsWith("www."))
-            {
                 h = h.Substring(4);
+            
+            // Extract root domain (last 2 parts, or 3 for known TLDs like co.uk)
+            var parts = h.Split('.');
+            if (parts.Length <= 2)
+                return h;
+            
+            // Check for known two-part TLDs
+            var knownTwoPartTlds = new[] { "co.uk", "com.au", "co.nz", "co.jp", "com.br", "co.il", "org.uk", "net.au" };
+            var lastTwo = $"{parts[^2]}.{parts[^1]}";
+            
+            if (knownTwoPartTlds.Contains(lastTwo))
+            {
+                // Return last 3 parts (e.g., example.co.uk)
+                return parts.Length >= 3 ? $"{parts[^3]}.{lastTwo}" : h;
             }
-            return h;
-            //return uri.Host.ToLowerInvariant(); // Normalize to lowercase
+            
+            // Return last 2 parts (e.g., example.com)
+            return lastTwo;
         }
         catch
         {
