@@ -756,6 +756,14 @@ function setupTabListeners() {
       return;
     }
 
+    // Check if tab still exists (avoid scanning when tab is closing)
+    try {
+      await chrome.tabs.get(tabId);
+    } catch (e) {
+      console.log('[Background] Tab no longer exists, skipping scan:', tabId);
+      return;
+    }
+
     // Skip if we just scanned this URL for this tab
     if (lastScannedUrl.get(tabId) === url) {
       console.log('[Background] Skipping duplicate scan for:', url);
