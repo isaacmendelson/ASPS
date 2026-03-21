@@ -301,7 +301,7 @@ class ScanService:
                 user_agent=user_agent,
                 tab_id=tab_id,
                 timezone=timezone,
-                token=self.auth_manager.access_token or ''
+                token=self.auth_manager.token or ''
             )
             
             if response:
