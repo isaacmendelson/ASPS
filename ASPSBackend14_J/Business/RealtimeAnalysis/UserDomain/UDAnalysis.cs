@@ -171,7 +171,8 @@ public class UDAnalysis : IBackgroundTask
                     _logger.LogInformation($"[DEBUG] Before Factory - result.ProtectiveActions count: {result.ProtectiveActions?.Count ?? 0}");
                     foreach (var pa in result.ProtectiveActions ?? new List<IProtectiveAction>())
                     {
-                        _logger.LogInformation($"[DEBUG] Before Factory - Action: Type={pa.ActionType}, Msg={pa.Message}");
+                        if (pa is ProtectiveAction paCast)
+                            _logger.LogInformation($"[DEBUG] Before Factory - Action: Type={paCast.ActionType}, Msg={paCast.Message}");
                     }
                     
                     var protectiveActions = this._protectiveActionsFactory.CreateProtectiveActions(resultsCollection.First(), result, deviceAlert.AlertId);
