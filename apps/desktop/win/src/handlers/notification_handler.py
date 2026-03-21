@@ -55,7 +55,7 @@ class NotificationHandler:
         self._display_indicators(data.get('Indicators', []))
 
         # Execute protective actions
-        protective_actions = data.get('ProtectiveActions', [])
+        protective_actions = data.get('protectiveActions', []) or data.get('ProtectiveActions', [])
         if protective_actions:
             print(f"[NOTIFICATION] Processing {len(protective_actions)} protective actions...")
             self.protection_service.execute_actions(
