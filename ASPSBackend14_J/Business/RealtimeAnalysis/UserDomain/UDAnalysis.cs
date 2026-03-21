@@ -168,20 +168,11 @@ public class UDAnalysis : IBackgroundTask
                         result.Indicators?.AddRange(indicators.ToList());
                     }
 
-                    _logger.LogInformation($"[DEBUG] Before Factory - result.ProtectiveActions count: {result.ProtectiveActions?.Count ?? 0}");
-                    foreach (var pa in result.ProtectiveActions ?? new List<IProtectiveAction>())
-                    {
-                        if (pa is ProtectiveAction paCast)
-                            _logger.LogInformation($"[DEBUG] Before Factory - Action: Type={paCast.ActionType}, Msg={paCast.Message}");
-                    }
-                    
                     var protectiveActions = this._protectiveActionsFactory.CreateProtectiveActions(resultsCollection.First(), result, deviceAlert.AlertId);
                     if (protectiveActions?.Length > 0)
                     {
                         result.ProtectiveActions?.AddRange(protectiveActions.ToList());
                     }
-                    
-                    _logger.LogInformation($"[DEBUG] After Factory - result.ProtectiveActions count: {result.ProtectiveActions?.Count ?? 0}");
                 }
                 analysisResults[analyzer.GetType().Name] = new Tuple<string, AnalyzerResult>(deviceAlert.AlertId, result);
                 FireSpecificAnalyzerResultReceivedEvent(activeAlert, analyzer.GetType().Name, result);
