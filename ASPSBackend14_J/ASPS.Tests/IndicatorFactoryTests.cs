@@ -63,7 +63,7 @@ namespace ASPS.Tests
                     country = "US",
                     Registrar = "GoDaddy",
                     privacy_protected = false,
-                    risk_score = 0.2f
+                    risk_score = 20f // LOW risk
                 }
             };
 
@@ -100,7 +100,7 @@ namespace ASPS.Tests
                     domain_age_days = 15, // Less than 30 days
                     country = "US",
                     privacy_protected = false,
-                    risk_score = 0.8f
+                    risk_score = 80f // HIGH risk (young domain is suspicious)
                 }
             };
 
@@ -127,7 +127,7 @@ namespace ASPS.Tests
                     domain_age_days = 400, // More than 365 days
                     country = "US",
                     privacy_protected = false,
-                    risk_score = 0.1f
+                    risk_score = 10f // LOW risk (old domain is safer)
                 }
             };
 
@@ -154,7 +154,7 @@ namespace ASPS.Tests
                     domain_age_days = 100,
                     country = "US",
                     privacy_protected = true,
-                    risk_score = 0.5f
+                    risk_score = 50f // MEDIUM risk
                 }
             };
 
@@ -180,7 +180,7 @@ namespace ASPS.Tests
                     domain_age_days = 100,
                     country = null, // Null country
                     privacy_protected = false,
-                    risk_score = 0.3f
+                    risk_score = 30f // MEDIUM risk
                 }
             };
 
@@ -332,7 +332,7 @@ namespace ASPS.Tests
                     domain_age_days = 200,
                     country = "US",
                     privacy_protected = true,
-                    risk_score = 0.4f
+                    risk_score = 40f // MEDIUM risk
                 },
                 Purpose = new Purpose
                 {
@@ -343,7 +343,7 @@ namespace ASPS.Tests
                 {
                     Success = true,
                     HasSuspiciousKeywords = true,
-                    Risk_Score = 0.6f,
+                    Risk_Score = 60f, // HIGH risk
                     detected_patterns = new List<DetectedPatternVm>()
                 }
             };
@@ -382,7 +382,7 @@ namespace ASPS.Tests
                     domain_age_days = 200,
                     country = "RU",
                     privacy_protected = false,
-                    risk_score = 0.9f
+                    risk_score = 90f // HIGH risk (known phishing)
                 },
                 Purpose = new Purpose
                 {
@@ -416,7 +416,7 @@ namespace ASPS.Tests
                 connectionsCount: 1,
                 sessionStatus: (int)SessionStatus.Open,
                 browserTabs: null,
-                risk_assessment: new RiskAssessment(0.7f, "high", false, 0.9f)
+                risk_assessment: new RiskAssessment(70f, "high", false, 0.9f) // HIGH risk
             )
             {
                 Success = true
@@ -560,13 +560,13 @@ namespace ASPS.Tests
             // Test domain age boundaries: 30, 180, 365 days
             var testCases = new[]
             {
-                new { Days = 29, Expected = 0.0f },  // < 30
-                new { Days = 30, Expected = 0.3f },  // 30-179
-                new { Days = 179, Expected = 0.3f }, // 30-179
-                new { Days = 180, Expected = 0.6f }, // 180-364
-                new { Days = 364, Expected = 0.6f }, // 180-364
-                new { Days = 365, Expected = 1.0f }, // >= 365
-                new { Days = 1000, Expected = 1.0f } // >= 365
+                new { Days = 29, RiskScore = 80f },   // < 30 days = HIGH risk (very young)
+                new { Days = 30, RiskScore = 50f },   // 30-179 days = MEDIUM risk
+                new { Days = 179, RiskScore = 40f },  // 30-179 days = MEDIUM risk
+                new { Days = 180, RiskScore = 25f },  // 180-364 days = LOW risk
+                new { Days = 364, RiskScore = 20f },  // 180-364 days = LOW risk
+                new { Days = 365, RiskScore = 10f },  // >= 365 days = LOW risk (established)
+                new { Days = 1000, RiskScore = 5f }   // >= 365 days = LOW risk (very established)
             };
 
             foreach (var testCase in testCases)
@@ -581,7 +581,7 @@ namespace ASPS.Tests
                         domain_age_days = testCase.Days,
                         country = "US",
                         privacy_protected = false,
-                        risk_score = 0.1f
+                        risk_score = testCase.RiskScore
                     }
                 };
 
@@ -605,7 +605,7 @@ namespace ASPS.Tests
                 ml_analysis = new MlAnalysis(
                     success: true,
                     enabled: true,
-                    score: 0.8f,
+                    score: 80f, // HIGH risk from ML
                     confidence: 0.9f,
                     note: "High risk detected"
                 )

@@ -12,7 +12,7 @@ namespace ASPS.Tests.Common
         public void Constructor_WithAllParameters_CreatesInstance()
         {
             // Arrange
-            var riskScore = 0.75f;
+            var riskScore = 75f;
             var riskLevel = "high";
             var isScam = true;
             var confidence = 0.92f;
@@ -22,7 +22,7 @@ namespace ASPS.Tests.Common
 
             // Assert
             assessment.Should().NotBeNull();
-            assessment.risk_score.Should().Be(0.75f);
+            assessment.risk_score.Should().Be(75f);
             assessment.risk_level.Should().Be("high");
             assessment.is_scam.Should().BeTrue();
             assessment.confidence.Should().Be(0.92f);
@@ -32,8 +32,8 @@ namespace ASPS.Tests.Common
         public void Constructor_WithZeroValues_CreatesInstance()
         {
             // Arrange
-            var riskScore = 0.0f;
-            var riskLevel = "low";
+            var riskScore = 0f; // 0 = error/no result
+            var riskLevel = "error";
             var isScam = false;
             var confidence = 0.0f;
 
@@ -42,8 +42,8 @@ namespace ASPS.Tests.Common
 
             // Assert
             assessment.Should().NotBeNull();
-            assessment.risk_score.Should().Be(0.0f);
-            assessment.risk_level.Should().Be("low");
+            assessment.risk_score.Should().Be(0f);
+            assessment.risk_level.Should().Be("error");
             assessment.is_scam.Should().BeFalse();
             assessment.confidence.Should().Be(0.0f);
         }
@@ -52,7 +52,7 @@ namespace ASPS.Tests.Common
         public void Constructor_WithMaxValues_CreatesInstance()
         {
             // Arrange
-            var riskScore = 1.0f;
+            var riskScore = 100f; // Maximum risk on new scale
             var riskLevel = "critical";
             var isScam = true;
             var confidence = 1.0f;
@@ -61,7 +61,7 @@ namespace ASPS.Tests.Common
             var assessment = new RiskAssessment(riskScore, riskLevel, isScam, confidence);
 
             // Assert
-            assessment.risk_score.Should().Be(1.0f);
+            assessment.risk_score.Should().Be(100f);
             assessment.risk_level.Should().Be("critical");
             assessment.is_scam.Should().BeTrue();
             assessment.confidence.Should().Be(1.0f);
@@ -71,7 +71,7 @@ namespace ASPS.Tests.Common
         public void Constructor_WithEmptyRiskLevel_CreatesInstance()
         {
             // Arrange
-            var riskScore = 0.5f;
+            var riskScore = 50f; // Medium risk
             var riskLevel = string.Empty;
             var isScam = false;
             var confidence = 0.5f;
@@ -88,11 +88,11 @@ namespace ASPS.Tests.Common
         #region Property Tests
 
         [Theory]
-        [InlineData(0.0f)]
-        [InlineData(0.25f)]
-        [InlineData(0.5f)]
-        [InlineData(0.75f)]
-        [InlineData(1.0f)]
+        [InlineData(0f)]    // Error/no result
+        [InlineData(15f)]   // LOW risk
+        [InlineData(45f)]   // MEDIUM risk
+        [InlineData(75f)]   // HIGH risk
+        [InlineData(100f)]  // Maximum risk
         public void RiskScore_WithDifferentValues_CanBeSetAndRetrieved(float score)
         {
             // Arrange
@@ -162,20 +162,20 @@ namespace ASPS.Tests.Common
         public void RiskScore_CanBeModifiedAfterConstruction()
         {
             // Arrange
-            var assessment = new RiskAssessment(0.5f, "medium", false, 0.5f);
+            var assessment = new RiskAssessment(50f, "medium", false, 0.5f);
 
             // Act
-            assessment.risk_score = 0.9f;
+            assessment.risk_score = 90f;
 
             // Assert
-            assessment.risk_score.Should().Be(0.9f);
+            assessment.risk_score.Should().Be(90f);
         }
 
         [Fact]
         public void RiskLevel_CanBeModifiedAfterConstruction()
         {
             // Arrange
-            var assessment = new RiskAssessment(0.5f, "medium", false, 0.5f);
+            var assessment = new RiskAssessment(50f, "medium", false, 0.5f);
 
             // Act
             assessment.risk_level = "high";
@@ -188,7 +188,7 @@ namespace ASPS.Tests.Common
         public void IsScam_CanBeModifiedAfterConstruction()
         {
             // Arrange
-            var assessment = new RiskAssessment(0.5f, "medium", false, 0.5f);
+            var assessment = new RiskAssessment(50f, "medium", false, 0.5f);
 
             // Act
             assessment.is_scam = true;
@@ -201,7 +201,7 @@ namespace ASPS.Tests.Common
         public void Confidence_CanBeModifiedAfterConstruction()
         {
             // Arrange
-            var assessment = new RiskAssessment(0.5f, "medium", false, 0.5f);
+            var assessment = new RiskAssessment(50f, "medium", false, 0.5f);
 
             // Act
             assessment.confidence = 0.85f;
@@ -218,20 +218,20 @@ namespace ASPS.Tests.Common
         public void Constructor_WithNegativeRiskScore_CreatesInstance()
         {
             // Arrange & Act
-            var assessment = new RiskAssessment(-0.5f, "invalid", false, 0.5f);
+            var assessment = new RiskAssessment(-10f, "invalid", false, 0.5f);
 
             // Assert
-            assessment.risk_score.Should().Be(-0.5f);
+            assessment.risk_score.Should().Be(-10f);
         }
 
         [Fact]
-        public void Constructor_WithRiskScoreAboveOne_CreatesInstance()
+        public void Constructor_WithRiskScoreAboveHundred_CreatesInstance()
         {
             // Arrange & Act
-            var assessment = new RiskAssessment(1.5f, "invalid", false, 0.5f);
+            var assessment = new RiskAssessment(150f, "invalid", false, 0.5f);
 
             // Assert
-            assessment.risk_score.Should().Be(1.5f);
+            assessment.risk_score.Should().Be(150f);
         }
 
         [Fact]
@@ -262,7 +262,7 @@ namespace ASPS.Tests.Common
         public void RiskAssessment_ForPhishingScam_HasCorrectProperties()
         {
             // Arrange
-            var riskScore = 0.95f;
+            var riskScore = 95f; // HIGH risk (dangerous)
             var riskLevel = "critical";
             var isScam = true;
             var confidence = 0.98f;
@@ -271,7 +271,7 @@ namespace ASPS.Tests.Common
             var assessment = new RiskAssessment(riskScore, riskLevel, isScam, confidence);
 
             // Assert
-            assessment.risk_score.Should().BeGreaterThan(0.9f);
+            assessment.risk_score.Should().BeGreaterThan(90f);
             assessment.risk_level.Should().Be("critical");
             assessment.is_scam.Should().BeTrue();
             assessment.confidence.Should().BeGreaterThan(0.95f);
@@ -281,7 +281,7 @@ namespace ASPS.Tests.Common
         public void RiskAssessment_ForLegitimateWebsite_HasCorrectProperties()
         {
             // Arrange
-            var riskScore = 0.1f;
+            var riskScore = 10f; // LOW risk (safe)
             var riskLevel = "low";
             var isScam = false;
             var confidence = 0.85f;
@@ -290,7 +290,7 @@ namespace ASPS.Tests.Common
             var assessment = new RiskAssessment(riskScore, riskLevel, isScam, confidence);
 
             // Assert
-            assessment.risk_score.Should().BeLessThan(0.2f);
+            assessment.risk_score.Should().BeLessThan(30f); // LOW range
             assessment.risk_level.Should().Be("low");
             assessment.is_scam.Should().BeFalse();
             assessment.confidence.Should().BeGreaterThan(0.8f);
@@ -300,7 +300,7 @@ namespace ASPS.Tests.Common
         public void RiskAssessment_ForSuspiciousWebsite_HasCorrectProperties()
         {
             // Arrange
-            var riskScore = 0.6f;
+            var riskScore = 45f; // MEDIUM risk
             var riskLevel = "medium";
             var isScam = false;
             var confidence = 0.7f;
@@ -309,7 +309,7 @@ namespace ASPS.Tests.Common
             var assessment = new RiskAssessment(riskScore, riskLevel, isScam, confidence);
 
             // Assert
-            assessment.risk_score.Should().BeGreaterThan(0.5f).And.BeLessThan(0.8f);
+            assessment.risk_score.Should().BeGreaterThan(30f).And.BeLessThan(61f); // MEDIUM range
             assessment.risk_level.Should().Be("medium");
             assessment.is_scam.Should().BeFalse();
             assessment.confidence.Should().BeGreaterThan(0.6f);

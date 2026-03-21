@@ -364,7 +364,7 @@ public class NotificationPublisherActorTests : IDisposable
         string deviceUid = "device-123",
         string userKeyField = "user-456")
     {
-        var riskAssessment = new RiskAssessment(0.7f, "High", true, 0.9f);
+        var riskAssessment = new RiskAssessment(70f, "High", true, 0.9f); // HIGH risk
         var urlAnalysisResult = new UrlAnalysisResultVm
         {
             risk_assessment = riskAssessment,
