@@ -32,6 +32,7 @@ class ExtensionHandler:
 
         handlers = {
             'url_check': self._handle_url_check,
+            'track_url_alert': self._handle_track_url_alert,
             'ping': self._handle_ping,
             'user_auth': self._handle_user_auth,
             'get_user': self._handle_get_user,
@@ -57,6 +58,30 @@ class ExtensionHandler:
         ip_address = data.get('ipAddress', '') or self._local_ip
 
         return self.scan_service.check_url(url, trackers, iframes, ip_address=ip_address)
+
+    def _handle_track_url_alert(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle TrackUrlAlert from extension - send to backend"""
+        url = data.get('Url', '')
+        from_url = data.get('FromUrl', '')
+        duration = data.get('Duration', 0)
+        scam_key = data.get('ScamInProgressKey', '')
+        ip_address = data.get('IPAddress', '') or self._local_ip
+        user_agent = data.get('UserAgent', '')
+        tab_id = data.get('TabId', '')
+        timezone = data.get('Timezone', '')
+
+        print(f"[EXTENSION] TrackUrlAlert: {url} (from: {from_url}, duration: {duration}s)")
+        
+        return self.scan_service.send_track_url_alert(
+            url=url,
+            from_url=from_url,
+            duration=duration,
+            scam_in_progress_key=scam_key,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            tab_id=tab_id,
+            timezone=timezone
+        )
 
     def _handle_ping(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Handle ping request - includes email and device IP so extension gets them automatically"""
