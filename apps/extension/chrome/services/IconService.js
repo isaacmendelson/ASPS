@@ -150,29 +150,29 @@ class IconService {
       this.setColor('yellow');  // Warning
     } else {
       // Fallback to score-based display if protectiveAction is 0 or 1
-      // This handles cases where server doesn't set protectiveAction correctly
+      // NEW SCALE: 0=error, 1=safe, 100=dangerous
       if (score !== null && score !== undefined) {
-        if (score <= 30) {
-          this.setColor('red');
+        if (score >= 61) {
+          this.setColor('red');    // HIGH risk
           return;
-        } else if (score <= 60) {
-          this.setColor('yellow');
+        } else if (score >= 31) {
+          this.setColor('yellow'); // MEDIUM risk
           return;
         }
       }
-      this.setColor('green');   // Safe
+      this.setColor('green');   // LOW risk (safe)
     }
   }
 
   // Legacy: Set icon color based on score (for backward compatibility)
   setColorByScore(score) {
-    // Keep for backward compatibility but prefer setColorByAction
-    if (score <= 30) {
-      this.setColor('red');
-    } else if (score <= 60) {
-      this.setColor('yellow');
+    // NEW SCALE: 0=error, 1=safe, 100=dangerous
+    if (score >= 61) {
+      this.setColor('red');    // HIGH risk
+    } else if (score >= 31) {
+      this.setColor('yellow'); // MEDIUM risk
     } else {
-      this.setColor('green');
+      this.setColor('green');  // LOW risk
     }
   }
 
