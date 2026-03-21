@@ -37,7 +37,7 @@ public class TrackUrlAlertEntityTests
         Assert.Equal(string.Empty, alert.FromUrl);
         Assert.Equal(0, alert.Duration);
         Assert.Equal(string.Empty, alert.ScamInProgressKey);
-        Assert.Equal(string.Empty, alert.IPAddress);
+        Assert.Null(alert.IPAddress);  // IPAddress is nullable in DeviceAlertEntity
         Assert.Equal(string.Empty, alert.UserAgent);
         Assert.Equal(string.Empty, alert.TabId);
         Assert.Equal(string.Empty, alert.Timezone);

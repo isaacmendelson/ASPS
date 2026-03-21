@@ -73,16 +73,18 @@ public class TrackUrlAnalyzer : ISpecificAnalyzer
         else
         {
             // Basic risk assessment based on duration
-            if (trackUrlAlert.Duration > 300) // > 5 minutes
+            // Check longer duration first!
+            if (trackUrlAlert.Duration > 600) // > 10 minutes
+            {
+                riskScore = 40;
+                severity = Severity.High;
+                _logger.LogInformation($"Very long session detected: {trackUrlAlert.Duration}s on {trackUrlAlert.Url}");
+            }
+            else if (trackUrlAlert.Duration > 300) // > 5 minutes
             {
                 riskScore = 20;
                 severity = Severity.Medium;
                 _logger.LogInformation($"Long session detected: {trackUrlAlert.Duration}s on {trackUrlAlert.Url}");
-            }
-            else if (trackUrlAlert.Duration > 600) // > 10 minutes
-            {
-                riskScore = 40;
-                severity = Severity.High;
             }
 
             // Check for scam-in-progress scenario

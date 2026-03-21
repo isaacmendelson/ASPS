@@ -540,7 +540,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
         lock (_lock) { return _safeDomains.ToList(); }
     }
 
-    public bool IsSafeDomain(string domain)
+    public virtual bool IsSafeDomain(string domain)
     {
         if (string.IsNullOrWhiteSpace(domain))
             return false;
