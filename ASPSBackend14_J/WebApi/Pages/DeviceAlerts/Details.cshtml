@@ -87,7 +87,56 @@
                     <h5 class="mb-0"><i class="fas fa-info-circle"></i> Alert Details</h5>
                 </div>
                 <div class="card-body">
-                    @if (Model.Alert is Common.Entities.UrlAlertEntity urlAlert)
+                    @if (Model.Alert is Common.Entities.TrackUrlAlertEntity trackAlert)
+                    {
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">URL:</dt>
+                            <dd class="col-sm-8">
+                                <a href="@trackAlert.Url" target="_blank" class="text-break">@trackAlert.Url</a>
+                            </dd>
+
+                            <dt class="col-sm-4">From URL:</dt>
+                            <dd class="col-sm-8">
+                                @if (!string.IsNullOrEmpty(trackAlert.FromUrl))
+                                {
+                                    <a href="@trackAlert.FromUrl" target="_blank" class="text-break">@trackAlert.FromUrl</a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </dd>
+
+                            <dt class="col-sm-4">User Agent:</dt>
+                            <dd class="col-sm-8"><small>@trackAlert.UserAgent</small></dd>
+
+                            <dt class="col-sm-4">Tab ID:</dt>
+                            <dd class="col-sm-8"><code>@(trackAlert.TabId ?? "—")</code></dd>
+
+                            <dt class="col-sm-4">Duration:</dt>
+                            <dd class="col-sm-8">
+                                @if (trackAlert.Duration > 0)
+                                {
+                                    var ts = TimeSpan.FromSeconds(trackAlert.Duration);
+                                    <span class="badge bg-info">@ts.ToString(@"hh\:mm\:ss")</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </dd>
+
+                            <dt class="col-sm-4">Timezone:</dt>
+                            <dd class="col-sm-8">@(trackAlert.Timezone ?? "—")</dd>
+
+                            @if (!string.IsNullOrEmpty(trackAlert.ScamInProgressKey))
+                            {
+                                <dt class="col-sm-4">Scam In Progress:</dt>
+                                <dd class="col-sm-8"><span class="badge bg-danger">@trackAlert.ScamInProgressKey</span></dd>
+                            }
+                        </dl>
+                    }
+                    else if (Model.Alert is Common.Entities.UrlAlertEntity urlAlert)
                     {
                         <dl class="row mb-0">
                             <dt class="col-sm-4">URL:</dt>
@@ -97,6 +146,9 @@
 
                             <dt class="col-sm-4">User Agent:</dt>
                             <dd class="col-sm-8"><small>@urlAlert.UserAgent</small></dd>
+
+                            <dt class="col-sm-4">Tab ID:</dt>
+                            <dd class="col-sm-8"><code>@(urlAlert.TabId ?? "—")</code></dd>
 
                             @if (!string.IsNullOrEmpty(urlAlert.TrackerKeys) && urlAlert.TrackerKeys != "[]")
                             {
@@ -130,8 +182,30 @@
                             <dd class="col-sm-8">@raAlert.RunningProcesses</dd>
 
                             <dt class="col-sm-4">Session Status:</dt>
-                            <dd class="col-sm-8">@raAlert.SessionStatus</dd>
+                            <dd class="col-sm-8">
+                                @{
+                                    var sessionStatus = (Common.Enums.SessionStatus)raAlert.SessionStatus;
+                                    var sessionStatusText = sessionStatus switch
+                                    {
+                                        Common.Enums.SessionStatus.Unknown => "Unknown",
+                                        Common.Enums.SessionStatus.Open => "Open",
+                                        Common.Enums.SessionStatus.Closed => "Closed",
+                                        _ => sessionStatus.ToString()
+                                    };
+                                    var sessionStatusClass = sessionStatus switch
+                                    {
+                                        Common.Enums.SessionStatus.Open => "success",
+                                        Common.Enums.SessionStatus.Closed => "secondary",
+                                        _ => "info"
+                                    };
+                                }
+                                <span class="badge bg-@sessionStatusClass">@sessionStatusText</span>
+                            </dd>
                         </dl>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No additional details available for this alert type.</p>
                     }
                 </div>
             </div>
