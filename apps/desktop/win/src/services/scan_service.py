@@ -291,8 +291,8 @@ class ScanService:
             print(f"[TRACK] From: {from_url}")
             print(f"[TRACK] Duration: {duration}s")
             
-            response = self._zmq_client.send_track_url_alert(
-                device_uid=self._device_id,
+            response = self.zmq_client.send_track_url_alert(
+                device_uid=self.device_id,
                 url=url,
                 from_url=from_url,
                 duration=duration,
@@ -301,7 +301,7 @@ class ScanService:
                 user_agent=user_agent,
                 tab_id=tab_id,
                 timezone=timezone,
-                token=self._auth_manager.access_token or ''
+                token=self.auth_manager.access_token or ''
             )
             
             if response:
