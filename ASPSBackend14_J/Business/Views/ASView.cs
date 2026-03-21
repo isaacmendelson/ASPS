@@ -357,7 +357,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                         .Distinct()
                         .Select(u => u.Url.ToLower())
                         .Union(
-                            this._urlAnalysisResults.Where(i => (i.AnalysisResult?.Success == true && i.AnalysisResult?.risk_assessment?.risk_score < 25))
+                            this._urlAnalysisResults.Where(i => (i.AnalysisResult?.Success == true && i.AnalysisResult?.risk_assessment?.risk_score >= 61))
                             .Select(r => KnownPhishingWebsite.GetDomainFromUrl((r.Alert as UrlAlert)!.Url.ToLower()))
                         )
                         .ToList();

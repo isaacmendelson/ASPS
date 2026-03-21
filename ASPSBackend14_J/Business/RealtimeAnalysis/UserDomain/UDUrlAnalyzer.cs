@@ -269,12 +269,12 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
                 .Where(r => r.risk_assessment != null)
                 .Any(r => r.risk_assessment!.is_scam);
 
-            if (hasScam || maxRiskScore <= 30)
-                severity = Severity.Critical;  // safety score <= 30 = very dangerous
-            else if (maxRiskScore <= 50)
-                severity = Severity.High;      // safety score <= 50 = dangerous
-            else if (maxRiskScore <= 70)
-                severity = Severity.Medium;    // safety score <= 70 = moderate risk
+            if (hasScam || maxRiskScore >= 80)
+                severity = Severity.Critical;  // risk score >= 80 = very dangerous
+            else if (maxRiskScore >= 61)
+                severity = Severity.High;      // risk score >= 61 = dangerous
+            else if (maxRiskScore >= 31)
+                severity = Severity.Medium;    // risk score >= 31 = moderate risk
         }
 
         // STEP 5: Create indicators list
@@ -323,12 +323,12 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
                 .Where(r => r.risk_assessment != null)
                 .Max(r => r.risk_assessment!.risk_score);
             
-            // Enable URL tracking if risk score exceeds threshold (lower safety score = higher risk)
-            // Safety score of 40 or below means high risk
-            if (maxRiskScore <= riskThreshold)
+            // Enable URL tracking if risk score exceeds threshold (higher score = higher risk)
+            // Risk score of 40 or above means elevated risk, enable tracking
+            if (maxRiskScore >= riskThreshold)
             {
                 var domain = Common.Entities.KnownPhishingWebsite.GetDomainFromUrl(url);
-                _logger.LogInformation($"⚠️ Risk threshold exceeded for {domain}. Safety score: {maxRiskScore} <= {riskThreshold}. Enabling URL tracking for {trackingDurationMinutes} minutes.");
+                _logger.LogInformation($"⚠️ Risk threshold exceeded for {domain}. Risk score: {maxRiskScore} >= {riskThreshold}. Enabling URL tracking for {trackingDurationMinutes} minutes.");
                 
                 var trackingAction = new ProtectiveAction(
                     ProtectiveActionSubject.Device,
