@@ -354,26 +354,29 @@
     },
 
     getDisplayInfo(protectiveAction, riskType, score) {
-      // Use protective action from server for color
-      // 0=None, 1=Notify, 2=WarnBanner, 3=WarnModal, 4=Block
-      if (protectiveAction >= 4) {
-        return { color: 'red', label: riskType[0] || 'Blocked' };
-      } else if (protectiveAction >= 2) {
-        return { color: 'yellow', label: riskType[0] || 'Warning' };
-      } else {
-        // Fallback to score-based display if protectiveAction is 0 or 1
-        // This handles cases where server doesn't set protectiveAction correctly
-        // NEW SCALE: 0=error, 1=safe, 100=dangerous
-        // IMPORTANT: Use score-based labels, not riskType from server (may be using old scale)
-        if (score !== null && score !== undefined) {
-          if (score >= 61) {
-            return { color: 'red', label: 'HIGH' };
-          } else if (score >= 31) {
-            return { color: 'yellow', label: 'MEDIUM' };
-          }
+      // NEW SCALE: 0=error, 1=safe, 100=dangerous
+      // ALWAYS use score-based labels (server riskType may use old scale)
+      
+      // Determine label and color from score
+      let color = 'green';
+      let label = 'LOW';
+      
+      if (score !== null && score !== undefined) {
+        if (score >= 61) {
+          color = 'red';
+          label = 'HIGH';
+        } else if (score >= 31) {
+          color = 'yellow';
+          label = 'MEDIUM';
         }
-        return { color: 'green', label: 'LOW' };
       }
+      
+      // Override with protective action if severe (Block)
+      if (protectiveAction >= 4) {
+        return { color: 'red', label: 'BLOCKED' };
+      }
+      
+      return { color, label };
     },
 
     // Legacy: for backward compatibility
