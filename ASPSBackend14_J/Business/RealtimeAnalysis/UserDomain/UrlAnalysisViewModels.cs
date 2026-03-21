@@ -444,6 +444,39 @@ public enum PhishingCheckResultSource
 }
 
 /// <summary>
+/// TrackedDomain information for a matched domain
+/// </summary>
+[Serializable]
+[DataContract]
+public class TrackedDomainInfo
+{
+    public TrackedDomainInfo(int id, string domain, string category, bool isExactMatch)
+    {
+        Id = id;
+        Domain = domain;
+        Category = category;
+        IsExactMatch = isExactMatch;
+    }
+
+    protected TrackedDomainInfo() { }
+
+    [DataMember]
+    public int Id { get; set; }
+
+    [DataMember]
+    public string Domain { get; set; } = string.Empty;
+
+    [DataMember]
+    public string Category { get; set; } = string.Empty;
+
+    /// <summary>
+    /// True if URL domain exactly matches TrackedDomain, false if subdomain match
+    /// </summary>
+    [DataMember]
+    public bool IsExactMatch { get; set; }
+}
+
+/// <summary>
 /// Analysis result for TrackUrlAlert
 /// </summary>
 [Serializable]
@@ -461,7 +494,8 @@ public class TrackUrlAnalysisResultVm : AnalysisResult
         string timezone,
         string domain,
         bool isSafeDomain,
-        RiskAssessment? riskAssessment)
+        RiskAssessment? riskAssessment,
+        TrackedDomainInfo? trackedDomain = null)
     {
         Url = url;
         FromUrl = fromUrl;
@@ -474,6 +508,7 @@ public class TrackUrlAnalysisResultVm : AnalysisResult
         Domain = domain;
         IsSafeDomain = isSafeDomain;
         risk_assessment = riskAssessment;
+        TrackedDomain = trackedDomain;
     }
 
     protected TrackUrlAnalysisResultVm() { }
@@ -513,5 +548,11 @@ public class TrackUrlAnalysisResultVm : AnalysisResult
 
     [DataMember]
     public RiskAssessment? risk_assessment { get; set; }
+
+    /// <summary>
+    /// Information about matched TrackedDomain (null if no match)
+    /// </summary>
+    [DataMember]
+    public TrackedDomainInfo? TrackedDomain { get; set; }
 }
 
