@@ -150,7 +150,7 @@ public class TrackUrlAnalyzer : ISpecificAnalyzer
         if (isSafeDomain)
         {
             _logger.LogInformation($"Domain '{domain}' is whitelisted (SafeDomains)");
-            riskScore = 0;
+            riskScore = 5; // LOW risk - safe domain
         }
         else
         {
@@ -158,13 +158,13 @@ public class TrackUrlAnalyzer : ISpecificAnalyzer
             // Check longer duration first!
             if (trackUrlAlert.Duration > 600) // > 10 minutes
             {
-                riskScore = 40;
+                riskScore = 60; // HIGH risk - very long session
                 severity = Severity.High;
                 _logger.LogInformation($"Very long session detected: {trackUrlAlert.Duration}s on {trackUrlAlert.Url}");
             }
             else if (trackUrlAlert.Duration > 300) // > 5 minutes
             {
-                riskScore = 20;
+                riskScore = 40; // MEDIUM risk - long session
                 severity = Severity.Medium;
                 _logger.LogInformation($"Long session detected: {trackUrlAlert.Duration}s on {trackUrlAlert.Url}");
             }
@@ -172,7 +172,7 @@ public class TrackUrlAnalyzer : ISpecificAnalyzer
             // Check for scam-in-progress scenario
             if (!string.IsNullOrWhiteSpace(trackUrlAlert.ScamInProgressKey))
             {
-                riskScore = 60;
+                riskScore = 90; // HIGH risk - scam in progress
                 severity = Severity.High;
                 _logger.LogWarning($"Scam-in-progress key detected: {trackUrlAlert.ScamInProgressKey}");
 
