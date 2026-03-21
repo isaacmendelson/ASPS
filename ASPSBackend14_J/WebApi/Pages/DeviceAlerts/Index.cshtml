@@ -62,7 +62,11 @@
                         <tr>
                             <td>@alert.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</td>
                             <td>
-                                @if (alert.AlertType.Contains("Url", StringComparison.OrdinalIgnoreCase))
+                                @if (alert.AlertType.Contains("TrackUrl", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <span class="badge bg-info"><i class="fas fa-clock"></i> Track URL</span>
+                                }
+                                else if (alert.AlertType.Contains("Url", StringComparison.OrdinalIgnoreCase))
                                 {
                                     <span class="badge bg-warning"><i class="fas fa-link"></i> URL Alert</span>
                                 }
@@ -151,7 +155,13 @@
                                 }
                             </td>
                             <td>
-                                @if (alert is Common.Entities.UrlAlertEntity urlAlert)
+                                @if (alert is Common.Entities.TrackUrlAlertEntity trackAlert)
+                                {
+                                    <small class="text-truncate d-inline-block" style="max-width: 200px;" title="@trackAlert.Url">
+                                        @trackAlert.Url
+                                    </small>
+                                }
+                                else if (alert is Common.Entities.UrlAlertEntity urlAlert)
                                 {
                                     <small class="text-truncate d-inline-block" style="max-width: 200px;" title="@urlAlert.Url">
                                         @urlAlert.Url
