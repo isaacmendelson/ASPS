@@ -56,6 +56,10 @@ class NotificationHandler:
 
         # Execute protective actions
         protective_actions = data.get('protectiveActions', []) or data.get('ProtectiveActions', [])
+        print(f"[DEBUG] data keys: {list(data.keys())}")
+        print(f"[DEBUG] protectiveActions raw: {data.get('protectiveActions', 'NOT FOUND')}")
+        print(f"[DEBUG] ProtectiveActions raw: {data.get('ProtectiveActions', 'NOT FOUND')}")
+        print(f"[DEBUG] protective_actions result: {protective_actions}")
         if protective_actions:
             print(f"[NOTIFICATION] Processing {len(protective_actions)} protective actions...")
             self.protection_service.execute_actions(
