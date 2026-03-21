@@ -74,7 +74,7 @@ class NotificationHandler:
                 for attempt in range(2):
                     try:
                         future = asyncio.run_coroutine_threadsafe(
-                            self._broadcast_to_extension(analysis, cache_data),
+                            self._broadcast_to_extension(analysis, cache_data, protective_actions),
                             self._event_loop
                         )
                         future.result(timeout=5)
@@ -98,19 +98,31 @@ class NotificationHandler:
 
         print("!" * 60 + "\n")
 
-    async def _broadcast_to_extension(self, analysis, cache_data):
+    async def _broadcast_to_extension(self, analysis, cache_data, protective_actions=None):
         """Broadcast URL result to extension"""
         try:
+            # Convert protective actions to extension format
+            ext_protective_actions = []
+            if protective_actions:
+                for action in protective_actions:
+                    ext_action = {
+                        'type': action.get('ActionType', ''),
+                        'message': action.get('Message', ''),
+                        'level': action.get('Level', '')
+                    }
+                    ext_protective_actions.append(ext_action)
+            
             result_message = {
                 'type': 'url_result',
                 'url': analysis['url'],
                 'score': cache_data['score'],
                 'riskType': cache_data['risk_types'],
                 'protectiveAction': cache_data['protective_action'],
+                'protectiveActions': ext_protective_actions,  # Full array for extension
                 'fromCache': False
             }
             await self.extension_server.broadcast(result_message)
-            print(f"[NOTIFICATION] Broadcasted result to extension: score={cache_data['score']}")
+            print(f"[NOTIFICATION] Broadcasted result to extension: score={cache_data['score']}, actions={len(ext_protective_actions)}")
         except Exception as e:
             logger.error(f"Error broadcasting to extension: {e}")
             raise  # Re-raise so caller's retry loop can detect failure
