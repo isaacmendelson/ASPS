@@ -166,6 +166,9 @@ class Program
                 // Add UserDomainManagerService (manages per-user analysis instances)
                 services.AddSingleton<UserDomainManagerService>();
 
+                // Add SimulationRunner (background service for simulations)
+                services.AddHostedService<SimulationRunner>();
+
                 // Add Messaging
                 services.AddSingleton<NetMQMessageProcessor>();
                 services.AddSingleton<RealTimeAlertListener>(sp =>

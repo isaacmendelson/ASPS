@@ -15,15 +15,9 @@ builder.Services.AddControllers()
         options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
     });
 
-// Register Business layer services (DbContext, Repositories, Handlers, Background Services)
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-if (string.IsNullOrWhiteSpace(connectionString))
-{
-    throw new InvalidOperationException(
-        "ConnectionStrings:DefaultConnection is required. " +
-        "Create appsettings.Development.json or set the connection string in appsettings.json");
-}
-builder.Services.AddBusinessServices(connectionString);
+// WebApi does NOT connect to database directly!
+// All DB operations go through CQRS → ASPSBackend
+// (removed AddBusinessServices - not needed here)
 
 // Configure forwarded headers for reverse proxy (Tailscale)
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
