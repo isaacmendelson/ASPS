@@ -10,7 +10,7 @@ namespace WebApi.Pages
         private readonly ILogger<IndexModel> _logger;
 
         public IndexModel(
-            CQRSClient cqrsClient,
+            ICQRSClient cqrsClient,
             ILogger<IndexModel> logger)
         {
             _cqrsClient = cqrsClient;
