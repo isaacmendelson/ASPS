@@ -208,3 +208,112 @@ Chrome RD: 443 (WebRTC)
 - [x] Identify gaps
 - [x] Create implementation plan
 - [x] Map subtasks to files
+
+---
+
+## 🔴 CRITICAL: Architecture Change Required
+
+### Current Problem: Dual System
+```
+Agent has TWO parallel systems:
+1. Real-time tailing (LogWatcher → SessionTracker)
+2. Periodic polling (check_all() every 5 seconds)
+
+They run simultaneously and try to merge results → MESSY!
+```
+
+### New Architecture: Event-Driven Only
+```
+LogWatcher.tail()
+    → LogParser.parse_line()
+        → SessionTracker.on_event()
+            → Update State
+                → Notify (StateChange)
+```
+
+**No polling. No merge. Clean.**
+
+---
+
+## 🔒 API CONTRACT - MUST NOT CHANGE
+
+### RemoteAccessMonitor Public Methods
+```python
+# These signatures MUST remain unchanged:
+
+def check_all(self) -> Dict[str, RemoteAppStatus]
+def check_all_with_changes(self) -> Tuple[Dict[str, RemoteAppStatus], List[StateChange]]
+def startup_scan(self) -> List[StateChange]
+def get_active_sessions(self) -> List[RemoteAppStatus]
+def has_any_active_session(self) -> bool
+def start_realtime_monitoring(self)
+def stop_realtime_monitoring(self)
+```
+
+### RemoteAppStatus Dataclass
+```python
+@dataclass
+class RemoteAppStatus:
+    app_name: str                    # KEEP
+    app_id: int                      # KEEP
+    is_running: bool                 # KEEP
+    has_active_session: bool         # KEEP
+    process_count: int               # KEEP
+    connection_count: int            # KEEP
+    connection_status: int           # KEEP
+    remote_ip: Optional[str]         # KEEP
+    direction: Optional[str]         # KEEP
+    confidence: str                  # KEEP
+    remote_country: Optional[str]    # KEEP
+    remote_country_code: Optional[str]  # KEEP
+    # Enhanced fields (already exist):
+    remote_os: Optional[str]         # KEEP
+    remote_version: Optional[str]    # KEEP
+    connection_type: Optional[str]   # KEEP
+    file_transfer_active: bool       # KEEP
+    file_transfers: int              # KEEP
+```
+
+### StateChange Dataclass
+```python
+@dataclass
+class StateChange:
+    app_name: str           # KEEP
+    change_type: str        # KEEP: 'opened', 'closed', 'session_started', 'session_ended'
+    timestamp: datetime     # KEEP
+    status: RemoteAppStatus # KEEP
+    late_detection: bool    # KEEP
+```
+
+### Consumers (monitor_service.py)
+```python
+# These calls MUST continue to work:
+state_changes = self.remote_monitor.startup_scan()
+results, state_changes = self.remote_monitor.check_all_with_changes()
+```
+
+---
+
+## 🔧 Implementation Strategy
+
+### What Changes (Internal)
+1. Remove `parse_tool_logs()` periodic calls
+2. Add watchers for TeamViewer, VNC, Chrome RD
+3. `check_all()` reads from SessionTrackers (not file parsing)
+4. Single source of truth: SessionTracker state
+
+### What Stays (External)
+1. All public method signatures
+2. All dataclass fields
+3. All return types
+4. Consumer code in monitor_service.py
+
+### Migration Path
+```
+1. Add _start_teamviewer_watchers()
+2. Add _start_vnc_watchers()  
+3. Add _start_crd_watchers()
+4. Modify check_all() to use trackers only
+5. Remove parse_tool_logs() calls
+6. Test: verify same behavior
+```

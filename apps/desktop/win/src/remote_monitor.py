@@ -31,8 +31,9 @@ import logging
 import psutil
 
 from config import REMOTE_APPS, ConnectionStatus, WHITELIST_IPS, WHITELIST_PORTS, DEBUG_MODE
-from detection.tools import get_tool_config
-from detection.log_parsers import parse_tool_logs
+# REMOVED: parse_tool_logs - now using real-time SessionTracker only
+# from detection.tools import get_tool_config
+# from detection.log_parsers import parse_tool_logs
 from detection.geolocation import get_geolocator
 
 logger = logging.getLogger(__name__)
@@ -393,6 +394,60 @@ class LogParser:
         
         if self.RE_CONN_TYPE_RELAY.search(line):
             return {"event": "connection_type", "timestamp": ts, "conn_type": "relay", "raw": line.strip()}
+
+        # ─── TeamViewer patterns ──────────────────────────────────────────────
+        
+        # TeamViewer incoming connection
+        m = self.RE_TV_INCOMING.search(line)
+        if m:
+            return {
+                "event": "incoming_request",
+                "timestamp": ts,
+                "remote_id": m.group(1) or "",
+                "remote_ip": "",
+                "raw": line.strip(),
+            }
+        
+        # TeamViewer disconnect
+        if self.RE_TV_DISCONNECT.search(line):
+            return {"event": "session_stopped", "timestamp": ts, "raw": line.strip()}
+        
+        # ─── VNC patterns ─────────────────────────────────────────────────────
+        
+        # VNC connection accepted
+        m = self.RE_VNC_ACCEPT.search(line)
+        if m:
+            ip = m.group(1).strip('[]')  # Remove brackets from IPv6
+            return {
+                "event": "incoming_request",
+                "timestamp": ts,
+                "remote_id": "",
+                "remote_ip": ip,
+                "raw": line.strip(),
+            }
+        
+        # VNC connection closed
+        m = self.RE_VNC_CLOSE.search(line)
+        if m:
+            return {"event": "session_stopped", "timestamp": ts, "raw": line.strip()}
+        
+        # ─── Chrome Remote Desktop patterns ───────────────────────────────────
+        
+        # CRD client connected
+        if re.search(r'client\s+connected|incoming\s+connection|session\s+started', line, re.IGNORECASE):
+            # Try to extract IP if present
+            ip_match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', line)
+            return {
+                "event": "incoming_request",
+                "timestamp": ts,
+                "remote_id": "",
+                "remote_ip": ip_match.group(1) if ip_match else "",
+                "raw": line.strip(),
+            }
+        
+        # CRD client disconnected
+        if re.search(r'client\s+disconnected|session\s+ended|connection\s+closed', line, re.IGNORECASE):
+            return {"event": "session_stopped", "timestamp": ts, "raw": line.strip()}
 
         return None
 
@@ -789,10 +844,13 @@ class RemoteAccessMonitor:
         
         self._running = True
         
-        # Start AnyDesk log watchers
+        # Start watchers for all supported apps
         self._start_anydesk_watchers()
+        self._start_teamviewer_watchers()
+        self._start_vnc_watchers()
+        self._start_crd_watchers()
         
-        print("[REMOTE-MONITOR] Real-time monitoring started")
+        print("[REMOTE-MONITOR] Real-time monitoring started for all apps")
 
     def _start_anydesk_watchers(self):
         """Start watching AnyDesk log files."""
@@ -820,6 +878,106 @@ class RemoteAccessMonitor:
             
             if DEBUG_MODE:
                 print(f"[REMOTE-MONITOR] Watching: {path}")
+
+    def _start_teamviewer_watchers(self):
+        """Start watching TeamViewer log files."""
+        app_name = 'teamviewer'
+        self._session_trackers[app_name] = SessionTracker()
+        self._log_watchers[app_name] = []
+        
+        # TeamViewer log paths
+        log_paths = [
+            MonitorConfig.TV_CONNECTIONS_IN,
+            MonitorConfig.TV_CONNECTIONS_OUT,
+        ]
+        
+        # Also check for TeamViewer logfile (version-specific)
+        tv_logfile = Path(MonitorConfig.APPDATA) / "TeamViewer" / "TeamViewer15_Logfile.log"
+        if tv_logfile.exists():
+            log_paths.append(tv_logfile)
+        
+        for path in log_paths:
+            if not path.exists():
+                if DEBUG_MODE:
+                    print(f"[REMOTE-MONITOR] TeamViewer log not found: {path}")
+                continue
+                
+            watcher = LogWatcher(path, MonitorConfig.POLL_INTERVAL)
+            self._log_watchers[app_name].append(watcher)
+            
+            t = threading.Thread(
+                target=self._watch_log,
+                args=(app_name, watcher),
+                daemon=True
+            )
+            self._watcher_threads.append(t)
+            t.start()
+            
+            if DEBUG_MODE:
+                print(f"[REMOTE-MONITOR] Watching TeamViewer: {path}")
+
+    def _start_vnc_watchers(self):
+        """Start watching VNC log files."""
+        app_name = 'vnc'
+        self._session_trackers[app_name] = SessionTracker()
+        self._log_watchers[app_name] = []
+        
+        # VNC log paths vary by implementation
+        vnc_log_paths = [
+            # TigerVNC on Windows
+            Path(MonitorConfig.PROGRAMDATA) / "TigerVNC" / "tigervnc.log",
+            # UltraVNC
+            Path("C:/Program Files/uvnc bvba/UltraVNC/ultravnc.log"),
+            Path("C:/Program Files (x86)/uvnc bvba/UltraVNC/ultravnc.log"),
+            # TightVNC
+            Path(MonitorConfig.PROGRAMDATA) / "TightVNC" / "tvnserver.log",
+        ]
+        
+        for path in vnc_log_paths:
+            if not path.exists():
+                continue
+                
+            watcher = LogWatcher(path, MonitorConfig.POLL_INTERVAL)
+            self._log_watchers[app_name].append(watcher)
+            
+            t = threading.Thread(
+                target=self._watch_log,
+                args=(app_name, watcher),
+                daemon=True
+            )
+            self._watcher_threads.append(t)
+            t.start()
+            
+            if DEBUG_MODE:
+                print(f"[REMOTE-MONITOR] Watching VNC: {path}")
+
+    def _start_crd_watchers(self):
+        """Start watching Chrome Remote Desktop log files."""
+        app_name = 'chrome_remote_desktop'
+        self._session_trackers[app_name] = SessionTracker()
+        self._log_watchers[app_name] = []
+        
+        # Chrome Remote Desktop log directory
+        crd_log_dir = Path(MonitorConfig.APPDATA) / "Google" / "Chrome Remote Desktop" / "logs"
+        
+        if crd_log_dir.exists():
+            # Watch all .log files in the directory
+            for log_file in crd_log_dir.glob("*.log"):
+                watcher = LogWatcher(log_file, MonitorConfig.POLL_INTERVAL)
+                self._log_watchers[app_name].append(watcher)
+                
+                t = threading.Thread(
+                    target=self._watch_log,
+                    args=(app_name, watcher),
+                    daemon=True
+                )
+                self._watcher_threads.append(t)
+                t.start()
+                
+                if DEBUG_MODE:
+                    print(f"[REMOTE-MONITOR] Watching CRD: {log_file}")
+        elif DEBUG_MODE:
+            print(f"[REMOTE-MONITOR] Chrome Remote Desktop logs not found: {crd_log_dir}")
 
     def _watch_log(self, app_name: str, watcher: LogWatcher):
         """Thread: watch a single log file."""
@@ -965,24 +1123,14 @@ class RemoteAccessMonitor:
         # Check CPU
         cpu_usage = self.check_cpu_usage(processes, app_name)
         
-        # Check session tracker for log-based session info (real-time)
+        # Check session tracker for log-based session info (real-time only)
+        # NOTE: We use ONLY the real-time SessionTracker, not periodic file parsing
         session_tracker = self._session_trackers.get(app_name)
         session = session_tracker.get_current_session() if session_tracker else None
         
         log_session_active = session is not None and session.active
         log_remote_ip = session.remote_ip if session else None
         log_direction = session.direction if session else SessionDirection.UNKNOWN
-        
-        # Also check via detection module for file-based parsing
-        tool_config = get_tool_config(app_name)
-        if tool_config:
-            log_signals = parse_tool_logs(app_name, tool_config)
-            if log_signals.get('log_session_active'):
-                log_session_active = True
-            if log_signals.get('log_remote_ip') and not log_remote_ip:
-                log_remote_ip = log_signals['log_remote_ip']
-            if log_signals.get('log_direction') and log_direction == SessionDirection.UNKNOWN:
-                log_direction = log_signals['log_direction']
 
         # Check Windows service if configured
         service_running = False
