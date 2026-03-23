@@ -7,9 +7,9 @@ namespace WebApi.Pages.SystemConfigurations
 {
     public class IndexModel : PageModel
     {
-        private readonly CQRSClient _cqrsClient;
+        private readonly ICQRSClient _cqrsClient;
 
-        public IndexModel(CQRSClient cqrsClient)
+        public IndexModel(ICQRSClient cqrsClient)
         {
             _cqrsClient = cqrsClient;
         }

@@ -9,10 +9,10 @@ namespace WebApi.Pages.DeviceAlerts
 {
     public class DetailsModel : PageModel
     {
-        private readonly CQRSClient _cqrsClient;
+        private readonly ICQRSClient _cqrsClient;
         private readonly ILogger<DetailsModel> _logger;
 
-        public DetailsModel(CQRSClient cqrsClient, ILogger<DetailsModel> logger)
+        public DetailsModel(ICQRSClient cqrsClient, ILogger<DetailsModel> logger)
         {
             _cqrsClient = cqrsClient;
             _logger = logger;

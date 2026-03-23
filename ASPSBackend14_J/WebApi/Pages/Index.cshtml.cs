@@ -6,7 +6,7 @@ namespace WebApi.Pages
 {
     public class IndexModel : PageModel
     {
-        private readonly CQRSClient _cqrsClient;
+        private readonly ICQRSClient _cqrsClient;
         private readonly ILogger<IndexModel> _logger;
 
         public IndexModel(

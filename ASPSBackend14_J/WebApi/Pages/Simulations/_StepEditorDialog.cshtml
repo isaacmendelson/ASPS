@@ -1,0 +1,83 @@
+<!-- Step Editor Modal -->
+<div class="modal fade" id="stepEditorModal" tabindex="-1" aria-labelledby="stepEditorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="stepEditorModalLabel">
+                    <i class="fas fa-edit"></i> Edit Simulation Step
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="step-editor-form">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="step-sequence" class="form-label">Sequence # <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="step-sequence" min="1" required />
+                            <div class="form-text">Execution order (1 = first)</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="step-delay-ms" class="form-label">Delay (ms) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="step-delay-ms" min="0" required />
+                            <div class="form-text">Wait time before this step (milliseconds)</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="step-user-id" class="form-label">Target User ID <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="step-user-id" required maxlength="36" 
+                               placeholder="User KeyField value" />
+                        <div class="form-text">User's KeyField (e.g., GUID or User ID)</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="step-device-uid" class="form-label">Target Device UID <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="step-device-uid" required maxlength="100" 
+                               placeholder="Device UID" />
+                        <div class="form-text">Device's unique identifier</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="step-alert-type" class="form-label">Alert Type <span class="text-danger">*</span></label>
+                            <select class="form-select" id="step-alert-type" required>
+                                <option value="UrlAlert">URL Alert</option>
+                                <option value="RemoteAccessAlert">Remote Access Alert</option>
+                                <option value="TrackUrlAlert">Track URL Alert</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="step-priority" class="form-label">Priority</label>
+                            <select class="form-select" id="step-priority">
+                                <option value="Low">Low</option>
+                                <option value="Medium">Medium</option>
+                                <option value="High" selected>High</option>
+                                <option value="Critical">Critical</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="step-alert-json" class="form-label">Alert JSON Data <span class="text-danger">*</span></label>
+                        <textarea class="form-control font-monospace" id="step-alert-json" rows="8" required 
+                                  placeholder='{"Url": "https://example.com", "Title": "Test Alert", ...}'></textarea>
+                        <div class="form-text">JSON representation of the alert object (UrlAlert, RemoteAccessAlert, etc.)</div>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <strong><i class="fas fa-exclamation-triangle"></i> Note:</strong>
+                        Make sure the Alert JSON matches the selected Alert Type structure.
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveStep()">
+                    <i class="fas fa-save"></i> Save Step
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

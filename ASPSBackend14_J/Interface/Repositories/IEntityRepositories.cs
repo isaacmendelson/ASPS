@@ -5,6 +5,12 @@ using TrackUrlAlertEntity = Common.Entities.TrackUrlAlertEntity;
 
 namespace Interface.Repositories;
 
+public interface ISimulationRepository : IRepository<Simulation>
+{
+    Task<IEnumerable<Simulation>> GetByCreatorKeyAsync(Key creatorKey);
+    Task<IEnumerable<Simulation>> SearchAsync(string searchText);
+}
+
 public interface IUserRepository : IRepository<User>
 {
     Task<User?> GetByKeycloakIdAsync(string keycloakUserId);

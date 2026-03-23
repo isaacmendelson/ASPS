@@ -40,6 +40,7 @@ public class AppDbContext : DbContext
     public DbSet<SafeDomain> SafeDomains { get; set; }
     public DbSet<TrackedDomain> TrackedDomains { get; set; }
     public DbSet<DeviceTokenEntity> DeviceTokens { get; set; }
+    public DbSet<Simulation> Simulations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -375,6 +376,56 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Expiration).IsRequired();
 
             entity.HasIndex(e => e.TokenValue);
+        });
+
+        // Simulation configuration
+        modelBuilder.Entity<Simulation>(entity =>
+        {
+            entity.ToTable("Simulations");
+            entity.HasKey(e => e.KeyField);
+            entity.Property(e => e.KeyField)
+                .HasColumnName("Key")
+                .HasColumnType("varchar(36)")
+                .IsRequired();
+            
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(200);
+            
+            entity.Property(e => e.Description)
+                .HasMaxLength(1000);
+            
+            entity.Property(e => e.CreatorKeyField)
+                .HasColumnName("CreatorKey")
+                .HasColumnType("varchar(36)")
+                .IsRequired();
+            
+            entity.Property(e => e.SimulationStepsJson)
+                .HasColumnName("SimulationSteps")
+                .HasColumnType("TEXT");
+            
+            entity.Property(e => e.DateCreated).IsRequired();
+            entity.Property(e => e.DateModified);
+            entity.Property(e => e.DateDeleted);
+            entity.Property(e => e.IsDeleted).IsRequired();
+            entity.Property(e => e.IsDisabled).IsRequired();
+            
+            // Foreign key relationship to Creator (User)
+            entity.HasOne(e => e.Creator)
+                .WithMany()
+                .HasForeignKey(e => e.CreatorKeyField)
+                .OnDelete(DeleteBehavior.Restrict);
+            
+            // Ignore computed properties
+            entity.Ignore(e => e.Tag);
+            entity.Ignore(e => e.TypeName);
+            entity.Ignore(e => e.Key);
+            entity.Ignore(e => e.CreatorKey);
+            
+            // Indexes for performance
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.CreatorKeyField);
+            entity.HasIndex(e => e.DateCreated);
         });
     }
 }

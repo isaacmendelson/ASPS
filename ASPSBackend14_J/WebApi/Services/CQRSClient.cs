@@ -10,7 +10,7 @@ namespace WebApi.Services;
 /// CQRS Client - Sends Commands/Queries to Business layer via NetMQ
 /// This runs in WebApi and has ZERO database access
 /// </summary>
-public class CQRSClient : IDisposable
+public class CQRSClient : ICQRSClient
 {
     private readonly string _endpoint;
     private readonly ILogger<CQRSClient> _logger;

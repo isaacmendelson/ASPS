@@ -38,12 +38,19 @@ public static class BusinessServiceRegistration
         services.AddScoped<IDeviceAlertRepository, DeviceAlertRepository>();
         services.AddScoped<IAnalysisResultRepository, AnalysisResultRepository>();
         services.AddScoped<IKnownPhishingWebsiteRepository, KnownPhishingWebsiteRepository>();
+        services.AddScoped<ISimulationRepository, SimulationRepository>();
+
+        // Register Background Services
+        services.AddSingleton<SimulationRunner>();
+        services.AddHostedService(provider => provider.GetRequiredService<SimulationRunner>());
 
         // Register Command and Query Handlers (These are what WebApi uses)
         services.AddScoped<UserCommandHandlers>();
         services.AddScoped<UserQueryHandlers>();
         services.AddScoped<AdminCommandHandlers>();
         services.AddScoped<AdminQueryHandlers>();
+        services.AddScoped<SimulationCommandHandlers>();
+        services.AddScoped<SimulationQueryHandlers>();
 
         Console.WriteLine("✓ Business layer services registered");
         Console.WriteLine($"✓ Database: {GetDatabaseName(connectionString)}");

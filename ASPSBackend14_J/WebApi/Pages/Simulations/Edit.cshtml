@@ -1,0 +1,231 @@
+@page
+@model WebApi.Pages.Simulations.EditModel
+@{
+    ViewData["Title"] = "Edit Simulation";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-edit"></i> Edit Simulation</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="/Simulations" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Error!</strong> @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Simulation Details</h6>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <input type="hidden" name="Key" value="@Model.Key" />
+                    
+                    <div class="mb-3">
+                        <label for="Name" class="form-label">Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="Name" name="Name" asp-for="Name" required maxlength="200" 
+                               placeholder="e.g., Phishing Test Scenario" />
+                        <div class="form-text">Give your simulation a descriptive name.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="Description" class="form-label">Description</label>
+                        <textarea class="form-control" id="Description" name="Description" asp-for="Description" rows="3" maxlength="1000"
+                                  placeholder="Describe what this simulation will test..."></textarea>
+                        <div class="form-text">Optional: Provide details about the simulation's purpose.</div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Simulation Steps</label>
+                        <div id="steps-container">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> Loading steps...
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="add-step-btn">
+                            <i class="fas fa-plus"></i> Add Step
+                        </button>
+                    </div>
+
+                    <input type="hidden" id="StepsJson" name="StepsJson" asp-for="StepsJson" />
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Update Simulation
+                        </button>
+                        <a href="/Simulations" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-info">Help</h6>
+            </div>
+            <div class="card-body">
+                <h6><i class="fas fa-question-circle"></i> Editing Simulation</h6>
+                <p class="small">Modify the simulation name, description, and steps. Changes will take effect on the next run.</p>
+                
+                <h6><i class="fas fa-list-ol"></i> Steps</h6>
+                <p class="small">Each step defines:</p>
+                <ul class="small">
+                    <li><strong>Sequence:</strong> Order of execution</li>
+                    <li><strong>Delay:</strong> Wait time before step (ms)</li>
+                    <li><strong>Target User:</strong> Recipient user</li>
+                    <li><strong>Target Device:</strong> Recipient device</li>
+                    <li><strong>Alert Type:</strong> UrlAlert, RemoteAccessAlert, TrackUrlAlert</li>
+                    <li><strong>Alert Data:</strong> JSON configuration</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Step Editor Modal (Partial) -->
+@await Html.PartialAsync("_StepEditorDialog")
+
+@section Scripts {
+<script>
+    let steps = [];
+    let availableUsers = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AvailableUsers));
+
+    // Load existing steps on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const stepsJsonInput = document.getElementById('StepsJson');
+        if (stepsJsonInput && stepsJsonInput.value) {
+            try {
+                steps = JSON.parse(stepsJsonInput.value) || [];
+                renderSteps();
+            } catch (e) {
+                console.error('Failed to parse existing steps:', e);
+            }
+        }
+    });
+
+    // Add Step Button
+    document.getElementById('add-step-btn').addEventListener('click', function() {
+        openStepEditor(null);
+    });
+
+    function openStepEditor(stepIndex) {
+        const modal = new bootstrap.Modal(document.getElementById('stepEditorModal'));
+        
+        // Clear form
+        document.getElementById('step-sequence').value = steps.length + 1;
+        document.getElementById('step-delay-ms').value = '0';
+        document.getElementById('step-user-id').value = '';
+        document.getElementById('step-device-uid').value = '';
+        document.getElementById('step-alert-type').value = 'UrlAlert';
+        document.getElementById('step-alert-json').value = '{}';
+        document.getElementById('step-priority').value = 'High';
+        
+        // If editing, populate form
+        if (stepIndex !== null && steps[stepIndex]) {
+            const step = steps[stepIndex];
+            document.getElementById('step-sequence').value = step.Sequence;
+            document.getElementById('step-delay-ms').value = step.DelayMs;
+            document.getElementById('step-user-id').value = step.UserId;
+            document.getElementById('step-device-uid').value = step.DeviceUid;
+            document.getElementById('step-alert-type').value = step.AlertType;
+            document.getElementById('step-alert-json').value = step.AlertJson;
+            document.getElementById('step-priority').value = step.Priority;
+        }
+        
+        // Store current index for save
+        document.getElementById('stepEditorModal').dataset.editingIndex = stepIndex;
+        
+        modal.show();
+    }
+
+    function saveStep() {
+        const editingIndex = document.getElementById('stepEditorModal').dataset.editingIndex;
+        
+        const step = {
+            Sequence: parseInt(document.getElementById('step-sequence').value),
+            DelayMs: parseInt(document.getElementById('step-delay-ms').value),
+            UserId: document.getElementById('step-user-id').value,
+            DeviceUid: document.getElementById('step-device-uid').value,
+            AlertType: document.getElementById('step-alert-type').value,
+            AlertJson: document.getElementById('step-alert-json').value,
+            Priority: document.getElementById('step-priority').value
+        };
+        
+        if (editingIndex !== null && editingIndex !== 'null') {
+            steps[editingIndex] = step;
+        } else {
+            steps.push(step);
+        }
+        
+        renderSteps();
+        updateStepsJson();
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('stepEditorModal'));
+        modal.hide();
+    }
+
+    function deleteStep(index) {
+        if (confirm('Delete this step?')) {
+            steps.splice(index, 1);
+            // Renumber sequences
+            steps.forEach((s, i) => s.Sequence = i + 1);
+            renderSteps();
+            updateStepsJson();
+        }
+    }
+
+    function renderSteps() {
+        const container = document.getElementById('steps-container');
+        
+        if (steps.length === 0) {
+            container.innerHTML = '<div class="alert alert-info"><i class="fas fa-info-circle"></i> No steps added yet. Click "Add Step" below.</div>';
+            return;
+        }
+        
+        let html = '<table class="table table-sm table-bordered">';
+        html += '<thead><tr><th>#</th><th>Delay (ms)</th><th>User</th><th>Device</th><th>Alert Type</th><th>Actions</th></tr></thead>';
+        html += '<tbody>';
+        
+        steps.forEach((step, index) => {
+            html += '<tr>';
+            html += `<td>${step.Sequence}</td>`;
+            html += `<td>${step.DelayMs}</td>`;
+            html += `<td><small>${step.UserId}</small></td>`;
+            html += `<td><small>${step.DeviceUid}</small></td>`;
+            html += `<td><span class="badge bg-info">${step.AlertType}</span></td>`;
+            html += `<td>
+                <button type="button" class="btn btn-xs btn-sm btn-outline-primary" onclick="openStepEditor(${index})">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button type="button" class="btn btn-xs btn-sm btn-outline-danger" onclick="deleteStep(${index})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>`;
+            html += '</tr>';
+        });
+        
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    }
+
+    function updateStepsJson() {
+        document.getElementById('StepsJson').value = JSON.stringify(steps);
+    }
+</script>
+}

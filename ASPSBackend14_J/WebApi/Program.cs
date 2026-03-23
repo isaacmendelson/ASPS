@@ -15,6 +15,16 @@ builder.Services.AddControllers()
         options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
     });
 
+// Register Business layer services (DbContext, Repositories, Handlers, Background Services)
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "ConnectionStrings:DefaultConnection is required. " +
+        "Create appsettings.Development.json or set the connection string in appsettings.json");
+}
+builder.Services.AddBusinessServices(connectionString);
+
 // Configure forwarded headers for reverse proxy (Tailscale)
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
@@ -136,7 +146,7 @@ builder.Services.AddSingleton<CurveKeyManager>();
 
 var cqrsEndpoint = builder.Configuration.GetValue<string>("CQRS:Endpoint") ?? "tcp://localhost:5556";
 
-builder.Services.AddSingleton<CQRSClient>(sp =>
+builder.Services.AddSingleton<ICQRSClient>(sp =>
 {
     var logger = sp.GetRequiredService<ILogger<CQRSClient>>();
     var curveKeyManager = sp.GetRequiredService<CurveKeyManager>();

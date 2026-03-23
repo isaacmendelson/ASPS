@@ -9,10 +9,10 @@ namespace WebApi.Pages.Users
 {
     public class IndexModel : PageModel
     {
-        private readonly CQRSClient _cqrsClient;
+        private readonly ICQRSClient _cqrsClient;
         private readonly ILogger<IndexModel> _logger;
 
-        public IndexModel(CQRSClient cqrsClient, ILogger<IndexModel> logger)
+        public IndexModel(ICQRSClient cqrsClient, ILogger<IndexModel> logger)
         {
             _cqrsClient = cqrsClient;
             _logger = logger;
