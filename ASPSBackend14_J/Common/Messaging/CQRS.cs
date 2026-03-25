@@ -12,7 +12,10 @@ public abstract class Command : BaseMessage
     protected Command()
     {
         MessageType = "Command";
+        CommandType = GetType().Name;
     }
+    
+    public string CommandType { get; set; } = string.Empty;
 }
 
 public abstract class CommandResult
@@ -27,7 +30,10 @@ public abstract class Query : BaseMessage
     protected Query()
     {
         MessageType = "Query";
+        QueryType = GetType().Name;
     }
+    
+    public string QueryType { get; set; } = string.Empty;
 }
 
 public abstract class QueryResult

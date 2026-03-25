@@ -9,12 +9,6 @@ namespace Business.Queries;
 /// </summary>
 public class GetSimulationsQuery : Query
 {
-    public GetSimulationsQuery()
-    {
-        QueryType = nameof(GetSimulationsQuery);
-    }
-    
-    public string QueryType { get; set; } = nameof(GetSimulationsQuery);
     public string? SearchText { get; set; }
     public Key? CreatorKey { get; set; }
 }
@@ -29,12 +23,6 @@ public class GetSimulationsQueryResult : QueryResult
 /// </summary>
 public class GetSimulationDetailsQuery : Query
 {
-    public GetSimulationDetailsQuery()
-    {
-        QueryType = nameof(GetSimulationDetailsQuery);
-    }
-    
-    public string QueryType { get; set; } = string.Empty;
     public Key SimulationKey { get; set; } = new Key();
 }
 
@@ -49,12 +37,6 @@ public class GetSimulationDetailsQueryResult : QueryResult
 /// </summary>
 public class GetSimulationUsersQuery : Query
 {
-    public GetSimulationUsersQuery()
-    {
-        QueryType = nameof(GetSimulationUsersQuery);
-    }
-    
-    public string QueryType { get; set; } = nameof(GetSimulationUsersQuery);
     public string? SearchText { get; set; }
 }
 
@@ -81,12 +63,6 @@ public class SimulationUserDto
 /// </summary>
 public class GetSimulationUserDevicesQuery : Query
 {
-    public GetSimulationUserDevicesQuery()
-    {
-        QueryType = nameof(GetSimulationUserDevicesQuery);
-    }
-    
-    public string QueryType { get; set; } = nameof(GetSimulationUserDevicesQuery);
     public Key UserKey { get; set; } = new Key();
 }
 
