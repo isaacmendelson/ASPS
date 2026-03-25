@@ -104,7 +104,13 @@
 @section Scripts {
 <script>
     let steps = [];
-    let availableUsers = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AvailableUsers));
+    let userSearchTimeout = null;
+
+    // DOM elements
+    const userSearchInput = document.getElementById('step-user-search');
+    const userIdInput = document.getElementById('step-user-id');
+    const deviceSelect = document.getElementById('step-device-uid');
+    const autocompleteList = document.getElementById('user-autocomplete-list');
 
     // Load existing steps on page load
     document.addEventListener('DOMContentLoaded', function() {
@@ -115,8 +121,17 @@
                 renderSteps();
             } catch (e) {
                 console.error('Failed to parse existing steps:', e);
+                renderSteps();
             }
+        } else {
+            renderSteps();
         }
+
+        // Setup autocomplete
+        setupUserAutocomplete();
+        
+        // Setup save button
+        document.getElementById('save-step-btn').addEventListener('click', saveStep);
     });
 
     // Add Step Button
@@ -124,14 +139,154 @@
         openStepEditor(null);
     });
 
+    function setupUserAutocomplete() {
+        userSearchInput.addEventListener('input', function() {
+            clearTimeout(userSearchTimeout);
+            const searchText = this.value.trim();
+            
+            if (searchText.length < 2) {
+                autocompleteList.innerHTML = '';
+                return;
+            }
+            
+            userSearchTimeout = setTimeout(() => {
+                searchUsers(searchText);
+            }, 300);
+        });
+
+        userSearchInput.addEventListener('blur', function() {
+            // Delay hiding to allow click on autocomplete item
+            setTimeout(() => {
+                autocompleteList.innerHTML = '';
+            }, 200);
+        });
+    }
+
+    async function searchUsers(searchText) {
+        try {
+            console.log('Searching users:', searchText);
+            const response = await fetch(`/api/simulations/users?search=${encodeURIComponent(searchText)}`);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Search users failed:', response.status, errorText);
+                autocompleteList.innerHTML = '<div class="text-danger p-2">Error loading users</div>';
+                return;
+            }
+            
+            const users = await response.json();
+            console.log('Found users:', users);
+            renderUserAutocomplete(users);
+        } catch (error) {
+            console.error('Error searching users:', error);
+            autocompleteList.innerHTML = '<div class="text-danger p-2">Error loading users</div>';
+        }
+    }
+
+    function renderUserAutocomplete(users) {
+        if (users.length === 0) {
+            autocompleteList.innerHTML = '<div class="text-muted p-2">No users found</div>';
+            return;
+        }
+        
+        let html = '';
+        users.forEach(user => {
+            const displayName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unnamed User';
+            const details = [user.email, user.phoneNumber].filter(x => x).join(' | ');
+            const keyField = user.userKey?.keyField || user.userId || '';
+            
+            html += `<div onclick="selectUser('${escapeHtml(keyField)}', '${escapeHtml(displayName)}', '${escapeHtml(details)}')" class="user-info">
+                <div class="name">${escapeHtml(displayName)}</div>
+                <div class="details">${escapeHtml(details)}</div>
+            </div>`;
+        });
+        
+        autocompleteList.innerHTML = html;
+    }
+
+    function selectUser(userKeyField, displayName, details) {
+        userIdInput.value = userKeyField;
+        userSearchInput.value = displayName + (details ? ` (${details})` : '');
+        autocompleteList.innerHTML = '';
+        
+        // Load devices for selected user
+        loadUserDevices(userKeyField);
+    }
+
+    async function loadUserDevices(userKeyField) {
+        deviceSelect.innerHTML = '<option value="">Loading devices...</option>';
+        deviceSelect.disabled = true;
+        
+        try {
+            console.log('Loading devices for user:', userKeyField);
+            const response = await fetch(`/api/simulations/users/${encodeURIComponent(userKeyField)}/devices`);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Load devices failed:', response.status, errorText);
+                deviceSelect.innerHTML = '<option value="">Error loading devices</option>';
+                return;
+            }
+            
+            const devices = await response.json();
+            console.log('Found devices:', devices);
+            renderDeviceOptions(devices);
+        } catch (error) {
+            console.error('Error loading devices:', error);
+            deviceSelect.innerHTML = '<option value="">Error loading devices</option>';
+        }
+    }
+
+    function renderDeviceOptions(devices) {
+        if (devices.length === 0) {
+            deviceSelect.innerHTML = '<option value="">No devices found for this user</option>';
+            deviceSelect.disabled = true;
+            return;
+        }
+        
+        let html = '<option value="">-- Select a device --</option>';
+        devices.forEach(device => {
+            const deviceType = getDeviceTypeDisplay(device.deviceType);
+            const osInfo = device.operatingSystem ? ` (${device.operatingSystem})` : '';
+            const displayText = `${device.deviceUid} - ${deviceType}${osInfo}`;
+            
+            html += `<option value="${escapeHtml(device.deviceUid)}">${escapeHtml(displayText)}</option>`;
+        });
+        
+        deviceSelect.innerHTML = html;
+        deviceSelect.disabled = false;
+    }
+
+    function getDeviceTypeDisplay(deviceType) {
+        const types = {
+            'Desktop': '🖥️ Desktop',
+            'Laptop': '💻 Laptop',
+            'Mobile': '📱 Mobile',
+            'Tablet': '📱 Tablet',
+            'Phone': '📱 Phone',
+            'Computer': '🖥️ Computer',
+            'Unknown': '❓ Unknown'
+        };
+        return types[deviceType] || deviceType || 'Unknown';
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     function openStepEditor(stepIndex) {
         const modal = new bootstrap.Modal(document.getElementById('stepEditorModal'));
         
         // Clear form
         document.getElementById('step-sequence').value = steps.length + 1;
         document.getElementById('step-delay-ms').value = '0';
-        document.getElementById('step-user-id').value = '';
-        document.getElementById('step-device-uid').value = '';
+        userIdInput.value = '';
+        userSearchInput.value = '';
+        deviceSelect.innerHTML = '<option value="">-- Select a user first --</option>';
+        deviceSelect.disabled = true;
         document.getElementById('step-alert-type').value = 'UrlAlert';
         document.getElementById('step-alert-json').value = '{}';
         document.getElementById('step-priority').value = 'High';
@@ -141,11 +296,20 @@
             const step = steps[stepIndex];
             document.getElementById('step-sequence').value = step.Sequence;
             document.getElementById('step-delay-ms').value = step.DelayMs;
-            document.getElementById('step-user-id').value = step.UserId;
-            document.getElementById('step-device-uid').value = step.DeviceUid;
+            userIdInput.value = step.UserId;
+            userSearchInput.value = step.UserId; // Will show ID, can be improved
             document.getElementById('step-alert-type').value = step.AlertType;
             document.getElementById('step-alert-json').value = step.AlertJson;
             document.getElementById('step-priority').value = step.Priority;
+            
+            // Load devices if we have a user ID
+            if (step.UserId) {
+                loadUserDevices(step.UserId).then(() => {
+                    if (step.DeviceUid) {
+                        deviceSelect.value = step.DeviceUid;
+                    }
+                });
+            }
         }
         
         // Store current index for save
@@ -155,20 +319,34 @@
     }
 
     function saveStep() {
+        // Validate user selection
+        if (!userIdInput.value) {
+            alert('Please select a user from the autocomplete list');
+            userSearchInput.focus();
+            return;
+        }
+        
+        // Validate device selection
+        if (!deviceSelect.value) {
+            alert('Please select a device');
+            deviceSelect.focus();
+            return;
+        }
+        
         const editingIndex = document.getElementById('stepEditorModal').dataset.editingIndex;
         
         const step = {
             Sequence: parseInt(document.getElementById('step-sequence').value),
             DelayMs: parseInt(document.getElementById('step-delay-ms').value),
-            UserId: document.getElementById('step-user-id').value,
-            DeviceUid: document.getElementById('step-device-uid').value,
+            UserId: userIdInput.value,
+            DeviceUid: deviceSelect.value,
             AlertType: document.getElementById('step-alert-type').value,
             AlertJson: document.getElementById('step-alert-json').value,
             Priority: document.getElementById('step-priority').value
         };
         
         if (editingIndex !== null && editingIndex !== 'null') {
-            steps[editingIndex] = step;
+            steps[parseInt(editingIndex)] = step;
         } else {
             steps.push(step);
         }
