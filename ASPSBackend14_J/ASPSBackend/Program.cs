@@ -135,6 +135,7 @@ class Program
                 services.AddScoped<IKnownPhishingWebsiteRepository, KnownPhishingWebsiteRepository>();
                 services.AddScoped<ISafeDomainRepository, SafeDomainRepository>();
                 services.AddScoped<ITrackedDomainRepository, TrackedDomainRepository>();
+                services.AddScoped<ISimulationRepository, SimulationRepository>();
 
                 // Add Handlers
                 services.AddScoped<UserCommandHandlers>();
@@ -142,6 +143,8 @@ class Program
                 services.AddScoped<AdminCommandHandlers>();
                 services.AddScoped<AdminQueryHandlers>();
                 services.AddScoped<SystemCommandHandlers>();
+                services.AddScoped<SimulationQueryHandlers>();
+                services.AddScoped<SimulationCommandHandlers>();
 
                 // Add CQRS Gateway (listens for Commands/Queries from WebApi)
                 services.AddSingleton<CQRSGateway>();
