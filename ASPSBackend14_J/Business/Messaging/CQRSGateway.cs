@@ -152,6 +152,11 @@ public class CQRSGateway : IDisposable
             "GetAllTrackedDomainsQuery" => await HandleGetAllTrackedDomainsQuery(messageJson),
             "ValidateDeviceTokenQuery" => HandleValidateDeviceTokenQuery(messageJson),
             "GetVersionQuery" => HandleGetVersionQuery(),
+            // Simulation Queries
+            "GetSimulationsQuery" => await HandleGetSimulationsQuery(messageJson, scope),
+            "GetSimulationDetailsQuery" => await HandleGetSimulationDetailsQuery(messageJson, scope),
+            "GetSimulationUsersQuery" => await HandleGetSimulationUsersQuery(messageJson, scope),
+            "GetSimulationUserDevicesQuery" => await HandleGetSimulationUserDevicesQuery(messageJson, scope),
             _ => CreateErrorResponse($"Unknown query type: {queryType}")
         };
     }
@@ -175,6 +180,11 @@ public class CQRSGateway : IDisposable
             "CreateUserDeviceCommand" => await HandleCreateUserDeviceCommand(messageJson, scope),
             "DeleteUserCommand" => await HandleDeleteUserCommand(messageJson, scope),
             "ReInitializeASViewCommand" => await HandleReInitializeASViewCommand(messageJson, scope),
+            // Simulation Commands
+            "CreateSimulationCommand" => await HandleCreateSimulationCommand(messageJson, scope),
+            "UpdateSimulationCommand" => await HandleUpdateSimulationCommand(messageJson, scope),
+            "DeleteSimulationCommand" => await HandleDeleteSimulationCommand(messageJson, scope),
+            "RunSimulationCommand" => await HandleRunSimulationCommand(messageJson, scope),
             _ => CreateErrorResponse($"Unknown command type: {commandType}")
         };
     }
@@ -589,5 +599,115 @@ public class CQRSGateway : IDisposable
             _logger.LogError(ex, "Error getting tracked domains");
             return CreateErrorResponse($"Error: {ex.Message}");
         }
+    }
+
+    // Simulation Query Handlers
+    private async Task<string> HandleGetSimulationsQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetSimulationsQuery>(messageJson) ?? new GetSimulationsQuery();
+        var handler = scope.ServiceProvider.GetRequiredService<SimulationQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleGetSimulationDetailsQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetSimulationDetailsQuery>(messageJson);
+        if (query == null) return CreateErrorResponse("Invalid GetSimulationDetailsQuery format");
+
+        var handler = scope.ServiceProvider.GetRequiredService<SimulationQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleGetSimulationUsersQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetSimulationUsersQuery>(messageJson) ?? new GetSimulationUsersQuery();
+        var handler = scope.ServiceProvider.GetRequiredService<SimulationQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleGetSimulationUserDevicesQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetSimulationUserDevicesQuery>(messageJson);
+        if (query == null) return CreateErrorResponse("Invalid GetSimulationUserDevicesQuery format");
+
+        var handler = scope.ServiceProvider.GetRequiredService<SimulationQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    // Simulation Command Handlers
+    private async Task<string> HandleCreateSimulationCommand(string messageJson, IServiceScope scope)
+    {
+        var command = JsonConvert.DeserializeObject<CreateSimulationCommand>(messageJson);
+        if (command == null) return CreateErrorResponse("Invalid CreateSimulationCommand format");
+
+        var handler = scope.ServiceProvider.GetRequiredService<SimulationCommandHandlers>();
+        var result = await handler.HandleAsync(command);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleUpdateSimulationCommand(string messageJson, IServiceScope scope)
+    {
+        var command = JsonConvert.DeserializeObject<UpdateSimulationCommand>(messageJson);
+        if (command == null) return CreateErrorResponse("Invalid UpdateSimulationCommand format");
+
+        var handler = scope.ServiceProvider.GetRequiredService<SimulationCommandHandlers>();
+        var result = await handler.HandleAsync(command);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleDeleteSimulationCommand(string messageJson, IServiceScope scope)
+    {
+        var command = JsonConvert.DeserializeObject<DeleteSimulationCommand>(messageJson);
+        if (command == null) return CreateErrorResponse("Invalid DeleteSimulationCommand format");
+
+        var handler = scope.ServiceProvider.GetRequiredService<SimulationCommandHandlers>();
+        var result = await handler.HandleAsync(command);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleRunSimulationCommand(string messageJson, IServiceScope scope)
+    {
+        var command = JsonConvert.DeserializeObject<RunSimulationCommand>(messageJson);
+        if (command == null) return CreateErrorResponse("Invalid RunSimulationCommand format");
+
+        var handler = scope.ServiceProvider.GetRequiredService<SimulationCommandHandlers>();
+        var result = await handler.HandleAsync(command);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
     }
 }
