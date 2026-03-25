@@ -135,13 +135,16 @@
 
 <script>
     $(document).ready(function() {
-        $('#simulationsTable').DataTable({
-            order: [[4, 'desc']], // Sort by created date descending
-            pageLength: 25,
-            columnDefs: [
-                { orderable: false, targets: 5 } // Disable sorting on Actions column
-            ]
-        });
+        // Only initialize DataTables if there are simulations
+        if ($('#simulationsTable tbody tr').length > 0 && !$('#simulationsTable tbody tr td[colspan]').length) {
+            $('#simulationsTable').DataTable({
+                order: [[4, 'desc']], // Sort by created date descending
+                pageLength: 25,
+                columnDefs: [
+                    { orderable: false, targets: 5 } // Disable sorting on Actions column
+                ]
+            });
+        }
     });
 </script>
 }
