@@ -12,12 +12,12 @@ namespace WebApi.Hubs
     public class NotificationsHub : Hub
     {
         private readonly ILogger<NotificationsHub> _logger;
-        private readonly CQRSClient _cqrsClient;
+        private readonly ICQRSClient _cqrsClient;
 
         private const string DeviceUidKey = "ValidatedDeviceUid";
         private const string UserKeyFieldKey = "ValidatedUserKeyField";
 
-        public NotificationsHub(ILogger<NotificationsHub> logger, CQRSClient cqrsClient)
+        public NotificationsHub(ILogger<NotificationsHub> logger, ICQRSClient cqrsClient)
         {
             _logger = logger;
             _cqrsClient = cqrsClient;
