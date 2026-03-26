@@ -20,16 +20,16 @@ public class ProtectiveActionsMatrix
     /// <param name="hasRemoteAccess">Whether remote access is currently active</param>
     /// <param name="isTargeted">Whether user is marked as targeted</param>
     /// <returns>Combined protective actions to execute</returns>
-    public ProtectiveAction DetermineActions(
+    public ProtectiveActionFlags DetermineActions(
         double riskScore,
         bool hasRemoteAccess = false,
         bool isTargeted = false)
     {
-        var actions = ProtectiveAction.None;
+        var actions = ProtectiveActionFlags.None;
 
         // Always log events for analysis
         if (riskScore > 0)
-            actions |= ProtectiveAction.LogEvent;
+            actions |= ProtectiveActionFlags.LogEvent;
 
         // 0-20: Passive monitoring
         if (riskScore <= 20)
@@ -40,55 +40,55 @@ public class ProtectiveActionsMatrix
         // 21-40: Warning Banner
         if (riskScore <= 40)
         {
-            actions |= ProtectiveAction.WarningBanner;
+            actions |= ProtectiveActionFlags.WarningBanner;
             return actions;
         }
 
         // 41-60: Push + Modal + Detailed Tracking
         if (riskScore <= 60)
         {
-            actions |= ProtectiveAction.WarningBanner;
-            actions |= ProtectiveAction.PushNotification;
-            actions |= ProtectiveAction.ModalDialog;
-            actions |= ProtectiveAction.DetailedTracking;
-            actions |= ProtectiveAction.AlertGuardian;
+            actions |= ProtectiveActionFlags.WarningBanner;
+            actions |= ProtectiveActionFlags.PushNotification;
+            actions |= ProtectiveActionFlags.ModalDialog;
+            actions |= ProtectiveActionFlags.DetailedTracking;
+            actions |= ProtectiveActionFlags.AlertGuardian;
             return actions;
         }
 
         // 61-80: Block Page + Disconnect Remote Access + SMS to Contact
         if (riskScore <= 80)
         {
-            actions |= ProtectiveAction.WarningBanner;
-            actions |= ProtectiveAction.PushNotification;
-            actions |= ProtectiveAction.ModalDialog;
-            actions |= ProtectiveAction.DetailedTracking;
-            actions |= ProtectiveAction.BlockPage;
-            actions |= ProtectiveAction.AlertGuardian;
-            actions |= ProtectiveAction.SmsEmergencyContact;
+            actions |= ProtectiveActionFlags.WarningBanner;
+            actions |= ProtectiveActionFlags.PushNotification;
+            actions |= ProtectiveActionFlags.ModalDialog;
+            actions |= ProtectiveActionFlags.DetailedTracking;
+            actions |= ProtectiveActionFlags.BlockPage;
+            actions |= ProtectiveActionFlags.AlertGuardian;
+            actions |= ProtectiveActionFlags.SmsEmergencyContact;
 
             if (hasRemoteAccess)
             {
-                actions |= ProtectiveAction.DisconnectRemoteAccess;
+                actions |= ProtectiveActionFlags.DisconnectRemoteAccess;
             }
 
             return actions;
         }
 
         // 81-100: Cross-Platform Lock + Black Screen + Lock Browser
-        actions |= ProtectiveAction.WarningBanner;
-        actions |= ProtectiveAction.PushNotification;
-        actions |= ProtectiveAction.ModalDialog;
-        actions |= ProtectiveAction.DetailedTracking;
-        actions |= ProtectiveAction.BlockPage;
-        actions |= ProtectiveAction.AlertGuardian;
-        actions |= ProtectiveAction.SmsEmergencyContact;
-        actions |= ProtectiveAction.CrossPlatformLock;
-        actions |= ProtectiveAction.LockBrowser;
+        actions |= ProtectiveActionFlags.WarningBanner;
+        actions |= ProtectiveActionFlags.PushNotification;
+        actions |= ProtectiveActionFlags.ModalDialog;
+        actions |= ProtectiveActionFlags.DetailedTracking;
+        actions |= ProtectiveActionFlags.BlockPage;
+        actions |= ProtectiveActionFlags.AlertGuardian;
+        actions |= ProtectiveActionFlags.SmsEmergencyContact;
+        actions |= ProtectiveActionFlags.CrossPlatformLock;
+        actions |= ProtectiveActionFlags.LockBrowser;
 
         if (hasRemoteAccess)
         {
-            actions |= ProtectiveAction.DisconnectRemoteAccess;
-            actions |= ProtectiveAction.BlackScreen;
+            actions |= ProtectiveActionFlags.DisconnectRemoteAccess;
+            actions |= ProtectiveActionFlags.BlackScreen;
         }
 
         return actions;
@@ -97,7 +97,7 @@ public class ProtectiveActionsMatrix
     /// <summary>
     /// Check if specific action should be taken
     /// </summary>
-    public bool ShouldTakeAction(ProtectiveAction actions, ProtectiveAction specificAction)
+    public bool ShouldTakeAction(ProtectiveActionFlags actions, ProtectiveActionFlags specificAction)
     {
         return actions.HasFlag(specificAction);
     }
@@ -105,44 +105,44 @@ public class ProtectiveActionsMatrix
     /// <summary>
     /// Get human-readable description of actions
     /// </summary>
-    public List<string> DescribeActions(ProtectiveAction actions)
+    public List<string> DescribeActions(ProtectiveActionFlags actions)
     {
         var descriptions = new List<string>();
 
-        if (actions.HasFlag(ProtectiveAction.LogEvent))
+        if (actions.HasFlag(ProtectiveActionFlags.LogEvent))
             descriptions.Add("Log event for analysis");
 
-        if (actions.HasFlag(ProtectiveAction.WarningBanner))
+        if (actions.HasFlag(ProtectiveActionFlags.WarningBanner))
             descriptions.Add("Display warning banner");
 
-        if (actions.HasFlag(ProtectiveAction.PushNotification))
+        if (actions.HasFlag(ProtectiveActionFlags.PushNotification))
             descriptions.Add("Send push notification");
 
-        if (actions.HasFlag(ProtectiveAction.ModalDialog))
+        if (actions.HasFlag(ProtectiveActionFlags.ModalDialog))
             descriptions.Add("Show blocking modal dialog");
 
-        if (actions.HasFlag(ProtectiveAction.DetailedTracking))
+        if (actions.HasFlag(ProtectiveActionFlags.DetailedTracking))
             descriptions.Add("Enable detailed session tracking");
 
-        if (actions.HasFlag(ProtectiveAction.BlockPage))
+        if (actions.HasFlag(ProtectiveActionFlags.BlockPage))
             descriptions.Add("Block access to page");
 
-        if (actions.HasFlag(ProtectiveAction.DisconnectRemoteAccess))
+        if (actions.HasFlag(ProtectiveActionFlags.DisconnectRemoteAccess))
             descriptions.Add("Disconnect remote access session");
 
-        if (actions.HasFlag(ProtectiveAction.SmsEmergencyContact))
+        if (actions.HasFlag(ProtectiveActionFlags.SmsEmergencyContact))
             descriptions.Add("Send SMS to emergency contact");
 
-        if (actions.HasFlag(ProtectiveAction.CrossPlatformLock))
+        if (actions.HasFlag(ProtectiveActionFlags.CrossPlatformLock))
             descriptions.Add("Lock all user devices");
 
-        if (actions.HasFlag(ProtectiveAction.BlackScreen))
+        if (actions.HasFlag(ProtectiveActionFlags.BlackScreen))
             descriptions.Add("Activate black screen protection");
 
-        if (actions.HasFlag(ProtectiveAction.LockBrowser))
+        if (actions.HasFlag(ProtectiveActionFlags.LockBrowser))
             descriptions.Add("Lock browser completely");
 
-        if (actions.HasFlag(ProtectiveAction.AlertGuardian))
+        if (actions.HasFlag(ProtectiveActionFlags.AlertGuardian))
             descriptions.Add("Alert guardian/administrator");
 
         return descriptions;
@@ -151,20 +151,20 @@ public class ProtectiveActionsMatrix
     /// <summary>
     /// Get severity level based on actions
     /// </summary>
-    public RiskSeverity GetSeverity(ProtectiveAction actions)
+    public RiskSeverity GetSeverity(ProtectiveActionFlags actions)
     {
-        if (actions.HasFlag(ProtectiveAction.LockBrowser) ||
-            actions.HasFlag(ProtectiveAction.CrossPlatformLock))
+        if (actions.HasFlag(ProtectiveActionFlags.LockBrowser) ||
+            actions.HasFlag(ProtectiveActionFlags.CrossPlatformLock))
             return RiskSeverity.Critical;
 
-        if (actions.HasFlag(ProtectiveAction.BlockPage) ||
-            actions.HasFlag(ProtectiveAction.DisconnectRemoteAccess))
+        if (actions.HasFlag(ProtectiveActionFlags.BlockPage) ||
+            actions.HasFlag(ProtectiveActionFlags.DisconnectRemoteAccess))
             return RiskSeverity.High;
 
-        if (actions.HasFlag(ProtectiveAction.ModalDialog))
+        if (actions.HasFlag(ProtectiveActionFlags.ModalDialog))
             return RiskSeverity.Medium;
 
-        if (actions.HasFlag(ProtectiveAction.WarningBanner))
+        if (actions.HasFlag(ProtectiveActionFlags.WarningBanner))
             return RiskSeverity.Low;
 
         return RiskSeverity.Info;

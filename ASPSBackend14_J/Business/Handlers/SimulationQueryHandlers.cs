@@ -201,7 +201,7 @@ public class SimulationQueryHandlers
                     DeviceType = device.DeviceType.ToString(),
                     OperatingSystem = device.OperatingSystem.ToString(),
                     MAC = device.MAC,
-                    UserKeyField = device.UserKey.KeyField,
+                    UserKeyField = device.UserKey.Value,
                     UserFullName = user != null ? $"{user.FirstName} {user.LastName}".Trim() : null
                 });
             }

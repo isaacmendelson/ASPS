@@ -24,9 +24,9 @@ public class ProtectiveActionsMatrixTests
         var result = sut.DetermineActions(riskScore);
 
         // Assert
-        result.Should().HaveFlag(ProtectiveAction.LogEvent);
-        result.Should().NotHaveFlag(ProtectiveAction.WarningBanner);
-        result.Should().NotHaveFlag(ProtectiveAction.PushNotification);
+        result.Should().HaveFlag(ProtectiveActionFlags.LogEvent);
+        result.Should().NotHaveFlag(ProtectiveActionFlags.WarningBanner);
+        result.Should().NotHaveFlag(ProtectiveActionFlags.PushNotification);
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public class ProtectiveActionsMatrixTests
         var result = sut.DetermineActions(0);
 
         // Assert
-        result.Should().Be(ProtectiveAction.None);
+        result.Should().Be(ProtectiveActionFlags.None);
     }
 
     #endregion
@@ -59,10 +59,10 @@ public class ProtectiveActionsMatrixTests
         var result = sut.DetermineActions(riskScore);
 
         // Assert
-        result.Should().HaveFlag(ProtectiveAction.LogEvent);
-        result.Should().HaveFlag(ProtectiveAction.WarningBanner);
-        result.Should().NotHaveFlag(ProtectiveAction.PushNotification);
-        result.Should().NotHaveFlag(ProtectiveAction.ModalDialog);
+        result.Should().HaveFlag(ProtectiveActionFlags.LogEvent);
+        result.Should().HaveFlag(ProtectiveActionFlags.WarningBanner);
+        result.Should().NotHaveFlag(ProtectiveActionFlags.PushNotification);
+        result.Should().NotHaveFlag(ProtectiveActionFlags.ModalDialog);
     }
 
     #endregion
@@ -82,13 +82,13 @@ public class ProtectiveActionsMatrixTests
         var result = sut.DetermineActions(riskScore);
 
         // Assert
-        result.Should().HaveFlag(ProtectiveAction.LogEvent);
-        result.Should().HaveFlag(ProtectiveAction.WarningBanner);
-        result.Should().HaveFlag(ProtectiveAction.PushNotification);
-        result.Should().HaveFlag(ProtectiveAction.ModalDialog);
-        result.Should().HaveFlag(ProtectiveAction.DetailedTracking);
-        result.Should().HaveFlag(ProtectiveAction.AlertGuardian);
-        result.Should().NotHaveFlag(ProtectiveAction.BlockPage);
+        result.Should().HaveFlag(ProtectiveActionFlags.LogEvent);
+        result.Should().HaveFlag(ProtectiveActionFlags.WarningBanner);
+        result.Should().HaveFlag(ProtectiveActionFlags.PushNotification);
+        result.Should().HaveFlag(ProtectiveActionFlags.ModalDialog);
+        result.Should().HaveFlag(ProtectiveActionFlags.DetailedTracking);
+        result.Should().HaveFlag(ProtectiveActionFlags.AlertGuardian);
+        result.Should().NotHaveFlag(ProtectiveActionFlags.BlockPage);
     }
 
     #endregion
@@ -108,15 +108,15 @@ public class ProtectiveActionsMatrixTests
         var result = sut.DetermineActions(riskScore);
 
         // Assert
-        result.Should().HaveFlag(ProtectiveAction.LogEvent);
-        result.Should().HaveFlag(ProtectiveAction.WarningBanner);
-        result.Should().HaveFlag(ProtectiveAction.PushNotification);
-        result.Should().HaveFlag(ProtectiveAction.ModalDialog);
-        result.Should().HaveFlag(ProtectiveAction.DetailedTracking);
-        result.Should().HaveFlag(ProtectiveAction.BlockPage);
-        result.Should().HaveFlag(ProtectiveAction.SmsEmergencyContact);
-        result.Should().HaveFlag(ProtectiveAction.AlertGuardian);
-        result.Should().NotHaveFlag(ProtectiveAction.CrossPlatformLock);
+        result.Should().HaveFlag(ProtectiveActionFlags.LogEvent);
+        result.Should().HaveFlag(ProtectiveActionFlags.WarningBanner);
+        result.Should().HaveFlag(ProtectiveActionFlags.PushNotification);
+        result.Should().HaveFlag(ProtectiveActionFlags.ModalDialog);
+        result.Should().HaveFlag(ProtectiveActionFlags.DetailedTracking);
+        result.Should().HaveFlag(ProtectiveActionFlags.BlockPage);
+        result.Should().HaveFlag(ProtectiveActionFlags.SmsEmergencyContact);
+        result.Should().HaveFlag(ProtectiveActionFlags.AlertGuardian);
+        result.Should().NotHaveFlag(ProtectiveActionFlags.CrossPlatformLock);
     }
 
     [Theory]
@@ -132,7 +132,7 @@ public class ProtectiveActionsMatrixTests
         var result = sut.DetermineActions(riskScore, hasRemoteAccess: true);
 
         // Assert
-        result.Should().HaveFlag(ProtectiveAction.DisconnectRemoteAccess);
+        result.Should().HaveFlag(ProtectiveActionFlags.DisconnectRemoteAccess);
     }
 
     [Theory]
@@ -148,7 +148,7 @@ public class ProtectiveActionsMatrixTests
         var result = sut.DetermineActions(riskScore, hasRemoteAccess: false);
 
         // Assert
-        result.Should().NotHaveFlag(ProtectiveAction.DisconnectRemoteAccess);
+        result.Should().NotHaveFlag(ProtectiveActionFlags.DisconnectRemoteAccess);
     }
 
     #endregion
@@ -168,16 +168,16 @@ public class ProtectiveActionsMatrixTests
         var result = sut.DetermineActions(riskScore);
 
         // Assert
-        result.Should().HaveFlag(ProtectiveAction.LogEvent);
-        result.Should().HaveFlag(ProtectiveAction.WarningBanner);
-        result.Should().HaveFlag(ProtectiveAction.PushNotification);
-        result.Should().HaveFlag(ProtectiveAction.ModalDialog);
-        result.Should().HaveFlag(ProtectiveAction.DetailedTracking);
-        result.Should().HaveFlag(ProtectiveAction.BlockPage);
-        result.Should().HaveFlag(ProtectiveAction.SmsEmergencyContact);
-        result.Should().HaveFlag(ProtectiveAction.AlertGuardian);
-        result.Should().HaveFlag(ProtectiveAction.CrossPlatformLock);
-        result.Should().HaveFlag(ProtectiveAction.LockBrowser);
+        result.Should().HaveFlag(ProtectiveActionFlags.LogEvent);
+        result.Should().HaveFlag(ProtectiveActionFlags.WarningBanner);
+        result.Should().HaveFlag(ProtectiveActionFlags.PushNotification);
+        result.Should().HaveFlag(ProtectiveActionFlags.ModalDialog);
+        result.Should().HaveFlag(ProtectiveActionFlags.DetailedTracking);
+        result.Should().HaveFlag(ProtectiveActionFlags.BlockPage);
+        result.Should().HaveFlag(ProtectiveActionFlags.SmsEmergencyContact);
+        result.Should().HaveFlag(ProtectiveActionFlags.AlertGuardian);
+        result.Should().HaveFlag(ProtectiveActionFlags.CrossPlatformLock);
+        result.Should().HaveFlag(ProtectiveActionFlags.LockBrowser);
     }
 
     [Theory]
@@ -193,8 +193,8 @@ public class ProtectiveActionsMatrixTests
         var result = sut.DetermineActions(riskScore, hasRemoteAccess: true);
 
         // Assert
-        result.Should().HaveFlag(ProtectiveAction.BlackScreen);
-        result.Should().HaveFlag(ProtectiveAction.DisconnectRemoteAccess);
+        result.Should().HaveFlag(ProtectiveActionFlags.BlackScreen);
+        result.Should().HaveFlag(ProtectiveActionFlags.DisconnectRemoteAccess);
     }
 
     [Theory]
@@ -210,8 +210,8 @@ public class ProtectiveActionsMatrixTests
         var result = sut.DetermineActions(riskScore, hasRemoteAccess: false);
 
         // Assert
-        result.Should().NotHaveFlag(ProtectiveAction.BlackScreen);
-        result.Should().NotHaveFlag(ProtectiveAction.DisconnectRemoteAccess);
+        result.Should().NotHaveFlag(ProtectiveActionFlags.BlackScreen);
+        result.Should().NotHaveFlag(ProtectiveActionFlags.DisconnectRemoteAccess);
     }
 
     #endregion
@@ -223,10 +223,10 @@ public class ProtectiveActionsMatrixTests
     {
         // Arrange
         var sut = new ProtectiveActionsMatrix();
-        var actions = ProtectiveAction.LogEvent | ProtectiveAction.WarningBanner;
+        var actions = ProtectiveActionFlags.LogEvent | ProtectiveActionFlags.WarningBanner;
 
         // Act
-        var result = sut.ShouldTakeAction(actions, ProtectiveAction.WarningBanner);
+        var result = sut.ShouldTakeAction(actions, ProtectiveActionFlags.WarningBanner);
 
         // Assert
         result.Should().BeTrue();
@@ -237,10 +237,10 @@ public class ProtectiveActionsMatrixTests
     {
         // Arrange
         var sut = new ProtectiveActionsMatrix();
-        var actions = ProtectiveAction.LogEvent | ProtectiveAction.WarningBanner;
+        var actions = ProtectiveActionFlags.LogEvent | ProtectiveActionFlags.WarningBanner;
 
         // Act
-        var result = sut.ShouldTakeAction(actions, ProtectiveAction.BlockPage);
+        var result = sut.ShouldTakeAction(actions, ProtectiveActionFlags.BlockPage);
 
         // Assert
         result.Should().BeFalse();
@@ -257,7 +257,7 @@ public class ProtectiveActionsMatrixTests
         var sut = new ProtectiveActionsMatrix();
 
         // Act
-        var result = sut.DescribeActions(ProtectiveAction.None);
+        var result = sut.DescribeActions(ProtectiveActionFlags.None);
 
         // Assert
         result.Should().BeEmpty();
@@ -270,7 +270,7 @@ public class ProtectiveActionsMatrixTests
         var sut = new ProtectiveActionsMatrix();
 
         // Act
-        var result = sut.DescribeActions(ProtectiveAction.WarningBanner);
+        var result = sut.DescribeActions(ProtectiveActionFlags.WarningBanner);
 
         // Assert
         result.Should().HaveCount(1);
@@ -282,9 +282,9 @@ public class ProtectiveActionsMatrixTests
     {
         // Arrange
         var sut = new ProtectiveActionsMatrix();
-        var actions = ProtectiveAction.LogEvent | 
-                     ProtectiveAction.WarningBanner | 
-                     ProtectiveAction.PushNotification;
+        var actions = ProtectiveActionFlags.LogEvent | 
+                     ProtectiveActionFlags.WarningBanner | 
+                     ProtectiveActionFlags.PushNotification;
 
         // Act
         var result = sut.DescribeActions(actions);
@@ -324,7 +324,7 @@ public class ProtectiveActionsMatrixTests
         var sut = new ProtectiveActionsMatrix();
 
         // Act
-        var result = sut.GetSeverity(ProtectiveAction.None);
+        var result = sut.GetSeverity(ProtectiveActionFlags.None);
 
         // Assert
         result.Should().Be(RiskSeverity.Info);
@@ -337,7 +337,7 @@ public class ProtectiveActionsMatrixTests
         var sut = new ProtectiveActionsMatrix();
 
         // Act
-        var result = sut.GetSeverity(ProtectiveAction.WarningBanner);
+        var result = sut.GetSeverity(ProtectiveActionFlags.WarningBanner);
 
         // Assert
         result.Should().Be(RiskSeverity.Low);
@@ -350,7 +350,7 @@ public class ProtectiveActionsMatrixTests
         var sut = new ProtectiveActionsMatrix();
 
         // Act
-        var result = sut.GetSeverity(ProtectiveAction.ModalDialog);
+        var result = sut.GetSeverity(ProtectiveActionFlags.ModalDialog);
 
         // Assert
         result.Should().Be(RiskSeverity.Medium);
@@ -363,7 +363,7 @@ public class ProtectiveActionsMatrixTests
         var sut = new ProtectiveActionsMatrix();
 
         // Act
-        var result = sut.GetSeverity(ProtectiveAction.BlockPage);
+        var result = sut.GetSeverity(ProtectiveActionFlags.BlockPage);
 
         // Assert
         result.Should().Be(RiskSeverity.High);
@@ -376,7 +376,7 @@ public class ProtectiveActionsMatrixTests
         var sut = new ProtectiveActionsMatrix();
 
         // Act
-        var result = sut.GetSeverity(ProtectiveAction.CrossPlatformLock);
+        var result = sut.GetSeverity(ProtectiveActionFlags.CrossPlatformLock);
 
         // Assert
         result.Should().Be(RiskSeverity.Critical);
@@ -389,7 +389,7 @@ public class ProtectiveActionsMatrixTests
         var sut = new ProtectiveActionsMatrix();
 
         // Act
-        var result = sut.GetSeverity(ProtectiveAction.LockBrowser);
+        var result = sut.GetSeverity(ProtectiveActionFlags.LockBrowser);
 
         // Assert
         result.Should().Be(RiskSeverity.Critical);
@@ -417,12 +417,12 @@ public class ProtectiveActionsMatrixTests
         severity.Should().Be(RiskSeverity.Critical);
 
         // Assert - All maximum protection actions
-        sut.ShouldTakeAction(actions, ProtectiveAction.CrossPlatformLock).Should().BeTrue();
-        sut.ShouldTakeAction(actions, ProtectiveAction.LockBrowser).Should().BeTrue();
-        sut.ShouldTakeAction(actions, ProtectiveAction.BlackScreen).Should().BeTrue();
-        sut.ShouldTakeAction(actions, ProtectiveAction.DisconnectRemoteAccess).Should().BeTrue();
-        sut.ShouldTakeAction(actions, ProtectiveAction.SmsEmergencyContact).Should().BeTrue();
-        sut.ShouldTakeAction(actions, ProtectiveAction.AlertGuardian).Should().BeTrue();
+        sut.ShouldTakeAction(actions, ProtectiveActionFlags.CrossPlatformLock).Should().BeTrue();
+        sut.ShouldTakeAction(actions, ProtectiveActionFlags.LockBrowser).Should().BeTrue();
+        sut.ShouldTakeAction(actions, ProtectiveActionFlags.BlackScreen).Should().BeTrue();
+        sut.ShouldTakeAction(actions, ProtectiveActionFlags.DisconnectRemoteAccess).Should().BeTrue();
+        sut.ShouldTakeAction(actions, ProtectiveActionFlags.SmsEmergencyContact).Should().BeTrue();
+        sut.ShouldTakeAction(actions, ProtectiveActionFlags.AlertGuardian).Should().BeTrue();
 
         // Assert - Comprehensive descriptions
         descriptions.Should().Contain("Lock all user devices");
@@ -443,10 +443,10 @@ public class ProtectiveActionsMatrixTests
 
         // Assert
         severity.Should().Be(RiskSeverity.Medium);
-        sut.ShouldTakeAction(actions, ProtectiveAction.ModalDialog).Should().BeTrue();
-        sut.ShouldTakeAction(actions, ProtectiveAction.PushNotification).Should().BeTrue();
-        sut.ShouldTakeAction(actions, ProtectiveAction.DetailedTracking).Should().BeTrue();
-        sut.ShouldTakeAction(actions, ProtectiveAction.BlockPage).Should().BeFalse();
+        sut.ShouldTakeAction(actions, ProtectiveActionFlags.ModalDialog).Should().BeTrue();
+        sut.ShouldTakeAction(actions, ProtectiveActionFlags.PushNotification).Should().BeTrue();
+        sut.ShouldTakeAction(actions, ProtectiveActionFlags.DetailedTracking).Should().BeTrue();
+        sut.ShouldTakeAction(actions, ProtectiveActionFlags.BlockPage).Should().BeFalse();
     }
 
     #endregion
