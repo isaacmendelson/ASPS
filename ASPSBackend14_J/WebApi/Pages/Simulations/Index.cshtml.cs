@@ -91,8 +91,25 @@ namespace WebApi.Pages.Simulations
             {
                 _logger.LogInformation("Running simulation: {Key}", simulationKey);
 
-                // TODO: Get current user key from session/authentication
-                var requestorKey = new Key("User", "admin-user-key"); 
+                // Get current user from authentication
+                var keycloakId = User.FindFirst("sub")?.Value ?? User.FindFirst("preferred_username")?.Value;
+                if (string.IsNullOrEmpty(keycloakId))
+                {
+                    ErrorMessage = "User not authenticated";
+                    return RedirectToPage();
+                }
+
+                var userQuery = new GetUserByKeycloakIdQuery { KeycloakUserId = keycloakId };
+                var userResult = await _cqrsClient.SendQueryAsync<GetUserByKeycloakIdQueryResult>(userQuery);
+                
+                if (userResult?.User == null)
+                {
+                    _logger.LogWarning("Requestor user not found: {KeycloakId}", keycloakId);
+                    ErrorMessage = "Your user account was not found in the system";
+                    return RedirectToPage();
+                }
+
+                var requestorKey = userResult.User.Key; 
 
                 var command = new RunSimulationCommand
                 {

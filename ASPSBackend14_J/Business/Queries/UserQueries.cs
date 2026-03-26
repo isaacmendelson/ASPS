@@ -56,3 +56,19 @@ public class GetUserAccountsQueryResult : QueryResult
 {
     public List<UserAccount> Accounts { get; set; } = new();
 }
+
+public class GetUserByKeycloakIdQuery : Query
+{
+    public GetUserByKeycloakIdQuery()
+    {
+        QueryType = nameof(GetUserByKeycloakIdQuery);
+    }
+    
+    public string QueryType { get; set; } = string.Empty;
+    public string KeycloakUserId { get; set; } = string.Empty;
+}
+
+public class GetUserByKeycloakIdQueryResult : QueryResult
+{
+    public User? User { get; set; }
+}

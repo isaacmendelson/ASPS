@@ -72,8 +72,27 @@ namespace WebApi.Pages.Simulations
                     }
                 }
 
-                // TODO: Get current user key from session/authentication
-                var creatorKey = new Key("User", "admin-user-key");
+                // Get current user from authentication
+                var keycloakId = User.FindFirst("sub")?.Value ?? User.FindFirst("preferred_username")?.Value;
+                if (string.IsNullOrEmpty(keycloakId))
+                {
+                    ErrorMessage = "User not authenticated";
+                    await LoadAvailableUsers();
+                    return Page();
+                }
+
+                var userQuery = new GetUserByKeycloakIdQuery { KeycloakUserId = keycloakId };
+                var userResult = await _cqrsClient.SendQueryAsync<GetUserByKeycloakIdQueryResult>(userQuery);
+                
+                if (userResult?.User == null)
+                {
+                    _logger.LogWarning("Creator user not found: {KeycloakId}", keycloakId);
+                    ErrorMessage = "Your user account was not found in the system";
+                    await LoadAvailableUsers();
+                    return Page();
+                }
+
+                var creatorKey = userResult.User.Key;
 
                 var command = new CreateSimulationCommand
                 {
