@@ -166,6 +166,10 @@ builder.Services.AddSingleton<NetMQClientService>(sp =>
     return new NetMQClientService(endpoint, logger, curveKeyManager);
 });
 
+// SimulationRunner - background service for running simulations
+builder.Services.AddSingleton<SimulationRunner>();
+builder.Services.AddHostedService(provider => provider.GetRequiredService<SimulationRunner>());
+
 var app = builder.Build();
 
 // IMPORTANT: UseForwardedHeaders MUST be first!
