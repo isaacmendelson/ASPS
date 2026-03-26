@@ -420,13 +420,16 @@ class MonitorService:
         self.tray.set_alert(True)
         if status.direction == 'incoming':
             notification_msg = f"{app_name.upper()} - INCOMING connection detected! Someone may be controlling your computer."
+            risk_level = "critical"
         else:
             notification_msg = f"{app_name.upper()} has an active session"
+            risk_level = "medium"
         if late_detection:
             notification_msg += " (detected on startup)"
         self.tray.show_notification(
-            "Remote Access Detected",
-            notification_msg
+            title="Remote Access Detected",
+            message=notification_msg,
+            risk_level=risk_level
         )
 
         # Update tray popup with remote access info

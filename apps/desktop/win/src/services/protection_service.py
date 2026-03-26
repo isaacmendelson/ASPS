@@ -76,9 +76,16 @@ class ProtectionService:
         if action_type == ProtectiveActionType.DisplayNotification:
             self.tray.set_alert(True)
             severity = get_severity_name(data.get('Severity', 1))
+            # Map severity to risk level
+            risk_level = "medium"
+            if severity in ["Critical", "High"]:
+                risk_level = "critical" if severity == "Critical" else "high"
+            elif severity == "Low":
+                risk_level = "low"
             self.tray.show_notification(
-                f"AntiScam Alert - {severity}",
-                message
+                title=f"AntiScam Alert - {severity}",
+                message=message,
+                risk_level=risk_level
             )
 
         elif action_type == ProtectiveActionType.SoundAlert:
@@ -93,8 +100,9 @@ class ProtectionService:
             print("[PROTECTION] Quarantine device mode activated")
             self.tray.set_alert(True)
             self.tray.show_notification(
-                "Device Quarantined",
-                "Your device has been quarantined. Contact support."
+                title="Device Quarantined",
+                message="Your device has been quarantined. Contact support.",
+                risk_level="critical"
             )
 
     def _execute_user_action(
@@ -110,9 +118,16 @@ class ProtectionService:
         if action_type == ProtectiveActionType.UserDisplayNotification:
             self.tray.set_alert(True)
             severity = get_severity_name(data.get('Severity', 1))
+            # Map severity to risk level
+            risk_level = "medium"
+            if severity in ["Critical", "High"]:
+                risk_level = "critical" if severity == "Critical" else "high"
+            elif severity == "Low":
+                risk_level = "low"
             self.tray.show_notification(
-                f"Security Alert - {severity}",
-                message
+                title=f"Security Alert - {severity}",
+                message=message,
+                risk_level=risk_level
             )
 
         elif action_type == ProtectiveActionType.EmailNotification:

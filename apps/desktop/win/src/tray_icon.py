@@ -28,6 +28,7 @@ except ImportError:
 
 from ui.colors import ICON_COLORS
 from tray_popup import TrayPopup
+from notification_manager import NotificationManager
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,9 @@ class TrayIcon:
         self._protection_color = "gray"
         self._remote_tool = None
         self._remote_direction = None
+        
+        # Windows Toast Notification Manager
+        self.notification_manager = NotificationManager()
         
     def _create_icon_image(self, color: str = "gray") -> 'Image':
         """Create a simple icon image"""
@@ -299,13 +303,30 @@ class TrayIcon:
                     "Remote control detected", "red"
                 ))
 
-    def show_notification(self, title: str, message: str):
-        """Show a system notification"""
-        if self.icon:
-            try:
-                self.icon.notify(message, title)
-            except Exception as e:
-                logger.error(f"Error showing notification: {e}")
+    def show_notification(self, title: str, message: str, risk_level: str = "medium"):
+        """
+        Show a Windows Toast notification.
+        
+        Args:
+            title: Notification title
+            message: Notification message
+            risk_level: Risk level for styling ("none", "low", "medium", "high", "critical")
+        """
+        try:
+            # Use Windows Toast Notification Manager
+            self.notification_manager.show_risk_notification(
+                risk_level=risk_level,
+                title=title,
+                message=message
+            )
+        except Exception as e:
+            logger.error(f"Error showing toast notification: {e}")
+            # Fallback to pystray notification
+            if self.icon:
+                try:
+                    self.icon.notify(message, title)
+                except Exception as e2:
+                    logger.error(f"Error showing fallback notification: {e2}")
     
     def start(self):
         """Start the tray icon"""
