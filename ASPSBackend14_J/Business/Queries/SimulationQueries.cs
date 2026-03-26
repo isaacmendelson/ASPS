@@ -59,6 +59,20 @@ public class SimulationUserDto
 }
 
 /// <summary>
+/// Query to search devices for autocomplete (all devices or filtered by user)
+/// </summary>
+public class GetSimulationDevicesQuery : Query
+{
+    public string? SearchText { get; set; }
+    public Key? UserKey { get; set; }
+}
+
+public class GetSimulationDevicesQueryResult : QueryResult
+{
+    public List<SimulationDeviceDto> Devices { get; set; } = new();
+}
+
+/// <summary>
 /// Query to get devices for a specific user (for device selection in simulation steps)
 /// </summary>
 public class GetSimulationUserDevicesQuery : Query
@@ -81,4 +95,6 @@ public class SimulationDeviceDto
     public string DeviceType { get; set; } = string.Empty;
     public string OperatingSystem { get; set; } = string.Empty;
     public string MAC { get; set; } = string.Empty;
+    public string? UserKeyField { get; set; }
+    public string? UserFullName { get; set; }
 }

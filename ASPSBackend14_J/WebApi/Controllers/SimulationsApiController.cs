@@ -50,6 +50,38 @@ public class SimulationsApiController : ControllerBase
     }
 
     /// <summary>
+    /// Search devices for autocomplete (by UID, MAC, OS, type)
+    /// </summary>
+    [HttpGet("devices")]
+    public async Task<IActionResult> SearchDevices([FromQuery] string? search, [FromQuery] string? userKeyField)
+    {
+        try
+        {
+            _logger.LogInformation("Searching devices with term: {Search}, user: {UserKey}", search, userKeyField);
+
+            var query = new GetSimulationDevicesQuery 
+            { 
+                SearchText = search,
+                UserKey = !string.IsNullOrEmpty(userKeyField) ? new Key("User", userKeyField) : null
+            };
+            var result = await _cqrsClient.SendQueryAsync<GetSimulationDevicesQueryResult>(query);
+
+            if (result.Success)
+            {
+                return Ok(result.Devices);
+            }
+
+            _logger.LogWarning("Failed to search devices: {Message}", result.Message);
+            return BadRequest(new { error = result.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching devices");
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+    }
+
+    /// <summary>
     /// Get devices for a specific user
     /// </summary>
     [HttpGet("users/{userKeyField}/devices")]

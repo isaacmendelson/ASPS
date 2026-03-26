@@ -6,7 +6,7 @@
 
 **For End Users**
 
-1. **Download** `AntiScamDesktop-Setup-1.0.0.exe`
+1. **Download** `AntiScamDesktop-Setup-0.0.0.3.exe`
 2. **Run** the installer
 3. Follow the installation wizard
 4. Choose installation options:

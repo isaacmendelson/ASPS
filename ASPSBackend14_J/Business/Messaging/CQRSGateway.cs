@@ -157,6 +157,7 @@ public class CQRSGateway : IDisposable
             "GetSimulationDetailsQuery" => await HandleGetSimulationDetailsQuery(messageJson, scope),
             "GetSimulationUsersQuery" => await HandleGetSimulationUsersQuery(messageJson, scope),
             "GetSimulationUserDevicesQuery" => await HandleGetSimulationUserDevicesQuery(messageJson, scope),
+            "GetSimulationDevicesQuery" => await HandleGetSimulationDevicesQuery(messageJson, scope),
             _ => CreateErrorResponse($"Unknown query type: {queryType}")
         };
     }
@@ -644,6 +645,20 @@ public class CQRSGateway : IDisposable
     {
         var query = JsonConvert.DeserializeObject<GetSimulationUserDevicesQuery>(messageJson);
         if (query == null) return CreateErrorResponse("Invalid GetSimulationUserDevicesQuery format");
+
+        var handler = scope.ServiceProvider.GetRequiredService<SimulationQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleGetSimulationDevicesQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetSimulationDevicesQuery>(messageJson);
+        if (query == null) return CreateErrorResponse("Invalid GetSimulationDevicesQuery format");
 
         var handler = scope.ServiceProvider.GetRequiredService<SimulationQueryHandlers>();
         var result = await handler.HandleAsync(query);

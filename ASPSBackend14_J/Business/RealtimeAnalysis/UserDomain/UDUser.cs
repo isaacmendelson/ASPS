@@ -24,7 +24,8 @@ public class UDUser
 
     private int maxRemoteAccessAnalysisResults = 1000;
     public UDUser(Key key, UserInfo userInfo, RiskAssessment riskAssessment, IEnumerable<UserDeviceView>? userDevices, 
-        IEnumerable<DeviceAlertView>? activeAlerts, Dictionary<string, IEnumerable<BrowserTab>>? browserTabs, bool? isTaregted)
+        IEnumerable<DeviceAlertView>? activeAlerts, Dictionary<string, IEnumerable<BrowserTab>>? browserTabs, bool? isTaregted, 
+        bool? isCrossPlatformLocked = false, List<UserDevice>? devices = null, UserRiskProfile? riskProfile = null)
     {
         RiskAssessment = riskAssessment;
         Key = key;
@@ -32,7 +33,10 @@ public class UDUser
         ActiveAlerts = activeAlerts ?? new List<DeviceAlertView>();
         UserDevices = userDevices ?? new List<UserDeviceView>();
         BrowserTabs = browserTabs ?? new();
-        this.IsTargeted = isTaregted?? false;
+        this.IsTargeted = isTaregted ?? false;
+        this.IsCrossPlatformLocked = isCrossPlatformLocked ?? false;
+        this.Devices = devices ?? new List<UserDevice>();
+        this.RiskProfile = riskProfile ?? new UserRiskProfile();
         RemoteAccessAnalysisResults = new Dictionary<string, List<RemoteAccessAnalysisResultVm>>();
         UserUrlSurfDataByDevice = new Dictionary<string, IEnumerable<UserDeviceUrlSurfData>>();
     }
@@ -48,8 +52,11 @@ public class UDUser
 
     // Runtime analysis parameters
     public bool IsTargeted { get; private set; }    //True if user contact information is found in darknet lead lists.
+    public bool IsCrossPlatformLocked { get; private set; }  //True if all user devices are locked (cross-platform protection)
+    public UserRiskProfile RiskProfile { get; private set; }  //User risk profile with vulnerability and exposure scores
     public Dictionary<string, IEnumerable<BrowserTab>>? BrowserTabs { get; private set; }
     public IEnumerable<DeviceAlertView> ActiveAlerts { get; set; }
+    public List<UserDevice> Devices { get; private set; }  //Direct access to user device entities
 
     public Dictionary<string, List<RemoteAccessAnalysisResultVm>> RemoteAccessAnalysisResults { get; private set; }
 
@@ -91,6 +98,14 @@ public class UDUser
     public void SetUserIsTargeted(bool value)
     {
         this.IsTargeted = value;
+    }
+
+    /// <summary>
+    /// Set cross-platform lock status - locks all user devices when true
+    /// </summary>
+    public void SetCrossPlatformLock(bool value)
+    {
+        this.IsCrossPlatformLocked = value;
     }
 
     // Add an alert to the active alerts list

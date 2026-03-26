@@ -1,0 +1,231 @@
+@page
+@model DownloadsModel
+@{
+    ViewData["Title"] = "Downloads - AntiScam Protection Suite";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Header -->
+            <div class="text-center mb-5">
+                <h1 class="display-4 fw-bold">📥 Download AntiScam</h1>
+                <p class="lead text-muted">
+                    Protect yourself from online scams with our comprehensive protection suite
+                </p>
+            </div>
+
+            <!-- Desktop App -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h3 class="card-title mb-3">
+                                <i class="bi bi-pc-display"></i> AntiScam Desktop Agent
+                            </h3>
+                            <p class="card-text mb-3">
+                                Real-time protection for your computer. Monitors remote access tools,
+                                analyzes suspicious URLs, and provides instant alerts.
+                            </p>
+                            <ul class="list-unstyled mb-3">
+                                <li><i class="bi bi-check-circle-fill text-success"></i> Remote Access Monitoring</li>
+                                <li><i class="bi bi-check-circle-fill text-success"></i> URL Risk Analysis</li>
+                                <li><i class="bi bi-check-circle-fill text-success"></i> Real-time Notifications</li>
+                                <li><i class="bi bi-check-circle-fill text-success"></i> Browser Extension Integration</li>
+                            </ul>
+                            <p class="small text-muted">
+                                <strong>Requirements:</strong> Windows 10/11 | 100 MB disk space
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="mb-3">
+                                <span class="badge bg-primary fs-6">v1.0.0</span>
+                            </div>
+                            <a href="/downloads/AntiScamDesktop-Setup-1.0.0.exe" 
+                               class="btn btn-lg btn-primary w-100 mb-2">
+                                <i class="bi bi-download"></i> Download for Windows
+                            </a>
+                            <p class="small text-muted mb-0">14.2 MB</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chrome Extension -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h3 class="card-title mb-3">
+                                <i class="bi bi-browser-chrome"></i> AntiScam Browser Extension
+                            </h3>
+                            <p class="card-text mb-3">
+                                Automatically scans every website you visit and warns you about
+                                potential scams, phishing sites, and malicious content.
+                            </p>
+                            <ul class="list-unstyled mb-3">
+                                <li><i class="bi bi-check-circle-fill text-success"></i> Automatic Page Scanning</li>
+                                <li><i class="bi bi-check-circle-fill text-success"></i> Phishing Detection</li>
+                                <li><i class="bi bi-check-circle-fill text-success"></i> Tracker Analysis</li>
+                                <li><i class="bi bi-check-circle-fill text-success"></i> Risk Alerts & Blocking</li>
+                            </ul>
+                            <p class="small text-muted">
+                                <strong>Supported:</strong> Chrome, Edge, Brave, Opera
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="mb-3">
+                                <span class="badge bg-info fs-6">v0.0.0.2</span>
+                            </div>
+                            <a href="https://chrome.google.com/webstore/category/extensions" 
+                               target="_blank"
+                               class="btn btn-lg btn-info w-100 mb-2">
+                                <i class="bi bi-shop"></i> Chrome Web Store
+                            </a>
+                            <p class="small text-muted mb-2">or</p>
+                            <a href="/downloads/antiscam-extension-0.0.0.2.zip" 
+                               class="btn btn-outline-secondary w-100">
+                                <i class="bi bi-download"></i> Download .zip
+                            </a>
+                            <p class="small text-muted mt-2">For manual installation</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Installation Guide -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h4 class="mb-0"><i class="bi bi-book"></i> Installation Guide</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="fw-bold">Desktop Agent (Windows)</h5>
+                            <ol>
+                                <li>Download the installer above</li>
+                                <li>Run <code>AntiScamDesktop-Setup-1.0.0.exe</code></li>
+                                <li>Follow the installation wizard</li>
+                                <li>Launch AntiScam from Start Menu or Desktop</li>
+                                <li>Check system tray for green icon (protected)</li>
+                            </ol>
+                            <a href="/downloads/INSTALL.md" target="_blank" class="btn btn-sm btn-outline-primary">
+                                View Full Guide <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="fw-bold">Browser Extension</h5>
+                            <ol>
+                                <li>Install from Chrome Web Store (recommended)</li>
+                                <li>Or download .zip and extract</li>
+                                <li>Chrome → Extensions → "Load unpacked"</li>
+                                <li>Select extracted folder</li>
+                                <li>Extension icon appears in toolbar</li>
+                            </ol>
+                            <a href="/docs/extension-setup" class="btn btn-sm btn-outline-info">
+                                Detailed Instructions <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Requirements -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h4 class="mb-0"><i class="bi bi-gear"></i> System Requirements</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Component</th>
+                                    <th>Minimum</th>
+                                    <th>Recommended</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Operating System</strong></td>
+                                    <td>Windows 10 (64-bit)</td>
+                                    <td>Windows 11 (latest)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>RAM</strong></td>
+                                    <td>4 GB</td>
+                                    <td>8 GB or more</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Disk Space</strong></td>
+                                    <td>100 MB</td>
+                                    <td>500 MB</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Browser</strong></td>
+                                    <td>Chrome 88+</td>
+                                    <td>Chrome/Edge latest</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Internet</strong></td>
+                                    <td>Required</td>
+                                    <td>Broadband connection</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Version History -->
+            <div class="card shadow-sm mb-5">
+                <div class="card-header bg-light">
+                    <h4 class="mb-0"><i class="bi bi-clock-history"></i> Version History</h4>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">Desktop v1.0.0</h5>
+                                <small class="text-muted">2026-03-26</small>
+                            </div>
+                            <p class="mb-1">Initial release with core protection features</p>
+                            <small>✨ Remote access monitoring, URL scanning, notifications</small>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">Extension v0.0.0.2</h5>
+                                <small class="text-muted">2026-03-21</small>
+                            </div>
+                            <p class="mb-1">Bug fixes and performance improvements</p>
+                            <small>🐛 Fixed cache issues, improved connection stability</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Support Links -->
+            <div class="text-center mb-5">
+                <p class="text-muted">
+                    Need help? Check our 
+                    <a href="/docs">Documentation</a> | 
+                    <a href="/support">Support Center</a> | 
+                    <a href="mailto:support@antiscam.io">Contact Us</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Track download clicks for analytics
+        document.querySelectorAll('a[href^="/downloads/"]').forEach(link => {
+            link.addEventListener('click', function(e) {
+                const filename = this.href.split('/').pop();
+                console.log('Download started:', filename);
+                // Add analytics tracking here if needed
+            });
+        });
+    </script>
+}

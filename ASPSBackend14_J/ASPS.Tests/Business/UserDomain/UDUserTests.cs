@@ -215,6 +215,201 @@ public class UDUserTests
 
     #endregion
 
+    #region IsCrossPlatformLocked Tests (ASPS-365)
+
+    [Fact]
+    public void Constructor_WithNullIsCrossPlatformLocked_DefaultsToFalse()
+    {
+        // Arrange
+        var key = CreateTestKey();
+        var userInfo = CreateTestUserInfo();
+        var riskAssessment = CreateTestRiskAssessment();
+
+        // Act
+        var sut = new UDUser(key, userInfo, riskAssessment, null, null, null, null);
+
+        // Assert
+        sut.IsCrossPlatformLocked.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Constructor_WithIsCrossPlatformLocked_SetsCorrectValue(bool isLocked)
+    {
+        // Arrange
+        var key = CreateTestKey();
+        var userInfo = CreateTestUserInfo();
+        var riskAssessment = CreateTestRiskAssessment();
+
+        // Act
+        var sut = new UDUser(key, userInfo, riskAssessment, null, null, null, null, isLocked);
+
+        // Assert
+        sut.IsCrossPlatformLocked.Should().Be(isLocked);
+    }
+
+    [Fact]
+    public void Constructor_WithNullDevices_InitializesEmptyDeviceList()
+    {
+        // Arrange
+        var key = CreateTestKey();
+        var userInfo = CreateTestUserInfo();
+        var riskAssessment = CreateTestRiskAssessment();
+
+        // Act
+        var sut = new UDUser(key, userInfo, riskAssessment, null, null, null, null);
+
+        // Assert
+        sut.Devices.Should().NotBeNull();
+        sut.Devices.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Constructor_WithDevicesList_StoresDeviceEntities()
+    {
+        // Arrange
+        var key = CreateTestKey();
+        var userInfo = CreateTestUserInfo();
+        var riskAssessment = CreateTestRiskAssessment();
+        var userKey = new Key("User", "test-user-123");
+        var devices = new List<UserDevice>
+        {
+            new SmartPhone { DeviceUid = "phone-001", Make = "Apple", Model = "iPhone 14", UserKey = userKey },
+            new PersonalComputer { DeviceUid = "laptop-001", Make = "Dell", Model = "XPS 15", UserKey = userKey }
+        };
+
+        // Act
+        var sut = new UDUser(key, userInfo, riskAssessment, null, null, null, null, false, devices);
+
+        // Assert
+        sut.Devices.Should().HaveCount(2);
+        sut.Devices.Should().Contain(d => d.DeviceUid == "phone-001");
+        sut.Devices.Should().Contain(d => d.DeviceUid == "laptop-001");
+    }
+
+    [Fact]
+    public void Constructor_WithNullRiskProfile_CreatesDefaultRiskProfile()
+    {
+        // Arrange
+        var key = CreateTestKey();
+        var userInfo = CreateTestUserInfo();
+        var riskAssessment = CreateTestRiskAssessment();
+
+        // Act
+        var sut = new UDUser(key, userInfo, riskAssessment, null, null, null, null);
+
+        // Assert
+        sut.RiskProfile.Should().NotBeNull();
+        sut.RiskProfile.VulnerabilityScore.Should().Be(0.0);
+        sut.RiskProfile.ExposureScore.Should().Be(0.0);
+        sut.RiskProfile.RiskyUrlWeight.Should().Be(1.0);
+    }
+
+    [Fact]
+    public void Constructor_WithCustomRiskProfile_StoresRiskProfile()
+    {
+        // Arrange
+        var key = CreateTestKey();
+        var userInfo = CreateTestUserInfo();
+        var riskAssessment = CreateTestRiskAssessment();
+        var customRiskProfile = new UserRiskProfile(
+            vulnerabilityScore: 45,
+            exposureScore: 67,
+            riskyUrlWeight: 1.2,
+            suspiciousCallWeight: 1.8,
+            remoteAccessWeight: 2.5,
+            scamInProgressWeight: 3.5,
+            aggregationPeriodDays: 60,
+            timeDecayFactor: 0.9
+        );
+
+        // Act
+        var sut = new UDUser(key, userInfo, riskAssessment, null, null, null, null, false, null, customRiskProfile);
+
+        // Assert
+        sut.RiskProfile.Should().Be(customRiskProfile);
+        sut.RiskProfile.VulnerabilityScore.Should().Be(45);
+        sut.RiskProfile.ExposureScore.Should().Be(67);
+    }
+
+    #endregion
+
+    #region SetCrossPlatformLock Tests (ASPS-365)
+
+    [Fact]
+    public void SetCrossPlatformLock_WithTrue_SetsLockToTrue()
+    {
+        // Arrange
+        var key = CreateTestKey();
+        var userInfo = CreateTestUserInfo();
+        var riskAssessment = CreateTestRiskAssessment();
+        var sut = new UDUser(key, userInfo, riskAssessment, null, null, null, null, false);
+
+        // Act
+        sut.SetCrossPlatformLock(true);
+
+        // Assert
+        sut.IsCrossPlatformLocked.Should().BeTrue();
+    }
+
+    [Fact]
+    public void SetCrossPlatformLock_WithFalse_SetsLockToFalse()
+    {
+        // Arrange
+        var key = CreateTestKey();
+        var userInfo = CreateTestUserInfo();
+        var riskAssessment = CreateTestRiskAssessment();
+        var sut = new UDUser(key, userInfo, riskAssessment, null, null, null, null, true);
+
+        // Act
+        sut.SetCrossPlatformLock(false);
+
+        // Assert
+        sut.IsCrossPlatformLocked.Should().BeFalse();
+    }
+
+    [Fact]
+    public void SetCrossPlatformLock_CalledMultipleTimes_UpdatesValue()
+    {
+        // Arrange
+        var key = CreateTestKey();
+        var userInfo = CreateTestUserInfo();
+        var riskAssessment = CreateTestRiskAssessment();
+        var sut = new UDUser(key, userInfo, riskAssessment, null, null, null, null, false);
+
+        // Act & Assert
+        sut.SetCrossPlatformLock(true);
+        sut.IsCrossPlatformLocked.Should().BeTrue();
+
+        sut.SetCrossPlatformLock(false);
+        sut.IsCrossPlatformLocked.Should().BeFalse();
+
+        sut.SetCrossPlatformLock(true);
+        sut.IsCrossPlatformLocked.Should().BeTrue();
+    }
+
+    [Fact]
+    public void SetCrossPlatformLock_DoesNotAffectOtherProperties()
+    {
+        // Arrange
+        var key = CreateTestKey();
+        var userInfo = CreateTestUserInfo();
+        var riskAssessment = CreateTestRiskAssessment();
+        var sut = new UDUser(key, userInfo, riskAssessment, null, null, null, true, false);
+
+        // Act
+        sut.SetCrossPlatformLock(true);
+
+        // Assert
+        sut.IsCrossPlatformLocked.Should().BeTrue();
+        sut.IsTargeted.Should().BeTrue(); // Should remain unchanged
+        sut.Key.Should().Be(key);
+        sut.UserInfo.Should().Be(userInfo);
+    }
+
+    #endregion
+
     #region SetUserIsTargeted Tests
 
     [Fact]

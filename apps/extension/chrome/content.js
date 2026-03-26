@@ -419,10 +419,171 @@
           sendResponse({ success: true });
           break;
 
+        case 'tracked_domains:updated':
+          FormMonitor.updateTrackedDomains(message.domains);
+          FormMonitor.alwaysSendFormSubmits = message.alwaysSendFormSubmits || false;
+          sendResponse({ success: true });
+          break;
+
         default:
           console.log('[Content] Unknown message type:', type);
           sendResponse({ error: 'Unknown message type' });
       }
+    }
+  };
+
+  // ============================================
+  // Form Monitor Service
+  // ============================================
+
+  const FormMonitor = {
+    trackedDomains: new Map(),
+    alwaysSendFormSubmits: false,
+    formSubmitHandler: null,
+
+    async init() {
+      console.log('[FormMonitor] Initializing...');
+      await this.loadTrackedDomains();
+      this.startMonitoring();
+    },
+
+    updateTrackedDomains(domains) {
+      this.trackedDomains.clear();
+      
+      if (domains && Array.isArray(domains)) {
+        domains.forEach(item => {
+          this.trackedDomains.set(item.Domain, {
+            scamKey: item.ScamInProgressKey,
+            trackMode: item.TrackMode,
+            reportType: item.ReportType
+          });
+        });
+      }
+
+      console.log('[FormMonitor] Updated tracked domains:', this.trackedDomains.size);
+    },
+
+    async loadTrackedDomains() {
+      try {
+        const result = await chrome.storage.local.get([
+          'trackedDomains',
+          'alwaysSendFormSubmits'
+        ]);
+
+        if (result.trackedDomains && Array.isArray(result.trackedDomains)) {
+          this.trackedDomains.clear();
+          result.trackedDomains.forEach(item => {
+            this.trackedDomains.set(item.Domain, {
+              scamKey: item.ScamInProgressKey,
+              trackMode: item.TrackMode,
+              reportType: item.ReportType
+            });
+          });
+          console.log('[FormMonitor] Loaded tracked domains:', this.trackedDomains.size);
+        }
+
+        this.alwaysSendFormSubmits = result.alwaysSendFormSubmits || false;
+        console.log('[FormMonitor] AlwaysSendFormSubmits:', this.alwaysSendFormSubmits);
+
+      } catch (error) {
+        console.error('[FormMonitor] Error loading tracked domains:', error);
+      }
+    },
+
+    startMonitoring() {
+      if (this.formSubmitHandler) {
+        document.removeEventListener('submit', this.formSubmitHandler, true);
+      }
+
+      this.formSubmitHandler = (event) => {
+        this.handleFormSubmit(event);
+      };
+
+      document.addEventListener('submit', this.formSubmitHandler, true);
+      console.log('[FormMonitor] Monitoring started');
+    },
+
+    handleFormSubmit(event) {
+      const form = event.target;
+      
+      if (!(form instanceof HTMLFormElement)) {
+        return;
+      }
+
+      const currentDomain = window.location.hostname;
+      const trackedInfo = this.trackedDomains.get(currentDomain);
+      const shouldTrack = trackedInfo || this.alwaysSendFormSubmits;
+
+      if (!shouldTrack) {
+        return;
+      }
+
+      console.log('[FormMonitor] Form submission detected:', {
+        domain: currentDomain,
+        tracked: !!trackedInfo
+      });
+
+      const formData = this.collectFormData(form);
+      this.sendFormSubmitAlert(formData, trackedInfo);
+    },
+
+    collectFormData(form) {
+      const creditCardPatterns = /card|credit|cvv|cvc|expir|ccnum|cardnumber/i;
+      
+      const formData = {
+        url: window.location.href,
+        fromUrl: document.referrer || '',
+        formAction: form.action || '',
+        method: (form.method || 'GET').toUpperCase(),
+        fieldCount: 0,
+        hasPasswordField: false,
+        hasEmailField: false,
+        hasCreditCard: false
+      };
+
+      const fields = form.querySelectorAll('input, textarea, select');
+      formData.fieldCount = fields.length;
+
+      fields.forEach(field => {
+        const type = (field.type || '').toLowerCase();
+        const name = (field.name || '').toLowerCase();
+        const id = (field.id || '').toLowerCase();
+        const placeholder = (field.placeholder || '').toLowerCase();
+
+        if (type === 'password') {
+          formData.hasPasswordField = true;
+        }
+
+        if (type === 'email' || name.includes('email') || id.includes('email')) {
+          formData.hasEmailField = true;
+        }
+
+        const fieldText = `${name} ${id} ${placeholder}`;
+        if (creditCardPatterns.test(fieldText)) {
+          formData.hasCreditCard = true;
+        }
+      });
+
+      return formData;
+    },
+
+    sendFormSubmitAlert(formData, trackedInfo) {
+      const message = {
+        type: 'form:submitted',
+        data: {
+          ...formData,
+          scamInProgressKey: trackedInfo ? trackedInfo.scamKey : '',
+          timestamp: new Date().toISOString()
+        }
+      };
+
+      chrome.runtime.sendMessage(message, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('[FormMonitor] Error sending form alert:', chrome.runtime.lastError);
+        } else {
+          console.log('[FormMonitor] Form alert sent successfully');
+        }
+      });
     }
   };
 
@@ -432,6 +593,7 @@
 
   function init() {
     MessageHandler.init();
+    FormMonitor.init();
     console.log('[AntiScam] Content script loaded');
   }
 

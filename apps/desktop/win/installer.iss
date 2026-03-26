@@ -2,7 +2,7 @@
 ; Requires: Inno Setup 6.x (https://jrsoftware.org/isinfo.php)
 
 #define MyAppName "AntiScam Desktop Agent"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "0.0.0.3"
 #define MyAppPublisher "ASPS Team"
 #define MyAppURL "https://antiscam.io"
 #define MyAppExeName "AntiScam.exe"

@@ -136,6 +136,8 @@ class Program
                 services.AddScoped<ISafeDomainRepository, SafeDomainRepository>();
                 services.AddScoped<ITrackedDomainRepository, TrackedDomainRepository>();
                 services.AddScoped<ISimulationRepository, SimulationRepository>();
+                services.AddScoped<IBlacklistedPhoneNumberRepository, BlacklistedPhoneNumberRepository>(); // ASPS-282
+                services.AddScoped<IBankWebsiteRepository, BankWebsiteRepository>(); // ASPS-297
 
                 // Add Handlers
                 services.AddScoped<UserCommandHandlers>();
@@ -145,6 +147,8 @@ class Program
                 services.AddScoped<SystemCommandHandlers>();
                 services.AddScoped<SimulationQueryHandlers>();
                 services.AddScoped<SimulationCommandHandlers>();
+                services.AddScoped<BlacklistedPhoneNumberQueryHandlers>(); // ASPS-282
+                services.AddScoped<BankWebsiteQueryHandlers>(); // ASPS-297
 
                 // Add CQRS Gateway (listens for Commands/Queries from WebApi)
                 services.AddSingleton<CQRSGateway>();

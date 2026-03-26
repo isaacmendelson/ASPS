@@ -231,6 +231,37 @@ function setupWebSocketHandlers() {
       }
     }
   });
+
+  // Handle SetTrackedDomains from backend
+  connectionService.onMessage('tracked_domains:set', async (data) => {
+    console.log('[Background] Tracked domains updated:', data);
+
+    // Store tracked domains
+    if (data.domains && Array.isArray(data.domains)) {
+      await chrome.storage.local.set({
+        trackedDomains: data.domains,
+        alwaysSendFormSubmits: data.alwaysSendFormSubmits || false
+      });
+
+      console.log(`[Background] Stored ${data.domains.length} tracked domains`);
+
+      // Notify all content scripts to reload tracked domains
+      const tabs = await chrome.tabs.query({});
+      for (const tab of tabs) {
+        if (tab.url && tab.url.startsWith('http')) {
+          try {
+            await chrome.tabs.sendMessage(tab.id, {
+              type: 'tracked_domains:updated',
+              domains: data.domains,
+              alwaysSendFormSubmits: data.alwaysSendFormSubmits || false
+            });
+          } catch (e) {
+            // Content script not loaded - ignore
+          }
+        }
+      }
+    }
+  });
 }
 
 function handleUrlResult(data) {
@@ -502,6 +533,52 @@ function setupMessageHandlers() {
         // Ignore
       }
     }
+
+    return { success: true };
+  });
+
+  // Handle form submission from content script
+  messageBus.on('form:submitted', async (payload) => {
+    console.log('[Background] Form submitted:', payload.data);
+
+    // Get IP address and timezone
+    const ipAddress = connectionService.getDeviceIpAddress();
+    const timezoneOffset = new Date().getTimezoneOffset() / -60;
+    const timezone = `UTC${timezoneOffset >= 0 ? '+' : ''}${timezoneOffset}`;
+
+    // Get current tab ID
+    let tabId = '';
+    try {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tabs[0]) {
+        tabId = tabs[0].id.toString();
+      }
+    } catch (e) {
+      console.error('[Background] Error getting tab ID:', e);
+    }
+
+    // Create TrackUrlAlert with form data
+    const alert = {
+      type: MSG.WS_TRACK_URL_ALERT,
+      Url: payload.data.url,
+      FromUrl: payload.data.fromUrl,
+      Duration: 0, // No duration for form submit
+      ScamInProgressKey: payload.data.scamInProgressKey || '',
+      IPAddress: ipAddress,
+      UserAgent: navigator.userAgent,
+      TabId: tabId,
+      Timezone: timezone,
+      // Form-specific fields
+      FormAction: payload.data.formAction,
+      Method: payload.data.method,
+      HasPasswordField: payload.data.hasPasswordField,
+      HasEmailField: payload.data.hasEmailField,
+      HasCreditCard: payload.data.hasCreditCard,
+      FieldCount: payload.data.fieldCount
+    };
+
+    console.log('[Background] Sending TrackUrlAlert with form data:', alert);
+    connectionService.send(alert);
 
     return { success: true };
   });

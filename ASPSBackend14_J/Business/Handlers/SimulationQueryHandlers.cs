@@ -159,6 +159,70 @@ public class SimulationQueryHandlers
     }
 
     /// <summary>
+    /// Handle GetSimulationDevicesQuery - search all devices or filter by user
+    /// </summary>
+    public virtual async Task<GetSimulationDevicesQueryResult> HandleAsync(GetSimulationDevicesQuery query)
+    {
+        try
+        {
+            IEnumerable<Common.Entities.UserDevice> devices;
+
+            if (query.UserKey != null)
+            {
+                // Get devices for specific user
+                devices = await _userDeviceRepository.GetByUserKeyAsync(query.UserKey);
+            }
+            else
+            {
+                // Get all devices
+                devices = await _userDeviceRepository.GetAllAsync();
+            }
+
+            // Filter by search text if provided
+            if (!string.IsNullOrWhiteSpace(query.SearchText))
+            {
+                var searchLower = query.SearchText.ToLower();
+                devices = devices.Where(d =>
+                    d.DeviceUid.ToLower().Contains(searchLower) ||
+                    d.MAC.ToLower().Contains(searchLower) ||
+                    d.DeviceType.ToString().ToLower().Contains(searchLower) ||
+                    d.OperatingSystem.ToString().ToLower().Contains(searchLower));
+            }
+
+            // Fetch user info for each device
+            var deviceInfos = new List<SimulationDeviceDto>();
+            foreach (var device in devices)
+            {
+                var user = await _userRepository.GetByKeyAsync(device.UserKey);
+                deviceInfos.Add(new SimulationDeviceDto
+                {
+                    DeviceKey = device.Key,
+                    DeviceUid = device.DeviceUid,
+                    DeviceType = device.DeviceType.ToString(),
+                    OperatingSystem = device.OperatingSystem.ToString(),
+                    MAC = device.MAC,
+                    UserKeyField = device.UserKey.KeyField,
+                    UserFullName = user != null ? $"{user.FirstName} {user.LastName}".Trim() : null
+                });
+            }
+
+            return new GetSimulationDevicesQueryResult
+            {
+                Success = true,
+                Devices = deviceInfos
+            };
+        }
+        catch (Exception ex)
+        {
+            return new GetSimulationDevicesQueryResult
+            {
+                Success = false,
+                Message = $"Error retrieving devices: {ex.Message}"
+            };
+        }
+    }
+
+    /// <summary>
     /// Handle GetSimulationUserDevicesQuery - get devices for a specific user
     /// </summary>
     public virtual async Task<GetSimulationUserDevicesQueryResult> HandleAsync(GetSimulationUserDevicesQuery query)

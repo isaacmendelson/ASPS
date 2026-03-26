@@ -115,3 +115,169 @@ public class UserDeleted : DomainEvent
         UserKeyField = userKeyField;
     }
 }
+
+/// <summary>
+/// Event triggered when OTP interception is detected
+/// ASPS-368: OTP Interception
+/// Correlation between SMS received on mobile device and browser input attempt under Remote Access
+/// </summary>
+public class OtpInterceptionTriggered : DomainEvent
+{
+    public string UserKeyField { get; set; } = string.Empty;
+    public string MobileDeviceUid { get; set; } = string.Empty;
+    public string BrowserDeviceUid { get; set; } = string.Empty;
+    public string OtpCode { get; set; } = string.Empty;
+    public DateTime SmsReceivedTimestamp { get; set; }
+    public DateTime BrowserInputTimestamp { get; set; }
+    public string RemoteAccessApp { get; set; } = string.Empty;
+    public string TargetUrl { get; set; } = string.Empty;
+    public bool IsBlocked { get; set; }
+    public double CorrelationConfidence { get; set; }
+
+    public OtpInterceptionTriggered()
+    {
+        EventType = nameof(OtpInterceptionTriggered);
+    }
+
+    public OtpInterceptionTriggered(
+        string userKeyField,
+        string mobileDeviceUid,
+        string browserDeviceUid,
+        string otpCode,
+        DateTime smsReceivedTimestamp,
+        DateTime browserInputTimestamp,
+        string remoteAccessApp,
+        string targetUrl,
+        bool isBlocked,
+        double correlationConfidence)
+    {
+        EventType = nameof(OtpInterceptionTriggered);
+        UserKeyField = userKeyField;
+        MobileDeviceUid = mobileDeviceUid;
+        BrowserDeviceUid = browserDeviceUid;
+        OtpCode = otpCode;
+        SmsReceivedTimestamp = smsReceivedTimestamp;
+        BrowserInputTimestamp = browserInputTimestamp;
+        RemoteAccessApp = remoteAccessApp;
+        TargetUrl = targetUrl;
+        IsBlocked = isBlocked;
+        CorrelationConfidence = correlationConfidence;
+    }
+}
+
+/// <summary>
+/// Event triggered when Black Screen protection is activated
+/// ASPS-369: Black Screen Implementation
+/// DOM manipulation to hide sensitive information from remote viewer while keeping local user visibility
+/// </summary>
+public class BlackScreenActivated : DomainEvent
+{
+    public string UserKeyField { get; set; } = string.Empty;
+    public string DeviceUid { get; set; } = string.Empty;
+    public string TargetUrl { get; set; } = string.Empty;
+    public string RemoteAccessApp { get; set; } = string.Empty;
+    public List<string> HiddenElements { get; set; } = new();
+    public string InjectedScript { get; set; } = string.Empty;
+    public DateTime ActivationTimestamp { get; set; }
+    public string Reason { get; set; } = string.Empty;
+
+    public BlackScreenActivated()
+    {
+        EventType = nameof(BlackScreenActivated);
+        ActivationTimestamp = DateTime.UtcNow;
+    }
+
+    public BlackScreenActivated(
+        string userKeyField,
+        string deviceUid,
+        string targetUrl,
+        string remoteAccessApp,
+        List<string> hiddenElements,
+        string injectedScript,
+        string reason)
+    {
+        EventType = nameof(BlackScreenActivated);
+        UserKeyField = userKeyField;
+        DeviceUid = deviceUid;
+        TargetUrl = targetUrl;
+        RemoteAccessApp = remoteAccessApp;
+        HiddenElements = hiddenElements;
+        InjectedScript = injectedScript;
+        ActivationTimestamp = DateTime.UtcNow;
+        Reason = reason;
+    }
+}
+
+/// <summary>
+/// Event triggered when user's details are found in marketing/scam lead lists for the first time
+/// ASPS-370: UserIsTargetedAlert
+/// Fires only once per user - when IsTargeted flag transitions from false to true
+/// </summary>
+public class UserIsTargetedAlertReceived : DomainEvent
+{
+    public string UserKeyField { get; set; } = string.Empty;
+    public string UserEmail { get; set; } = string.Empty;
+    public string UserPhoneNumber { get; set; } = string.Empty;
+    public List<string> FoundInLists { get; set; } = new();
+    public DateTime DiscoveryTimestamp { get; set; }
+    public string Source { get; set; } = string.Empty;
+    public double ConfidenceScore { get; set; }
+
+    public UserIsTargetedAlertReceived()
+    {
+        EventType = nameof(UserIsTargetedAlertReceived);
+        DiscoveryTimestamp = DateTime.UtcNow;
+    }
+
+    public UserIsTargetedAlertReceived(
+        string userKeyField,
+        string userEmail,
+        string userPhoneNumber,
+        List<string> foundInLists,
+        string source,
+        double confidenceScore)
+    {
+        EventType = nameof(UserIsTargetedAlertReceived);
+        UserKeyField = userKeyField;
+        UserEmail = userEmail;
+        UserPhoneNumber = userPhoneNumber;
+        FoundInLists = foundInLists;
+        DiscoveryTimestamp = DateTime.UtcNow;
+        Source = source;
+        ConfidenceScore = confidenceScore;
+    }
+}
+
+/// <summary>
+/// Event to distribute tracked domains to all user devices for cross-platform monitoring
+/// ASPS-371: SetTrackedDomains Event
+/// Synchronizes all agents to high alert status for specific domains
+/// </summary>
+public class SetTrackedDomains : DomainEvent
+{
+    public string UserKeyField { get; set; } = string.Empty;
+    public List<UserDomain.TrackedDomainInfo> TrackedDomains { get; set; } = new();
+    public bool IsCrossPlatformLock { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public DateTime DistributionTimestamp { get; set; }
+
+    public SetTrackedDomains()
+    {
+        EventType = nameof(SetTrackedDomains);
+        DistributionTimestamp = DateTime.UtcNow;
+    }
+
+    public SetTrackedDomains(
+        string userKeyField,
+        List<UserDomain.TrackedDomainInfo> trackedDomains,
+        bool isCrossPlatformLock,
+        string reason)
+    {
+        EventType = nameof(SetTrackedDomains);
+        UserKeyField = userKeyField;
+        TrackedDomains = trackedDomains;
+        IsCrossPlatformLock = isCrossPlatformLock;
+        Reason = reason;
+        DistributionTimestamp = DateTime.UtcNow;
+    }
+}

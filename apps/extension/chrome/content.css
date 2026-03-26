@@ -1,1 +1,337 @@
 /* AntiScam Extension - Content Script Styles */
+
+/* ============================================
+   Warning Banner (Top Alert)
+   ============================================ */
+
+#antiscam-warning-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  color: white;
+  z-index: 999999;
+  padding: 12px 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.antiscam-banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 12px;
+}
+
+.antiscam-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.antiscam-text {
+  flex: 1;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.antiscam-text strong {
+  font-weight: 600;
+}
+
+.antiscam-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 20px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.antiscam-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+/* ============================================
+   Warning Modal (Popup Overlay)
+   ============================================ */
+
+#antiscam-warning-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.antiscam-modal-content {
+  background: white;
+  border-radius: 16px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.antiscam-modal-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 24px;
+  border-radius: 16px 16px 0 0;
+  text-align: center;
+}
+
+.antiscam-modal-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.antiscam-modal-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.antiscam-modal-body {
+  padding: 24px;
+  color: #333;
+  line-height: 1.6;
+}
+
+.antiscam-modal-body p {
+  margin: 12px 0;
+}
+
+.antiscam-risk-type,
+.antiscam-score {
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+.antiscam-modal-footer {
+  padding: 16px 24px 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.antiscam-btn-leave,
+.antiscam-btn-continue {
+  flex: 1;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.antiscam-btn-leave {
+  background: #27ae60;
+  color: white;
+}
+
+.antiscam-btn-leave:hover {
+  background: #229954;
+  transform: translateY(-2px);
+}
+
+.antiscam-btn-continue {
+  background: #e0e0e0;
+  color: #666;
+}
+
+.antiscam-btn-continue:hover {
+  background: #d0d0d0;
+}
+
+/* ============================================
+   Block Page (Full Screen Block)
+   ============================================ */
+
+#antiscam-block-page {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.antiscam-blur-wrapper.antiscam-blurred {
+  filter: blur(20px);
+  pointer-events: none;
+}
+
+.antiscam-block-content {
+  background: white;
+  border-radius: 24px;
+  padding: 48px;
+  max-width: 600px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.antiscam-block-icon {
+  font-size: 80px;
+  margin-bottom: 24px;
+}
+
+.antiscam-block-content h1 {
+  margin: 0 0 8px;
+  font-size: 36px;
+  color: #e74c3c;
+}
+
+.antiscam-block-subtitle {
+  margin: 0 0 24px;
+  font-size: 18px;
+  color: #666;
+  font-weight: 400;
+}
+
+.antiscam-block-url {
+  background: #f8f9fa;
+  padding: 12px 20px;
+  border-radius: 8px;
+  margin: 24px 0;
+  color: #333;
+  font-family: monospace;
+  font-size: 14px;
+}
+
+.antiscam-block-details {
+  background: #fff3cd;
+  border: 2px solid #ffc107;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 24px 0;
+}
+
+.antiscam-detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 8px 0;
+  font-size: 15px;
+}
+
+.antiscam-detail-label {
+  color: #666;
+}
+
+.antiscam-detail-value {
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+.antiscam-block-warning,
+.antiscam-block-warning-en {
+  margin: 16px 0;
+  font-size: 16px;
+}
+
+.antiscam-block-warning {
+  color: #e74c3c;
+  font-weight: 600;
+  direction: rtl;
+}
+
+.antiscam-block-warning-en {
+  color: #999;
+}
+
+.antiscam-block-buttons {
+  display: flex;
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.antiscam-btn-back,
+.antiscam-btn-continue-anyway {
+  flex: 1;
+  padding: 16px 24px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  line-height: 1.4;
+}
+
+.antiscam-btn-back {
+  background: #27ae60;
+  color: white;
+}
+
+.antiscam-btn-back:hover {
+  background: #229954;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(39, 174, 96, 0.3);
+}
+
+.antiscam-btn-continue-anyway {
+  background: #f8f9fa;
+  color: #666;
+  border: 2px solid #e0e0e0;
+}
+
+.antiscam-btn-continue-anyway:hover {
+  background: #e0e0e0;
+  color: #333;
+}

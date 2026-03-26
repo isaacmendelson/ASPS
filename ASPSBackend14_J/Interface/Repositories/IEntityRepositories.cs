@@ -93,3 +93,38 @@ public interface ITrackedDomainRepository
     Task DeleteAsync(int id);
     Task<int> GetCountAsync();
 }
+
+/// <summary>
+/// Repository for managing blacklisted phone numbers.
+/// JIRA: ASPS-282
+/// </summary>
+public interface IBlacklistedPhoneNumberRepository
+{
+    Task<BlacklistedPhoneNumber?> GetByIdAsync(int id);
+    Task<IEnumerable<BlacklistedPhoneNumber>> GetAllActiveAsync();
+    Task<BlacklistedPhoneNumber?> GetByPhoneNumberAsync(string phoneNumber);
+    Task<bool> IsPhoneNumberBlacklistedAsync(string phoneNumber);
+    Task<int> AddAsync(BlacklistedPhoneNumber phoneNumber);
+    Task<int> AddRangeAsync(IEnumerable<BlacklistedPhoneNumber> phoneNumbers);
+    Task UpdateAsync(BlacklistedPhoneNumber phoneNumber);
+    Task DeleteAsync(int id);
+    Task<int> GetCountAsync();
+}
+
+/// <summary>
+/// Repository for managing bank websites.
+/// JIRA: ASPS-297
+/// </summary>
+public interface IBankWebsiteRepository
+{
+    Task<BankWebsite?> GetByIdAsync(int id);
+    Task<IEnumerable<BankWebsite>> GetAllActiveAsync();
+    Task<BankWebsite?> GetByDomainAsync(string domain);
+    Task<IEnumerable<BankWebsite>> GetByCountryAsync(string country);
+    Task<bool> IsBankDomainAsync(string domain);
+    Task<int> AddAsync(BankWebsite bankWebsite);
+    Task<int> AddRangeAsync(IEnumerable<BankWebsite> bankWebsites);
+    Task UpdateAsync(BankWebsite bankWebsite);
+    Task DeleteAsync(int id);
+    Task<int> GetCountAsync();
+}

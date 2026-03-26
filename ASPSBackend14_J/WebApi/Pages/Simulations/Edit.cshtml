@@ -105,12 +105,15 @@
 <script>
     let steps = [];
     let userSearchTimeout = null;
+    let deviceSearchTimeout = null;
 
     // DOM elements
     const userSearchInput = document.getElementById('step-user-search');
     const userIdInput = document.getElementById('step-user-id');
-    const deviceSelect = document.getElementById('step-device-uid');
+    const deviceSearchInput = document.getElementById('step-device-search');
+    const deviceUidInput = document.getElementById('step-device-uid');
     const autocompleteList = document.getElementById('user-autocomplete-list');
+    const deviceAutocompleteList = document.getElementById('device-autocomplete-list');
 
     // Load existing steps on page load
     document.addEventListener('DOMContentLoaded', function() {
@@ -129,6 +132,7 @@
 
         // Setup autocomplete
         setupUserAutocomplete();
+        setupDeviceAutocomplete();
         
         // Setup save button
         document.getElementById('save-step-btn').addEventListener('click', saveStep);
@@ -209,53 +213,96 @@
         userSearchInput.value = displayName + (details ? ` (${details})` : '');
         autocompleteList.innerHTML = '';
         
-        // Load devices for selected user
-        loadUserDevices(userKeyField);
+        // Clear device selection when user changes
+        deviceSearchInput.value = '';
+        deviceUidInput.value = '';
     }
 
-    async function loadUserDevices(userKeyField) {
-        deviceSelect.innerHTML = '<option value="">Loading devices...</option>';
-        deviceSelect.disabled = true;
-        
+    function setupDeviceAutocomplete() {
+        deviceSearchInput.addEventListener('input', function() {
+            clearTimeout(deviceSearchTimeout);
+            const searchText = this.value.trim();
+            
+            if (searchText.length < 2) {
+                deviceAutocompleteList.innerHTML = '';
+                return;
+            }
+            
+            deviceSearchTimeout = setTimeout(() => {
+                searchDevices(searchText);
+            }, 300);
+        });
+
+        deviceSearchInput.addEventListener('blur', function() {
+            setTimeout(() => {
+                deviceAutocompleteList.innerHTML = '';
+            }, 200);
+        });
+    }
+
+    async function searchDevices(searchText) {
         try {
-            console.log('Loading devices for user:', userKeyField);
-            const response = await fetch(`/api/simulations/users/${encodeURIComponent(userKeyField)}/devices`);
+            console.log('Searching devices:', searchText);
+            // Optionally filter by selected user
+            const userKey = userIdInput.value;
+            const url = userKey 
+                ? `/api/simulations/devices?search=${encodeURIComponent(searchText)}&userKeyField=${encodeURIComponent(userKey)}`
+                : `/api/simulations/devices?search=${encodeURIComponent(searchText)}`;
+            
+            const response = await fetch(url);
             
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('Load devices failed:', response.status, errorText);
-                deviceSelect.innerHTML = '<option value="">Error loading devices</option>';
+                console.error('Search devices failed:', response.status, errorText);
+                deviceAutocompleteList.innerHTML = '<div class="text-danger p-2">Error loading devices</div>';
                 return;
             }
             
             const devices = await response.json();
             console.log('Found devices:', devices);
-            renderDeviceOptions(devices);
+            renderDeviceAutocomplete(devices);
         } catch (error) {
-            console.error('Error loading devices:', error);
-            deviceSelect.innerHTML = '<option value="">Error loading devices</option>';
+            console.error('Error searching devices:', error);
+            deviceAutocompleteList.innerHTML = '<div class="text-danger p-2">Error loading devices</div>';
         }
     }
 
-    function renderDeviceOptions(devices) {
+    function renderDeviceAutocomplete(devices) {
         if (devices.length === 0) {
-            deviceSelect.innerHTML = '<option value="">No devices found for this user</option>';
-            deviceSelect.disabled = true;
+            deviceAutocompleteList.innerHTML = '<div class="text-muted p-2">No devices found</div>';
             return;
         }
         
-        let html = '<option value="">-- Select a device --</option>';
+        let html = '';
         devices.forEach(device => {
             const deviceType = getDeviceTypeDisplay(device.deviceType);
-            const osInfo = device.operatingSystem ? ` (${device.operatingSystem})` : '';
-            const displayText = `${device.deviceUid} - ${deviceType}${osInfo}`;
+            const osInfo = device.operatingSystem || 'Unknown OS';
+            const userName = device.userFullName ? ` | ${device.userFullName}` : '';
+            const displayName = `${device.deviceUid} - ${deviceType} (${osInfo})`;
+            const details = `MAC: ${device.mac || 'N/A'}${userName}`;
             
-            html += `<option value="${escapeHtml(device.deviceUid)}">${escapeHtml(displayText)}</option>`;
+            html += `<div onclick="selectDevice('${escapeHtml(device.deviceUid)}', '${escapeHtml(displayName)}', '${escapeHtml(details)}', '${escapeHtml(device.userKeyField || '')}')" class="user-info">
+                <div class="name">${escapeHtml(displayName)}</div>
+                <div class="details">${escapeHtml(details)}</div>
+            </div>`;
         });
         
-        deviceSelect.innerHTML = html;
-        deviceSelect.disabled = false;
+        deviceAutocompleteList.innerHTML = html;
     }
+
+    function selectDevice(deviceUid, displayName, details, deviceUserKey) {
+        deviceUidInput.value = deviceUid;
+        deviceSearchInput.value = displayName;
+        deviceAutocompleteList.innerHTML = '';
+        
+        // If device has a user and no user selected yet, set it
+        if (deviceUserKey && !userIdInput.value) {
+            userIdInput.value = deviceUserKey;
+            userSearchInput.value = `User: ${deviceUserKey}`;
+        }
+    }
+
+
 
     function getDeviceTypeDisplay(deviceType) {
         const types = {
@@ -285,8 +332,8 @@
         document.getElementById('step-delay-ms').value = '0';
         userIdInput.value = '';
         userSearchInput.value = '';
-        deviceSelect.innerHTML = '<option value="">-- Select a user first --</option>';
-        deviceSelect.disabled = true;
+        deviceUidInput.value = '';
+        deviceSearchInput.value = '';
         document.getElementById('step-alert-type').value = 'UrlAlert';
         document.getElementById('step-alert-json').value = '{}';
         document.getElementById('step-priority').value = 'High';
@@ -298,18 +345,11 @@
             document.getElementById('step-delay-ms').value = step.DelayMs;
             userIdInput.value = step.UserId;
             userSearchInput.value = step.UserId; // Will show ID, can be improved
+            deviceUidInput.value = step.DeviceUid;
+            deviceSearchInput.value = step.DeviceUid; // Will show UID, can be improved
             document.getElementById('step-alert-type').value = step.AlertType;
             document.getElementById('step-alert-json').value = step.AlertJson;
             document.getElementById('step-priority').value = step.Priority;
-            
-            // Load devices if we have a user ID
-            if (step.UserId) {
-                loadUserDevices(step.UserId).then(() => {
-                    if (step.DeviceUid) {
-                        deviceSelect.value = step.DeviceUid;
-                    }
-                });
-            }
         }
         
         // Store current index for save
@@ -327,9 +367,9 @@
         }
         
         // Validate device selection
-        if (!deviceSelect.value) {
-            alert('Please select a device');
-            deviceSelect.focus();
+        if (!deviceUidInput.value) {
+            alert('Please select a device from the autocomplete list');
+            deviceSearchInput.focus();
             return;
         }
         
@@ -339,7 +379,7 @@
             Sequence: parseInt(document.getElementById('step-sequence').value),
             DelayMs: parseInt(document.getElementById('step-delay-ms').value),
             UserId: userIdInput.value,
-            DeviceUid: deviceSelect.value,
+            DeviceUid: deviceUidInput.value,
             AlertType: document.getElementById('step-alert-type').value,
             AlertJson: document.getElementById('step-alert-json').value,
             Priority: document.getElementById('step-priority').value

@@ -39,8 +39,11 @@ public class AppDbContext : DbContext
     public DbSet<KnownPhishingWebsite> KnownPhishingWebsites { get; set; }
     public DbSet<SafeDomain> SafeDomains { get; set; }
     public DbSet<TrackedDomain> TrackedDomains { get; set; }
+    public DbSet<SensitiveSite> SensitiveSites { get; set; }
     public DbSet<DeviceTokenEntity> DeviceTokens { get; set; }
     public DbSet<Simulation> Simulations { get; set; }
+    public DbSet<BlacklistedPhoneNumber> BlacklistedPhoneNumbers { get; set; }
+    public DbSet<BankWebsite> BankWebsites { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -364,6 +367,47 @@ public class AppDbContext : DbContext
             entity.HasIndex(e => e.IsActive);
         });
 
+        // SensitiveSite configuration (INT AUTO_INCREMENT key)
+        modelBuilder.Entity<SensitiveSite>(entity =>
+        {
+            entity.ToTable("SensitiveSites");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id)
+                .HasColumnName("Key")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.DomainPattern)
+                .IsRequired()
+                .HasMaxLength(255);
+
+            entity.Property(e => e.Category)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(e => e.RiskMultiplier)
+                .IsRequired()
+                .HasColumnType("decimal(5,2)")
+                .HasDefaultValue(2.0m);
+
+            entity.Property(e => e.IsActive)
+                .IsRequired()
+                .HasDefaultValue(true);
+
+            entity.Property(e => e.DateCreated)
+                .IsRequired();
+
+            entity.Property(e => e.DateModified)
+                .IsRequired();
+
+            entity.Property(e => e.DateDeleted);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.DomainPattern);
+            entity.HasIndex(e => e.Category);
+            entity.HasIndex(e => e.DateDeleted);
+            entity.HasIndex(e => e.IsActive);
+        });
+
         // DeviceToken configuration
         modelBuilder.Entity<DeviceTokenEntity>(entity =>
         {
@@ -426,6 +470,82 @@ public class AppDbContext : DbContext
             entity.HasIndex(e => e.Name);
             entity.HasIndex(e => e.CreatorKeyField);
             entity.HasIndex(e => e.DateCreated);
+        });
+
+        // BlacklistedPhoneNumber configuration (INT AUTO_INCREMENT key)
+        // JIRA: ASPS-282
+        modelBuilder.Entity<BlacklistedPhoneNumber>(entity =>
+        {
+            entity.ToTable("BlacklistedPhoneNumbers");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id)
+                .HasColumnName("Key")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.PhoneNumber)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(e => e.Source)
+                .HasMaxLength(100);
+
+            entity.Property(e => e.Notes)
+                .HasMaxLength(500);
+
+            entity.Property(e => e.DateCreated)
+                .IsRequired();
+
+            entity.Property(e => e.DateDeleted);
+
+            entity.Property(e => e.IsDeleted)
+                .IsRequired()
+                .HasDefaultValue(false);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.PhoneNumber);
+            entity.HasIndex(e => e.DateDeleted);
+        });
+
+        // BankWebsite configuration (INT AUTO_INCREMENT key)
+        // JIRA: ASPS-297
+        modelBuilder.Entity<BankWebsite>(entity =>
+        {
+            entity.ToTable("BankWebsites");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id)
+                .HasColumnName("Key")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.Domain)
+                .IsRequired()
+                .HasMaxLength(255);
+
+            entity.Property(e => e.BankName)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(e => e.Country)
+                .HasMaxLength(100);
+
+            entity.Property(e => e.IsActive)
+                .IsRequired()
+                .HasDefaultValue(true);
+
+            entity.Property(e => e.DateCreated)
+                .IsRequired();
+
+            entity.Property(e => e.DateModified);
+
+            entity.Property(e => e.DateDeleted);
+
+            entity.Property(e => e.IsDeleted)
+                .IsRequired()
+                .HasDefaultValue(false);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.Domain);
+            entity.HasIndex(e => e.IsActive);
+            entity.HasIndex(e => e.DateDeleted);
         });
     }
 }

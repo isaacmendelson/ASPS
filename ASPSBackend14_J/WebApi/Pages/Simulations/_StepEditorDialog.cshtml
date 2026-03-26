@@ -34,12 +34,14 @@
                         <div class="form-text">Search by first name, last name, email, or phone</div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="step-device-uid" class="form-label">Target Device <span class="text-danger">*</span></label>
-                        <select class="form-select" id="step-device-uid" required disabled>
-                            <option value="">-- Select a user first --</option>
-                        </select>
-                        <div class="form-text">Select a device from the user's registered devices</div>
+                    <div class="mb-3 position-relative">
+                        <label for="step-device-search" class="form-label">Target Device <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="step-device-search" 
+                               placeholder="Start typing device UID, MAC, or OS..." 
+                               autocomplete="off" />
+                        <input type="hidden" id="step-device-uid" />
+                        <div id="device-autocomplete-list" class="autocomplete-items"></div>
+                        <div class="form-text">Search by device UID, MAC address, OS, or type</div>
                     </div>
 
                     <div class="row">
