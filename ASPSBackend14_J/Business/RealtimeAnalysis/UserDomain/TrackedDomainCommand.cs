@@ -51,7 +51,7 @@ public enum TrackMode
 public enum ReportType
 {
     None = 0,
-    OnVisit = 1,
-    OnFormSubmit = 2,
-    OnAnyAction = 3
+    Backend = 1,
+    User = 2,
+    All = 3
 }
