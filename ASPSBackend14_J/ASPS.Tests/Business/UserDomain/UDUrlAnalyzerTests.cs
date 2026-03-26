@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Business.RealtimeAnalysis.UserDomain;
+using TrackModeEnum = Common.Enums.TrackMode;
 using Business.Views;
 using Common.Entities;
 using Common.Enums;
@@ -318,7 +319,7 @@ public class UDUrlAnalyzerTests
     {
         // Arrange
         var domain = "risky-site.com";
-        var trackMode = (int)TrackMode.Click;
+        var trackMode = (int)TrackModeEnum.Click;
         var scamKey = "abc-123";
         var durationMinutes = 45;
         var expectedMessage = $"SetTrackMode|{domain}|{trackMode}|{scamKey}|{durationMinutes}";
@@ -328,7 +329,7 @@ public class UDUrlAnalyzerTests
         expectedMessage.Split('|').Should().HaveCount(5);
         expectedMessage.Split('|')[0].Should().Be("SetTrackMode");
         expectedMessage.Split('|')[1].Should().Be(domain);
-        expectedMessage.Split('|')[2].Should().Be("2"); // TrackMode.Click
+        expectedMessage.Split('|')[2].Should().Be("2"); // TrackModeEnum.Click
         expectedMessage.Split('|')[3].Should().Be(scamKey);
         expectedMessage.Split('|')[4].Should().Be(durationMinutes.ToString());
     }

@@ -48,7 +48,7 @@ public class SimulationsApiControllerTests
                 FirstName = "John",
                 LastName = "Doe",
                 Email = "john.doe@example.com",
-                Phone = "123456789"
+                PhoneNumber = "123456789"
             },
             new User
             {
@@ -56,7 +56,7 @@ public class SimulationsApiControllerTests
                 FirstName = "Jane",
                 LastName = "Smith",
                 Email = "jane.smith@example.com",
-                Phone = "987654321"
+                PhoneNumber = "987654321"
             }
         };
 
@@ -219,7 +219,7 @@ public class SimulationsApiControllerTests
 
         _cqrsClientMock
             .Setup(c => c.SendQueryAsync<GetSimulationDevicesQueryResult>(It.Is<GetSimulationDevicesQuery>(
-                q => q.UserKey != null && q.UserKey.KeyField == userKeyField)))
+                q => q.UserKey != null && q.UserKey.Value == userKeyField)))
             .ReturnsAsync(queryResult);
 
         // Act
@@ -303,7 +303,7 @@ public class SimulationsApiControllerTests
 
         _cqrsClientMock
             .Setup(c => c.SendQueryAsync<GetSimulationUserDevicesQueryResult>(It.Is<GetSimulationUserDevicesQuery>(
-                q => q.UserKey.KeyField == userKeyField)))
+                q => q.UserKey.Value == userKeyField)))
             .ReturnsAsync(queryResult);
 
         // Act
@@ -331,7 +331,7 @@ public class SimulationsApiControllerTests
 
         _cqrsClientMock
             .Setup(c => c.SendQueryAsync<GetSimulationUserDevicesQueryResult>(It.Is<GetSimulationUserDevicesQuery>(
-                q => q.UserKey.KeyField == userKeyField)))
+                q => q.UserKey.Value == userKeyField)))
             .ReturnsAsync(queryResult);
 
         // Act

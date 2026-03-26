@@ -16,9 +16,9 @@ public class TrackedDomainDistributorTests
     {
         // Arrange
         var sut = new TrackedDomainDistributor();
-        var domains = new List<TrackedDomainInfo>
+        var domains = new List<TrackedDomainCommand>
         {
-            new TrackedDomainInfo("phishing.com", "scam-001", TrackMode.Block, ReportType.All, "Phishing")
+            new TrackedDomainCommand("phishing.com", "scam-001", TrackMode.Block, ReportType.All, "Phishing")
         };
 
         // Act
@@ -208,7 +208,7 @@ public class TrackedDomainDistributorTests
         var sut = new TrackedDomainDistributor();
 
         // Act
-        var result = sut.MergeDomainLists(new List<TrackedDomainInfo>());
+        var result = sut.MergeDomainLists(new List<TrackedDomainCommand>());
 
         // Assert
         result.Should().BeEmpty();
@@ -219,10 +219,10 @@ public class TrackedDomainDistributorTests
     {
         // Arrange
         var sut = new TrackedDomainDistributor();
-        var list1 = new List<TrackedDomainInfo>
+        var list1 = new List<TrackedDomainCommand>
         {
-            new TrackedDomainInfo("domain1.com", "scam-1", TrackMode.Warn, ReportType.User, "Test"),
-            new TrackedDomainInfo("domain2.com", "scam-2", TrackMode.Block, ReportType.All, "Test")
+            new TrackedDomainCommand("domain1.com", "scam-1", TrackMode.Warn, ReportType.User, "Test"),
+            new TrackedDomainCommand("domain2.com", "scam-2", TrackMode.Block, ReportType.All, "Test")
         };
 
         // Act
@@ -239,13 +239,13 @@ public class TrackedDomainDistributorTests
     {
         // Arrange
         var sut = new TrackedDomainDistributor();
-        var list1 = new List<TrackedDomainInfo>
+        var list1 = new List<TrackedDomainCommand>
         {
-            new TrackedDomainInfo("duplicate.com", "scam-1", TrackMode.Warn, ReportType.User, "Test")
+            new TrackedDomainCommand("duplicate.com", "scam-1", TrackMode.Warn, ReportType.User, "Test")
         };
-        var list2 = new List<TrackedDomainInfo>
+        var list2 = new List<TrackedDomainCommand>
         {
-            new TrackedDomainInfo("duplicate.com", "scam-2", TrackMode.Monitor, ReportType.Backend, "Test")
+            new TrackedDomainCommand("duplicate.com", "scam-2", TrackMode.Monitor, ReportType.Backend, "Test")
         };
 
         // Act
@@ -261,13 +261,13 @@ public class TrackedDomainDistributorTests
     {
         // Arrange
         var sut = new TrackedDomainDistributor();
-        var list1 = new List<TrackedDomainInfo>
+        var list1 = new List<TrackedDomainCommand>
         {
-            new TrackedDomainInfo("test.com", "scam-1", TrackMode.Warn, ReportType.User, "Test1")
+            new TrackedDomainCommand("test.com", "scam-1", TrackMode.Warn, ReportType.User, "Test1")
         };
-        var list2 = new List<TrackedDomainInfo>
+        var list2 = new List<TrackedDomainCommand>
         {
-            new TrackedDomainInfo("test.com", "scam-2", TrackMode.Block, ReportType.All, "Test2")
+            new TrackedDomainCommand("test.com", "scam-2", TrackMode.Block, ReportType.All, "Test2")
         };
 
         // Act
@@ -283,17 +283,17 @@ public class TrackedDomainDistributorTests
     {
         // Arrange
         var sut = new TrackedDomainDistributor();
-        var list1 = new List<TrackedDomainInfo>
+        var list1 = new List<TrackedDomainCommand>
         {
-            new TrackedDomainInfo("domain1.com", "scam-1", TrackMode.Warn, ReportType.User, "Test")
+            new TrackedDomainCommand("domain1.com", "scam-1", TrackMode.Warn, ReportType.User, "Test")
         };
-        var list2 = new List<TrackedDomainInfo>
+        var list2 = new List<TrackedDomainCommand>
         {
-            new TrackedDomainInfo("domain2.com", "scam-2", TrackMode.Block, ReportType.All, "Test")
+            new TrackedDomainCommand("domain2.com", "scam-2", TrackMode.Block, ReportType.All, "Test")
         };
-        var list3 = new List<TrackedDomainInfo>
+        var list3 = new List<TrackedDomainCommand>
         {
-            new TrackedDomainInfo("domain3.com", "scam-3", TrackMode.Monitor, ReportType.Backend, "Test")
+            new TrackedDomainCommand("domain3.com", "scam-3", TrackMode.Monitor, ReportType.Backend, "Test")
         };
 
         // Act
@@ -337,8 +337,8 @@ public class TrackedDomainDistributorTests
 
         // Merge domains
         var allDomains = sut.MergeDomainLists(
-            new List<TrackedDomainInfo> { domain1 },
-            new List<TrackedDomainInfo> { domain2 }
+            new List<TrackedDomainCommand> { domain1 },
+            new List<TrackedDomainCommand> { domain2 }
         );
 
         // Create distribution event
