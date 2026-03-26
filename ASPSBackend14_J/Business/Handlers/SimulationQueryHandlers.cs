@@ -189,8 +189,8 @@ public class SimulationQueryHandlers
             {
                 var searchLower = query.SearchText.ToLower();
                 devices = devices.Where(d =>
-                    d.DeviceUid.ToLower().Contains(searchLower) ||
-                    d.MAC.ToLower().Contains(searchLower) ||
+                    (d.DeviceUid?.ToLower().Contains(searchLower) ?? false) ||
+                    (d.MAC?.ToLower().Contains(searchLower) ?? false) ||
                     d.DeviceType.ToString().ToLower().Contains(searchLower) ||
                     d.OperatingSystem.ToString().ToLower().Contains(searchLower));
             }
