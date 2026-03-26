@@ -4,6 +4,7 @@ using Common.Entities;
 using Common.Models;
 using Interface.Repositories;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Business.Handlers;
 
@@ -164,7 +165,12 @@ public class SimulationCommandHandlers
             SimulationStep[]? steps = null;
             if (!string.IsNullOrWhiteSpace(simulation.SimulationStepsJson))
             {
-                steps = JsonSerializer.Deserialize<SimulationStep[]>(simulation.SimulationStepsJson);
+                var options = new JsonSerializerOptions
+                {
+                    Converters = { new JsonStringEnumConverter() },
+                    PropertyNameCaseInsensitive = true
+                };
+                steps = JsonSerializer.Deserialize<SimulationStep[]>(simulation.SimulationStepsJson, options);
             }
 
             if (steps == null || steps.Length == 0)

@@ -2,6 +2,7 @@ using Business.Queries;
 using Common.Models;
 using Interface.Repositories;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Business.Handlers;
 
@@ -85,7 +86,12 @@ public class SimulationQueryHandlers
             {
                 try
                 {
-                    steps = JsonSerializer.Deserialize<SimulationStep[]>(simulation.SimulationStepsJson);
+                    var options = new JsonSerializerOptions
+                    {
+                        Converters = { new JsonStringEnumConverter() },
+                        PropertyNameCaseInsensitive = true
+                    };
+                    steps = JsonSerializer.Deserialize<SimulationStep[]>(simulation.SimulationStepsJson, options);
                 }
                 catch (JsonException)
                 {
