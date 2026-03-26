@@ -1,6 +1,9 @@
 using Business.RealtimeAnalysis;
+using Business.RealtimeAnalysis.UserDomain;
+using Business.RealtimeAnalysis;
 using Business.RealtimeAnalysis.Indicators;
 using Business.RealtimeAnalysis.UserDomain;
+using Business.RealtimeAnalysis;
 using Common.Entities;
 using Common.Enums;
 using Common.Interfaces;
@@ -256,7 +259,7 @@ public class UserIsTargetedAlertReceived : DomainEvent
 public class SetTrackedDomains : DomainEvent
 {
     public string UserKeyField { get; set; } = string.Empty;
-    public List<UserDomain.TrackedDomainInfo> TrackedDomains { get; set; } = new();
+    public List<TrackedDomainCommand> TrackedDomains { get; set; } = new();
     public bool IsCrossPlatformLock { get; set; }
     public string Reason { get; set; } = string.Empty;
     public DateTime DistributionTimestamp { get; set; }
@@ -269,7 +272,7 @@ public class SetTrackedDomains : DomainEvent
 
     public SetTrackedDomains(
         string userKeyField,
-        List<UserDomain.TrackedDomainInfo> trackedDomains,
+        List<TrackedDomainCommand> trackedDomains,
         bool isCrossPlatformLock,
         string reason)
     {

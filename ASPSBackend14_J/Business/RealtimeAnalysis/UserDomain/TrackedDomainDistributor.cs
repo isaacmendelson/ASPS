@@ -18,7 +18,7 @@ public class TrackedDomainDistributor
     /// <returns>SetTrackedDomains event</returns>
     public SetTrackedDomains CreateTrackingEvent(
         string userKeyField,
-        List<TrackedDomainInfo> domains,
+        List<TrackedDomainCommand> domains,
         bool isCrossPlatformLock,
         string reason)
     {
@@ -38,8 +38,8 @@ public class TrackedDomainDistributor
     /// <param name="trackMode">Track mode (Monitor/Warn/Block/HighAlert)</param>
     /// <param name="reportType">Report type</param>
     /// <param name="reason">Reason for tracking</param>
-    /// <returns>TrackedDomainInfo</returns>
-    public TrackedDomainInfo CreateTrackedDomain(
+    /// <returns>TrackedDomainCommand</returns>
+    public TrackedDomainCommand CreateTrackedDomain(
         string url,
         string scamKey,
         TrackMode trackMode,
@@ -48,7 +48,7 @@ public class TrackedDomainDistributor
     {
         var domain = ExtractDomain(url);
 
-        return new TrackedDomainInfo(
+        return new TrackedDomainCommand(
             domain: domain,
             scamInProgressKey: scamKey,
             trackMode: trackMode,
@@ -129,9 +129,9 @@ public class TrackedDomainDistributor
     /// </summary>
     /// <param name="lists">Multiple lists of tracked domains</param>
     /// <returns>Merged list with unique domains</returns>
-    public List<TrackedDomainInfo> MergeDomainLists(params List<TrackedDomainInfo>[] lists)
+    public List<TrackedDomainCommand> MergeDomainLists(params List<TrackedDomainCommand>[] lists)
     {
-        var merged = new Dictionary<string, TrackedDomainInfo>();
+        var merged = new Dictionary<string, TrackedDomainCommand>();
 
         foreach (var list in lists)
         {

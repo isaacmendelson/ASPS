@@ -11,10 +11,9 @@ public class GetAllBlacklistedPhoneNumbersQuery : Query
 {
     public GetAllBlacklistedPhoneNumbersQuery()
     {
-        QueryType = nameof(GetAllBlacklistedPhoneNumbersQuery);
+        base.QueryType = nameof(GetAllBlacklistedPhoneNumbersQuery);
     }
 
-    public string QueryType { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 50;
     public string? Search { get; set; }
@@ -36,10 +35,9 @@ public class GetBlacklistedPhoneNumberByIdQuery : Query
 {
     public GetBlacklistedPhoneNumberByIdQuery()
     {
-        QueryType = nameof(GetBlacklistedPhoneNumberByIdQuery);
+        base.QueryType = nameof(GetBlacklistedPhoneNumberByIdQuery);
     }
 
-    public string QueryType { get; set; }
     public int Id { get; set; }
 }
 
@@ -56,10 +54,9 @@ public class CheckPhoneNumberBlacklistedQuery : Query
 {
     public CheckPhoneNumberBlacklistedQuery()
     {
-        QueryType = nameof(CheckPhoneNumberBlacklistedQuery);
+        base.QueryType = nameof(CheckPhoneNumberBlacklistedQuery);
     }
 
-    public string QueryType { get; set; }
     public string PhoneNumber { get; set; } = string.Empty;
 }
 

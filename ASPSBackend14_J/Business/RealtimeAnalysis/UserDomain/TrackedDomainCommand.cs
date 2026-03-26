@@ -4,7 +4,7 @@ namespace Business.RealtimeAnalysis.UserDomain;
 /// Information about a domain to track across user devices
 /// ASPS-371: SetTrackedDomains Event
 /// </summary>
-public class TrackedDomainInfo
+public class TrackedDomainCommand
 {
     public string Domain { get; set; } = string.Empty;
     public string ScamInProgressKey { get; set; } = string.Empty;
@@ -13,12 +13,12 @@ public class TrackedDomainInfo
     public DateTime AddedTimestamp { get; set; }
     public string Reason { get; set; } = string.Empty;
 
-    public TrackedDomainInfo()
+    public TrackedDomainCommand()
     {
         AddedTimestamp = DateTime.UtcNow;
     }
 
-    public TrackedDomainInfo(
+    public TrackedDomainCommand(
         string domain,
         string scamInProgressKey,
         TrackMode trackMode,
@@ -39,49 +39,19 @@ public class TrackedDomainInfo
 /// </summary>
 public enum TrackMode
 {
-    /// <summary>
-    /// Monitor but don't block
-    /// </summary>
     Monitor = 0,
-
-    /// <summary>
-    /// Show warning before access
-    /// </summary>
     Warn = 1,
-
-    /// <summary>
-    /// Block access completely
-    /// </summary>
     Block = 2,
-
-    /// <summary>
-    /// High alert - notify immediately on any access
-    /// </summary>
     HighAlert = 3
 }
 
 /// <summary>
-/// Type of report when domain is accessed
+/// Type of report to generate
 /// </summary>
 public enum ReportType
 {
-    /// <summary>
-    /// Don't report
-    /// </summary>
     None = 0,
-
-    /// <summary>
-    /// Report to backend only
-    /// </summary>
-    Backend = 1,
-
-    /// <summary>
-    /// Report to user/guardian
-    /// </summary>
-    User = 2,
-
-    /// <summary>
-    /// Report to both backend and user
-    /// </summary>
-    All = 3
+    OnVisit = 1,
+    OnFormSubmit = 2,
+    OnAnyAction = 3
 }

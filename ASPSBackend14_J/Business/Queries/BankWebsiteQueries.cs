@@ -11,10 +11,9 @@ public class GetAllBankWebsitesQuery : Query
 {
     public GetAllBankWebsitesQuery()
     {
-        QueryType = nameof(GetAllBankWebsitesQuery);
+        base.QueryType = nameof(GetAllBankWebsitesQuery);
     }
 
-    public string QueryType { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 50;
     public string? Search { get; set; }
@@ -37,10 +36,9 @@ public class GetBankWebsiteByIdQuery : Query
 {
     public GetBankWebsiteByIdQuery()
     {
-        QueryType = nameof(GetBankWebsiteByIdQuery);
+        base.QueryType = nameof(GetBankWebsiteByIdQuery);
     }
 
-    public string QueryType { get; set; }
     public int Id { get; set; }
 }
 
@@ -57,10 +55,9 @@ public class CheckDomainIsBankQuery : Query
 {
     public CheckDomainIsBankQuery()
     {
-        QueryType = nameof(CheckDomainIsBankQuery);
+        base.QueryType = nameof(CheckDomainIsBankQuery);
     }
 
-    public string QueryType { get; set; }
     public string Domain { get; set; } = string.Empty;
 }
 

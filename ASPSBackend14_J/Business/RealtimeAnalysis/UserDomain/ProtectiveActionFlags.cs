@@ -5,7 +5,7 @@ namespace Business.RealtimeAnalysis.UserDomain;
 /// ASPS-372: Protective Actions Matrix
 /// </summary>
 [Flags]
-public enum ProtectiveAction
+public enum ProtectiveActionFlags
 {
     /// <summary>
     /// No action - just passive monitoring
