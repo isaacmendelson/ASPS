@@ -174,7 +174,9 @@ class Program
                 services.AddSingleton<UserDomainManagerService>();
 
                 // Add SimulationRunner (background service for simulations)
-                services.AddHostedService<SimulationRunner>();
+                // Register as Singleton first so it can be injected into handlers
+                services.AddSingleton<SimulationRunner>();
+                services.AddHostedService(provider => provider.GetRequiredService<SimulationRunner>());
 
                 // Add Messaging
                 services.AddSingleton<NetMQMessageProcessor>();
