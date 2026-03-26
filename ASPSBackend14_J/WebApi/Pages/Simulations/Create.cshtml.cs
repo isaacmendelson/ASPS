@@ -5,6 +5,7 @@ using Business.Commands;
 using Business.Queries;
 using Common.Models;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace WebApi.Pages.Simulations
 {
@@ -55,7 +56,12 @@ namespace WebApi.Pages.Simulations
                 {
                     try
                     {
-                        steps = JsonSerializer.Deserialize<SimulationStep[]>(StepsJson) ?? Array.Empty<SimulationStep>();
+                        var options = new JsonSerializerOptions
+                        {
+                            Converters = { new JsonStringEnumConverter() },
+                            PropertyNameCaseInsensitive = true
+                        };
+                        steps = JsonSerializer.Deserialize<SimulationStep[]>(StepsJson, options) ?? Array.Empty<SimulationStep>();
                     }
                     catch (Exception ex)
                     {
