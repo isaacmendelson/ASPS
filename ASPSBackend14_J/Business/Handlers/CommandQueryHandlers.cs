@@ -201,6 +201,24 @@ public class UserQueryHandlers
             return new GetUserAccountsQueryResult { Success = false, Message = $"Error: {ex.Message}" };
         }
     }
+
+    public virtual async Task<GetUserByKeycloakIdQueryResult> HandleAsync(GetUserByKeycloakIdQuery query)
+    {
+        try
+        {
+            var user = await _userRepository.GetByKeycloakIdAsync(query.KeycloakUserId);
+            return new GetUserByKeycloakIdQueryResult
+            {
+                Success = true,
+                Message = user != null ? "User found" : "User not found",
+                User = user
+            };
+        }
+        catch (Exception ex)
+        {
+            return new GetUserByKeycloakIdQueryResult { Success = false, Message = $"Error: {ex.Message}" };
+        }
+    }
 }
 
 public class UserDeviceCommandHandlers
@@ -293,24 +311,6 @@ public class UserDeviceCommandHandlers
         catch (Exception ex)
         {
             return new DeleteUserDeviceCommandResult { Success = false, Message = $"Error: {ex.Message}" };
-        }
-    }
-
-    public virtual async Task<GetUserByKeycloakIdQueryResult> HandleAsync(GetUserByKeycloakIdQuery query)
-    {
-        try
-        {
-            var user = await _userRepository.GetByKeycloakIdAsync(query.KeycloakUserId);
-            return new GetUserByKeycloakIdQueryResult
-            {
-                Success = true,
-                Message = user != null ? "User found" : "User not found",
-                User = user
-            };
-        }
-        catch (Exception ex)
-        {
-            return new GetUserByKeycloakIdQueryResult { Success = false, Message = $"Error: {ex.Message}" };
         }
     }
 }
