@@ -158,6 +158,7 @@ public class CQRSGateway : IDisposable
             "GetSimulationUsersQuery" => await HandleGetSimulationUsersQuery(messageJson, scope),
             "GetSimulationUserDevicesQuery" => await HandleGetSimulationUserDevicesQuery(messageJson, scope),
             "GetSimulationDevicesQuery" => await HandleGetSimulationDevicesQuery(messageJson, scope),
+            "GetUserByKeycloakIdQuery" => await HandleGetUserByKeycloakIdQuery(messageJson, scope),
             _ => CreateErrorResponse($"Unknown query type: {queryType}")
         };
     }
@@ -244,6 +245,20 @@ public class CQRSGateway : IDisposable
     {
         var query = JsonConvert.DeserializeObject<GetUserByKeyQuery>(messageJson);
         if (query == null) return CreateErrorResponse("Invalid GetUserByKeyQuery format");
+
+        var handler = scope.ServiceProvider.GetRequiredService<UserQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleGetUserByKeycloakIdQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetUserByKeycloakIdQuery>(messageJson);
+        if (query == null) return CreateErrorResponse("Invalid GetUserByKeycloakIdQuery format");
 
         var handler = scope.ServiceProvider.GetRequiredService<UserQueryHandlers>();
         var result = await handler.HandleAsync(query);
