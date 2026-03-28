@@ -1,0 +1,48 @@
+@page
+@model WebApi.Pages.DebugClaimsModel
+@{
+    ViewData["Title"] = "Debug Claims";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Claims</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="p-4">
+    <div class="container">
+        <h1>Debug Claims</h1>
+        
+        <h3>User Info</h3>
+        <p><strong>IsAuthenticated:</strong> @User.Identity?.IsAuthenticated</p>
+        <p><strong>Name:</strong> @User.Identity?.Name</p>
+        <p><strong>AuthenticationType:</strong> @User.Identity?.AuthenticationType</p>
+        
+        <h3>All Claims</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var claim in User.Claims)
+                {
+                    <tr class="@(claim.Type.Contains("group") || claim.Type.Contains("role") ? "table-warning" : "")">
+                        <td><code>@claim.Type</code></td>
+                        <td><pre style="margin:0;white-space:pre-wrap;">@claim.Value</pre></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        
+        <h3>Admin Check</h3>
+        <p><strong>Is in Admin role:</strong> @User.IsInRole("Admin")</p>
+        <p><strong>Has groups claim:</strong> @(User.FindFirst("groups") != null)</p>
+        
+        <a href="/" class="btn btn-primary">Back to Home</a>
+    </div>
+</body>
+</html>

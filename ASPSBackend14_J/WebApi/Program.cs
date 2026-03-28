@@ -39,6 +39,7 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AllowAnonymousToPage("/Logout");
     options.Conventions.AllowAnonymousToPage("/DeviceLogin");
     options.Conventions.AllowAnonymousToPage("/AccessDenied");
+    options.Conventions.AllowAnonymousToPage("/DebugClaims");
 });
 
 // Authorization policy - require Admin role (set from Keycloak Administrators group)
