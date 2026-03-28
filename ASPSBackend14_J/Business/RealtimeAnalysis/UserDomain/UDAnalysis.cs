@@ -184,7 +184,7 @@ public class UDAnalysis : IBackgroundTask
         switch (deviceAlert)
         {
             case UrlAlert:
-            case TrackUrlAlert:
+            
                 urlAnalyzerResults = analysisResults.Where(i => i.Key == nameof(UDUrlAnalyzer)).ToList();
 
                 foreach (var item in urlAnalyzerResults)
@@ -197,10 +197,39 @@ public class UDAnalysis : IBackgroundTask
                             udAnalysisResults.Add(item.Key, new Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>(result, item.Value.Item2.Indicators.ToArray(), item.Value.Item2.ProtectiveActions.ToArray()));
                         }
                     }
+                    if (r is UrlAnalysisResultVm[] vms1)
+                    {
+                        foreach (var result in vms1)
+                        {
+                            udAnalysisResults.Add(item.Key, new Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>(result, item.Value.Item2.Indicators.ToArray(), item.Value.Item2.ProtectiveActions.ToArray()));
+                        }
+                    }
                 }
                 break;
+
+                case TrackUrlAlert:
+                    urlAnalyzerResults = analysisResults.Where(i => i.Key == nameof(UDTrackUrlAnalyzer)).ToList();
+                    foreach (var item in urlAnalyzerResults)
+                    {
+                        var r = item.Value.Item2.Details["results"];
+                        if (r is UrlAnalysisResultVm[] vms)
+                        {
+                            foreach (var result in vms)
+                            {
+                                udAnalysisResults.Add(item.Key, new Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>(result, item.Value.Item2.Indicators.ToArray(), item.Value.Item2.ProtectiveActions.ToArray()));
+                            }
+                        }
+                        if (r is UrlAnalysisResultVm[] vms1)
+                        {
+                            foreach (var result in vms1)
+                            {
+                                udAnalysisResults.Add(item.Key, new Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>(result, item.Value.Item2.Indicators.ToArray(), item.Value.Item2.ProtectiveActions.ToArray()));
+                            }
+                        }
+                    }
+                    break;
+
             case RemoteAccessAlert:
-                
                 urlAnalyzerResults = analysisResults.Where(i => i.Key == nameof(UDRemoteAccessAnalyzer)).ToList();
                 foreach (var item in urlAnalyzerResults)
                 {
