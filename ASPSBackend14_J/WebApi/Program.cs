@@ -92,7 +92,6 @@ if (keycloakEnabled)
         options.Scope.Add("openid");
         options.Scope.Add("profile");
         options.Scope.Add("email");
-        options.Scope.Add("groups");  // Request groups from Keycloak
 
         options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
         options.NonceCookie.SameSite = SameSiteMode.None;
@@ -123,11 +122,39 @@ if (keycloakEnabled)
                 var principal = context.Principal;
                 var username = principal?.Identity?.Name;
                 
-                // Check if user is in Administrators group
-                var groupsClaim = principal?.FindFirst("groups")?.Value;
-                var isAdmin = groupsClaim?.Contains("Administrators") == true ||
-                              principal?.HasClaim("groups", "/Administrators") == true ||
-                              principal?.HasClaim("groups", "Administrators") == true;
+                // Keycloak sends groups in different claims depending on config:
+                // - "groups" claim (if group membership mapper configured)
+                // - "realm_access.roles" for realm roles
+                // Check all possible locations for Administrators
+                var isAdmin = false;
+                
+                // Check groups claim (can be single or multiple)
+                var groupsClaims = principal?.FindAll("groups");
+                if (groupsClaims != null)
+                {
+                    foreach (var claim in groupsClaims)
+                    {
+                        if (claim.Value.Contains("Administrators") || claim.Value == "/Administrators")
+                        {
+                            isAdmin = true;
+                            break;
+                        }
+                    }
+                }
+                
+                // Check realm_access roles
+                var realmAccess = principal?.FindFirst("realm_access")?.Value;
+                if (!isAdmin && realmAccess?.Contains("admin") == true)
+                {
+                    isAdmin = true;
+                }
+                
+                // Check resource_access for client roles  
+                var resourceAccess = principal?.FindFirst("resource_access")?.Value;
+                if (!isAdmin && resourceAccess?.Contains("admin") == true)
+                {
+                    isAdmin = true;
+                }
                 
                 // Add admin role if in Administrators group
                 if (isAdmin && principal?.Identity is ClaimsIdentity identity)
@@ -135,7 +162,16 @@ if (keycloakEnabled)
                     identity.AddClaim(new Claim(ClaimTypes.Role, "Admin"));
                 }
                 
+                // Log all claims for debugging
                 Console.WriteLine($"✓ User authenticated: {username}, Admin: {isAdmin}");
+                if (principal != null)
+                {
+                    foreach (var claim in principal.Claims)
+                    {
+                        Console.WriteLine($"  Claim: {claim.Type} = {claim.Value}");
+                    }
+                }
+                
                 return Task.CompletedTask;
             },
             OnAuthenticationFailed = context =>
