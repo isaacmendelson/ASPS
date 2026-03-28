@@ -31,11 +31,14 @@ class IconService {
       }
     });
 
-    stateManager.subscribe('scan.score', (score) => {
-      if (score !== null && stateManager.get('connection.desktop')) {
-        this.setColorByScore(score);
-      }
-    });
+    // NOTE: Don't subscribe to scan.score directly here.
+    // Icon updates are handled explicitly in background.js via setColorByAction()
+    // to avoid race conditions and ensure protectiveAction takes precedence.
+    // stateManager.subscribe('scan.score', (score) => {
+    //   if (score !== null && stateManager.get('connection.desktop')) {
+    //     this.setColorByScore(score);
+    //   }
+    // });
   }
 
   // Start loading animation with pulsing gray icon
