@@ -1,8 +1,8 @@
 using Business.Services;
 using WebApi.Services;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
-
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -51,6 +51,9 @@ builder.Services.AddAuthorization(options =>
         policy.RequireRole("Admin");
     });
 });
+
+// Claims transformer to add Admin role based on username/groups
+builder.Services.AddScoped<IClaimsTransformation, AdminClaimsTransformer>();
 
 // ========================================
 // KEYCLOAK AUTHENTICATION
@@ -102,7 +105,7 @@ if (keycloakEnabled)
         options.TokenValidationParameters = new TokenValidationParameters
         {
             NameClaimType = "preferred_username",
-            RoleClaimType = "roles",
+            RoleClaimType = ClaimTypes.Role,  // Use standard .NET role claim type
             ValidateIssuer = true
         };
 
