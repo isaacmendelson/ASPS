@@ -2,9 +2,11 @@ using Business.Services;
 using WebApi.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Authentication.OAuth.Claims;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.AspNetCore.HttpOverrides;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,9 +34,21 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 // Add Razor Pages for Admin UI
 builder.Services.AddRazorPages(options =>
 {
-    options.Conventions.AuthorizeFolder("/");
+    options.Conventions.AuthorizeFolder("/", "AdminPolicy");
     options.Conventions.AllowAnonymousToPage("/Login");
+    options.Conventions.AllowAnonymousToPage("/Logout");
     options.Conventions.AllowAnonymousToPage("/DeviceLogin");
+    options.Conventions.AllowAnonymousToPage("/AccessDenied");
+});
+
+// Authorization policy - require Admin role (set from Keycloak Administrators group)
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminPolicy", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireRole("Admin");
+    });
 });
 
 // ========================================
@@ -56,6 +70,7 @@ if (keycloakEnabled)
     {
         options.LoginPath = "/Login";
         options.LogoutPath = "/Logout";
+        options.AccessDeniedPath = "/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
         options.Cookie.HttpOnly = true;
@@ -77,6 +92,10 @@ if (keycloakEnabled)
         options.Scope.Add("openid");
         options.Scope.Add("profile");
         options.Scope.Add("email");
+        options.Scope.Add("groups");  // Request groups from Keycloak
+
+        // Map Keycloak groups claim
+        options.ClaimActions.MapJsonKey("groups", "groups");
 
         options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
         options.NonceCookie.SameSite = SameSiteMode.None;
@@ -104,7 +123,22 @@ if (keycloakEnabled)
             },
             OnTokenValidated = context =>
             {
-                Console.WriteLine($"✓ User authenticated: {context.Principal?.Identity?.Name}");
+                var principal = context.Principal;
+                var username = principal?.Identity?.Name;
+                
+                // Check if user is in Administrators group
+                var groupsClaim = principal?.FindFirst("groups")?.Value;
+                var isAdmin = groupsClaim?.Contains("Administrators") == true ||
+                              principal?.HasClaim("groups", "/Administrators") == true ||
+                              principal?.HasClaim("groups", "Administrators") == true;
+                
+                // Add admin role if in Administrators group
+                if (isAdmin && principal?.Identity is ClaimsIdentity identity)
+                {
+                    identity.AddClaim(new Claim(ClaimTypes.Role, "Admin"));
+                }
+                
+                Console.WriteLine($"✓ User authenticated: {username}, Admin: {isAdmin}");
                 return Task.CompletedTask;
             },
             OnAuthenticationFailed = context =>
@@ -125,6 +159,7 @@ else
         {
             options.LoginPath = "/Login";
             options.LogoutPath = "/Logout";
+            options.AccessDeniedPath = "/AccessDenied";
             options.ExpireTimeSpan = TimeSpan.FromHours(8);
             options.Cookie.HttpOnly = true;
             options.Cookie.Name = "ASPS.Auth";

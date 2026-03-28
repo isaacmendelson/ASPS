@@ -184,6 +184,20 @@
         <div class="topbar-title">@ViewData["Title"]</div>
         <div class="topbar-right">
             <div class="topbar-clock"><i class="fas fa-clock"></i><span id="current-time"></span></div>
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <div class="dropdown">
+                    <button class="btn btn-link text-decoration-none dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: var(--navy);">
+                        <i class="fas fa-user-circle fa-lg"></i>
+                        <span class="fw-medium">@(User.FindFirst("preferred_username")?.Value ?? User.Identity.Name)</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                        <li><span class="dropdown-item-text text-muted small">@User.FindFirst("email")?.Value</span></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="/logout"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            }
         </div>
     </div>
     <div class="main-content">@RenderBody()</div>
