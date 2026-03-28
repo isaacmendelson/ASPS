@@ -123,36 +123,31 @@ if (keycloakEnabled)
                 var principal = context.Principal;
                 var username = principal?.Identity?.Name;
                 
-                // Keycloak sends groups in different claims depending on config:
-                // - "groups" claim (if group membership mapper configured)
-                // - "realm_access.roles" for realm roles
-                // Check all possible locations for Administrators
-                var isAdmin = false;
+                // Check if user is admin
+                // Option 1: Check known admin usernames (temporary until Keycloak groups are configured)
+                var adminUsernames = new[] { "asps-admin", "isaac", "admin" };
+                var isAdmin = adminUsernames.Contains(username?.ToLower());
                 
-                // Check groups claim (can be single or multiple)
-                var groupsClaims = principal?.FindAll("groups");
-                if (groupsClaims != null)
+                // Option 2: Check groups claim (if configured in Keycloak)
+                if (!isAdmin)
                 {
-                    foreach (var claim in groupsClaims)
+                    var groupsClaims = principal?.FindAll("groups");
+                    if (groupsClaims != null)
                     {
-                        if (claim.Value.Contains("Administrators") || claim.Value == "/Administrators")
+                        foreach (var claim in groupsClaims)
                         {
-                            isAdmin = true;
-                            break;
+                            if (claim.Value.Contains("Administrators") || claim.Value == "/Administrators")
+                            {
+                                isAdmin = true;
+                                break;
+                            }
                         }
                     }
                 }
                 
-                // Check realm_access roles
+                // Option 3: Check realm_access roles
                 var realmAccess = principal?.FindFirst("realm_access")?.Value;
                 if (!isAdmin && realmAccess?.Contains("admin") == true)
-                {
-                    isAdmin = true;
-                }
-                
-                // Check resource_access for client roles  
-                var resourceAccess = principal?.FindFirst("resource_access")?.Value;
-                if (!isAdmin && resourceAccess?.Contains("admin") == true)
                 {
                     isAdmin = true;
                 }
