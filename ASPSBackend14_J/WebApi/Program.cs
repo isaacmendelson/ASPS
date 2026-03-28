@@ -121,12 +121,15 @@ if (keycloakEnabled)
             OnTokenValidated = context =>
             {
                 var principal = context.Principal;
-                var username = principal?.Identity?.Name;
+                var username = principal?.FindFirst("preferred_username")?.Value 
+                            ?? principal?.Identity?.Name;
                 
                 // Check if user is admin
                 // Option 1: Check known admin usernames (temporary until Keycloak groups are configured)
                 var adminUsernames = new[] { "asps-admin", "isaac", "admin" };
                 var isAdmin = adminUsernames.Contains(username?.ToLower());
+                
+                Console.WriteLine($"DEBUG: username={username}, checking against: {string.Join(",", adminUsernames)}");
                 
                 // Option 2: Check groups claim (if configured in Keycloak)
                 if (!isAdmin)
