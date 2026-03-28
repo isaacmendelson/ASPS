@@ -157,7 +157,8 @@
                             <td>
                                 @if (alert is Common.Entities.TrackUrlAlertEntity trackAlert)
                                 {
-                                    <small class="text-truncate d-inline-block" style="max-width: 200px;" title="@trackAlert.Url">
+                                    var tooltipText = $"Url: {trackAlert.Url}\nFrom Url: {trackAlert.FromUrl}\nTime on page: {trackAlert.Duration} seconds";
+                                    <small class="text-truncate d-inline-block" style="max-width: 200px;" title="@tooltipText">
                                         @trackAlert.Url
                                     </small>
                                 }
