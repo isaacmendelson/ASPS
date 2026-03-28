@@ -72,7 +72,8 @@ public class LoginModel : PageModel
             new Claim(ClaimTypes.Name, Username),
             new Claim(ClaimTypes.Email, $"{Username}@dev.local"),
             new Claim(ClaimTypes.Role, "Admin"),
-            new Claim("preferred_username", Username)
+            new Claim("preferred_username", Username),
+            new Claim("sub", Username)  // Use username as sub for dev mode
         };
 
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

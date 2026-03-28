@@ -14,9 +14,20 @@ public class UserRepository : Repository<User>, IUserRepository
 
     public async Task<User?> GetByKeycloakIdAsync(string keycloakUserId)
     {
-        return await _dbSet
+        // First try exact KeycloakUserId match
+        var user = await _dbSet
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.KeycloakUserId == keycloakUserId && !u.IsDeleted);
+        
+        // If not found, try matching by FirstName (for dev login compatibility)
+        if (user == null)
+        {
+            user = await _dbSet
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.FirstName == keycloakUserId && !u.IsDeleted);
+        }
+        
+        return user;
     }
 
     public async Task<User?> GetUserWithDetailsAsync(Key key)
