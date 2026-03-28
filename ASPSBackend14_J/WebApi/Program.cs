@@ -2,7 +2,7 @@ using Business.Services;
 using WebApi.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
-using Microsoft.AspNetCore.Authentication.OAuth.Claims;
+
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -93,9 +93,6 @@ if (keycloakEnabled)
         options.Scope.Add("profile");
         options.Scope.Add("email");
         options.Scope.Add("groups");  // Request groups from Keycloak
-
-        // Map Keycloak groups claim
-        options.ClaimActions.MapJsonKey("groups", "groups");
 
         options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
         options.NonceCookie.SameSite = SameSiteMode.None;
