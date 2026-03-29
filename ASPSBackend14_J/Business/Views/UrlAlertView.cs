@@ -45,6 +45,7 @@ namespace Business.Views
         public string[] IFrameDomains { get; private set; }
         public string UserAgent { get; private set; }
 
+
         public string Domain
         {
             get

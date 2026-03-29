@@ -130,6 +130,21 @@ public class UrlAnalyzerResultVm : AnalyzerResultVm
 
 [Serializable]
 [DataContract]
+public class TrackUrlAnalyzerResultVm : AnalyzerResultVm
+{
+    public TrackUrlAnalyzerResultVm(
+        TrackUrlAnalysisResultVm analysisResult,
+        Indicator[] indicators, ProtectiveAction[] protectiveActions, string analyzerName, string deviceUid, DateTime timestamp, Severity severity)
+        : base(indicators, protectiveActions, analyzerName, deviceUid, timestamp, severity)
+    {
+        AnalysisResult = analysisResult;
+    }
+    [DataMember]
+    public TrackUrlAnalysisResultVm AnalysisResult { get; set; }
+}
+
+[Serializable]
+[DataContract]
 public class RemoteAccessAnalyzerResultVm : AnalyzerResultVm
 {
     public RemoteAccessAnalyzerResultVm(

@@ -19,6 +19,11 @@ public class AnalysisResultContainer : Entity
         DeviceAlertKeyField = deviceAlertKeyField;
         this.SetKeyField(keyField);
         Timestamp = timestamp;
+        this.DateCreated = timestamp;
+        this.KeyField = keyField;
+        this.UserKeyField = userKeyField;
+        this.Discriminator = discriminator;
+        this.Timestamp = timestamp;
     }
 
     protected AnalysisResultContainer()
@@ -89,12 +94,54 @@ public class AnalysisResultContainer : Entity
 
 public class UrlAnalysisResultContainer : AnalysisResultContainer
 {
-    public string Domain { get; set; } = string.Empty;
-    public string Url { get; set; } = string.Empty;
+    public UrlAnalysisResultContainer(string url, string keyField, string userKeyField, string discriminator, DateTime timestamp, string? jsonValue, bool? hasError, 
+        string? errorMessage, bool? isFromCache = false, string? deviceAlertKeyField = null)
+        :base(keyField, userKeyField, discriminator, timestamp, jsonValue, hasError, errorMessage, isFromCache, deviceAlertKeyField)
+    {
+        this.Url = url;
+        this.Domain = KnownPhishingWebsite.GetDomainFromUrl(url);
+    }
+    public string? Domain { get; set; } = string.Empty;
+    public string? Url { get; set; } = string.Empty;
     
     [NotMapped]
     public override string TypeName => "UrlAnalysisResult";
 }
+
+public class TrackUrlAnalysisResultContainer : AnalysisResultContainer
+{
+    public TrackUrlAnalysisResultContainer(string url, string fromUrl, string keyField, string userKeyField, string discriminator, DateTime timestamp, string? jsonValue, bool? hasError,
+        string? errorMessage, bool? isFromCache = false, string? deviceAlertKeyField = null)
+        : base(keyField, userKeyField, discriminator, timestamp, jsonValue, hasError, errorMessage, isFromCache, deviceAlertKeyField)
+    {
+        this.Url = url;
+        this.FromUrl = fromUrl;
+        this.Domain = KnownPhishingWebsite.GetDomainFromUrl(url);
+    }
+    public string? Domain { get; set; } = string.Empty;
+    public string? Url { get; set; } = string.Empty;
+    public string? FromUrl { get; set; } = string.Empty;
+
+    [NotMapped]
+    public override string TypeName => "TrackUrlAnalysisResult";
+}
+
+public class RemoteAccessAnalysisResultContainer : AnalysisResultContainer
+{
+    public RemoteAccessAnalysisResultContainer(RemoteAccessApp remoteAccessApp, SessionStatus? sessionStatus, string keyField, string userKeyField, string discriminator, DateTime timestamp, string? jsonValue, bool? hasError,
+        string? errorMessage, bool? isFromCache = false, string? deviceAlertKeyField = null)
+        : base(keyField, userKeyField, discriminator, timestamp, jsonValue, hasError, errorMessage, isFromCache, deviceAlertKeyField)
+    {
+        this.RemoteAccessApp = (int)remoteAccessApp;
+        this.SessionStatus = (int?)sessionStatus ?? 0;
+    }
+    public int RemoteAccessApp { get; set; } = 0;
+    public int SessionStatus { get; set; } = 0;
+
+    [NotMapped]
+    public override string TypeName => "TrackUrlAnalysisResult";
+}
+
 
 public class AlertFlag
 {

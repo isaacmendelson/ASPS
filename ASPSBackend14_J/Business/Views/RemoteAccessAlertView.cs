@@ -22,7 +22,7 @@ namespace Business.Views
             this.ConnectionUrl = entity.ConnectionUrl;
             this.ConnectionStatus = entity.ConnectionStatus;
             this.ConnectionsCount = entity.ConnectionsCount;
-            this.SessionStatus = entity.SessionStatus;
+            this.SessionStatus = (int)entity.SessionStatus;
         }
 
         public RemoteAccessAlertView(

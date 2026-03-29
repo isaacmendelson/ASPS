@@ -71,7 +71,7 @@ public class IndexModelTests
             .ReturnsAsync(new GetUserByKeyQueryResult 
             { 
                 Success = true, 
-                User = new Common.Entities.UserEntity 
+                User = new User 
                 { 
                     FirstName = "John", 
                     LastName = "Doe" 
@@ -120,7 +120,7 @@ public class IndexModelTests
             .ReturnsAsync(new GetUserByKeyQueryResult 
             { 
                 Success = true, 
-                User = new Common.Entities.UserEntity 
+                User = new User 
                 { 
                     FirstName = "Jane", 
                     LastName = "Smith" 

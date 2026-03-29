@@ -74,6 +74,14 @@ public abstract class DeviceAlertEntity : Entity, IDeviceAlert
     public AlertFlagStatus Status { get; set; } = AlertFlagStatus.Unknown;
 
 
+    public string? AnalysisKeyField { get; set; }  // Key of the DeviceAlert that initiated this analysis
+
+
+    // Computed AnalysisKey property
+    [NotMapped]
+    [ForeignKey(nameof(AnalysisKeyField))]
+    public AnalysisResultContainer? AnalysisResultContainer { get; set; }
+
     // Navigation property to User (EF Core will use UserKeyField as FK)
     [ForeignKey(nameof(UserKeyField))]
     public User? User { get; set; }
@@ -200,7 +208,7 @@ public class RemoteAccessAlertEntity : DeviceAlertEntity
     public string ConnectionUrl { get; set; } = string.Empty;
     public ConnectionStatus ConnectionStatus { get; set; }
     public int ConnectionsCount { get; set; }
-    public int SessionStatus { get; set; }
+    public SessionStatus SessionStatus { get; set; }
 
     // Deep detection fields
     public string? RemoteOS { get; set; }

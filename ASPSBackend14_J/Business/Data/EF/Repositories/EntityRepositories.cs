@@ -219,6 +219,16 @@ public class DeviceAlertRepository : Repository<DeviceAlertEntity>, IDeviceAlert
             .OrderByDescending(a => a.Timestamp)
             .ToListAsync();
     }
+
+    public async Task UpdateAnalysisKeyAsync(string deviceAlertKeyField, string value)
+    {
+        var alert = await _dbSet.FindAsync(deviceAlertKeyField);
+        if (alert != null)
+        {
+            alert.AnalysisKeyField = value;
+            await _context.SaveChangesAsync();
+        }
+    }
 }
 
 public class TrackUrlAlertRepository : Repository<TrackUrlAlertEntity>, ITrackUrlAlertRepository

@@ -36,6 +36,7 @@ public interface IDeviceAlertRepository : IRepository<DeviceAlertEntity>
     Task<IEnumerable<DeviceAlertEntity>> GetAlertsByDeviceUidAsync(string deviceUid);
     Task<IEnumerable<DeviceAlertEntity>> GetAlertsByUserKeyAsync(Key? userKey);
     Task<IEnumerable<DeviceAlertEntity>> GetRecentAlertsAsync(TimeSpan timeSpan);
+    Task UpdateAnalysisKeyAsync(string deviceAlertKeyField, string value);
 }
 
 public interface IAnalysisResultRepository : IRepository<AnalysisResultContainer>

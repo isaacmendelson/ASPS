@@ -100,7 +100,7 @@ namespace Business.RealtimeAnalysis
                         DeviceKeyField = r.DeviceInfo.Key.Value,
                         RemoteAccessApp = r.RemoteAccessApp,
                         RunningProcesses = r.RunningProcesses,
-                        SessionStatus = r.SessionStatus,
+                        SessionStatus = (Common.Enums.SessionStatus)r.SessionStatus,
                         RemoteOS = r.RemoteOS,
                         RemoteVersion = r.RemoteVersion,
                         ConnectionType = r.ConnectionType,

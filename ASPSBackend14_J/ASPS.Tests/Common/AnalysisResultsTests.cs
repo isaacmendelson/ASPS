@@ -287,13 +287,20 @@ public class UrlAnalysisResultContainerTests
     public void Domain_CanBeSetAndRetrieved()
     {
         // Arrange
-        var result = new UrlAnalysisResultContainer
-        {
-            Domain = "example.com"
-        };
+        var d = DateTime.UtcNow;
+        string u = "example.com/aaa/bbb?x=y";
+        string dis = "UrlAnalysisResult";
+        string j = "{'json': 'value'}";
+        string userKeyField = "userKeyField";
+        string keyField = "keyField";
+        var result = new UrlAnalysisResultContainer(u, keyField, userKeyField, dis,d, j,false, "",false,"");
 
         // Act & Assert
+        result.Url.Should().Be(u);
         result.Domain.Should().Be("example.com");
+        result.Discriminator.Should().Be(dis);
+        result.UserKeyField.Should().Be(userKeyField);
+        result.KeyField.Should().Be(keyField);
     }
 
     [Fact]
@@ -301,20 +308,43 @@ public class UrlAnalysisResultContainerTests
     {
         // Arrange
         var url = "https://example.com/path";
-        var result = new UrlAnalysisResultContainer
-        {
-            Url = url
-        };
+        // Arrange
+        var d = DateTime.UtcNow;
+        string u = "example.com/aaa/bbb?x=y";
+        string dis = "UrlAnalysisResult";
+        string j = "{'json': 'value'}";
+        string userKeyField = "userKeyField";
+        string keyField = "keyField";
+        var result = new UrlAnalysisResultContainer(u, keyField, userKeyField, dis, d, j, false, "", false, "");
 
         // Act & Assert
-        result.Url.Should().Be(url);
+        result.Url.Should().Be(u);
+        result.Domain.Should().Be("example.com");
+        result.Discriminator.Should().Be(dis);
+        result.UserKeyField.Should().Be(userKeyField);
+        result.KeyField.Should().Be(keyField);
+
     }
 
     [Fact]
     public void TypeName_IsUrlAnalysisResult()
     {
         // Arrange
-        var result = new UrlAnalysisResultContainer();
+        // Arrange
+        var d = DateTime.UtcNow;
+        string u = "example.com/aaa/bbb?x=y";
+        string dis = "UrlAnalysisResult";
+        string j = "{'json': 'value'}";
+        string userKeyField = "userKeyField";
+        string keyField = "keyField";
+        var result = new UrlAnalysisResultContainer(u, keyField, userKeyField, dis, d, j, false, "", false, "");
+
+        // Act & Assert
+        result.Url.Should().Be(u);
+        result.Domain.Should().Be("example.com");
+        result.Discriminator.Should().Be(dis);
+        result.UserKeyField.Should().Be(userKeyField);
+        result.KeyField.Should().Be(keyField);
 
         // Act & Assert
         result.TypeName.Should().Be("UrlAnalysisResult");
@@ -324,16 +354,16 @@ public class UrlAnalysisResultContainerTests
 
     #region Default Values
 
-    [Fact]
-    public void DefaultConstructor_SetsEmptyStrings()
-    {
-        // Act
-        var result = new UrlAnalysisResultContainer();
+    //[Fact]
+    //public void DefaultConstructor_SetsEmptyStrings()
+    //{
+    //    // Act
+    //    var result = new UrlAnalysisResultContainer();
 
-        // Assert
-        result.Domain.Should().BeEmpty();
-        result.Url.Should().BeEmpty();
-    }
+    //    // Assert
+    //    result.Domain.Should().BeEmpty();
+    //    result.Url.Should().BeEmpty();
+    //}
 
     #endregion
 
@@ -345,16 +375,35 @@ public class UrlAnalysisResultContainerTests
     [InlineData("example.com")]
     [InlineData("sub.example.com")]
     [InlineData("deep.sub.example.com")]
-    public void Domain_AcceptsVariousFormats(string domain)
+    public void Domain_AcceptsVariousFormats(string url)
     {
         // Arrange
-        var result = new UrlAnalysisResultContainer
-        {
-            Domain = domain
-        };
+        // Arrange
+        var d = DateTime.UtcNow;
+        string dis = "UrlAnalysisResult";
+        string j = "{'json': 'value'}";
+        string userKeyField = "userKeyField";
+        string keyField = "keyField";
+        var result = new UrlAnalysisResultContainer(url, keyField, userKeyField, dis, d, j, false, "", false, "");
+
+        // Act & Assert
+        result.Url.Should().Be(url);
+        
+        result.Discriminator.Should().Be(dis);
+        result.UserKeyField.Should().Be(userKeyField);
+        result.KeyField.Should().Be(keyField);
 
         // Assert
-        result.Domain.Should().Be(domain);
+        switch(url.Trim())
+        {
+            case "":
+                result.Domain.Should().BeEmpty();
+                break;
+            default:
+                result.Domain.Should().Be("example.com");
+                break;
+            }
+
     }
 
     [Theory]
@@ -365,13 +414,21 @@ public class UrlAnalysisResultContainerTests
     public void Url_AcceptsVariousFormats(string url)
     {
         // Arrange
-        var result = new UrlAnalysisResultContainer
-        {
-            Url = url
-        };
+        // Arrange
+        var d = DateTime.UtcNow;
+        
+        string dis = "UrlAnalysisResult";
+        string j = "{'json': 'value'}";
+        string userKeyField = "userKeyField";
+        string keyField = "keyField";
+        var result = new UrlAnalysisResultContainer(url, keyField, userKeyField, dis, d, j, false, "", false, "");
 
-        // Assert
+        // Act & Assert
         result.Url.Should().Be(url);
+        result.Domain.Should().Be("example.com");
+        result.Discriminator.Should().Be(dis);
+        result.UserKeyField.Should().Be(userKeyField);
+        result.KeyField.Should().Be(keyField);
     }
 
     #endregion

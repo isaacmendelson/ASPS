@@ -37,12 +37,12 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
         _configuration = configuration;
         _phishingRepo = phishingRepo;
         _asView = asView;
-        
+
         // Get Python path from configuration
         _pythonPath = _configuration.GetValue<string>("Python:ExecutablePath", "python");
-        
+
         // Get analyzers folder path (absolute path from configuration)
-        _analyzersFolder = _configuration.GetValue<string>("Python:AnalyzersFolderPath", 
+        _analyzersFolder = _configuration.GetValue<string>("Python:AnalyzersFolderPath",
             Path.Combine(Directory.GetCurrentDirectory(), "Analyzers"));
 
         // Define external analyzers
@@ -98,7 +98,7 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
                 red_flags = Array.Empty<string>(),
                 Recommendation = "this domain is safe (whitelisted)",
                 scraping_status = null,
-                risk_assessment = new RiskAssessment(100, "Whitelisted", false, 1),
+                risk_assessment = new RiskAssessment(0, "Whitelisted", false, 1),
                 website_category = null,
                 Reputation = null,
                 Warnings = Array.Empty<string>(),
@@ -124,45 +124,6 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
 
         // STEP 1: Check against known phishing database FIRST (fast check)
         var phishingCheckResult = await CheckKnownPhishingAsync(url);
-        
-        // If it's a known phishing URL, we can return immediately with Critical severity
-        if (phishingCheckResult.Is_known_phishing)
-        {
-            _logger.LogWarning($"⚠️ KNOWN PHISHING URL DETECTED: {url} (Source: {phishingCheckResult.Source})");
-            
-            // Create indicator
-            var phishingIndicator = new KnownPhishingIndicator(
-                url,
-                Common.Entities.KnownPhishingWebsite.GetDomainFromUrl(url), 
-                true,
-                true,
-                phishingCheckResult.Source,
-                phishingCheckResult.Match_count,
-                new BooleanScore(true, 1.0f, true),
-                AnalysisLevel.Device,
-                1,
-                1.0f
-            );
-            
-            var criticalIndicators = new List<IIndicator> { phishingIndicator };
-            
-            //return new AnalyzerResult(
-            //    Severity.Critical,
-            //    "⚠️ KNOWN PHISHING URL DETECTED!",
-            //    criticalIndicators,
-            //    new Dictionary<string, object>
-            //    {
-            //        ["is_known_phishing"] = true,
-            //        ["phishing_source"] = phishingCheckResult.source ?? "Unknown",
-            //        ["url"] = urlAlert.Url,
-            //        ["domain"] = phishingCheckResult.source ?? "",
-            //        ["match_count"] = phishingCheckResult.match_count,
-            //        ["risk_score"] = 100
-            //    }
-            //);
-        }
-
-       
 
         // STEP 2: Continue with normal external analyzers
         var results = new List<UrlAnalysisResultVm>();
@@ -212,7 +173,7 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
                 }
                 else
                 {
-                    result = await RunPythonAnalyzerAsync(analyzer, url);
+                    result = await this.RunPythonAnalyzerAsync(analyzer, url);
                 }
 
                 if (result != null)
@@ -236,94 +197,74 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
             }
         }
 
-        // STEP 3: Add phishing check to results (if we got Python analyzer results)
-        if (results.Any())
-        {
-            var firstResult = results.First();
-            firstResult.phishing_check = phishingCheckResult;
-        }
 
         // STEP 4: Determine overall severity based on results
         var severity = Severity.Low;
-        
-        // Elevate severity if phishing domain detected (even if not exact URL match)
-        if (phishingCheckResult.Is_known_phishing_domain && phishingCheckResult.Match_count > 0)
-        {
-            severity = Severity.High;
-            _logger.LogWarning($"⚠️ Known phishing domain detected: {phishingCheckResult.Source} ({phishingCheckResult.Match_count} URLs)");
-        }
-        
+
         if (results.Any())
         {
+            // STEP 3: Add phishing check to results (if we got Python analyzer results)
+            var firstResult = results.First();
+            firstResult.phishing_check = phishingCheckResult;
+
             var maxRiskScore = results
                 .Where(r => r.risk_assessment != null)
                 .Max(r => r.risk_assessment!.risk_score);
-            
-            var hasScam = results
+
+            var isScam = results
                 .Where(r => r.risk_assessment != null)
                 .Any(r => r.risk_assessment!.is_scam);
 
-            if (hasScam || maxRiskScore >= 80)
-                severity = Severity.Critical;  // risk score >= 80 = very dangerous
-            else if (maxRiskScore >= 61)
-                severity = Severity.High;      // risk score >= 61 = dangerous
-            else if (maxRiskScore >= 31)
-                severity = Severity.Medium;    // risk score >= 31 = moderate risk
-        }
+            severity = CalculateSeverity(phishingCheckResult, maxRiskScore, isScam);
 
-        // STEP 5: Create indicators list
-        var indicators = new List<IIndicator>();
-        
-        // Add phishing indicator if domain is suspicious
-        if (phishingCheckResult.Is_known_phishing_domain)
-        {
-            var domain = Common.Entities.KnownPhishingWebsite.GetDomainFromUrl(url);
-            var phishingIndicator = new KnownPhishingIndicator(
-                url,
-                domain,
-                phishingCheckResult.Is_known_phishing,
-                phishingCheckResult.Is_known_phishing_domain,
-                phishingCheckResult.Source,
-                phishingCheckResult.Match_count,
-                new BooleanScore(true, 1.0f, true),
-                AnalysisLevel.Device,
-                1,
-                1.0f
-            );
-            indicators.Add(phishingIndicator);
-        }
+            // STEP 5: Create indicators list
+            var indicators = new List<IIndicator>();
 
-        //Create ProtectiveActions
-       List<IProtectiveAction> protectiveActions = new();
-
-        if (indicators.Count > 0)
-        {
-            if (indicators.Any(i =>  i is KnownPhishingIndicator knownPhishingIndicator))
+            // Add phishing indicator if domain is suspicious
+            if (phishingCheckResult.Is_known_phishing_domain)
             {
-                string msg =  $"Known phishing URL detected: ";
-
-                var action = new ProtectiveAction(ProtectiveActionSubject.Device, ProtectiveActionType.UserDisplayNotification,AnalysisLevel.Device, msg, alert.AlertId);
-                protectiveActions.Add(action);
+                var domain = Common.Entities.KnownPhishingWebsite.GetDomainFromUrl(url);
+                var phishingIndicator = new KnownPhishingIndicator(
+                    url,
+                    domain,
+                    phishingCheckResult.Is_known_phishing,
+                    phishingCheckResult.Is_known_phishing_domain,
+                    phishingCheckResult.Source,
+                    phishingCheckResult.Match_count,
+                    new BooleanScore(true, 1.0f, true),
+                    AnalysisLevel.Device,
+                    1,
+                    1.0f
+                );
+                indicators.Add(phishingIndicator);
             }
-        }
 
-        // Check if URL tracking should be enabled based on risk threshold
-        var riskThreshold = _configuration.GetValue<int>("TrackUrl:RiskThresholdToEnableTracking", 40);
-        var trackingDurationMinutes = _configuration.GetValue<int>("TrackUrl:TrackingDurationMinutes", 30);
-        
-        if (results.Any())
-        {
-            var maxRiskScore = results
-                .Where(r => r.risk_assessment != null)
-                .Max(r => r.risk_assessment!.risk_score);
-            
+            //Create ProtectiveActions
+            List<IProtectiveAction> protectiveActions = new();
+
+            if (indicators.Count > 0)
+            {
+                if (indicators.Any(i => i is KnownPhishingIndicator knownPhishingIndicator))
+                {
+                    string msg = $"Known phishing URL detected: ";
+
+                    var action = new ProtectiveAction(ProtectiveActionSubject.Device, ProtectiveActionType.UserDisplayNotification, AnalysisLevel.Device, msg, alert.AlertId);
+                    protectiveActions.Add(action);
+                }
+            }
+
+            // Check if URL tracking should be enabled based on risk threshold
+            var riskThreshold = _configuration.GetValue<int>("TrackUrl:RiskThresholdToEnableTracking", 40);
+            var trackingDurationMinutes = _configuration.GetValue<int>("TrackUrl:TrackingDurationMinutes", 30);
+
+
             // Enable URL tracking if risk score exceeds threshold (higher score = higher risk)
             // Risk score of 40 or above means elevated risk, enable tracking
             if (maxRiskScore >= riskThreshold)
             {
                 var domain = Common.Entities.KnownPhishingWebsite.GetDomainFromUrl(url);
                 _logger.LogInformation($"⚠️ Risk threshold exceeded for {domain}. Risk score: {maxRiskScore} >= {riskThreshold}. Enabling URL tracking for {trackingDurationMinutes} minutes.");
-                
+
                 var trackingAction = new ProtectiveAction(
                     ProtectiveActionSubject.Device,
                     ProtectiveActionType.EnableUrlTracking,
@@ -332,44 +273,53 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
                     alert.AlertId);
                 protectiveActions.Add(trackingAction);
             }
-        }
-        // Aggregate results
-        var analyzerResult = new AnalyzerResult
-        (
-            severity,
-            results.Any() 
-                ? $"URL analysis completed: {results.Count}/{ExternalAnalyzers.Length} analyzers succeeded" 
-                : "All URL analyzers failed",
-            indicators,  // Pass indicators list
-            protectiveActions,
-            new Dictionary<string, object>
-            {
-                ["results"] = results.ToArray(),
-                ["errors"] = errors.ToArray(),
-                ["url"] = url,
-                ["analyzers_run"] = results.Count,
-                ["analyzers_total"] = ExternalAnalyzers.Length
-            }
-        );
 
-        // Add aggregate risk assessment if we have results
-        if (results.Any())
-        {
+            var analyzerResult = new AnalyzerResult
+            (
+                severity,
+                results.Any()
+                    ? $"URL analysis completed: {results.Count}/{ExternalAnalyzers.Length} analyzers succeeded"
+                    : "All URL analyzers failed",
+                indicators,  // Pass indicators list
+                protectiveActions,
+                new Dictionary<string, object>
+                {
+                    ["results"] = results.ToArray(),
+                    ["errors"] = errors.ToArray(),
+                    ["url"] = url,
+                    ["analyzers_run"] = results.Count,
+                    ["analyzers_total"] = ExternalAnalyzers.Length
+                }
+            );
+
             var avgRiskScore = results
                 .Where(r => r.risk_assessment != null)
                 .Average(r => r.risk_assessment!.risk_score);
-            
-            var isScam = results
-                .Where(r => r.risk_assessment != null)
-                .Any(r => r.risk_assessment!.is_scam);
 
             analyzerResult.Details["aggregate_risk_score"] = avgRiskScore;
             analyzerResult.Details["is_scam"] = isScam;
+
+            return analyzerResult;
         }
-
-        return analyzerResult;
+        else
+        {
+            _logger.LogWarning($"No valid results from analyzers for URL: {url}. Errors: {string.Join("; ", errors)}");
+            return new AnalyzerResult(
+                severity,
+                $"No valid results from analyzers. Errors: {string.Join("; ", errors)}",
+                new List<IIndicator>(),
+                new List<IProtectiveAction>(),
+                new Dictionary<string, object>
+                {
+                    ["results"] = Array.Empty<UrlAnalysisResultVm>(),
+                    ["errors"] = errors.ToArray(),
+                    ["url"] = url,
+                    ["analyzers_run"] = 0,
+                    ["analyzers_total"] = ExternalAnalyzers.Length
+                }
+            );
+        }
     }
-
     private async Task<UrlAnalysisResultVm?> RunPythonAnalyzerAsync(ExternalAnalyzer analyzer, string url)
     {
         // Build path to analyzer directory and analyze.py script
@@ -481,6 +431,7 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
         try
         {
             var result = JsonConvert.DeserializeObject<UrlAnalysisResultVm>(analysisJson);
+            result.IsFromCache = false; // Mark as not from cache since it's fresh from Python analyzer
             return result;
         }
         catch (JsonException ex)
@@ -498,24 +449,24 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
         try
         {
             var domain = Common.Entities.KnownPhishingWebsite.GetDomainFromUrl(url);
-            
+
             // Check if exact URL is in database
             var isKnownPhishing = await _phishingRepo.IsPhishingUrlAsync(url);
-            
+
             // Check if domain is in database
             var isKnownPhishingDomain = await _phishingRepo.IsPhishingDomainAsync(domain);
 
             // Get count and source info if domain is phishing
             PhishingCheckResultSource? source = PhishingCheckResultSource.Unknown;
             int matchCount = 0;
-            
+
             if (isKnownPhishingDomain)
             {
 
                 var phishingUrls = await _phishingRepo.GetByDomainAsync(domain);
                 var phishingUrlsList = phishingUrls.ToList();
                 matchCount = phishingUrlsList.Count;
-                
+
                 // Get source from first match
                 if (phishingUrlsList.Any())
                 {
@@ -523,9 +474,9 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
                     source = PhishingCheckResultSource.KnownList;
                 }
             }
-            
+
             _logger.LogDebug($"Phishing check for {url}: URL={isKnownPhishing}, Domain={isKnownPhishingDomain}, Matches={matchCount}");
-            
+
             return new PhishingCheckResultVm
             {
                 Is_known_phishing = isKnownPhishing,
@@ -538,7 +489,7 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error checking phishing database for URL: {url}");
-            
+
             // Return negative result on error (don't block analysis)
             return new PhishingCheckResultVm
             {
@@ -549,5 +500,46 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
                 Checked_at = DateTime.UtcNow
             };
         }
+    }
+
+    private Severity GetSeverityFromRiskScore(float val)
+    {
+        var SeverityScoreThresholdCritical = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdCritical", 80);
+        var SeverityScoreThresholdHigh = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdHigh", 80);
+        var SeverityScoreThresholdMedium = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdMedium", 80);
+
+        Severity severity = Severity.Unknown;
+        if (val >= SeverityScoreThresholdCritical)
+            severity = Severity.Critical;  // risk score >= 80 = very dangerous
+        else if (val >= SeverityScoreThresholdHigh)
+            severity = Severity.High;      // risk score >= 61 = dangerous
+        else if (val >= SeverityScoreThresholdMedium)
+            severity = Severity.Medium;    // risk score >= 31 = moderate ris
+        else
+            severity = Severity.Low;       // risk score < 31 = low risk    
+
+        return severity;
+    }
+
+    private Severity CalculateSeverity(PhishingCheckResultVm phishingCheckResult, float maxRiskScore, bool isScam)
+    {
+        var severity = Severity.Low;
+        if (isScam)
+        {
+            severity = Severity.High;
+            _logger.LogWarning($"⚠️ Scam indicators detected in analysis results");
+        }
+        else if (phishingCheckResult.Is_known_phishing_domain && phishingCheckResult.Match_count > 0)
+        {
+            severity = Severity.High;
+            _logger.LogWarning($"⚠️ Known phishing domain detected: {phishingCheckResult.Source} ({phishingCheckResult.Match_count} URLs)");
+        }
+        else
+        {
+            _logger.LogInformation($"Max risk score from analyzers: {maxRiskScore}");
+            severity = this.GetSeverityFromRiskScore(maxRiskScore);
+        }
+
+        return severity;
     }
 }

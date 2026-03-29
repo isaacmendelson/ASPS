@@ -74,10 +74,12 @@ namespace Business.RealtimeAnalysis.UserDomain
 
         public async Task Handle(IDomainEvent evt)
         {
-            if (evt is AnalysisResultReceived analysisEvent)
+            switch(evt)
             {
-                // Handle the analysis result received event
-                this.HandleAnalysisResultReceivedAsync(analysisEvent);
+                case AnalysisResultReceived analysisEvent:
+                    // Handle the analysis result received event
+                    await this.HandleAnalysisResultReceivedAsync(analysisEvent);
+                    break;
             }
         }
 
@@ -85,7 +87,12 @@ namespace Business.RealtimeAnalysis.UserDomain
         {
             if (analysisEvent.AnalyzerResults.TryGetValue(nameof(UDRemoteAccessAnalyzer), out var raResult))
             {
-                this.UDUser.BrowserTabs[analysisEvent.DeviceUid] = (raResult.Item1 as RemoteAccessAnalysisResultVm)?.BrowserTabs;
+                var bt1 = this.UDUser.BrowserTabs;
+                var bt2 = (raResult.Item1 as RemoteAccessAnalysisResultVm)?.BrowserTabs;
+                if (bt1 is not null && bt2 is not null)
+                {
+                    bt1[analysisEvent.DeviceUid] = bt2;
+                }
             }
             if (!analysisEvent.AnalyzerResults.Any())
                 return;

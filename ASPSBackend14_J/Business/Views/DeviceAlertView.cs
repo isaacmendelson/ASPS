@@ -1,6 +1,7 @@
 ﻿using Common.Entities;
 using Common.Enums;
 using Common.Models;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -41,13 +42,16 @@ namespace Business.Views
             MAC = entity.MAC;
             IPAddress = entity.IPAddress;
             UserKey = entity.UserKey;
+            AnalysisKey = entity.AnalysisKeyField != null ? new Key(entity.TypeName.Replace("Alert","") + ("AnalysisResult"), entity.AnalysisKeyField) : null;
         }
 
         public DeviceAlertView(Key key, 
             //string name, 
             string? alertId, string alertType, Priority priority, 
             DateTime timestamp, string token, string deviceUid, 
-            DeviceType deviceType, OperatingSystemType operatingSystem, string? mAC, Key? userKey)
+            DeviceType deviceType, OperatingSystemType operatingSystem, 
+            //Key? analysisKey, 
+            string? mAC, Key? userKey)
             : base(key, alertType)
         {
             Key = key ?? throw new ArgumentNullException(nameof(key));
@@ -61,6 +65,7 @@ namespace Business.Views
             OperatingSystem = operatingSystem;
             MAC = mAC ?? string.Empty;
             UserKey = userKey;
+            //AnalysisKey = analysisKey;
         }
 
         //public DeviceAlert? Alert { get; private set; }
@@ -76,5 +81,6 @@ namespace Business.Views
         public string MAC { get; private set; }
         public string? IPAddress { get; private set; }
         public Key? UserKey { get; private set; }
+        public Key? AnalysisKey { get; private set; }
     }
 }

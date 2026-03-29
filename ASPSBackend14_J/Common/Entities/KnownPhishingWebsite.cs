@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.RegularExpressions;
 
 namespace Common.Entities;
 
@@ -90,9 +91,18 @@ public class KnownPhishingWebsite
 
             if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
                 return string.Empty;
-            
+
+            //Check if IP address:
+            //var sourceString = "put your string here";
+            var match = Regex.Match(uri.Host, @"\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b");
+            bool IsIPAddress = match.Success;
+
+            if (IsIPAddress)
+            {
+                return uri.Host;
+            }
+
             var h = uri.Host.ToLowerInvariant();
-            
             // Remove www prefix
             if (h.StartsWith("www."))
                 h = h.Substring(4);
