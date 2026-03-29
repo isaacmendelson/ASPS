@@ -174,8 +174,8 @@ public class UDAnalysis : IBackgroundTask
                         result.ProtectiveActions?.AddRange(protectiveActions.ToList());
                     }
                 }
-                analysisResults[analyzer.GetType().Name] = new Tuple<string, AnalyzerResult>(deviceAlert.AlertId, result);
-                FireSpecificAnalyzerResultReceivedEvent(activeAlert, analyzer.GetType().Name, result);
+                //analysisResults[analyzer.GetType().Name] = new Tuple<string, AnalyzerResult>(deviceAlert.AlertId, result);
+                //FireSpecificAnalyzerResultReceivedEvent(activeAlert, analyzer.GetType().Name, result);
             }
         }
 
@@ -197,37 +197,24 @@ public class UDAnalysis : IBackgroundTask
                             udAnalysisResults.Add(item.Key, new Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>(result, item.Value.Item2.Indicators.ToArray(), item.Value.Item2.ProtectiveActions.ToArray()));
                         }
                     }
-                    if (r is UrlAnalysisResultVm[] vms1)
-                    {
-                        foreach (var result in vms1)
-                        {
-                            udAnalysisResults.Add(item.Key, new Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>(result, item.Value.Item2.Indicators.ToArray(), item.Value.Item2.ProtectiveActions.ToArray()));
-                        }
-                    }
                 }
                 break;
 
-                case TrackUrlAlert:
+                case TrackUrlAlert t:
                     urlAnalyzerResults = analysisResults.Where(i => i.Key == nameof(UDTrackUrlAnalyzer)).ToList();
-                    foreach (var item in urlAnalyzerResults)
-                    {
-                        var r = item.Value.Item2.Details["results"];
-                        if (r is UrlAnalysisResultVm[] vms)
-                        {
-                            foreach (var result in vms)
-                            {
-                                udAnalysisResults.Add(item.Key, new Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>(result, item.Value.Item2.Indicators.ToArray(), item.Value.Item2.ProtectiveActions.ToArray()));
-                            }
-                        }
-                        if (r is UrlAnalysisResultVm[] vms1)
-                        {
-                            foreach (var result in vms1)
-                            {
-                                udAnalysisResults.Add(item.Key, new Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>(result, item.Value.Item2.Indicators.ToArray(), item.Value.Item2.ProtectiveActions.ToArray()));
-                            }
-                        }
-                    }
-                    break;
+
+                var riskThreshold = _configuration.GetValue<int>("TrackUrl:RiskThresholdToEnableTracking", 30);
+                foreach (var item in urlAnalyzerResults)
+                {
+
+
+                    var trackUrlResult = new TrackUrlAnalysisResultVm(
+                        t, new RiskAssessment((float)item.Value.Item2.Details["risk_score"], (float)item.Value.Item2.Details["risk_score"] > riskThreshold ? "High" : "", true, 1)
+                    );
+
+                    udAnalysisResults.Add(item.Key, new Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>(trackUrlResult, item.Value.Item2.Indicators?.ToArray(), item.Value.Item2.ProtectiveActions?.ToArray()));
+                }
+                break;
 
             case RemoteAccessAlert:
                 urlAnalyzerResults = analysisResults.Where(i => i.Key == nameof(UDRemoteAccessAnalyzer)).ToList();

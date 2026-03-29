@@ -4,10 +4,13 @@ using Common.Enums;
 using Common.Interfaces;
 using Common.Models;
 using Common.Models.Alerts;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Net;
 using System.Runtime.Serialization;
+using System.Security.Policy;
 using System.ServiceModel.Channels;
 using System.Text.Json.Serialization;
 
@@ -510,7 +513,23 @@ public class TrackUrlAnalysisResultVm : AnalysisResult
         risk_assessment = riskAssessment;
         TrackedDomain = trackedDomain;
     }
-
+     public TrackUrlAnalysisResultVm(TrackUrlAlert alert,
+        RiskAssessment? riskAssessment,
+        TrackedDomainInfo? trackedDomain = null)
+    {
+        Url = alert.Url;
+        FromUrl = alert.FromUrl;
+        Duration = alert.Duration;
+        ScamInProgressKey = alert.ScamInProgressKey;
+        IPAddress = alert.IPAddress;
+        UserAgent = alert.UserAgent;
+        TabId = alert.TabId;
+        Timezone = alert.Timezone;
+        Domain = Common.Entities.KnownPhishingWebsite.GetDomainFromUrl(alert.Url); 
+        IsSafeDomain = false;
+        risk_assessment = riskAssessment;
+        TrackedDomain = trackedDomain;
+    }
     protected TrackUrlAnalysisResultVm() { }
 
     [DataMember]
