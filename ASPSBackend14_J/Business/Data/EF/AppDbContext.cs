@@ -161,8 +161,11 @@ public class AppDbContext : DbContext
             entity.HasDiscriminator(e => e.Discriminator)
                 .HasValue<AnalysisResultContainer>("AnalysisResultContainer")
                 .HasValue<UrlAnalysisResultContainer>("UrlAnalysisResultVm")
+                .HasValue<UrlAnalysisResultContainer>("UrlAnalysisResult")  // Legacy value
                 .HasValue<TrackUrlAnalysisResultContainer>("TrackUrlAnalysisResultVm")
-                .HasValue<RemoteAccessAnalysisResultContainer>("RemoteAccessAnalysisResultVm");
+                .HasValue<TrackUrlAnalysisResultContainer>("TrackUrlAnalysisResult")  // Legacy value
+                .HasValue<RemoteAccessAnalysisResultContainer>("RemoteAccessAnalysisResultVm")
+                .HasValue<RemoteAccessAnalysisResultContainer>("RemoteAccessAnalysisResult");  // Legacy value
 
             entity.Property(e => e.Discriminator)
                 .HasMaxLength(100)
