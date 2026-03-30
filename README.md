@@ -1,7 +1,7 @@
 # ASPS - Anti-Scam Protection System
 
-**Version:** 0.0.0.3  
-**Release Date:** March 26, 2026
+**Version:** 0.0.0.4  
+**Release Date:** March 30, 2026
 
 ---
 
@@ -17,9 +17,43 @@ ASPS is a comprehensive anti-scam protection system that monitors user activity 
 
 ---
 
-## Version 0.0.0.3 - Release Notes
+## Version 0.0.0.4 - Release Notes
 
 ### 🆕 New Features
+
+#### Backend Architecture
+- **SystemConfigurationChanged Event** - Dynamic configuration updates across analyzers
+- **AnalysisKey Field** - Links DeviceAlerts to their analysis results for traceability
+- **UDAnalysis Refactor** - Separate handling for UrlAlert vs TrackUrlAlert
+
+#### Admin Dashboard (ASPS-392)
+- **TrackUrlAlert Tooltip** - URL column now shows: Url, From Url, Time on page
+- **Cross-browser Tooltip Fix** - Using `&#10;` for proper newline display
+
+#### Authentication & Authorization
+- **ClaimsTransformer** - Dynamic Admin role assignment from Keycloak groups
+- **User Menu** - Added logout functionality with proper authorization
+- **Debug Claims Page** - View Keycloak claims for troubleshooting
+
+#### Extension
+- **Icon Color Fix** - Resolved conflicting subscribe causing icon not to update
+
+### 🐛 Bug Fixes
+- Fixed UrlAlert vs TrackUrlAlert routing in UDAnalysis
+- Fixed device search null reference (MAC can be null)
+- Fixed JSON deserialization for Priority enum in Simulations
+- Fixed user lookup for dev login
+
+### 🧪 Testing
+- Split UDAnalysisTests.cs into 3 separate test files for better organization
+- Added Configuration mock setup for LoadConfiguration support
+- All 16 UDAnalysis tests passing
+
+---
+
+## Version 0.0.0.3 - Previous Release
+
+### 🆕 Features
 
 #### User Layer (ASPS-258)
 - **UserRiskProfile** - Real-time risk scoring per user
@@ -70,7 +104,7 @@ ASPS is a comprehensive anti-scam protection system that monitors user activity 
 
 ---
 
-## Version 0.0.0.2 - Previous Release
+## Version 0.0.0.2 - Earlier Release
 
 ### Features
 - Version control across all components
