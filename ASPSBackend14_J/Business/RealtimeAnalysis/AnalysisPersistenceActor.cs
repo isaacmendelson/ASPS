@@ -83,16 +83,21 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                         });
                     }
                     var urlAlertEntity = await _deviceAlertRepository.GetByKeyAsync(new Key(nameof(UrlAlert), analysisEvent.DeviceAlertKeyField)) as UrlAlertEntity;
-                    //var urlAnalysisResultContainer = 
+                    
+                    // Get first result safely
+                    var firstUrlResult = analysisEvent.AnalyzerResults.Any() 
+                        ? analysisEvent.AnalyzerResults.FirstOrDefault().Value.Item1 
+                        : null;
+                    
                     analysisResultContainer = new UrlAnalysisResultContainer(
                         urlAlertEntity?.Url ?? "",
                         guid,
                         analysisEvent.UserKeyField,
-                        analysisEvent.AnalyzerResults.Any() ? analysisEvent.AnalyzerResults.FirstOrDefault().Value.Item1.GetType().Name : "",
+                        firstUrlResult?.GetType().Name ?? "Unknown",
                         analysisEvent.Timestamp,
                         jsonValue,
-                        analysisEvent.AnalyzerResults.FirstOrDefault().Value.Item1.Error is not null,
-                        analysisEvent.AnalyzerResults.FirstOrDefault().Value.Item1.Error?.Message,
+                        firstUrlResult?.Error is not null,
+                        firstUrlResult?.Error?.Message,
                         isFromCache,
                         analysisEvent.DeviceAlertKeyField
                     );
