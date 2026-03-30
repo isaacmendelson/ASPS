@@ -2,6 +2,7 @@
 
 using Common.Enums;
 using Common.Interfaces;
+using Common.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,19 +14,22 @@ namespace Business.RealtimeAnalysis
     public class ProtectiveAction : IProtectiveAction
     {
         protected ProtectiveAction() { }
-        public ProtectiveAction(ProtectiveActionSubject subject, ProtectiveActionType actionType, AnalysisLevel level, string message, string? alertId)
+        public ProtectiveAction(Key subjectKey, ProtectiveActionType actionType, AnalysisLevel level, string message, string? alertId)
         {
-            this.Subject = subject;
+            this.SubjectKey = subjectKey;
             this.ActionType = actionType;
             this.Level = level;
             this.AlertId = alertId;
             this.Message = message;
+            this.Timestamp = DateTime.UtcNow;
         }
-        public ProtectiveActionSubject Subject { get; set; }
+        //public ProtectiveActionSubject Subject { get; set; }
+        public Key SubjectKey { get; set; }
         public ProtectiveActionType ActionType { get; set; }
         public string? AlertId { get; set; }
         public string? Message { get; set; }
         public AnalysisLevel Level { get; protected set; }
+        public DateTime Timestamp { get; protected set; }
 
     }
 }

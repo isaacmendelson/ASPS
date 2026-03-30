@@ -141,13 +141,13 @@ public enum ProtectiveActionType
     SetTrackMode = 9,
 }
 
-public enum ProtectiveActionSubject
-{
-    none = 0,
-    Device = 1,
-    User = 2,
-    Protector = 3
-}
+//public enum ProtectiveActionSubject
+//{
+//    none = 0,
+//    Device = 1,
+//    User = 2,
+//    Protector = 3
+//}
 
 public enum  AnalysisLevel
 {

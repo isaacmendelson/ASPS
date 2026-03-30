@@ -1,6 +1,7 @@
 ﻿using Business.RealtimeAnalysis.Indicators;
 using Business.RealtimeAnalysis.UserDomain;
 using Common.Enums;
+using Common.Models;
 using NetTopologySuite.Utilities;
 using System;
 using System.Collections.Generic;
@@ -14,7 +15,7 @@ namespace Business.RealtimeAnalysis
     public class ProtectiveActionsFactory : IProtectiveActionsFactory
     {
 
-        public IProtectiveAction[] CreateProtectiveActions(AnalysisResult analysisResult, AnalyzerResult analyzerResult, string alertId)
+        public IProtectiveAction[] CreateProtectiveActions(AnalysisResult analysisResult, AnalyzerResult analyzerResult, string alertId, DeviceInfo deviceInfo)
         {
             List<IProtectiveAction> protectiveActions = new List<IProtectiveAction>();
 
@@ -27,14 +28,14 @@ namespace Business.RealtimeAnalysis
                     {
                         //msg = $"Known phishing detected: {phishingIndicator.Url}";
                         msg = $"Known phishing detected: {phishingIndicator?.Url} Phishing source: {phishingIndicator.PhishingSource}, IsKnownPhishing: {phishingIndicator.IsKnownPhishing}  Score:{phishingIndicator.Score} Level: {phishingIndicator.Level} Name:{phishingIndicator.Name} Time: {phishingIndicator.timestamp} Confidence: {phishingIndicator.Confidence} Source: {phishingIndicator.Source}";
-                        var action = new ProtectiveAction(ProtectiveActionSubject.Device, ProtectiveActionType.UserDisplayNotification, AnalysisLevel.Device, msg, alertId);
+                        var action = new ProtectiveAction(deviceInfo.Key, ProtectiveActionType.UserDisplayNotification, AnalysisLevel.Device, msg, alertId);
                         protectiveActions.Add(action);
                     }
 
                     msg = "test message";
-                    var a1 = new ProtectiveAction(ProtectiveActionSubject.Device, ProtectiveActionType.DisplayNotification, AnalysisLevel.Device, msg, null);
-                    var a2 = new ProtectiveAction(ProtectiveActionSubject.Device, ProtectiveActionType.SoundAlert, AnalysisLevel.Device, msg, null);
-                    var a3 = new ProtectiveAction(ProtectiveActionSubject.User, ProtectiveActionType.EmailNotification, AnalysisLevel.Device, msg, null);
+                    var a1 = new ProtectiveAction(deviceInfo.Key, ProtectiveActionType.DisplayNotification, AnalysisLevel.Device, msg, null);
+                    var a2 = new ProtectiveAction(deviceInfo.Key, ProtectiveActionType.SoundAlert, AnalysisLevel.Device, msg, null);
+                    var a3 = new ProtectiveAction(deviceInfo.UserKey!, ProtectiveActionType.EmailNotification, AnalysisLevel.Device, msg, null);
 
                     protectiveActions.AddRange(new IProtectiveAction[] { a1, a2, a3 });
 

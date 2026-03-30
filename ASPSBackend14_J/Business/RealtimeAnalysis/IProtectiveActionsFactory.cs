@@ -1,5 +1,6 @@
 ﻿using Business.RealtimeAnalysis.Indicators;
 using Business.RealtimeAnalysis.UserDomain;
+using Common.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +12,6 @@ namespace Business.RealtimeAnalysis
     public interface IProtectiveActionsFactory
     {
         //IProtectiveAction[] CreateProtectiveActions(AnalysisResult analysisResult);
-        IProtectiveAction[] CreateProtectiveActions(AnalysisResult analysisResult, AnalyzerResult analyzerResult, string alertId);
+        IProtectiveAction[] CreateProtectiveActions(AnalysisResult analysisResult, AnalyzerResult analyzerResult, string alertId, DeviceInfo deviceInfo);
     }
 }

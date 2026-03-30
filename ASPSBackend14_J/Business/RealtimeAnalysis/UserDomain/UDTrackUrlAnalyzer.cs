@@ -69,7 +69,8 @@ public class UDTrackUrlAnalyzer : ISpecificAnalyzer
         if (riskScore >= 60)
         {
             var notificationAction = new ProtectiveAction(
-                ProtectiveActionSubject.Device,
+                //ProtectiveActionSubject.Device,
+                trackUrlAlert.DeviceInfo.Key,
                 ProtectiveActionType.UserDisplayNotification,
                 AnalysisLevel.Device,
                 $"Suspicious activity detected on tracked URL: {domain}",

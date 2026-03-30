@@ -248,7 +248,10 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
                 {
                     string msg = $"Known phishing URL detected: ";
 
-                    var action = new ProtectiveAction(ProtectiveActionSubject.Device, ProtectiveActionType.UserDisplayNotification, AnalysisLevel.Device, msg, alert.AlertId);
+                    var action = new ProtectiveAction(
+                        //ProtectiveActionSubject.Device, 
+                        alert.DeviceInfo.Key,
+                        ProtectiveActionType.UserDisplayNotification, AnalysisLevel.Device, msg, alert.AlertId);
                     protectiveActions.Add(action);
                 }
             }
@@ -264,7 +267,8 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
                 _logger.LogInformation($"⚠️ Risk threshold exceeded for {domain}. Risk score: {maxRiskScore} >= {_riskThreshold}. Enabling URL tracking for {_trackingDurationMinutes} minutes.");
 
                 var trackingAction = new ProtectiveAction(
-                    ProtectiveActionSubject.Device,
+                    //ProtectiveActionSubject.Device,
+                    alert.DeviceInfo.Key,
                     ProtectiveActionType.EnableUrlTracking,
                     AnalysisLevel.Device,
                     $"EnableUrlTracking|{domain}|{_trackingDurationMinutes}",

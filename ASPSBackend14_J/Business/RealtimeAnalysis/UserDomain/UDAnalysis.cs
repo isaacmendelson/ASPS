@@ -187,7 +187,7 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
                         result.Indicators?.AddRange(indicators.ToList());
                     }
 
-                    var protectiveActions = this._protectiveActionsFactory.CreateProtectiveActions(resultsCollection.First(), result, deviceAlert.AlertId);
+                    var protectiveActions = this._protectiveActionsFactory.CreateProtectiveActions(resultsCollection.First(), result, deviceAlert.AlertId, deviceAlert.DeviceInfo);
                     if (protectiveActions?.Length > 0)
                     {
                         result.ProtectiveActions?.AddRange(protectiveActions.ToList());
@@ -552,7 +552,10 @@ public class UDRemoteAccessAnalyzer : ISpecificAnalyzer
             }
 
             string msg = $"Remote access application {remoteAlert.RemoteAccessApp} detected with {remoteAlert.ConnectionsCount} connections.";
-            var action = new ProtectiveAction(ProtectiveActionSubject.Device, ProtectiveActionType.DisplayNotification, AnalysisLevel.Device, msg, remoteAlert.AlertId); // "Remote access detected", "A remote access application has been detected running on your device. Please verify if this activity is authorized.", DateTime.UtcNow);
+            var action = new ProtectiveAction(
+                //ProtectiveActionSubject.Device, 
+                remoteAlert.DeviceInfo.Key,
+                ProtectiveActionType.DisplayNotification, AnalysisLevel.Device, msg, remoteAlert.AlertId); // "Remote access detected", "A remote access application has been detected running on your device. Please verify if this activity is authorized.", DateTime.UtcNow);
             protectiveActions.Add(action);
         }
 

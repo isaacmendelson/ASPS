@@ -177,7 +177,8 @@ public class TrackUrlAnalyzer : ISpecificAnalyzer
                 _logger.LogWarning($"Scam-in-progress key detected: {trackUrlAlert.ScamInProgressKey}");
 
                 var action = new ProtectiveAction(
-                    ProtectiveActionSubject.Device,
+                    //ProtectiveActionSubject.Device,
+                    trackUrlAlert.DeviceInfo.Key,
                     ProtectiveActionType.DisplayNotification,
                     AnalysisLevel.Device,
                     $"Potential scam detected on {domain}. Please verify this activity.",
