@@ -50,7 +50,7 @@ public class UDAnalysisResult
 }
 
 // UDAnalysis class
-public class UDAnalysis : IBackgroundTask
+public class UDAnalysis : IBackgroundTask, IDomainEventHandler
 {
     private readonly List<ISpecificAnalyzer> _analyzers;
     private readonly ILogger<UDAnalysis> _logger;
@@ -65,9 +65,10 @@ public class UDAnalysis : IBackgroundTask
     private List<ActiveDeviceAlert> _expiredDeviceAlerts = new();
     private IIndicatorFactory _indicatorFactory;
     private IProtectiveActionsFactory _protectiveActionsFactory;
-    private readonly IConfiguration _configuration;
+    private IConfiguration _configuration;
     private ASView _aSView;
 
+    private float _riskThreshold;
     public IReadOnlyList<ActiveDeviceAlert> ActiveDeviceAlerts => _activeDeviceAlerts.AsReadOnly();
     public IReadOnlyList<ActiveDeviceAlert> ExpiredDeviceAlerts => _expiredDeviceAlerts.AsReadOnly();
 
@@ -86,7 +87,9 @@ public class UDAnalysis : IBackgroundTask
         _aSView = aSView;
         _analyzers = analyzers;
         _logger = _loggerFactory.CreateLogger<UDAnalysis>();
-        _configuration = configuration;
+        //_configuration = configuration;
+        this.LoadConfiguration(configuration);
+
         _alertExpiryDays = alertExpiryDays;
         _alertDeletionDays = alertDeletionDays;
         _indicatorFactory = indicatorFactory;
@@ -155,6 +158,22 @@ public class UDAnalysis : IBackgroundTask
                                 break;
                         }
                         break;
+                        case UDTrackUrlAnalyzer:
+                            firstResult = result.Details.FirstOrDefault(i => i.Key == "risk_score").Value;
+                            switch (firstResult)
+                            {
+                                case null:
+                                    _logger.LogWarning($"URL Analyzer result for device {deviceUid} has no results in details.");
+                                    break;
+                                case TrackUrlAnalysisResultVm[] tuarVm:
+                                    _logger.LogInformation($"TrackUrlAnalyzer: analyzer results for device {deviceUid}: Severity={result.Severity}, Message={result.Message}");
+                                    break;
+
+                                default:
+                                    _logger.LogWarning($"Cannot get Indicators & ProtectiveActions for type {firstResult.GetType().Name}.");
+                                    break;
+                            }
+                            break;
                     case UDRemoteAccessAnalyzer:
                         firstResult = result;
                         _logger.LogInformation($"RemoteAccessAnalyzer: analyzer results for device {deviceUid}: Severity={result.Severity}, Message={result.Message}");
@@ -203,13 +222,13 @@ public class UDAnalysis : IBackgroundTask
                 case TrackUrlAlert t:
                     urlAnalyzerResults = analysisResults.Where(i => i.Key == nameof(UDTrackUrlAnalyzer)).ToList();
 
-                var riskThreshold = _configuration.GetValue<int>("TrackUrl:RiskThresholdToEnableTracking", 30);
+                
                 foreach (var item in urlAnalyzerResults)
                 {
 
 
                     var trackUrlResult = new TrackUrlAnalysisResultVm(
-                        t, new RiskAssessment((float)item.Value.Item2.Details["risk_score"], (float)item.Value.Item2.Details["risk_score"] > riskThreshold ? "High" : "", true, 1)
+                        t, new RiskAssessment((float)item.Value.Item2.Details["risk_score"], (float)item.Value.Item2.Details["risk_score"] > _riskThreshold ? "High" : "", true, 1)
                     );
 
                     udAnalysisResults.Add(item.Key, new Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>(trackUrlResult, item.Value.Item2.Indicators?.ToArray(), item.Value.Item2.ProtectiveActions?.ToArray()));
@@ -381,6 +400,27 @@ public class UDAnalysis : IBackgroundTask
     {
         _isRunning = false;
         _logger.LogInformation($"UDAnalysis stopped for user: {_udUser.Key}");
+    }
+
+    public Task Handle(IDomainEvent evt)
+    {
+        if (evt is SystemConfigurationChanged sysConfigChanged)
+        {
+            this._configuration = sysConfigChanged.NewConfiguration;
+            this.LoadConfiguration(sysConfigChanged.NewConfiguration);
+        }
+        return Task.CompletedTask;
+    }
+
+    public Type[] GetHandleableEvents()
+    {
+        return [typeof(SystemConfigurationChanged)];
+    }
+
+    private void LoadConfiguration(IConfiguration configuration)
+    {
+        this._configuration = configuration;
+        this._riskThreshold = _configuration.GetValue<int>("TrackUrl:RiskThresholdToEnableTracking", 30);
     }
 }
 

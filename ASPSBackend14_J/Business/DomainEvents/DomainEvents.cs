@@ -8,6 +8,7 @@ using Common.Entities;
 using Common.Enums;
 using Common.Interfaces;
 using Common.Models;
+using Microsoft.Extensions.Configuration;
 
 namespace Business.DomainEvents;
 
@@ -250,6 +251,19 @@ public class UserIsTargetedAlertReceived : DomainEvent
         ConfidenceScore = confidenceScore;
     }
 }
+
+public class SystemConfigurationChanged : DomainEvent
+{
+    protected SystemConfigurationChanged() { }
+    public SystemConfigurationChanged(IConfiguration newConfiguration)
+    {
+        EventType = nameof(SystemConfigurationChanged);
+        Timestamp = DateTime.UtcNow;
+        NewConfiguration = newConfiguration;
+    }
+    public IConfiguration NewConfiguration { get; set; } = null!;
+}
+
 
 /// <summary>
 /// Event to distribute tracked domains to all user devices for cross-platform monitoring

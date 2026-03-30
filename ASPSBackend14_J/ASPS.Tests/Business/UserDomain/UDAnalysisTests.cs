@@ -115,6 +115,7 @@ public class UDAnalysisTests
         _mockIndicatorFactory = new Mock<IndicatorFactory>();
         _mockProtectiveActionsFactory = new Mock<ProtectiveActionsFactory>();
         _mockConfiguration = new Mock<IConfiguration>();
+        //SetupConfiguration();
 
         _testUser = CreateMockUser();
         _testASView = CreateMockASView();
@@ -357,7 +358,7 @@ public class UDAnalysisTests
         services.AddSingleton(mockLogger.Object);
         var serviceProvider = services.BuildServiceProvider();
 
-        return new ASView(serviceProvider, mockLogger.Object);
+        return new ASView(serviceProvider, mockLogger.Object, _mockConfiguration.Object);
     }
 
     private UrlAlert CreateUrlAlert()

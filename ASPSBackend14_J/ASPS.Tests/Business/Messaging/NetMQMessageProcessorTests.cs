@@ -1,19 +1,22 @@
-using Xunit;
-using Moq;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.DependencyInjection;
-using Business.Messaging;
-using Business.Handlers;
 using Business.Commands;
+using Business.Handlers;
+using Business.Messaging;
 using Business.Queries;
 using Business.Services;
 using Business.Views;
+using Castle.Components.DictionaryAdapter;
+//using Castle.Core.Configuration;
+using FluentAssertions;
 using Interface.Repositories;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using Newtonsoft.Json;
 using System;
 using System.Threading.Tasks;
-using FluentAssertions;
+using Xunit;
 
 namespace ASPS.Tests.Business.Messaging;
 
@@ -24,20 +27,23 @@ public class NetMQMessageProcessorTests : IDisposable
     private readonly Mock<UserQueryHandlers> _mockUserQueryHandlers;
     private readonly Mock<UserDeviceCommandHandlers> _mockDeviceCommandHandlers;
     private readonly ASView _asView;
+    private readonly Mock<IConfiguration> _mockConfiguration;
     private NetMQMessageProcessor? _processor;
 
     public NetMQMessageProcessorTests()
     {
         // Use NullLogger instead of Mock
         _logger = NullLogger<NetMQMessageProcessor>.Instance;
-        
+        _mockConfiguration = new Mock<IConfiguration>();
+        //SetupConfiguration();
+
         // Create minimal ServiceProvider for ASView
         var services = new ServiceCollection();
         services.AddSingleton<ILogger<ASView>>(NullLogger<ASView>.Instance);
         var serviceProvider = services.BuildServiceProvider();
         
         // Create real ASView with dependencies
-        _asView = new ASView(serviceProvider, NullLogger<ASView>.Instance);
+        _asView = new ASView(serviceProvider, NullLogger<ASView>.Instance, _mockConfiguration.Object);
         
         // Create mocks for handlers with proper dependencies
         _mockUserCommandHandlers = new Mock<UserCommandHandlers>(
@@ -47,6 +53,7 @@ public class NetMQMessageProcessorTests : IDisposable
             Mock.Of<IUserRepository>());
         _mockDeviceCommandHandlers = new Mock<UserDeviceCommandHandlers>(
             Mock.Of<IUserDeviceRepository>());
+
     }
 
     #region Constructor Tests

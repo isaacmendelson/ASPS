@@ -10,6 +10,7 @@ using Business.Data.EF.Repositories;
 using Interface.Repositories;
 using Common.Entities;
 using Common.Models;
+using Microsoft.Extensions.Configuration;
 
 namespace ASPS.Tests.Business.Views;
 
@@ -19,7 +20,7 @@ public class ASViewTests : IDisposable
     private readonly AppDbContext _context;
     private readonly Mock<ILogger<ASView>> _loggerMock;
     private readonly ASView _asView;
-
+    private readonly Mock<IConfiguration> _mockConfiguration;
     public ASViewTests()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -28,6 +29,7 @@ public class ASViewTests : IDisposable
 
         _context = new AppDbContext(options);
         _loggerMock = new Mock<ILogger<ASView>>();
+        _mockConfiguration = new Mock<IConfiguration>();
 
         // Setup service provider with repositories
         var services = new ServiceCollection();
@@ -50,7 +52,7 @@ public class ASViewTests : IDisposable
         services.AddSingleton(Mock.Of<ILogger<SafeDomainRepository>>());
 
         _serviceProvider = services.BuildServiceProvider();
-        _asView = new ASView(_serviceProvider, _loggerMock.Object);
+        _asView = new ASView(_serviceProvider, _loggerMock.Object, _mockConfiguration.Object);
     }
 
     public void Dispose()

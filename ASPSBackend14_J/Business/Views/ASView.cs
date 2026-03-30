@@ -7,6 +7,7 @@ using Common.Interfaces;
 using Common.Models;
 using Common.Models.Alerts;
 using Interface.Repositories;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Linq;
@@ -18,7 +19,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<ASView> _logger;
     private readonly object _lock = new();
-
+    private IConfiguration _configuration;
     private bool IsInitialized = false;
 
     private List<User> _users = new();
@@ -37,11 +38,11 @@ public class ASView : IDomainEventHandler, IBackgroundTask
 
 
     public ASView(
-        IServiceProvider serviceProvider,
-        ILogger<ASView> logger)
+        IServiceProvider serviceProvider, ILogger<ASView> logger, IConfiguration configuration)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
+        this._configuration = configuration;
     }
 
     public void Start()
@@ -99,6 +100,9 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                 break;
             case UserDeleted userDeleted:
                 HandleUserDeleted(userDeleted);
+                break;
+            case SystemConfigurationChanged sysConfigChanged:
+                HandleSystemConfigurationChanged(sysConfigChanged);
                 break;
         }
     }
@@ -279,9 +283,14 @@ public class ASView : IDomainEventHandler, IBackgroundTask
         _logger.LogInformation("ASView: User marked as deleted in cache (Key: {Key})", evt.UserKeyField);
     }
 
+    private void HandleSystemConfigurationChanged(SystemConfigurationChanged evt)
+    {
+        _logger.LogInformation("ASView: System configuration changed, reloading System Configuration data...");
+        this._configuration = evt.NewConfiguration;
+    }
     public Type[] GetHandleableEvents()
     {
-        return new[] { typeof(AnalysisResultReceived), typeof(DeviceAlertReceived), typeof(UserAdded), typeof(UserUpdated), typeof(UserDeleted) };
+        return new[] { typeof(AnalysisResultReceived), typeof(DeviceAlertReceived), typeof(UserAdded), typeof(UserUpdated), typeof(UserDeleted), typeof(SystemConfigurationChanged) };
     }
 
     private async Task LoadDataAsync()

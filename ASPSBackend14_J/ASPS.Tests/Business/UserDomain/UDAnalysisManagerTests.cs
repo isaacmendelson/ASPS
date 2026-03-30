@@ -339,7 +339,7 @@ public class UDAnalysisManagerTests
         services.AddSingleton(mockLogger.Object);
         var serviceProvider = services.BuildServiceProvider();
 
-        var view = new ASView(serviceProvider, mockLogger.Object);
+        var view = new ASView(serviceProvider, mockLogger.Object, _mockConfiguration.Object);
 
         return view;
     }

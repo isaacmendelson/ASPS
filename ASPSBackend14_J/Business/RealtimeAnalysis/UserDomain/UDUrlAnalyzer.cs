@@ -1,29 +1,36 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
+using Business.DomainEvents;
 using Business.RealtimeAnalysis.Indicators;
 using Business.Views;
 using Common.Enums;
+using Common.Interfaces;
 using Common.Models;
 using Common.Models.Alerts;
 using Interface.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Business.RealtimeAnalysis.UserDomain;
 
-public class UDUrlAnalyzer : ISpecificAnalyzer
+public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
 {
     private readonly ILogger<UDUrlAnalyzer> _logger;
-    private readonly IConfiguration _configuration;
+    private IConfiguration _configuration;
     private readonly IKnownPhishingWebsiteRepository _phishingRepo;
     private readonly ASView _asView;
-    private readonly string _pythonPath;
-    private readonly string _analyzersFolder;
+    private string _pythonPath;
+    private string _analyzersFolder;
+    private int _riskThreshold ;
+    private int _trackingDurationMinutes;
+    private float _severityScoreThresholdCritical;
+    private float _severityScoreThresholdHigh;
+    private float _severityScoreThresholdMedium;
 
     public ExternalAnalyzer[] ExternalAnalyzers { get; }
 
@@ -33,17 +40,10 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
         IKnownPhishingWebsiteRepository phishingRepo,
         ASView asView)
     {
-        _logger = logger;
-        _configuration = configuration;
-        _phishingRepo = phishingRepo;
-        _asView = asView;
-
-        // Get Python path from configuration
-        _pythonPath = _configuration.GetValue<string>("Python:ExecutablePath", "python");
-
-        // Get analyzers folder path (absolute path from configuration)
-        _analyzersFolder = _configuration.GetValue<string>("Python:AnalyzersFolderPath",
-            Path.Combine(Directory.GetCurrentDirectory(), "Analyzers"));
+        this.LoadConfiguration(configuration);
+        this._logger = logger;
+        this._phishingRepo = phishingRepo;
+        this._asView = asView;
 
         // Define external analyzers
         ExternalAnalyzers = new[]
@@ -254,22 +254,20 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
             }
 
             // Check if URL tracking should be enabled based on risk threshold
-            var riskThreshold = _configuration.GetValue<int>("TrackUrl:RiskThresholdToEnableTracking", 40);
-            var trackingDurationMinutes = _configuration.GetValue<int>("TrackUrl:TrackingDurationMinutes", 30);
 
 
             // Enable URL tracking if risk score exceeds threshold (higher score = higher risk)
             // Risk score of 40 or above means elevated risk, enable tracking
-            if (maxRiskScore >= riskThreshold)
+            if (maxRiskScore >= _riskThreshold)
             {
                 var domain = Common.Entities.KnownPhishingWebsite.GetDomainFromUrl(url);
-                _logger.LogInformation($"⚠️ Risk threshold exceeded for {domain}. Risk score: {maxRiskScore} >= {riskThreshold}. Enabling URL tracking for {trackingDurationMinutes} minutes.");
+                _logger.LogInformation($"⚠️ Risk threshold exceeded for {domain}. Risk score: {maxRiskScore} >= {_riskThreshold}. Enabling URL tracking for {_trackingDurationMinutes} minutes.");
 
                 var trackingAction = new ProtectiveAction(
                     ProtectiveActionSubject.Device,
                     ProtectiveActionType.EnableUrlTracking,
                     AnalysisLevel.Device,
-                    $"EnableUrlTracking|{domain}|{trackingDurationMinutes}",
+                    $"EnableUrlTracking|{domain}|{_trackingDurationMinutes}",
                     alert.AlertId);
                 protectiveActions.Add(trackingAction);
             }
@@ -504,16 +502,14 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
 
     private Severity GetSeverityFromRiskScore(float val)
     {
-        var SeverityScoreThresholdCritical = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdCritical", 80);
-        var SeverityScoreThresholdHigh = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdHigh", 80);
-        var SeverityScoreThresholdMedium = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdMedium", 80);
+
 
         Severity severity = Severity.Unknown;
-        if (val >= SeverityScoreThresholdCritical)
+        if (val >= _severityScoreThresholdCritical)
             severity = Severity.Critical;  // risk score >= 80 = very dangerous
-        else if (val >= SeverityScoreThresholdHigh)
+        else if (val >= _severityScoreThresholdHigh)
             severity = Severity.High;      // risk score >= 61 = dangerous
-        else if (val >= SeverityScoreThresholdMedium)
+        else if (val >= _severityScoreThresholdMedium)
             severity = Severity.Medium;    // risk score >= 31 = moderate ris
         else
             severity = Severity.Low;       // risk score < 31 = low risk    
@@ -541,5 +537,39 @@ public class UDUrlAnalyzer : ISpecificAnalyzer
         }
 
         return severity;
+    }
+
+    private void LoadConfiguration(IConfiguration configuration)
+    {
+        this._configuration = configuration;
+        _logger.LogInformation("Reloading configuration due to SystemConfigurationChanged event");
+        // In this implementation, we read configuration values directly in methods, so no need to reload into fields
+        // If we had cached configuration values in fields, we would update them here
+        // Get Python path from configuration
+        _pythonPath = configuration.GetValue<string>("Python:ExecutablePath", "python");
+
+        // Get analyzers folder path (absolute path from configuration)
+        _analyzersFolder = configuration.GetValue<string>("Python:AnalyzersFolderPath",
+            Path.Combine(Directory.GetCurrentDirectory(), "Analyzers"));
+
+        _riskThreshold = _configuration.GetValue<int>("TrackUrl:RiskThresholdToEnableTracking", 40);
+        _trackingDurationMinutes = _configuration.GetValue<int>("TrackUrl:TrackingDurationMinutes", 30);
+
+        _severityScoreThresholdCritical = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdCritical", 80);
+        _severityScoreThresholdHigh = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdHigh", 80);
+        _severityScoreThresholdMedium = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdMedium", 80);
+    }
+    public Task Handle(IDomainEvent evt)
+    {
+        if (evt is SystemConfigurationChanged sysConfigChanged)
+        {
+            this.LoadConfiguration(sysConfigChanged.NewConfiguration);
+        }
+        return Task.CompletedTask;
+    }
+
+    public Type[] GetHandleableEvents()
+    {
+        return [typeof(SystemConfigurationChanged)];
     }
 }
