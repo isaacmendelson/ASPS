@@ -40,8 +40,8 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
         IKnownPhishingWebsiteRepository phishingRepo,
         ASView asView)
     {
-        this.LoadConfiguration(configuration);
         this._logger = logger;
+        this.LoadConfiguration(configuration);
         this._phishingRepo = phishingRepo;
         this._asView = asView;
 
