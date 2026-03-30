@@ -65,6 +65,7 @@ namespace Business.Views
                     AnalysisResult.RunningProcesses,
                     AnalysisResult.ConnectionUrl,
                     AnalysisResult.ConnectionStatus,
+                    AnalysisResult.RemoteAccessDirection,
                     AnalysisResult.ConnectionsCount,
                     AnalysisResult.SessionStatus,
                     AnalysisResult.BrowserTabs)

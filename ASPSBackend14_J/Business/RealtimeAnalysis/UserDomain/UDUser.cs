@@ -122,6 +122,14 @@ public class UDUser
         ActiveAlerts = new List<DeviceAlertView>();
     }
 
+    public void SetBrowserTabs(string deviceUid, IEnumerable<BrowserTab> tabs)
+    {
+        if (!this.BrowserTabs.ContainsKey(deviceUid))
+        {
+            this.BrowserTabs[deviceUid] = new List<BrowserTab>();
+        }
+        this.BrowserTabs[deviceUid] = tabs.ToList();
+    }
     public void AddRemoteAccessAnalysisResult(string deviceUid, RemoteAccessAnalysisResultVm vm)
     {
         if (!this.RemoteAccessAnalysisResults.ContainsKey(deviceUid))

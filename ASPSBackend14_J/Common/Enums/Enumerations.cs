@@ -46,6 +46,13 @@ public enum RemoteAccessApp
     VNC = 7
 }
 
+public enum RemoteAccessDirection
+{
+    Unknown = 0,
+    In = 1,
+    Out = 2,
+}
+
 public enum UserRole
 {
     Unknown = 0,
@@ -126,6 +133,13 @@ public enum ResultStatusCode
     NotFound = 404
 }
 
+public enum ProtectiveActionStatus
+{
+    None = 0,
+    Pending = 1,
+    Executed = 2,
+    Failed = 3
+}
 
 public enum ProtectiveActionType
 {

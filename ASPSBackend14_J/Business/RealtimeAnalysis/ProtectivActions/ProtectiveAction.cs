@@ -13,7 +13,10 @@ namespace Business.RealtimeAnalysis
 {
     public class ProtectiveAction : IProtectiveAction
     {
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         protected ProtectiveAction() { }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+
         public ProtectiveAction(Key subjectKey, ProtectiveActionType actionType, AnalysisLevel level, string message, string? alertId)
         {
             this.SubjectKey = subjectKey;
@@ -30,6 +33,10 @@ namespace Business.RealtimeAnalysis
         public string? Message { get; set; }
         public AnalysisLevel Level { get; protected set; }
         public DateTime Timestamp { get; protected set; }
+        public DateTime? ExecutionTime { get; protected set; }
+
+        public ProtectiveActionStatus Status { get; set; } = ProtectiveActionStatus.None;
+
 
     }
 }

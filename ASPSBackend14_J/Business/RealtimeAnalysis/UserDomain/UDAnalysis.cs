@@ -562,7 +562,7 @@ public class UDRemoteAccessAnalyzer : ISpecificAnalyzer
         var riskAssesment = new RiskAssessment(score.Value, "", isScam, 1);
 
         var res = new RemoteAccessAnalysisResultVm(remoteAlert.RemoteAccessApp, remoteAlert.RunningProcesses, remoteAlert.ConnectionUrl, 
-            remoteAlert.ConnectionStatus, remoteAlert.ConnectionsCount, remoteAlert.SessionStatus, remoteAlert.BrowserTabs, riskAssesment);
+            remoteAlert.ConnectionStatus, remoteAlert.RemoteAccessDirection, remoteAlert.ConnectionsCount, remoteAlert.SessionStatus, remoteAlert.BrowserTabs, riskAssesment);
         var results = new List<RemoteAccessAnalysisResultVm>() { res};
 
         return new AnalyzerResult

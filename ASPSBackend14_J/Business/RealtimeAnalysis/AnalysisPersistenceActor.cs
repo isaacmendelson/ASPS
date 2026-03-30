@@ -87,7 +87,7 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                         urlAlertEntity?.Url ?? "",
                         guid,
                         analysisEvent.UserKeyField,
-                        analysisEvent.AnalyzerResults.Any() ? analysisEvent.AnalyzerResults.First().Value.Item1.GetType().Name : "",
+                        analysisEvent.AnalyzerResults.Any() ? analysisEvent.AnalyzerResults.FirstOrDefault().Value.Item1.GetType().Name : "",
                         analysisEvent.Timestamp,
                         jsonValue,
                         analysisEvent.AnalyzerResults.FirstOrDefault().Value.Item1.Error is not null,

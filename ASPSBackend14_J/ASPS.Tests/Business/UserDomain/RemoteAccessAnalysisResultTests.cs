@@ -19,6 +19,7 @@ public class RemoteAccessAnalysisResultVmTests
         var status = ConnectionStatus.Open;
         var count = 5;
         var session = 1;
+        var direction = RemoteAccessDirection.In;
         var tabs = new BrowserTab[] 
         { 
             new BrowserTab("Test", "Mozilla/5.0", "http://test.com", DateTime.UtcNow, true) 
@@ -27,13 +28,14 @@ public class RemoteAccessAnalysisResultVmTests
 
         // Act
         var result = new RemoteAccessAnalysisResultVm(
-            app, processes, url, status, count, session, tabs, riskAssessment);
+            app, processes, url, status, direction, count, session, tabs, riskAssessment);
 
         // Assert
         Assert.Equal(app, result.RemoteAccessApp);
         Assert.Equal(processes, result.RunningProcesses);
         Assert.Equal(url, result.ConnectionUrl);
         Assert.Equal(status, result.ConnectionStatus);
+        Assert.Equal(direction, result.RemoteAccessDirection);
         Assert.Equal(count, result.ConnectionsCount);
         Assert.Equal(session, result.SessionStatus);
         Assert.Equal(tabs, result.BrowserTabs);
@@ -50,6 +52,7 @@ public class RemoteAccessAnalysisResultVmTests
             1, 
             "http://test.com", 
             ConnectionStatus.Closed, 
+            RemoteAccessDirection.Unknown,
             0, 
             0, 
             null, 
@@ -74,7 +77,7 @@ public class RemoteAccessAnalysisResultVmTests
         // Act
         var result = new RemoteAccessAnalysisResultVm(
             RemoteAccessApp.AnyDesk, 2, "http://remote.com", 
-            ConnectionStatus.Open, 3, 1, tabs, null);
+            ConnectionStatus.Open,RemoteAccessDirection.Unknown, 3, 1, tabs, null);
 
         // Assert
         Assert.Equal(3, result.BrowserTabs.Length);
@@ -89,7 +92,7 @@ public class RemoteAccessAnalysisResultVmTests
     {
         // Act
         var result = new RemoteAccessAnalysisResultVm(
-            app, 1, "http://test.com", ConnectionStatus.Open, 
+            app, 1, "http://test.com", ConnectionStatus.Open, RemoteAccessDirection.Unknown, 
             1, 0, null, null);
 
         // Assert
@@ -104,7 +107,7 @@ public class RemoteAccessAnalysisResultVmTests
         // Act
         var result = new RemoteAccessAnalysisResultVm(
             RemoteAccessApp.AnyDesk, 1, "http://test.com", 
-            status, 1, 0, null, null);
+            status, RemoteAccessDirection.Unknown, 1, 0, null, null);
 
         // Assert
         Assert.Equal(status, result.ConnectionStatus);
@@ -115,7 +118,7 @@ public class RemoteAccessAnalysisResultVmTests
     {
         // Arrange
         var result = new RemoteAccessAnalysisResultVm(
-            RemoteAccessApp.AnyDesk, 1, "", ConnectionStatus.Open, 
+            RemoteAccessApp.AnyDesk, 1, "", ConnectionStatus.Open, RemoteAccessDirection.Unknown,
             0, 0, null, null);
 
         // Act & Assert
@@ -127,7 +130,7 @@ public class RemoteAccessAnalysisResultVmTests
     {
         // Arrange & Act
         var result = new RemoteAccessAnalysisResultVm(
-            RemoteAccessApp.TeamViewer, 0, "", ConnectionStatus.Closed, 
+            RemoteAccessApp.TeamViewer, 0, "", ConnectionStatus.Closed, RemoteAccessDirection.Unknown,
             0, 0, null, null);
 
         // Assert
@@ -143,7 +146,7 @@ public class RemoteAccessAnalysisResultVmTests
         // Act
         var result = new RemoteAccessAnalysisResultVm(
             RemoteAccessApp.AnyDesk, 5, "http://malicious.com", 
-            ConnectionStatus.Open, 10, 1, null, highRisk);
+            ConnectionStatus.Open, RemoteAccessDirection.Unknown, 10, 1, null, highRisk);
 
         // Assert
         Assert.NotNull(result.risk_assessment);

@@ -165,8 +165,8 @@ public class RemoteAccessAnalyzerResultVm : AnalyzerResultVm
 [DataContract]
 public class RemoteAccessAnalysisResultVm : AnalysisResult
 {
-    public RemoteAccessAnalysisResultVm(RemoteAccessApp remoteAccessApp, int runningProcesses, string connectionUrl, ConnectionStatus connectionStatus, 
-        int connectionsCount, int sessionStatus, BrowserTab[]? browserTabs, RiskAssessment? risk_assessment)
+    public RemoteAccessAnalysisResultVm(RemoteAccessApp remoteAccessApp, int runningProcesses, string connectionUrl, ConnectionStatus connectionStatus,
+        RemoteAccessDirection remoteAccessDirection, int connectionsCount, int sessionStatus, BrowserTab[]? browserTabs, RiskAssessment? risk_assessment)
     {
         this.RemoteAccessApp = remoteAccessApp;
         this.RunningProcesses = runningProcesses;
@@ -176,6 +176,7 @@ public class RemoteAccessAnalysisResultVm : AnalysisResult
         this.SessionStatus = sessionStatus;
         this.risk_assessment = risk_assessment;
         this.BrowserTabs = browserTabs;
+        this.RemoteAccessDirection = remoteAccessDirection;
     }
 
     protected  RemoteAccessAnalysisResultVm() { }
@@ -185,6 +186,8 @@ public class RemoteAccessAnalysisResultVm : AnalysisResult
 
     [DataMember]
     public RemoteAccessApp RemoteAccessApp { get; set; }
+    [DataMember]
+    public RemoteAccessDirection RemoteAccessDirection { get; set; }
     [DataMember] 
     public int RunningProcesses { get; set; }
     [DataMember] 

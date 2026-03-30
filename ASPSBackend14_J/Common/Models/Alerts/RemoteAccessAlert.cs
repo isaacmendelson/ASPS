@@ -6,7 +6,7 @@ public class RemoteAccessAlert : DeviceAlert
 {
 
     protected RemoteAccessAlert() { }
-    public RemoteAccessAlert(RemoteAccessApp remoteAccessApp, int runningProcesses, string connectionUrl, ConnectionStatus connectionStatus, 
+    public RemoteAccessAlert(RemoteAccessApp remoteAccessApp, int runningProcesses, string connectionUrl, ConnectionStatus connectionStatus, RemoteAccessDirection remoteAccessDirection,
         int connectionsCount, int sessionStatus, BrowserTab[]? browserTabs)
     {
         RemoteAccessApp = remoteAccessApp;
@@ -16,6 +16,7 @@ public class RemoteAccessAlert : DeviceAlert
         ConnectionsCount = connectionsCount;
         SessionStatus = sessionStatus;
         BrowserTabs = browserTabs;
+        RemoteAccessDirection = remoteAccessDirection;
     }
 
     //protected RemoteAccessAlert() { }
@@ -28,7 +29,7 @@ public class RemoteAccessAlert : DeviceAlert
     //    ConnectionsCount = connectionsCount;
     //    SessionStatus = sessionStatus;
     //}
-
+    public RemoteAccessDirection RemoteAccessDirection { get; set; }
     public RemoteAccessApp RemoteAccessApp { get; set; }
     public int RunningProcesses { get; set; }
     public string ConnectionUrl { get; set; } = string.Empty;

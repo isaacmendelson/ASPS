@@ -99,7 +99,7 @@ namespace Business.RealtimeAnalysis
                             nScore = new NumericScore(vm.risk_assessment.risk_score, vm.risk_assessment.confidence, true);
                         }
                         var remoteAccessSessionOpenIndicator = new RemoteAccessIndicator(vm.RemoteAccessApp, vm.RunningProcesses,
-                            vm.ConnectionUrl, vm.ConnectionStatus, vm.ConnectionsCount, (SessionStatus)vm.SessionStatus, browserTabs, nScore, AnalysisLevel.Device,
+                            vm.ConnectionUrl, vm.RemoteAccessDirection, vm.ConnectionStatus, vm.ConnectionsCount, (SessionStatus)vm.SessionStatus, browserTabs, nScore, AnalysisLevel.Device,
                             0, 1);
                         res.Add(remoteAccessSessionOpenIndicator);
                     }

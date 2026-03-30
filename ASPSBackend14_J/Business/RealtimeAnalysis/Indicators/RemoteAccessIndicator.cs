@@ -13,7 +13,7 @@ namespace Business.RealtimeAnalysis.Indicators
     {
 
         public RemoteAccessIndicator() { }
-        public RemoteAccessIndicator(RemoteAccessApp remoteAccessApp, int runningProcesses, string? connectionUrl, 
+        public RemoteAccessIndicator(RemoteAccessApp remoteAccessApp, int runningProcesses, string? connectionUrl, RemoteAccessDirection remoteAccessDirection,
             ConnectionStatus connectionStatus, int connectionsCount, SessionStatus sessionStatus, BrowserTab[]? browserTabs, 
             NumericScore score, AnalysisLevel level, int? sequence, float? weight = 1)
            : base(score, level, sequence ?? 0, weight ?? 1)
@@ -25,6 +25,7 @@ namespace Business.RealtimeAnalysis.Indicators
             this.ConnectionsCount = connectionsCount;
             this.SessionStatus = sessionStatus;
             this.BrowserTabs = browserTabs;
+            this.RemoteAccessDirection = remoteAccessDirection;
 
             //this.TypedValue = value;
             //this.Score = score;
@@ -44,7 +45,7 @@ namespace Business.RealtimeAnalysis.Indicators
         public SessionStatus SessionStatus { get; set; }
         public BrowserTab[]? BrowserTabs { get; set; }
 
-        //public NumericScore Score { get; set; }
+        public RemoteAccessDirection RemoteAccessDirection { get; set; }
 
         public override IndicatorType IndicatorType { get => IndicatorType.ContentAnalysis; }
 
