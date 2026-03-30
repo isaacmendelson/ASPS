@@ -23,6 +23,16 @@ namespace Business.Migrations
             migrationBuilder.Sql(
                 "UPDATE AnalysisResults SET Discriminator = 'RemoteAccessAnalysisResult' WHERE Discriminator = 'RemoteAccessAnalysisResultVm';");
 
+            // Convert short/invalid discriminator values to correct format
+            migrationBuilder.Sql(
+                "UPDATE AnalysisResults SET Discriminator = 'UrlAnalysisResult' WHERE Discriminator = 'UrlAlert';");
+            
+            migrationBuilder.Sql(
+                "UPDATE AnalysisResults SET Discriminator = 'TrackUrlAnalysisResult' WHERE Discriminator = 'TrackUrlAlert';");
+            
+            migrationBuilder.Sql(
+                "UPDATE AnalysisResults SET Discriminator = 'RemoteAccessAnalysisResult' WHERE Discriminator = 'RemoteAccessAlert';");
+
             // Delete records with empty or null discriminator
             migrationBuilder.Sql(
                 "DELETE FROM AnalysisResults WHERE Discriminator = '' OR Discriminator IS NULL;");
