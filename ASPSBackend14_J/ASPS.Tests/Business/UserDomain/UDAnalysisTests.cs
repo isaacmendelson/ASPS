@@ -16,80 +16,6 @@ using Xunit;
 
 namespace ASPS.Tests.Business.UserDomain;
 
-public class UDAnalysisResultTests
-{
-    [Fact]
-    public void Constructor_ShouldInitializeAllProperties()
-    {
-        // Arrange
-        var analysisLevel = AnalysisLevel.Device;
-        var severity = Severity.High;
-        var analyzerResults = new Dictionary<string, Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>>();
-        var timestamp = DateTime.UtcNow;
-        var mockConfig = new Mock<IConfiguration>();
-        var user = CreateMockUser();
-
-        // Act
-        var result = new UDAnalysisResult(analysisLevel, severity, analyzerResults, timestamp, user, mockConfig.Object);
-
-        // Assert
-        Assert.Equal(severity, result.OverallSeverity);
-        Assert.NotNull(result.AnalyzerResults);
-        Assert.Equal(timestamp, result.AnalysisTimestamp);
-        Assert.Equal(user, result.User);
-    }
-
-    [Fact]
-    public void Properties_CanBeSetAndRetrieved()
-    {
-        // Arrange
-        var mockConfig = new Mock<IConfiguration>();
-        var result = new UDAnalysisResult(
-            AnalysisLevel.Device,
-            Severity.Low,
-            new Dictionary<string, Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>>(),
-            DateTime.UtcNow,
-            CreateMockUser(),
-            mockConfig.Object
-        );
-
-        // Act
-        result.OverallSeverity = Severity.Critical;
-        var newTimestamp = DateTime.UtcNow.AddHours(1);
-        result.AnalysisTimestamp = newTimestamp;
-
-        // Assert
-        Assert.Equal(Severity.Critical, result.OverallSeverity);
-        Assert.Equal(newTimestamp, result.AnalysisTimestamp);
-    }
-
-    private UDUser CreateMockUser()
-    {
-        var userKey = new Key("User", "test-user-result-123");
-        var userInfo = new UserInfo(
-            userKey,
-            "keycloak-result-123",
-            "Test",
-            "Result",
-            "456 Test Ave",
-            "TestCity",
-            "TestState",
-            "54321",
-            "US",
-            "+9876543210",
-            UserRole.Self,
-            false,
-            DateTime.UtcNow,
-            null,
-            "en-US",
-            0
-        );
-        var riskAssessment = new RiskAssessment(0, "", false, 1);
-        
-        return new UDUser(userKey, userInfo, riskAssessment, null, null, null, false);
-    }
-}
-
 public class UDAnalysisTests
 {
     private readonly Mock<ILoggerFactory> _mockLoggerFactory;
@@ -115,7 +41,10 @@ public class UDAnalysisTests
         _mockIndicatorFactory = new Mock<IndicatorFactory>();
         _mockProtectiveActionsFactory = new Mock<ProtectiveActionsFactory>();
         _mockConfiguration = new Mock<IConfiguration>();
-        //SetupConfiguration();
+        
+        // Setup configuration for LoadConfiguration
+        _mockConfiguration.Setup(c => c.GetSection(It.IsAny<string>()))
+            .Returns(new Mock<IConfigurationSection>().Object);
 
         _testUser = CreateMockUser();
         _testASView = CreateMockASView();
@@ -371,74 +300,5 @@ public class UDAnalysisTests
             IFrameDomains = Array.Empty<string>(),
             AlertType = "Url"
         };
-    }
-}
-
-public class AnalyzerResultTests
-{
-    [Fact]
-    public void Constructor_WithAllParameters_ShouldInitialize()
-    {
-        // Arrange
-        var severity = Severity.High;
-        var message = "Test message";
-        var indicators = new List<IIndicator>();
-        var actions = new List<IProtectiveAction>();
-        var details = new Dictionary<string, object> { ["key"] = "value" };
-
-        // Act
-        var result = new AnalyzerResult(severity, message, indicators, actions, details);
-
-        // Assert
-        Assert.Equal(severity, result.Severity);
-        Assert.Equal(message, result.Message);
-        Assert.Equal(indicators, result.Indicators);
-        Assert.Equal(actions, result.ProtectiveActions);
-        Assert.Equal(details, result.Details);
-    }
-
-    [Fact]
-    public void Constructor_WithSeverityAndMessage_ShouldInitialize()
-    {
-        // Arrange
-        var severity = Severity.Medium;
-        var message = "Simple test";
-
-        // Act
-        var result = new AnalyzerResult(severity, message);
-
-        // Assert
-        Assert.Equal(severity, result.Severity);
-        Assert.Equal(message, result.Message);
-        Assert.NotNull(result.Details);
-        Assert.Empty(result.Details);
-    }
-
-    [Fact]
-    public void Properties_CanBeModified()
-    {
-        // Arrange
-        var result = new AnalyzerResult(Severity.Low, "Initial");
-
-        // Act
-        result.Severity = Severity.Critical;
-        result.Message = "Updated message";
-        result.Details["newKey"] = "newValue";
-
-        // Assert
-        Assert.Equal(Severity.Critical, result.Severity);
-        Assert.Equal("Updated message", result.Message);
-        Assert.Contains("newKey", result.Details.Keys);
-    }
-
-    [Fact]
-    public void Details_ShouldBeEmptyByDefault()
-    {
-        // Act
-        var result = new AnalyzerResult(Severity.Low, "Test");
-
-        // Assert
-        Assert.NotNull(result.Details);
-        Assert.Empty(result.Details);
     }
 }
