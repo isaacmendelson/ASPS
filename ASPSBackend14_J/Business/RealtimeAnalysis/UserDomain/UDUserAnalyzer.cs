@@ -155,13 +155,13 @@ namespace Business.RealtimeAnalysis.UserDomain
                 case UrlAnalysisResultVm u:
                     var websitePurpose = u.Purpose;
 
-                    if (remoteAccessStatus.IsRemoteAccessAppActive && remoteAccessStatus.isRemoteAccessSessionActive)
-                    {
-                        if ((u.Purpose?.Category == WebsiteType.Banking) || (u.Purpose?.Category == WebsiteType.Exchange))
-                        {
+                    //if (remoteAccessStatus.IsRemoteAccessAppActive && remoteAccessStatus.isRemoteAccessSessionActive)
+                    //{
+                    //    if ((u.Purpose?.Category == WebsiteType.Banking) || (u.Purpose?.Category == WebsiteType.Exchange))
+                    //    {
 
-                        }
-                    }
+                    //    }
+                    //}
                     break;
                 case TrackUrlAnalysisResultVm t:
                     HandleTrackUrlAnalysisResultReceived(t, remoteAccessStatus);
@@ -173,7 +173,12 @@ namespace Business.RealtimeAnalysis.UserDomain
 
         private RemoteAccessStatusObject? GetRemoteAccessStatus()
         {
-            var deviceInfo = this._remoteAccessAnalysisResults.FirstOrDefault().Alert.DeviceInfo;
+            if (this._remoteAccessAnalysisResults.Count ==0)
+            {
+                return null;
+            }
+            
+            var deviceInfo = this._remoteAccessAnalysisResults.FirstOrDefault()?.Alert.DeviceInfo;
             var anaylisisResult = this._remoteAccessAnalysisResults.FirstOrDefault()?.AnalysisResult;
             if (anaylisisResult is null)
             {
@@ -336,25 +341,25 @@ namespace Business.RealtimeAnalysis.UserDomain
         }
     }
 
-    public class RemoteAccessStatusObject
-    {
-        public RemoteAccessStatusObject(DateTime timestamp, string deviceUid, RemoteAccessDirection remoteAccessDirection, RemoteAccessApp remoteAccessApp, 
-            bool isRemoteAccessAppActive, bool isRemoteAccessSessionActive)
-        {
-            Timestamp = timestamp;
-            DeviceUid = deviceUid;
-            RemoteAccessDirection = remoteAccessDirection;
-            RemoteAccessApp = remoteAccessApp;
-            IsRemoteAccessAppActive = isRemoteAccessAppActive;
-            this.isRemoteAccessSessionActive = isRemoteAccessSessionActive;
-        }
+    //public class RemoteAccessStatusObject
+    //{
+    //    public RemoteAccessStatusObject(DateTime timestamp, string deviceUid, RemoteAccessDirection remoteAccessDirection, RemoteAccessApp remoteAccessApp, 
+    //        bool isRemoteAccessAppActive, bool isRemoteAccessSessionActive)
+    //    {
+    //        Timestamp = timestamp;
+    //        DeviceUid = deviceUid;
+    //        RemoteAccessDirection = remoteAccessDirection;
+    //        RemoteAccessApp = remoteAccessApp;
+    //        IsRemoteAccessAppActive = isRemoteAccessAppActive;
+    //        this.isRemoteAccessSessionActive = isRemoteAccessSessionActive;
+    //    }
 
-        public DateTime Timestamp { get; set; }
-        public string DeviceUid { get; set; }
-        public RemoteAccessDirection RemoteAccessDirection { get; set; }
-        public RemoteAccessApp RemoteAccessApp { get; set; }
-        public bool IsRemoteAccessAppActive { get; set; }
-        public bool isRemoteAccessSessionActive { get; set; }
+    //    public DateTime Timestamp { get; set; }
+    //    public string DeviceUid { get; set; }
+    //    public RemoteAccessDirection RemoteAccessDirection { get; set; }
+    //    public RemoteAccessApp RemoteAccessApp { get; set; }
+    //    public bool IsRemoteAccessAppActive { get; set; }
+    //    public bool isRemoteAccessSessionActive { get; set; }
 
-    }
+    //}
 }

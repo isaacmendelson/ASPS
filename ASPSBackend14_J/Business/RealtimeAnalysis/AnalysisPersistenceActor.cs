@@ -7,6 +7,7 @@ using Common.Interfaces;
 using Common.Models;
 using Common.Models.Alerts;
 using Interface.Repositories;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Text.Json;
@@ -19,17 +20,14 @@ namespace Business.RealtimeAnalysis;
 /// </summary>
 public class AnalysisPersistenceActor : IDomainEventHandler
 {
-    private readonly IAnalysisResultRepository _analysisResultRepository;
-    private readonly IDeviceAlertRepository _deviceAlertRepository;
+    private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<AnalysisPersistenceActor> _logger;
 
     public AnalysisPersistenceActor(
-        IAnalysisResultRepository analysisResultRepository,
-        IDeviceAlertRepository deviceAlertRepository,
+        IServiceProvider serviceProvider,
         ILogger<AnalysisPersistenceActor> logger)
     {
-        _analysisResultRepository = analysisResultRepository;
-        _deviceAlertRepository = deviceAlertRepository;
+        _serviceProvider = serviceProvider;
         _logger = logger;
     }
 
@@ -48,9 +46,12 @@ public class AnalysisPersistenceActor : IDomainEventHandler
 
     private async Task HandleAnalysisResultReceivedAsync(AnalysisResultReceived analysisEvent)
     {
-        //AnalysisResult? vm = null;
         try
         {
+            using var scope = _serviceProvider.CreateScope();
+            var _analysisResultRepository = scope.ServiceProvider.GetRequiredService<IAnalysisResultRepository>();
+            var _deviceAlertRepository = scope.ServiceProvider.GetRequiredService<IDeviceAlertRepository>();
+
             string jsonValue = string.Empty;
             bool isFromCache = false;
             AnalysisResultContainer? analysisResultContainer = null;

@@ -23,6 +23,12 @@ public class UDTrackUrlAnalyzer : ISpecificAnalyzer
     private readonly IConfiguration _configuration;
     private readonly ASView _asView;
 
+    private int _riskThreshold;
+    private int _trackingDurationMinutes;
+
+    private float _severityScoreThresholdCritical;
+    private float _severityScoreThresholdHigh;
+    private float _severityScoreThresholdMedium;
     public ExternalAnalyzer[] ExternalAnalyzers { get; } = Array.Empty<ExternalAnalyzer>();
 
     public UDTrackUrlAnalyzer(
@@ -33,7 +39,14 @@ public class UDTrackUrlAnalyzer : ISpecificAnalyzer
         _logger = logger;
         _configuration = configuration;
         _asView = asView;
-        
+
+        _riskThreshold = _configuration.GetValue<int>("TrackUrl:RiskThresholdToEnableTracking", 40);
+        _trackingDurationMinutes = _configuration.GetValue<int>("TrackUrl:TrackingDurationMinutes", 30);
+
+        _severityScoreThresholdCritical = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdCritical", 80);
+        _severityScoreThresholdHigh = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdHigh", 80);
+        _severityScoreThresholdMedium = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdMedium", 80);
+
         _logger.LogInformation("UDTrackUrlAnalyzer initialized for TrackUrlAlert monitoring");
     }
 
@@ -58,18 +71,14 @@ public class UDTrackUrlAnalyzer : ISpecificAnalyzer
         var riskScore = CalculateRiskScore(trackUrlAlert, domain);
         
         // Determine severity based on risk score
-        var severity = riskScore >= 60 ? Severity.High :
-                       riskScore >= 40 ? Severity.Medium :
-                       Severity.Low;
-
+        var severity = this.GetSeverityFromRiskScore(riskScore);
         var indicators = new List<IIndicator>();
         var protectiveActions = new List<IProtectiveAction>();
 
         // Add protective action if risk is high
-        if (riskScore >= 60)
+        if (riskScore >= _severityScoreThresholdHigh)
         {
             var notificationAction = new ProtectiveAction(
-                //ProtectiveActionSubject.Device,
                 trackUrlAlert.DeviceInfo.Key,
                 ProtectiveActionType.UserDisplayNotification,
                 AnalysisLevel.Device,
@@ -164,5 +173,20 @@ public class UDTrackUrlAnalyzer : ISpecificAnalyzer
             return $"Extended visit duration ({durationMinutes:F2} minutes)";
 
         return $"Short visit duration ({durationMinutes:F2} minutes)";
+    }
+
+    private Severity GetSeverityFromRiskScore(float val)
+    {
+        Severity severity = Severity.Unknown;
+        if (val >= _severityScoreThresholdCritical)
+            severity = Severity.Critical;  // risk score >= 80 = very dangerous
+        else if (val >= _severityScoreThresholdHigh)
+            severity = Severity.High;      // risk score >= 61 = dangerous
+        else if (val >= _severityScoreThresholdMedium)
+            severity = Severity.Medium;    // risk score >= 31 = moderate ris
+        else
+            severity = Severity.Low;       // risk score < 31 = low risk    
+
+        return severity;
     }
 }

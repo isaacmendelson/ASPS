@@ -146,9 +146,7 @@ public class AppDbContext : DbContext
             entity.HasIndex(e => e.UserName);
         });
 
-        // AnalysisResultContainer configuration
-        // NOTE: Discriminator is just a string field, not used for TPH inheritance
-        // This allows any discriminator value without EF validation
+        // AnalysisResultContainer configuration (TPH)
         modelBuilder.Entity<AnalysisResultContainer>(entity =>
         {
             entity.HasKey(e => e.KeyField);
@@ -159,24 +157,51 @@ public class AppDbContext : DbContext
                 .HasColumnName("UserKey")
                 .HasColumnType("varchar(36)")
                 .IsRequired();
-            
-            // Discriminator is just a regular string property
+
+            entity.HasDiscriminator(e => e.Discriminator)
+                .HasValue<AnalysisResultContainer>("AnalysisResultContainer")
+                .HasValue<UrlAnalysisResultContainer>("UrlAnalysisResultVm")
+                .HasValue<TrackUrlAnalysisResultContainer>("TrackUrlAnalysisResultVm")
+                .HasValue<RemoteAccessAnalysisResultContainer>("RemoteAccessAnalysisResultVm");
+
             entity.Property(e => e.Discriminator)
                 .HasMaxLength(100)
                 .IsRequired();
-            
+
             entity.Property(e => e.JsonValue).HasColumnType("TEXT");
             entity.Property(e => e.ErrorMessage).HasColumnType("TEXT");
-            
+
             // Ignore computed properties
             entity.Ignore(e => e.Tag);
             entity.Ignore(e => e.TypeName);
             entity.Ignore(e => e.Key);
             entity.Ignore(e => e.UserKey);
-            
+
             entity.HasIndex(e => e.UserKeyField);
             entity.HasIndex(e => e.Timestamp);
-            entity.HasIndex(e => e.Discriminator); // Index for filtering by type
+            entity.HasIndex(e => e.Discriminator);
+        });
+
+        // UrlAnalysisResultContainer specific columns
+        modelBuilder.Entity<UrlAnalysisResultContainer>(entity =>
+        {
+            entity.Property(e => e.Url).HasColumnName("Url").HasColumnType("TEXT");
+            entity.Property(e => e.Domain).HasColumnName("Domain").HasMaxLength(255);
+        });
+
+        // TrackUrlAnalysisResultContainer specific columns (share Url/Domain columns)
+        modelBuilder.Entity<TrackUrlAnalysisResultContainer>(entity =>
+        {
+            entity.Property(e => e.Url).HasColumnName("Url").HasColumnType("TEXT");
+            entity.Property(e => e.Domain).HasColumnName("Domain").HasMaxLength(255);
+            entity.Property(e => e.FromUrl).HasColumnType("TEXT");
+        });
+
+        // RemoteAccessAnalysisResultContainer specific columns
+        modelBuilder.Entity<RemoteAccessAnalysisResultContainer>(entity =>
+        {
+            entity.Property(e => e.RemoteAccessApp).HasDefaultValue(0);
+            entity.Property(e => e.SessionStatus).HasDefaultValue(0);
         });
 
         // DeviceAlert configuration (TPH)

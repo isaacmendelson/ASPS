@@ -54,6 +54,7 @@
                     <tr>
                         <th>Timestamp</th>
                         <th>Type</th>
+                        <th>Url</th>
                         <th>User</th>
                         <th>Alert</th>
                         <th>Device UID</th>
@@ -71,6 +72,20 @@
                             <td>@result.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</td>
                             <td>
                                 <span class="badge bg-info">@result.Discriminator</span>
+                            </td>
+                            <td>
+                                @if (result is Common.Entities.UrlAnalysisResultContainer urlResult && !string.IsNullOrEmpty(urlResult.Url))
+                                {
+                                    <small class="text-truncate d-inline-block" style="max-width: 200px;" title="@urlResult.Url">@urlResult.Url</small>
+                                }
+                                else if (result is Common.Entities.TrackUrlAnalysisResultContainer trackResult && !string.IsNullOrEmpty(trackResult.Url))
+                                {
+                                    <small class="text-truncate d-inline-block" style="max-width: 200px;" title="@trackResult.Url">@trackResult.Url</small>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
                             </td>
                             <td>
                                 @if (!string.IsNullOrEmpty(item.UserName))

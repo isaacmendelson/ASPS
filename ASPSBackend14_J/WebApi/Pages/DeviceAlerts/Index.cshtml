@@ -173,7 +173,13 @@
                                     <small>@raAlert.RemoteAccessApp — @raAlert.SessionStatus</small>
                                 }
                             </td>
-                            <td><small><code>@alert.KeyField</code></small></td>
+                            <td>
+                                <small><code>@alert.KeyField</code></small>
+                                @if (!string.IsNullOrEmpty(alert.AnalysisKeyField))
+                                {
+                                    <br/><small class="text-muted">AR: <code>@alert.AnalysisKeyField</code></small>
+                                }
+                            </td>
                             <td>
                                 <a href="/DeviceAlerts/Details?key=@alert.KeyField" class="btn btn-sm btn-primary">
                                     <i class="fas fa-eye"></i> View

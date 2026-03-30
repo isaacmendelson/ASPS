@@ -193,8 +193,8 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
                         result.ProtectiveActions?.AddRange(protectiveActions.ToList());
                     }
                 }
-                //analysisResults[analyzer.GetType().Name] = new Tuple<string, AnalyzerResult>(deviceAlert.AlertId, result);
-                //FireSpecificAnalyzerResultReceivedEvent(activeAlert, analyzer.GetType().Name, result);
+                analysisResults[analyzer.GetType().Name] = new Tuple<string, AnalyzerResult>(deviceAlert.AlertId, result);
+                FireSpecificAnalyzerResultReceivedEvent(activeAlert, analyzer.GetType().Name, result);
             }
         }
 

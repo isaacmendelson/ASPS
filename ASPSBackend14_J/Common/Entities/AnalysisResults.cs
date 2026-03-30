@@ -94,7 +94,9 @@ public class AnalysisResultContainer : Entity
 
 public class UrlAnalysisResultContainer : AnalysisResultContainer
 {
-    public UrlAnalysisResultContainer(string url, string keyField, string userKeyField, string discriminator, DateTime timestamp, string? jsonValue, bool? hasError, 
+    protected UrlAnalysisResultContainer() { }
+
+    public UrlAnalysisResultContainer(string url, string keyField, string userKeyField, string discriminator, DateTime timestamp, string? jsonValue, bool? hasError,
         string? errorMessage, bool? isFromCache = false, string? deviceAlertKeyField = null)
         :base(keyField, userKeyField, discriminator, timestamp, jsonValue, hasError, errorMessage, isFromCache, deviceAlertKeyField)
     {
@@ -110,6 +112,8 @@ public class UrlAnalysisResultContainer : AnalysisResultContainer
 
 public class TrackUrlAnalysisResultContainer : AnalysisResultContainer
 {
+    protected TrackUrlAnalysisResultContainer() { }
+
     public TrackUrlAnalysisResultContainer(string url, string fromUrl, string keyField, string userKeyField, string discriminator, DateTime timestamp, string? jsonValue, bool? hasError,
         string? errorMessage, bool? isFromCache = false, string? deviceAlertKeyField = null)
         : base(keyField, userKeyField, discriminator, timestamp, jsonValue, hasError, errorMessage, isFromCache, deviceAlertKeyField)
@@ -128,6 +132,8 @@ public class TrackUrlAnalysisResultContainer : AnalysisResultContainer
 
 public class RemoteAccessAnalysisResultContainer : AnalysisResultContainer
 {
+    protected RemoteAccessAnalysisResultContainer() { }
+
     public RemoteAccessAnalysisResultContainer(RemoteAccessApp remoteAccessApp, SessionStatus? sessionStatus, string keyField, string userKeyField, string discriminator, DateTime timestamp, string? jsonValue, bool? hasError,
         string? errorMessage, bool? isFromCache = false, string? deviceAlertKeyField = null)
         : base(keyField, userKeyField, discriminator, timestamp, jsonValue, hasError, errorMessage, isFromCache, deviceAlertKeyField)
