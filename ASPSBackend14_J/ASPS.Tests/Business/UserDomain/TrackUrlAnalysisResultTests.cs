@@ -7,10 +7,10 @@ using Xunit;
 namespace ASPS.Tests.Business.UserDomain;
 
 /// <summary>
-/// Unit tests for TrackUrlAnalysisResultVm
+/// Unit tests for TrackUrlAnalysisResult
 /// ASPS-250: Unit Tests - TrackUrlAlert Components
 /// </summary>
-public class TrackUrlAnalysisResultVmTests
+public class TrackUrlAnalysisResultTests
 {
     #region Constructor Tests
 
@@ -31,7 +31,7 @@ public class TrackUrlAnalysisResultVmTests
         var riskAssessment = new RiskAssessment(20, "Monitor", false, 0.8f);
 
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             url, fromUrl, duration, scamInProgressKey,
             ipAddress, userAgent, tabId, timezone,
             domain, isSafeDomain, riskAssessment);
@@ -59,7 +59,7 @@ public class TrackUrlAnalysisResultVmTests
         var domain = "example.com";
 
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             url, "", 60, "", "", "", "", "",
             domain, false, null);
 
@@ -76,7 +76,7 @@ public class TrackUrlAnalysisResultVmTests
         var domain = "google.com";
 
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             url, "", 60, "", "", "", "", "",
             domain, true, new RiskAssessment(0, "Safe", false, 1));
 
@@ -92,7 +92,7 @@ public class TrackUrlAnalysisResultVmTests
         var scamKey = "scam-session-12345";
 
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             "https://scam.com", "", 60, scamKey, "", "", "", "",
             "scam.com", false, new RiskAssessment(60, "High", true, 0.9f));
 
@@ -109,12 +109,12 @@ public class TrackUrlAnalysisResultVmTests
     public void TypeName_ReturnsCorrectValue()
     {
         // Arrange
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", 60, "", "", "", "", "",
             "test.com", false, null);
 
         // Assert
-        vm.TypeName.Should().Be("TrackUrlAnalysisResultVm");
+        vm.TypeName.Should().Be("TrackUrlAnalysisResult");
     }
 
     [Fact]
@@ -124,7 +124,7 @@ public class TrackUrlAnalysisResultVmTests
         var url = "https://suspicious-site.com/login";
 
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             url, "", 60, "", "", "", "", "",
             "suspicious-site.com", false, null);
 
@@ -139,7 +139,7 @@ public class TrackUrlAnalysisResultVmTests
         var fromUrl = "https://referrer.com";
 
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             "https://target.com", fromUrl, 60, "", "", "", "", "",
             "target.com", false, null);
 
@@ -154,7 +154,7 @@ public class TrackUrlAnalysisResultVmTests
         var duration = 300;
 
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", duration, "", "", "", "", "",
             "test.com", false, null);
 
@@ -169,7 +169,7 @@ public class TrackUrlAnalysisResultVmTests
         var domain = "example.com";
 
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             "https://example.com/page", "", 60, "", "", "", "", "",
             domain, false, null);
 
@@ -184,7 +184,7 @@ public class TrackUrlAnalysisResultVmTests
         var ipAddress = "10.0.0.1";
 
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", 60, "", ipAddress, "", "", "",
             "test.com", false, null);
 
@@ -199,7 +199,7 @@ public class TrackUrlAnalysisResultVmTests
         var userAgent = "Chrome/96.0";
 
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", 60, "", "", userAgent, "", "",
             "test.com", false, null);
 
@@ -214,7 +214,7 @@ public class TrackUrlAnalysisResultVmTests
         var tabId = "tab-123";
 
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", 60, "", "", "", tabId, "",
             "test.com", false, null);
 
@@ -229,7 +229,7 @@ public class TrackUrlAnalysisResultVmTests
         var timezone = "Europe/London";
 
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", 60, "", "", "", "", timezone,
             "test.com", false, null);
 
@@ -248,7 +248,7 @@ public class TrackUrlAnalysisResultVmTests
         var riskAssessment = new RiskAssessment(10, "Low", false, 0.7f);
 
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", 60, "", "", "", "", "",
             "test.com", false, riskAssessment);
 
@@ -266,7 +266,7 @@ public class TrackUrlAnalysisResultVmTests
         var riskAssessment = new RiskAssessment(20, "Medium", false, 0.6f);
 
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", 350, "", "", "", "", "",
             "test.com", false, riskAssessment);
 
@@ -282,7 +282,7 @@ public class TrackUrlAnalysisResultVmTests
         var riskAssessment = new RiskAssessment(60, "High", true, 0.9f);
 
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             "https://scam.com", "", 60, "scam-key", "", "", "", "",
             "scam.com", false, riskAssessment);
 
@@ -299,7 +299,7 @@ public class TrackUrlAnalysisResultVmTests
         var riskAssessment = new RiskAssessment(0, "Safe", false, 1);
 
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             "https://google.com", "", 120, "", "", "", "", "",
             "google.com", true, riskAssessment);
 
@@ -322,7 +322,7 @@ public class TrackUrlAnalysisResultVmTests
     public void Duration_WithVariousValues_AcceptsValue(int duration)
     {
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", duration, "", "", "", "", "",
             "test.com", false, null);
 
@@ -334,7 +334,7 @@ public class TrackUrlAnalysisResultVmTests
     public void Constructor_WithEmptyStrings_AcceptsValues()
     {
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", 60, "", "", "", "", "",
             "test.com", false, null);
 
@@ -365,7 +365,7 @@ public class TrackUrlAnalysisResultVmTests
         var riskAssessment = new RiskAssessment(25, "Medium", false, 0.75f);
 
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             url, fromUrl, duration, scamKey,
             ipAddress, userAgent, tabId, timezone,
             domain, isSafeDomain, riskAssessment);
@@ -393,7 +393,7 @@ public class TrackUrlAnalysisResultVmTests
     public void Url_WithVariousFormats_AcceptsValue(string url)
     {
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             url, "", 60, "", "", "", "", "",
             "example.com", false, null);
 
@@ -408,7 +408,7 @@ public class TrackUrlAnalysisResultVmTests
     public void Domain_WithVariousFormats_AcceptsValue(string domain)
     {
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             $"https://{domain}/page", "", 60, "", "", "", "", "",
             domain, false, null);
 
@@ -421,10 +421,10 @@ public class TrackUrlAnalysisResultVmTests
     #region Inheritance Tests
 
     [Fact]
-    public void TrackUrlAnalysisResultVm_InheritsFromAnalysisResult()
+    public void TrackUrlAnalysisResult_InheritsFromAnalysisResult()
     {
         // Arrange
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", 60, "", "", "", "", "",
             "test.com", false, null);
 
@@ -433,10 +433,10 @@ public class TrackUrlAnalysisResultVmTests
     }
 
     [Fact]
-    public void TrackUrlAnalysisResultVm_CanAccessBaseProperties()
+    public void TrackUrlAnalysisResult_CanAccessBaseProperties()
     {
         // Arrange & Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", 60, "", "", "", "", "",
             "test.com", false, null)
         {
@@ -461,7 +461,7 @@ public class TrackUrlAnalysisResultVmTests
         var riskAssessment = new RiskAssessment(60, "High", true, 0.95f);
 
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             "https://scam-site.com/login", "", 100, scamKey,
             "192.168.1.1", "Chrome", "tab-1", "UTC",
             "scam-site.com", false, riskAssessment);
@@ -479,7 +479,7 @@ public class TrackUrlAnalysisResultVmTests
         var riskAssessment = new RiskAssessment(10, "Low", false, 0.6f);
 
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             "https://normal-site.com", "", 60, "",
             "", "", "", "",
             "normal-site.com", false, riskAssessment);
@@ -501,7 +501,7 @@ public class TrackUrlAnalysisResultVmTests
         var riskAssessment = new RiskAssessment(0, "Safe", false, 1);
 
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             "https://google.com/search", "", 120, "",
             "", "", "", "",
             "google.com", true, riskAssessment);
@@ -519,7 +519,7 @@ public class TrackUrlAnalysisResultVmTests
         var riskAssessment = new RiskAssessment(20, "Monitor", false, 0.7f);
 
         // Act
-        var vm = new TrackUrlAnalysisResultVm(
+        var vm = new TrackUrlAnalysisResult(
             "https://unknown-site.xyz", "", 60, "",
             "", "", "", "",
             "unknown-site.xyz", false, riskAssessment);

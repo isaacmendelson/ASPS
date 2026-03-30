@@ -83,7 +83,7 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
         {
             _logger.LogInformation($"Domain '{alertDomain}' is whitelisted (SafeDomains). Skipping analysis.");
 
-            var whitelistedResult = new UrlAnalysisResultVm
+            var whitelistedResult = new UrlAnalysisResult
             {
                 Url = url,
                 Domain = alertDomain,
@@ -126,7 +126,7 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
         var phishingCheckResult = await CheckKnownPhishingAsync(url);
 
         // STEP 2: Continue with normal external analyzers
-        var results = new List<UrlAnalysisResultVm>();
+        var results = new List<UrlAnalysisResult>();
         var errors = new List<string>();
 
         // Execute each external analyzer
@@ -134,7 +134,7 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
         {
             try
             {
-                var result = new UrlAnalysisResultVm();
+                var result = new UrlAnalysisResult();
                 _logger.LogInformation($"Running analyzer: {analyzer.ScriptFile} (Order: {analyzer.Order}, Weight: {analyzer.Weight})");
 
                 // STEP 2: Check if a UrlAnalysisResult exists for this URL (cache)
@@ -147,7 +147,7 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
                     // Add phishing check result to cached result
                     cachedResult.AnalysisResult.phishing_check = phishingCheckResult;
 
-                    result = new UrlAnalysisResultVm()
+                    result = new UrlAnalysisResult()
                     {
                         Url = url,
                         Domain = Common.Entities.KnownPhishingWebsite.GetDomainFromUrl(url),
@@ -313,7 +313,7 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
                 new List<IProtectiveAction>(),
                 new Dictionary<string, object>
                 {
-                    ["results"] = Array.Empty<UrlAnalysisResultVm>(),
+                    ["results"] = Array.Empty<UrlAnalysisResult>(),
                     ["errors"] = errors.ToArray(),
                     ["url"] = url,
                     ["analyzers_run"] = 0,
@@ -322,7 +322,7 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
             );
         }
     }
-    private async Task<UrlAnalysisResultVm?> RunPythonAnalyzerAsync(ExternalAnalyzer analyzer, string url)
+    private async Task<UrlAnalysisResult?> RunPythonAnalyzerAsync(ExternalAnalyzer analyzer, string url)
     {
         // Build path to analyzer directory and analyze.py script
         var analyzerDirectory = Path.Combine(_analyzersFolder, analyzer.ScriptFile);
@@ -432,7 +432,7 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
 
         try
         {
-            var result = JsonConvert.DeserializeObject<UrlAnalysisResultVm>(analysisJson);
+            var result = JsonConvert.DeserializeObject<UrlAnalysisResult>(analysisJson);
             result.IsFromCache = false; // Mark as not from cache since it's fresh from Python analyzer
             return result;
         }

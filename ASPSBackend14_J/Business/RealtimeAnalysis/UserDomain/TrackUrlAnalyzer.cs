@@ -189,7 +189,7 @@ public class TrackUrlAnalyzer : ISpecificAnalyzer
 
         var riskAssessment = new RiskAssessment(riskScore, isSafeDomain ? "Safe" : "Monitor", false, 1);
 
-        var result = new TrackUrlAnalysisResultVm(
+        var result = new TrackUrlAnalysisResult(
             trackUrlAlert.Url,
             trackUrlAlert.FromUrl,
             trackUrlAlert.Duration,
@@ -203,7 +203,7 @@ public class TrackUrlAnalyzer : ISpecificAnalyzer
             riskAssessment,
             trackedDomainInfo);
 
-        var results = new List<TrackUrlAnalysisResultVm> { result };
+        var results = new List<TrackUrlAnalysisResult> { result };
 
         return new AnalyzerResult(
             severity,

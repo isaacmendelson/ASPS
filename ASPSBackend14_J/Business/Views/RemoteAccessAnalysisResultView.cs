@@ -34,11 +34,11 @@ namespace Business.Views
                 var innerResult = analyzerResults["AnalysisResult"];
                 if (innerResult != null)
                 {
-                    AnalysisResult = innerResult.ToObject<RemoteAccessAnalysisResultVm>();
+                    AnalysisResult = innerResult.ToObject<RemoteAccessAnalysisResult>();
                 }
                 else
                 {
-                    AnalysisResult = analyzerResults.ToObject<RemoteAccessAnalysisResultVm>();
+                    AnalysisResult = analyzerResults.ToObject<RemoteAccessAnalysisResult>();
                 }
                 // Set the base class property so polymorphic access works
                 ((AnalysisResultView)this).AnalysisResult = AnalysisResult;
@@ -77,6 +77,6 @@ namespace Business.Views
             }
         }
 
-        public new RemoteAccessAnalysisResultVm? AnalysisResult { get; set; }
+        public new RemoteAccessAnalysisResult? AnalysisResult { get; set; }
     }
 }

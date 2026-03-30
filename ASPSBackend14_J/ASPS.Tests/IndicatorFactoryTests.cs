@@ -18,13 +18,13 @@ namespace ASPS.Tests
             _factory = new IndicatorFactory();
         }
 
-        #region UrlAnalysisResultVm Tests
+        #region UrlAnalysisResult Tests
 
         [Fact]
         public void CreateIndicators_WithKnownPhishingUrl_ReturnsKnownPhishingIndicator()
         {
             // Arrange
-            var urlAnalysis = new UrlAnalysisResultVm
+            var urlAnalysis = new UrlAnalysisResult
             {
                 Url = "https://evil-phishing-site.com/fake-login",
                 phishing_check = new PhishingCheckResultVm
@@ -53,7 +53,7 @@ namespace ASPS.Tests
         public void CreateIndicators_WithSuccessfulWhois_ReturnsWhoisIndicators()
         {
             // Arrange
-            var urlAnalysis = new UrlAnalysisResultVm
+            var urlAnalysis = new UrlAnalysisResult
             {
                 Url = "https://example.com",
                 Whois = new WhoisVm
@@ -91,7 +91,7 @@ namespace ASPS.Tests
         public void CreateIndicators_WithYoungDomain_ReturnsLowScore()
         {
             // Arrange
-            var urlAnalysis = new UrlAnalysisResultVm
+            var urlAnalysis = new UrlAnalysisResult
             {
                 Url = "https://newsite.com",
                 Whois = new WhoisVm
@@ -118,7 +118,7 @@ namespace ASPS.Tests
         public void CreateIndicators_WithOldDomain_ReturnsHighScore()
         {
             // Arrange
-            var urlAnalysis = new UrlAnalysisResultVm
+            var urlAnalysis = new UrlAnalysisResult
             {
                 Url = "https://oldsite.com",
                 Whois = new WhoisVm
@@ -145,7 +145,7 @@ namespace ASPS.Tests
         public void CreateIndicators_WithPrivacyProtectedWhois_ReturnsCorrectIndicator()
         {
             // Arrange
-            var urlAnalysis = new UrlAnalysisResultVm
+            var urlAnalysis = new UrlAnalysisResult
             {
                 Url = "https://privacy-protected.com",
                 Whois = new WhoisVm
@@ -171,7 +171,7 @@ namespace ASPS.Tests
         public void CreateIndicators_WithNullWhoisCountry_DoesNotCreateCountryIndicator()
         {
             // Arrange
-            var urlAnalysis = new UrlAnalysisResultVm
+            var urlAnalysis = new UrlAnalysisResult
             {
                 Url = "https://nocountry.com",
                 Whois = new WhoisVm
@@ -196,7 +196,7 @@ namespace ASPS.Tests
         public void CreateIndicators_WithWebsiteType_ReturnsWebsiteTypeIndicator()
         {
             // Arrange
-            var urlAnalysis = new UrlAnalysisResultVm
+            var urlAnalysis = new UrlAnalysisResult
             {
                 Url = "https://shop.com",
                 Purpose = new Purpose
@@ -222,7 +222,7 @@ namespace ASPS.Tests
         public void CreateIndicators_WithUnknownWebsiteType_DoesNotCreateWebsiteTypeIndicator()
         {
             // Arrange
-            var urlAnalysis = new UrlAnalysisResultVm
+            var urlAnalysis = new UrlAnalysisResult
             {
                 Url = "https://unknown.com",
                 Purpose = new Purpose
@@ -244,7 +244,7 @@ namespace ASPS.Tests
         public void CreateIndicators_WithNullPurpose_DoesNotCreateIndicator()
         {
             // Arrange
-            var urlAnalysis = new UrlAnalysisResultVm
+            var urlAnalysis = new UrlAnalysisResult
             {
                 Url = "https://nopurpose.com",
                 Purpose = null
@@ -262,7 +262,7 @@ namespace ASPS.Tests
         public void CreateIndicators_WithSuspiciousContent_ReturnsContentAnalysisIndicator()
         {
             // Arrange
-            var urlAnalysis = new UrlAnalysisResultVm
+            var urlAnalysis = new UrlAnalysisResult
             {
                 Url = "https://suspicious.com",
                 content_analysis = new ContentAnalysisVm
@@ -300,7 +300,7 @@ namespace ASPS.Tests
         public void CreateIndicators_WithContentAnalysisButNoSuspiciousKeywords_DoesNotCreateIndicator()
         {
             // Arrange
-            var urlAnalysis = new UrlAnalysisResultVm
+            var urlAnalysis = new UrlAnalysisResult
             {
                 Url = "https://clean.com",
                 content_analysis = new ContentAnalysisVm
@@ -323,7 +323,7 @@ namespace ASPS.Tests
         public void CreateIndicators_WithMultipleIndicators_ReturnsAllApplicable()
         {
             // Arrange
-            var urlAnalysis = new UrlAnalysisResultVm
+            var urlAnalysis = new UrlAnalysisResult
             {
                 Url = "https://complex-site.com",
                 Whois = new WhoisVm
@@ -366,7 +366,7 @@ namespace ASPS.Tests
         public void CreateIndicators_KnownPhishingTakesPrecedence_ReturnsOnlyPhishingIndicator()
         {
             // Arrange
-            var urlAnalysis = new UrlAnalysisResultVm
+            var urlAnalysis = new UrlAnalysisResult
             {
                 Url = "https://known-phishing.com",
                 phishing_check = new PhishingCheckResultVm
@@ -402,13 +402,13 @@ namespace ASPS.Tests
 
         #endregion
 
-        #region RemoteAccessAnalysisResultVm Tests
+        #region RemoteAccessAnalysisResult Tests
 
         [Fact]
         public void CreateIndicators_WithRemoteAccessSessionOpen_ReturnsIndicator()
         {
             // Arrange
-            var remoteAccessAnalysis = new RemoteAccessAnalysisResultVm(
+            var remoteAccessAnalysis = new RemoteAccessAnalysisResult(
                 remoteAccessApp: RemoteAccessApp.AnyDesk,
                 runningProcesses: 3,
                 connectionUrl: "https://anydesk.com/12345",
@@ -436,7 +436,7 @@ namespace ASPS.Tests
         public void CreateIndicators_WithRemoteAccessSessionNotOpen_ReturnsEmpty()
         {
             // Arrange
-            var remoteAccessAnalysis = new RemoteAccessAnalysisResultVm(
+            var remoteAccessAnalysis = new RemoteAccessAnalysisResult(
                 remoteAccessApp: RemoteAccessApp.AnyDesk,
                 runningProcesses: 3,
                 connectionUrl: "https://anydesk.com/12345",
@@ -463,7 +463,7 @@ namespace ASPS.Tests
         public void CreateIndicators_WithRemoteAccessNotSuccessful_ReturnsEmpty()
         {
             // Arrange
-            var remoteAccessAnalysis = new RemoteAccessAnalysisResultVm(
+            var remoteAccessAnalysis = new RemoteAccessAnalysisResult(
                 remoteAccessApp: RemoteAccessApp.AnyDesk,
                 runningProcesses: 0,
                 connectionUrl: "",
@@ -522,7 +522,7 @@ namespace ASPS.Tests
         public void CreateIndicators_WithEmptyUrlAnalysis_ReturnsEmpty()
         {
             // Arrange
-            var urlAnalysis = new UrlAnalysisResultVm
+            var urlAnalysis = new UrlAnalysisResult
             {
                 Url = "https://empty.com"
                 // No Whois, no Purpose (null), no content_analysis, no phishing_check
@@ -540,7 +540,7 @@ namespace ASPS.Tests
         public void CreateIndicators_WithFailedWhois_DoesNotCreateWhoisIndicators()
         {
             // Arrange
-            var urlAnalysis = new UrlAnalysisResultVm
+            var urlAnalysis = new UrlAnalysisResult
             {
                 Url = "https://failedwhois.com",
                 Whois = new WhoisVm
@@ -575,7 +575,7 @@ namespace ASPS.Tests
             foreach (var testCase in testCases)
             {
                 // Arrange
-                var urlAnalysis = new UrlAnalysisResultVm
+                var urlAnalysis = new UrlAnalysisResult
                 {
                     Url = $"https://age-{testCase.Days}.com",
                     Whois = new WhoisVm
@@ -602,7 +602,7 @@ namespace ASPS.Tests
         public void CreateIndicators_WithMlAnalysisSuccess_ReturnsMlIndicator()
         {
             // Arrange
-            var urlAnalysis = new UrlAnalysisResultVm
+            var urlAnalysis = new UrlAnalysisResult
             {
                 Url = "https://mltest.com",
                 ml_analysis = new MlAnalysis(

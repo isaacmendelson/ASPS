@@ -37,7 +37,7 @@ public class UDUser
         this.IsCrossPlatformLocked = isCrossPlatformLocked ?? false;
         this.Devices = devices ?? new List<UserDevice>();
         this.RiskProfile = riskProfile ?? new UserRiskProfile();
-        RemoteAccessAnalysisResults = new Dictionary<string, List<RemoteAccessAnalysisResultVm>>();
+        RemoteAccessAnalysisResults = new Dictionary<string, List<RemoteAccessAnalysisResult>>();
         UserUrlSurfDataByDevice = new Dictionary<string, IEnumerable<UserDeviceUrlSurfData>>();
     }
 
@@ -58,13 +58,13 @@ public class UDUser
     public IEnumerable<DeviceAlertView> ActiveAlerts { get; set; }
     public List<UserDevice> Devices { get; private set; }  //Direct access to user device entities
 
-    public Dictionary<string, List<RemoteAccessAnalysisResultVm>> RemoteAccessAnalysisResults { get; private set; }
+    public Dictionary<string, List<RemoteAccessAnalysisResult>> RemoteAccessAnalysisResults { get; private set; }
 
-    public Dictionary<string, RemoteAccessAnalysisResultVm> RemoteAccessStatus 
+    public Dictionary<string, RemoteAccessAnalysisResult> RemoteAccessStatus 
     { 
         get
         {
-            var res = new Dictionary<string, RemoteAccessAnalysisResultVm>();
+            var res = new Dictionary<string, RemoteAccessAnalysisResult>();
             foreach (var d in this._userDevices)
             {
                 var r = this.RemoteAccessAnalysisResults[d.DeviceUid]
@@ -130,11 +130,11 @@ public class UDUser
         }
         this.BrowserTabs[deviceUid] = tabs.ToList();
     }
-    public void AddRemoteAccessAnalysisResult(string deviceUid, RemoteAccessAnalysisResultVm vm)
+    public void AddRemoteAccessAnalysisResult(string deviceUid, RemoteAccessAnalysisResult vm)
     {
         if (!this.RemoteAccessAnalysisResults.ContainsKey(deviceUid))
         {
-            this.RemoteAccessAnalysisResults[deviceUid] = new List<RemoteAccessAnalysisResultVm>();
+            this.RemoteAccessAnalysisResults[deviceUid] = new List<RemoteAccessAnalysisResult>();
         }
         
         this.RemoteAccessAnalysisResults[deviceUid].Add(vm);

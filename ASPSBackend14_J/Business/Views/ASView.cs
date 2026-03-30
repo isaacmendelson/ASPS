@@ -177,8 +177,8 @@ public class ASView : IDomainEventHandler, IBackgroundTask
             {
                 case nameof(UrlAlert):
                     var vm1 = analysisEvent.AnalyzerResults
-                        .FirstOrDefault(i => i.Value.Item1 is UrlAnalysisResultVm).Value?.Item1 as UrlAnalysisResultVm;
-                    discriminator = nameof(UrlAnalysisResultVm);
+                        .FirstOrDefault(i => i.Value.Item1 is UrlAnalysisResult).Value?.Item1 as UrlAnalysisResult;
+                    discriminator = nameof(UrlAnalysisResult);
                     jsonValue = System.Text.Json.JsonSerializer.Serialize(new
                     {
                         AnalyzerResults = vm1,
@@ -191,8 +191,8 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                     break;
                 case nameof(RemoteAccessAlert):
                     var vm2 = analysisEvent.AnalyzerResults
-                        .FirstOrDefault(i => i.Value.Item1 is RemoteAccessAnalysisResultVm).Value?.Item1 as RemoteAccessAnalysisResultVm;
-                    discriminator = nameof(RemoteAccessAnalysisResultVm);
+                        .FirstOrDefault(i => i.Value.Item1 is RemoteAccessAnalysisResult).Value?.Item1 as RemoteAccessAnalysisResult;
+                    discriminator = nameof(RemoteAccessAnalysisResult);
                     jsonValue = System.Text.Json.JsonSerializer.Serialize(new
                     {
                         AnalyzerResults = vm2,
@@ -349,8 +349,8 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                         deviceAlerts.Where(i => i is RemoteAccessAlertEntity).Select(i => new RemoteAccessAlertView(i as RemoteAccessAlertEntity))
                         )).OrderByDescending(i => i.Timestamp).ToList();
 
-                    _remoteAccessAnalysisResults = analysisResults.Where(i => i.Discriminator == nameof(RemoteAccessAnalysisResultVm)).Select(i => new RemoteAccessAnalysisResultView(i)).ToList();
-                    _urlAnalysisResults = analysisResults.Where(i => i.Discriminator == nameof(UrlAnalysisResultVm) && !i.IsDisabled).
+                    _remoteAccessAnalysisResults = analysisResults.Where(i => i.Discriminator == nameof(RemoteAccessAnalysisResult)).Select(i => new RemoteAccessAnalysisResultView(i)).ToList();
+                    _urlAnalysisResults = analysisResults.Where(i => i.Discriminator == nameof(UrlAnalysisResult) && !i.IsDisabled).
                         Select(i => new UrlAnalysisResultView(i))
                         .OrderByDescending(i => i.Timestamp).ToList();
 
@@ -384,7 +384,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                             u.Url,
                             u.DeviceUid,
                             MessagingApp.Unknown,
-                            (this._analysisResults.FirstOrDefault(i => i.Alert?.AlertId == u.AlertId)?.AnalysisResult as UrlAnalysisResultVm)?.risk_assessment,
+                            (this._analysisResults.FirstOrDefault(i => i.Alert?.AlertId == u.AlertId)?.AnalysisResult as UrlAnalysisResult)?.risk_assessment,
                             q.Where(i => i.UserKey == u.UserKey && i.Url.ToLower() == u.Url.ToLower()).Select(i => new SurfHistoryItem(u.Url, i.Timestamp)).ToList()
                             )
                         {  })

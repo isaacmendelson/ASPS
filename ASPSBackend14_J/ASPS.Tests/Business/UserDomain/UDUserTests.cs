@@ -607,7 +607,7 @@ public class UDUserTests
         var devices = new List<UserDeviceView> { device };
         var sut = new UDUser(key, userInfo, riskAssessment, devices, null, null, null);
 
-        var result = new RemoteAccessAnalysisResultVm(
+        var result = new RemoteAccessAnalysisResult(
             remoteAccessApp: RemoteAccessApp.TeamViewer,
             runningProcesses: 1,
             connectionUrl: "https://test.example.com",
@@ -646,7 +646,7 @@ public class UDUserTests
         var devices = new List<UserDeviceView> { device };
         var sut = new UDUser(key, userInfo, riskAssessment, devices, null, null, null);
 
-        var oldResult = new RemoteAccessAnalysisResultVm(
+        var oldResult = new RemoteAccessAnalysisResult(
             remoteAccessApp: RemoteAccessApp.TeamViewer,
             runningProcesses: 1,
             connectionUrl: "https://old.example.com",
@@ -662,7 +662,7 @@ public class UDUserTests
             analyzed_at = DateTime.UtcNow.AddHours(-2)
         };
 
-        var newResult = new RemoteAccessAnalysisResultVm(
+        var newResult = new RemoteAccessAnalysisResult(
             remoteAccessApp: RemoteAccessApp.TeamViewer,
             runningProcesses: 1,
             connectionUrl: "https://new.example.com",
@@ -700,7 +700,7 @@ public class UDUserTests
         var devices = new List<UserDeviceView> { device };
         var sut = new UDUser(key, userInfo, riskAssessment, devices, null, null, null);
 
-        var failedResult = new RemoteAccessAnalysisResultVm(
+        var failedResult = new RemoteAccessAnalysisResult(
             remoteAccessApp: RemoteAccessApp.TeamViewer,
             runningProcesses: 1,
             connectionUrl: "https://test.example.com",

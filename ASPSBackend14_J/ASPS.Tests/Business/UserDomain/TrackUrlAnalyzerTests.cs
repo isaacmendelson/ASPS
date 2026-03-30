@@ -210,7 +210,7 @@ public class TrackUrlAnalyzerTests
         result.Severity.Should().Be(Severity.Low);
         result.Details["is_safe_domain"].Should().Be(true);
         
-        var results = result.Details["results"] as TrackUrlAnalysisResultVm[];
+        var results = result.Details["results"] as TrackUrlAnalysisResult[];
         results.Should().NotBeNull();
         results.Should().HaveCount(1);
         results![0].risk_assessment?.risk_score.Should().Be(5); // ASPS-318: NEW scale - LOW risk (safe domain)
@@ -237,7 +237,7 @@ public class TrackUrlAnalyzerTests
         result.Should().NotBeNull();
         result.Severity.Should().Be(Severity.Medium);
         
-        var results = result.Details["results"] as TrackUrlAnalysisResultVm[];
+        var results = result.Details["results"] as TrackUrlAnalysisResult[];
         results.Should().NotBeNull();
         results![0].risk_assessment?.risk_score.Should().Be(40); // ASPS-318: NEW scale - MEDIUM risk (long duration)
     }
@@ -263,7 +263,7 @@ public class TrackUrlAnalyzerTests
         result.Should().NotBeNull();
         result.Severity.Should().Be(Severity.High);
         
-        var results = result.Details["results"] as TrackUrlAnalysisResultVm[];
+        var results = result.Details["results"] as TrackUrlAnalysisResult[];
         results.Should().NotBeNull();
         results![0].risk_assessment?.risk_score.Should().Be(60); // ASPS-318: NEW scale - HIGH risk (very long duration)
     }
@@ -293,7 +293,7 @@ public class TrackUrlAnalyzerTests
         result.ProtectiveActions.Should().HaveCount(1);
         (result.ProtectiveActions![0] as ProtectiveAction)?.Message.Should().Contain("scam detected");
         
-        var results = result.Details["results"] as TrackUrlAnalysisResultVm[];
+        var results = result.Details["results"] as TrackUrlAnalysisResult[];
         results.Should().NotBeNull();
         results![0].risk_assessment?.risk_score.Should().Be(90); // ASPS-318: NEW scale - HIGH risk (scam in progress)
         results[0].ScamInProgressKey.Should().Be("scam-session-12345");
@@ -322,7 +322,7 @@ public class TrackUrlAnalyzerTests
         var result = await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);
 
         // Assert
-        var results = result.Details["results"] as TrackUrlAnalysisResultVm[];
+        var results = result.Details["results"] as TrackUrlAnalysisResult[];
         results.Should().NotBeNull();
         results.Should().HaveCount(1);
         
@@ -452,7 +452,7 @@ public class TrackUrlAnalyzerTests
         trackedDomainDict["category"].Should().Be("Analytics");
         trackedDomainDict["is_exact_match"].Should().Be(true);
 
-        var results = result.Details["results"] as TrackUrlAnalysisResultVm[];
+        var results = result.Details["results"] as TrackUrlAnalysisResult[];
         results.Should().NotBeNull();
         results![0].TrackedDomain.Should().NotBeNull();
         results[0].TrackedDomain!.Domain.Should().Be("google-analytics.com");
@@ -496,7 +496,7 @@ public class TrackUrlAnalyzerTests
         trackedDomainDict["category"].Should().Be("Search");
         trackedDomainDict["is_exact_match"].Should().Be(false);
 
-        var results = result.Details["results"] as TrackUrlAnalysisResultVm[];
+        var results = result.Details["results"] as TrackUrlAnalysisResult[];
         results.Should().NotBeNull();
         results![0].TrackedDomain.Should().NotBeNull();
         results[0].TrackedDomain!.Domain.Should().Be("google.com");
@@ -535,7 +535,7 @@ public class TrackUrlAnalyzerTests
         result.Details["is_tracked_domain"].Should().Be(false);
         result.Details["tracked_domain"].Should().BeNull();
 
-        var results = result.Details["results"] as TrackUrlAnalysisResultVm[];
+        var results = result.Details["results"] as TrackUrlAnalysisResult[];
         results.Should().NotBeNull();
         results![0].TrackedDomain.Should().BeNull();
     }
@@ -565,7 +565,7 @@ public class TrackUrlAnalyzerTests
         result.Details["is_tracked_domain"].Should().Be(false);
         result.Details["tracked_domain"].Should().BeNull();
 
-        var results = result.Details["results"] as TrackUrlAnalysisResultVm[];
+        var results = result.Details["results"] as TrackUrlAnalysisResult[];
         results.Should().NotBeNull();
         results![0].TrackedDomain.Should().BeNull();
     }
@@ -599,7 +599,7 @@ public class TrackUrlAnalyzerTests
         result.Should().NotBeNull();
         result.Details["is_tracked_domain"].Should().Be(true);
         
-        var results = result.Details["results"] as TrackUrlAnalysisResultVm[];
+        var results = result.Details["results"] as TrackUrlAnalysisResult[];
         results.Should().NotBeNull();
         results![0].TrackedDomain.Should().NotBeNull();
         results[0].TrackedDomain!.Domain.Should().Be("google.com");

@@ -22,7 +22,7 @@ namespace Business.RealtimeAnalysis
             string msg = "";
             switch (analysisResult)
             {
-                case UrlAnalysisResultVm urlAnalysisResult:
+                case UrlAnalysisResult urlAnalysisResult:
                     var phishingIndicator = analyzerResult.Indicators?.FirstOrDefault(i => i is KnownPhishingIndicator) as KnownPhishingIndicator;
                     if (phishingIndicator is not null)
                     {

@@ -78,10 +78,10 @@ public class AnalyzerResultVm
         //AnalysisResult = analysisResult;
         //switch (analysisResult)
         //{
-        //    case UrlAnalysisResultVm u:
+        //    case UrlAnalysisResult u:
         //        AnalysisResult = u ;
         //        break;
-        //    case RemoteAccessAnalysisResultVm r:
+        //    case RemoteAccessAnalysisResult r:
         //        analysisResult = r;
         //        break;
         //}
@@ -118,14 +118,14 @@ public class AnalyzerResultVm
 public class UrlAnalyzerResultVm : AnalyzerResultVm
 {
     public UrlAnalyzerResultVm(
-        UrlAnalysisResultVm analysisResult, 
+        UrlAnalysisResult analysisResult, 
         Indicator[] indicators, ProtectiveAction[] protectiveActions, string analyzerName, string deviceUid, DateTime timestamp, Severity severity)
         : base(indicators, protectiveActions, analyzerName, deviceUid, timestamp, severity)
     {
         AnalysisResult = analysisResult;
     }
     [DataMember]
-    public UrlAnalysisResultVm AnalysisResult { get; set; }
+    public UrlAnalysisResult AnalysisResult { get; set; }
 }
 
 [Serializable]
@@ -133,14 +133,14 @@ public class UrlAnalyzerResultVm : AnalyzerResultVm
 public class TrackUrlAnalyzerResultVm : AnalyzerResultVm
 {
     public TrackUrlAnalyzerResultVm(
-        TrackUrlAnalysisResultVm analysisResult,
+        TrackUrlAnalysisResult analysisResult,
         Indicator[] indicators, ProtectiveAction[] protectiveActions, string analyzerName, string deviceUid, DateTime timestamp, Severity severity)
         : base(indicators, protectiveActions, analyzerName, deviceUid, timestamp, severity)
     {
         AnalysisResult = analysisResult;
     }
     [DataMember]
-    public TrackUrlAnalysisResultVm AnalysisResult { get; set; }
+    public TrackUrlAnalysisResult AnalysisResult { get; set; }
 }
 
 [Serializable]
@@ -148,14 +148,14 @@ public class TrackUrlAnalyzerResultVm : AnalyzerResultVm
 public class RemoteAccessAnalyzerResultVm : AnalyzerResultVm
 {
     public RemoteAccessAnalyzerResultVm(
-        RemoteAccessAnalysisResultVm analysisResult,
+        RemoteAccessAnalysisResult analysisResult,
         Indicator[] indicators, ProtectiveAction[] protectiveActions, string analyzerName, string deviceUid, DateTime timestamp, Severity severity)
         : base(indicators, protectiveActions, analyzerName, deviceUid, timestamp, severity)
     {
         AnalysisResult = analysisResult;
     }
     [DataMember]
-    public RemoteAccessAnalysisResultVm AnalysisResult { get; set; }
+    public RemoteAccessAnalysisResult AnalysisResult { get; set; }
 }
 
 
@@ -163,9 +163,9 @@ public class RemoteAccessAnalyzerResultVm : AnalyzerResultVm
 
 [Serializable]
 [DataContract]
-public class RemoteAccessAnalysisResultVm : AnalysisResult
+public class RemoteAccessAnalysisResult : AnalysisResult
 {
-    public RemoteAccessAnalysisResultVm(RemoteAccessApp remoteAccessApp, int runningProcesses, string connectionUrl, ConnectionStatus connectionStatus,
+    public RemoteAccessAnalysisResult(RemoteAccessApp remoteAccessApp, int runningProcesses, string connectionUrl, ConnectionStatus connectionStatus,
         RemoteAccessDirection remoteAccessDirection, int connectionsCount, int sessionStatus, BrowserTab[]? browserTabs, RiskAssessment? risk_assessment)
     {
         this.RemoteAccessApp = remoteAccessApp;
@@ -179,10 +179,10 @@ public class RemoteAccessAnalysisResultVm : AnalysisResult
         this.RemoteAccessDirection = remoteAccessDirection;
     }
 
-    protected  RemoteAccessAnalysisResultVm() { }
+    protected  RemoteAccessAnalysisResult() { }
 
     [DataMember]
-    public string TypeName => "RemoteAccessAnalysisResultVm";
+    public string TypeName => "RemoteAccessAnalysisResult";
 
     [DataMember]
     public RemoteAccessApp RemoteAccessApp { get; set; }
@@ -502,9 +502,9 @@ public class TrackedDomainInfo
 /// </summary>
 [Serializable]
 [DataContract]
-public class TrackUrlAnalysisResultVm : AnalysisResult
+public class TrackUrlAnalysisResult : AnalysisResult
 {
-    public TrackUrlAnalysisResultVm(
+    public TrackUrlAnalysisResult(
         string url,
         string fromUrl,
         int duration,
@@ -531,7 +531,7 @@ public class TrackUrlAnalysisResultVm : AnalysisResult
         risk_assessment = riskAssessment;
         TrackedDomain = trackedDomain;
     }
-     public TrackUrlAnalysisResultVm(TrackUrlAlert alert,
+     public TrackUrlAnalysisResult(TrackUrlAlert alert,
         RiskAssessment? riskAssessment,
         TrackedDomainInfo? trackedDomain = null)
     {
@@ -548,10 +548,10 @@ public class TrackUrlAnalysisResultVm : AnalysisResult
         risk_assessment = riskAssessment;
         TrackedDomain = trackedDomain;
     }
-    protected TrackUrlAnalysisResultVm() { }
+    protected TrackUrlAnalysisResult() { }
 
     [DataMember]
-    public string TypeName => "TrackUrlAnalysisResultVm";
+    public string TypeName => "TrackUrlAnalysisResult";
 
     [DataMember]
     public string Url { get; set; } = string.Empty;

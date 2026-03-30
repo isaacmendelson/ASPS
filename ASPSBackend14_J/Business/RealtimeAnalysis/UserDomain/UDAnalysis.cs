@@ -149,7 +149,7 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
                             case null:
                                 _logger.LogWarning($"URL Analyzer result for device {deviceUid} has no results in details.");
                                 break;
-                            case UrlAnalysisResultVm[] uarVm:
+                            case UrlAnalysisResult[] uarVm:
                                 _logger.LogInformation($"UrlAnalyzer: analyzer results for device {deviceUid}: Severity={result.Severity}, Message={result.Message}");
                                 break;
 
@@ -165,7 +165,7 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
                                 case null:
                                     _logger.LogWarning($"URL Analyzer result for device {deviceUid} has no results in details.");
                                     break;
-                                case TrackUrlAnalysisResultVm[] tuarVm:
+                                case TrackUrlAnalysisResult[] tuarVm:
                                     _logger.LogInformation($"TrackUrlAnalyzer: analyzer results for device {deviceUid}: Severity={result.Severity}, Message={result.Message}");
                                     break;
 
@@ -209,7 +209,7 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
                 foreach (var item in urlAnalyzerResults)
                 {
                     var r = item.Value.Item2.Details["results"];
-                    if (r is UrlAnalysisResultVm[] vms)
+                    if (r is UrlAnalysisResult[] vms)
                     {
                         foreach (var result in vms)
                         {
@@ -227,7 +227,7 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
                 {
 
 
-                    var trackUrlResult = new TrackUrlAnalysisResultVm(
+                    var trackUrlResult = new TrackUrlAnalysisResult(
                         t, new RiskAssessment((float)item.Value.Item2.Details["risk_score"], (float)item.Value.Item2.Details["risk_score"] > _riskThreshold ? "High" : "", true, 1)
                     );
 
@@ -561,9 +561,9 @@ public class UDRemoteAccessAnalyzer : ISpecificAnalyzer
 
         var riskAssesment = new RiskAssessment(score.Value, "", isScam, 1);
 
-        var res = new RemoteAccessAnalysisResultVm(remoteAlert.RemoteAccessApp, remoteAlert.RunningProcesses, remoteAlert.ConnectionUrl, 
+        var res = new RemoteAccessAnalysisResult(remoteAlert.RemoteAccessApp, remoteAlert.RunningProcesses, remoteAlert.ConnectionUrl, 
             remoteAlert.ConnectionStatus, remoteAlert.RemoteAccessDirection, remoteAlert.ConnectionsCount, remoteAlert.SessionStatus, remoteAlert.BrowserTabs, riskAssesment);
-        var results = new List<RemoteAccessAnalysisResultVm>() { res};
+        var results = new List<RemoteAccessAnalysisResult>() { res};
 
         return new AnalyzerResult
         (

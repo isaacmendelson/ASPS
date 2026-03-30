@@ -40,7 +40,7 @@ namespace Business.Views
             }
             if (analyzerResults != null)
             {
-                AnalysisResult = analyzerResults.ToObject<UrlAnalysisResultVm>();
+                AnalysisResult = analyzerResults.ToObject<UrlAnalysisResult>();
                 // Set the base class property so polymorphic access works
                 ((AnalysisResultView)this).AnalysisResult = AnalysisResult;
             }
@@ -62,6 +62,6 @@ namespace Business.Views
             }
         }
 
-        public new UrlAnalysisResultVm AnalysisResult { get; set; }
+        public new UrlAnalysisResult AnalysisResult { get; set; }
     }
 }

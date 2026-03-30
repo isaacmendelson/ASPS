@@ -62,16 +62,16 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                 case nameof(UrlAlert):
                     if (analysisEvent.AnalyzerResults.Any())
                     {
-                        var res1 = analysisEvent.AnalyzerResults.FirstOrDefault(i => i.Value.Item1 is UrlAnalysisResultVm);
-                        var urlAnalysisResultVm = res1.Value.Item1 as UrlAnalysisResultVm;
+                        var res1 = analysisEvent.AnalyzerResults.FirstOrDefault(i => i.Value.Item1 is UrlAnalysisResult);
+                        var urlAnalysisResultVm = res1.Value.Item1 as UrlAnalysisResult;
                         isFromCache = urlAnalysisResultVm?.IsFromCache ?? false;
                         // SECURITY FIX ASPS-70: Added null check for FirstOrDefault result
                         if (res1.Value.Item1 == null)
                         {
-                            _logger.LogWarning("UrlAnalysisResultVm not found in analyzer results");
+                            _logger.LogWarning("UrlAnalysisResult not found in analyzer results");
                             break;
                         }
-                        var vm1 = res1.Value.Item1 as UrlAnalysisResultVm;
+                        var vm1 = res1.Value.Item1 as UrlAnalysisResult;
                         var vm11 = new UrlAnalyzerResultVm(vm1,
                             res1.Value.Item2.Cast<Indicator>().ToArray(),
                             res1.Value.Item3.Cast<ProtectiveAction>().ToArray(),
@@ -105,16 +105,16 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                 case nameof(TrackUrlAlert):
                     if (analysisEvent.AnalyzerResults.Any())
                     {
-                        var res2 = analysisEvent.AnalyzerResults.FirstOrDefault(i => i.Value.Item1 is TrackUrlAnalysisResultVm);
-                        var trackUrlAnalysisResultVm = res2.Value.Item1 as TrackUrlAnalysisResultVm;
-                        isFromCache = false;    // trackUrlAnalysisResultVm?.IsFromCache ?? false;
+                        var res2 = analysisEvent.AnalyzerResults.FirstOrDefault(i => i.Value.Item1 is TrackUrlAnalysisResult);
+                        var trackUrlAnalysisResult = res2.Value.Item1 as TrackUrlAnalysisResult;
+                        isFromCache = false;    // trackUrlAnalysisResult?.IsFromCache ?? false;
 
                         if (res2.Value.Item1 == null)
                         {
-                            _logger.LogWarning("TrackUrlAnalysisResultVm not found in analyzer results");
+                            _logger.LogWarning("TrackUrlAnalysisResult not found in analyzer results");
                             break;
                         }
-                        var vm2 = res2.Value.Item1 as TrackUrlAnalysisResultVm;
+                        var vm2 = res2.Value.Item1 as TrackUrlAnalysisResult;
                         var vm22 = new TrackUrlAnalyzerResultVm(vm2,
                             res2.Value.Item2.Cast<Indicator>().ToArray(),
                             res2.Value.Item3.Cast<ProtectiveAction>().ToArray(),
@@ -143,14 +143,14 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                 case nameof(RemoteAccessAlert):
                     if (analysisEvent.AnalyzerResults.Any())
                     {
-                        var res2 = analysisEvent.AnalyzerResults.FirstOrDefault(i => i.Value.Item1 is RemoteAccessAnalysisResultVm);
+                        var res2 = analysisEvent.AnalyzerResults.FirstOrDefault(i => i.Value.Item1 is RemoteAccessAnalysisResult);
                         // SECURITY FIX ASPS-70: Added null check for FirstOrDefault result
                         if (res2.Value.Item1 == null)
                         {
-                            _logger.LogWarning("RemoteAccessAnalysisResultVm not found in analyzer results");
+                            _logger.LogWarning("RemoteAccessAnalysisResult not found in analyzer results");
                             break;
                         }
-                        var vm2 = res2.Value.Item1 as RemoteAccessAnalysisResultVm;
+                        var vm2 = res2.Value.Item1 as RemoteAccessAnalysisResult;
                         var vm22 = new RemoteAccessAnalyzerResultVm(vm2,
                             res2.Value.Item2.Cast<Indicator>().ToArray(),
                             res2.Value.Item3.Cast<ProtectiveAction>().ToArray(),

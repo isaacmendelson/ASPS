@@ -791,7 +791,7 @@ namespace Business.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(0);
 
-                    b.HasDiscriminator().HasValue("RemoteAccessAnalysisResultVm");
+                    b.HasDiscriminator().HasValue("RemoteAccessAnalysisResult");
                 });
 
             modelBuilder.Entity("Common.Entities.TrackUrlAnalysisResultContainer", b =>
@@ -812,7 +812,7 @@ namespace Business.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("Url");
 
-                    b.HasDiscriminator().HasValue("TrackUrlAnalysisResultVm");
+                    b.HasDiscriminator().HasValue("TrackUrlAnalysisResult");
                 });
 
             modelBuilder.Entity("Common.Entities.UrlAnalysisResultContainer", b =>
@@ -830,7 +830,7 @@ namespace Business.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("Url");
 
-                    b.HasDiscriminator().HasValue("UrlAnalysisResultVm");
+                    b.HasDiscriminator().HasValue("UrlAnalysisResult");
                 });
 
             modelBuilder.Entity("Common.Entities.RemoteAccessAlertEntity", b =>

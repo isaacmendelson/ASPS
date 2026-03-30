@@ -21,7 +21,7 @@ namespace Business.RealtimeAnalysis
             var res = new List<Indicator>();
             switch(analysisResult)
             {
-                case UrlAnalysisResultVm vm:
+                case UrlAnalysisResult vm:
 
                     var score = new BooleanScore(vm.phishing_check?.Is_known_phishing == true, 1.0f, true);
                     if (vm.phishing_check?.Is_known_phishing == true)
@@ -83,7 +83,7 @@ namespace Business.RealtimeAnalysis
 
                     return res.ToArray();
 
-                case RemoteAccessAnalysisResultVm vm:
+                case RemoteAccessAnalysisResult vm:
 
                     if (!vm.Success)
                     {

@@ -94,7 +94,7 @@ namespace Business.RealtimeAnalysis.UserDomain
             if (analysisEvent.AnalyzerResults.TryGetValue(nameof(UDRemoteAccessAnalyzer), out var raResult))
             {
                 var browserTabsOfUser = this.UDUser.BrowserTabs;
-                var browserTabsOfDevice = (raResult.Item1 as RemoteAccessAnalysisResultVm)?.BrowserTabs;
+                var browserTabsOfDevice = (raResult.Item1 as RemoteAccessAnalysisResult)?.BrowserTabs;
                 if (browserTabsOfUser is not null && browserTabsOfDevice is not null)
                 {
                     browserTabsOfUser[analysisEvent.DeviceUid] = browserTabsOfDevice;
@@ -150,9 +150,9 @@ namespace Business.RealtimeAnalysis.UserDomain
             }
             switch (firstAnalyzerResult.Value.Item1)
             {
-                case RemoteAccessAnalysisResultVm r:
+                case RemoteAccessAnalysisResult r:
                     break;
-                case UrlAnalysisResultVm u:
+                case UrlAnalysisResult u:
                     var websitePurpose = u.Purpose;
 
                     //if (remoteAccessStatus.IsRemoteAccessAppActive && remoteAccessStatus.isRemoteAccessSessionActive)
@@ -163,7 +163,7 @@ namespace Business.RealtimeAnalysis.UserDomain
                     //    }
                     //}
                     break;
-                case TrackUrlAnalysisResultVm t:
+                case TrackUrlAnalysisResult t:
                     HandleTrackUrlAnalysisResultReceived(t, remoteAccessStatus);
                     break;
             }
@@ -192,7 +192,7 @@ namespace Business.RealtimeAnalysis.UserDomain
             return new RemoteAccessStatusObject(DateTime.UtcNow, deviceInfo.DeviceUid, remoteAccessDirection,  anaylisisResult.RemoteAccessApp,isRemoteAccessAppActive, isRemoteAccessSessionActive);
         }
 
-        private void HandleTrackUrlAnalysisResultReceived(TrackUrlAnalysisResultVm trackUrlResult, RemoteAccessStatusObject remoteAccessStatus)
+        private void HandleTrackUrlAnalysisResultReceived(TrackUrlAnalysisResult trackUrlResult, RemoteAccessStatusObject remoteAccessStatus)
         {
             _logger.LogInformation($"Handling TrackUrlAnalysisResult: URL={trackUrlResult.Url}, Duration={trackUrlResult.Duration}s, IsSafe={trackUrlResult.IsSafeDomain}");
 

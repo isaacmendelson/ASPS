@@ -48,13 +48,13 @@ public class NotificationPublisherActor : IDomainEventHandler
             RiskAssessment? riskAssessment = null;
             switch (analyzerResult.Item1)
             {
-                case UrlAnalysisResultVm urlAnalyzerResult:
+                case UrlAnalysisResult urlAnalyzerResult:
                     riskAssessment = urlAnalyzerResult.risk_assessment;
                     break;
-                case TrackUrlAnalysisResultVm trackUrlAnalyzerResult:
+                case TrackUrlAnalysisResult trackUrlAnalyzerResult:
                     riskAssessment = trackUrlAnalyzerResult.risk_assessment;
                     break;
-                case RemoteAccessAnalysisResultVm remoteAccessAnalyzerResult:
+                case RemoteAccessAnalysisResult remoteAccessAnalyzerResult:
                     riskAssessment = remoteAccessAnalyzerResult.risk_assessment;
                     break;
             }

@@ -11,12 +11,12 @@ namespace Business.RealtimeAnalysis.UserDomain
 {
     [Serializable]
     [DataContract]
-    public class UrlAnalysisResultVm : AnalysisResult, IAnalysisResult
+    public class UrlAnalysisResult : AnalysisResult, IAnalysisResult
     {
-        public UrlAnalysisResultVm() { }
+        public UrlAnalysisResult() { }
 
         [DataMember]
-        public string TypeName => "UrlAnalysisResultVm";
+        public string TypeName => "UrlAnalysisResult";
 
         [DataMember]
         public string Url { get; set; } = string.Empty;

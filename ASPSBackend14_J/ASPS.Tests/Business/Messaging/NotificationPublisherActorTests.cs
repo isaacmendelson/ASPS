@@ -365,7 +365,7 @@ public class NotificationPublisherActorTests : IDisposable
         string userKeyField = "user-456")
     {
         var riskAssessment = new RiskAssessment(70f, "High", true, 0.9f); // HIGH risk
-        var urlAnalysisResult = new UrlAnalysisResultVm
+        var urlAnalysisResult = new UrlAnalysisResult
         {
             risk_assessment = riskAssessment,
             Url = "http://phishing-site.com"
@@ -408,7 +408,7 @@ public class NotificationPublisherActorTests : IDisposable
 
     private AnalysisResultReceived CreateAnalysisResultReceivedEventWithNullRiskAssessment()
     {
-        var urlAnalysisResult = new UrlAnalysisResultVm
+        var urlAnalysisResult = new UrlAnalysisResult
         {
             risk_assessment = null!,
             Url = "http://test.com"
@@ -439,7 +439,7 @@ public class NotificationPublisherActorTests : IDisposable
     private AnalysisResultReceived CreateAnalysisResultReceivedEventWithTrackUrlAnalysis()
     {
         var riskAssessment = new RiskAssessment(25, "High", true, 0.85f);
-        var trackUrlAnalysisResult = new TrackUrlAnalysisResultVm(
+        var trackUrlAnalysisResult = new TrackUrlAnalysisResult(
             url: "http://risky-site.com",
             fromUrl: "http://referrer.com",
             duration: 120,
@@ -476,14 +476,14 @@ public class NotificationPublisherActorTests : IDisposable
 
     #endregion
 
-    #region TrackUrlAnalysisResultVm Tests
+    #region TrackUrlAnalysisResult Tests
 
     [Fact]
-    public void TrackUrlAnalysisResultVm_ShouldHaveCorrectProperties()
+    public void TrackUrlAnalysisResult_ShouldHaveCorrectProperties()
     {
         // Arrange
         var riskAssessment = new RiskAssessment(30, "Medium", false, 0.75f);
-        var trackResult = new TrackUrlAnalysisResultVm(
+        var trackResult = new TrackUrlAnalysisResult(
             url: "http://test.com",
             fromUrl: "http://prev.com",
             duration: 60,
@@ -511,12 +511,12 @@ public class NotificationPublisherActorTests : IDisposable
         // Arrange
         var analysisEvent = CreateAnalysisResultReceivedEventWithTrackUrlAnalysis();
         
-        // Act & Assert - verify the structure contains TrackUrlAnalysisResultVm
+        // Act & Assert - verify the structure contains TrackUrlAnalysisResult
         analysisEvent.AnalyzerResults.Should().ContainKey("TrackUrlAnalyzer");
         var result = analysisEvent.AnalyzerResults["TrackUrlAnalyzer"].Item1;
-        result.Should().BeOfType<TrackUrlAnalysisResultVm>();
+        result.Should().BeOfType<TrackUrlAnalysisResult>();
         
-        var trackResult = result as TrackUrlAnalysisResultVm;
+        var trackResult = result as TrackUrlAnalysisResult;
         trackResult!.risk_assessment.Should().NotBeNull();
         trackResult.risk_assessment!.risk_score.Should().Be(25);
     }
