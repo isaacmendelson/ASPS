@@ -24,18 +24,18 @@ public class AnalysisPersistenceActor : IDomainEventHandler
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<AnalysisPersistenceActor> _logger;
-    private readonly UserDomainManagerService _userDomainService;
+    //private readonly UserDomainManagerService _userDomainService;
     private readonly List<IDomainEventHandler> _eventHandlers = new();
     private readonly ASView _asView;
     public AnalysisPersistenceActor(
         IServiceProvider serviceProvider,
         ASView asView,
-        UserDomainManagerService userDomainService,
+        //UserDomainManagerService userDomainService,
         ILogger<AnalysisPersistenceActor> logger)
     {
         _serviceProvider = serviceProvider;
         _asView = asView;
-        _userDomainService = userDomainService;
+        //_userDomainService = userDomainService;
         _logger = logger;
         
         this.RegisterEventHandler(_asView);
@@ -237,7 +237,7 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                 );
 
                 // Phase 2: fire analysis in background — ACK is returned immediately
-                _ = Task.Run(() => DispatchAlertInBackground(analysisResultAdded, analysisEvent.DeviceUid));
+               // _ = Task.Run(() => DispatchAlertInBackground(analysisResultAdded, analysisEvent.DeviceUid));
 
             }
         }
@@ -253,31 +253,31 @@ public class AnalysisPersistenceActor : IDomainEventHandler
         _eventHandlers.Add(handler);
     }
 
-    private async Task DispatchAlertInBackground(AnalysisResultAdded domainEvent, string deviceUid)
-    {
-        try
-        {
-            var userManager = await _userDomainService.GetManagerForDeviceAsync(deviceUid);
-            if (userManager != null)
-            {
-                await userManager.Handle(domainEvent);
-                _logger.LogInformation("Analysis dispatched for device {DeviceUid}, user {UserKey}",
-                    deviceUid, userManager.UDUser.Key);
-            }
-            else
-            {
-                _logger.LogWarning("No UDAnalysisManager found for device {DeviceUid}", deviceUid);
-            }
+    //private async Task DispatchAlertInBackground(AnalysisResultAdded domainEvent, string deviceUid)
+    //{
+    //    try
+    //    {
+    //        var userManager = await _userDomainService.GetManagerForDeviceAsync(deviceUid);
+    //        if (userManager != null)
+    //        {
+    //            await userManager.Handle(domainEvent);
+    //            _logger.LogInformation("Analysis dispatched for device {DeviceUid}, user {UserKey}",
+    //                deviceUid, userManager.UDUser.Key);
+    //        }
+    //        else
+    //        {
+    //            _logger.LogWarning("No UDAnalysisManager found for device {DeviceUid}", deviceUid);
+    //        }
 
-            foreach (var handler in _eventHandlers)
-            {
-                if (handler.GetHandleableEvents().Contains(typeof(AnalysisResultAdded)))
-                    await handler.Handle(domainEvent);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in background analysis dispatch for device {DeviceUid}", deviceUid);
-        }
-    }
+    //        foreach (var handler in _eventHandlers)
+    //        {
+    //            if (handler.GetHandleableEvents().Contains(typeof(AnalysisResultAdded)))
+    //                await handler.Handle(domainEvent);
+    //        }
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        _logger.LogError(ex, "Error in background analysis dispatch for device {DeviceUid}", deviceUid);
+    //    }
+    //}
 }
