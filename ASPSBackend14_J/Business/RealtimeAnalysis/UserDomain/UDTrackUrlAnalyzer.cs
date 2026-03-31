@@ -83,6 +83,12 @@ public class UDTrackUrlAnalyzer : ISpecificAnalyzer
         var indicators = new List<IIndicator>();
         var protectiveActions = new List<IProtectiveAction>();
 
+        var analysisRecord = this._asView.GetUrlAnalysisResultsByUserKey(trackUrlAlert.DeviceInfo.UserKey)
+            .OfType<UrlAnalysisResult>()
+            .Where(i => i.Domain == domain)
+            //.Where(r => r.DeviceAlertKey == trackUrlAlert.k)
+            .OrderByDescending(r => r.analyzed_at)
+            .FirstOrDefault();
         // Add protective action if risk is high
         //if (riskScore >= _severityScoreThresholdHigh)
         //{
@@ -154,7 +160,9 @@ public class UDTrackUrlAnalyzer : ISpecificAnalyzer
                     ["user_key"] = trackUrlAlert.DeviceInfo.UserKey,
                     ["timestamp"] = DateTime.UtcNow,
                     ["analyzers_run"] = results.Count,
-                    ["external_analyzers_total"] = ExternalAnalyzers.Length
+                    ["external_analyzers_total"] = ExternalAnalyzers.Length,
+                    ["risk_reason"] = GetRiskReason(trackUrlAlert, domain),
+                    ["scam_in_progress_key"] = trackUrlAlert.ScamInProgressKey ?? "N/A",
                 }
             );
 
@@ -174,7 +182,7 @@ public class UDTrackUrlAnalyzer : ISpecificAnalyzer
         if (!string.IsNullOrEmpty(domain) && _asView.IsSafeDomain(domain))
         {
             _logger.LogInformation($"Domain '{domain}' is whitelisted (SafeDomains). Risk: LOW");
-            return 5;
+            return 0;
         }
 
         // Check if scam is in progress (highest priority)
@@ -184,25 +192,7 @@ public class UDTrackUrlAnalyzer : ISpecificAnalyzer
             return 90;
         }
 
-        // Convert duration from milliseconds to minutes
-        var durationMinutes = alert.Duration / (1000.0 * 60);
-
-        // Check duration thresholds
-        if (durationMinutes > 10)
-        {
-            _logger.LogWarning($"Duration exceeds 10 minutes: {durationMinutes:F2}min. Risk: HIGH");
-            return 60;
-        }
-
-        if (durationMinutes > 5)
-        {
-            _logger.LogInformation($"Duration exceeds 5 minutes: {durationMinutes:F2}min. Risk: MEDIUM");
-            return 40;
-        }
-
-        // Default: low risk for short-duration tracking
-        _logger.LogInformation($"Duration below threshold: {durationMinutes:F2}min. Risk: LOW");
-        return 20;
+        return 0;
     }
 
     /// <summary>
@@ -216,15 +206,7 @@ public class UDTrackUrlAnalyzer : ISpecificAnalyzer
         if (!string.IsNullOrEmpty(alert.ScamInProgressKey))
             return $"Scam in progress detected (Key: {alert.ScamInProgressKey})";
 
-        var durationMinutes = alert.Duration / (1000.0 * 60);
-
-        if (durationMinutes > 10)
-            return $"Prolonged visit duration ({durationMinutes:F2} minutes)";
-
-        if (durationMinutes > 5)
-            return $"Extended visit duration ({durationMinutes:F2} minutes)";
-
-        return $"Short visit duration ({durationMinutes:F2} minutes)";
+        return $"";
     }
 
     private Severity GetSeverityFromRiskScore(float val)

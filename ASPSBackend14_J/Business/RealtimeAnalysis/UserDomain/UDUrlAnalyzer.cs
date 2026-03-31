@@ -168,7 +168,8 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
                         website_category = cachedResult.AnalysisResult.website_category,
                         Reputation = cachedResult.AnalysisResult.Reputation,
                         missing_data = cachedResult.AnalysisResult.missing_data,
-                        Warnings = cachedResult.AnalysisResult.Warnings
+                        Warnings = cachedResult.AnalysisResult.Warnings,
+                        Success =  cachedResult.AnalysisResult.Success
                     };
                 }
                 else

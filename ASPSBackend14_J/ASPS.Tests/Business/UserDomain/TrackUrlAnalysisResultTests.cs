@@ -61,7 +61,7 @@ public class TrackUrlAnalysisResultTests
         // Act
         var vm = new TrackUrlAnalysisResult(
             url, "", 60, "", "", "", "", "",
-            domain, false, null);
+            domain, false, false, null);
 
         // Assert
         vm.Should().NotBeNull();
@@ -111,7 +111,7 @@ public class TrackUrlAnalysisResultTests
         // Arrange
         var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", 60, "", "", "", "", "",
-            "test.com", false, null);
+            "test.com", false, false, null);
 
         // Assert
         vm.TypeName.Should().Be("TrackUrlAnalysisResult");
@@ -126,7 +126,7 @@ public class TrackUrlAnalysisResultTests
         // Act
         var vm = new TrackUrlAnalysisResult(
             url, "", 60, "", "", "", "", "",
-            "suspicious-site.com", false, null);
+            "suspicious-site.com", false, false, null);
 
         // Assert
         vm.Url.Should().Be(url);
@@ -141,7 +141,7 @@ public class TrackUrlAnalysisResultTests
         // Act
         var vm = new TrackUrlAnalysisResult(
             "https://target.com", fromUrl, 60, "", "", "", "", "",
-            "target.com", false, null);
+            "target.com", false, false, null);
 
         // Assert
         vm.FromUrl.Should().Be(fromUrl);
@@ -156,7 +156,7 @@ public class TrackUrlAnalysisResultTests
         // Act
         var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", duration, "", "", "", "", "",
-            "test.com", false, null);
+            "test.com", false, false, null);
 
         // Assert
         vm.Duration.Should().Be(duration);
@@ -171,7 +171,7 @@ public class TrackUrlAnalysisResultTests
         // Act
         var vm = new TrackUrlAnalysisResult(
             "https://example.com/page", "", 60, "", "", "", "", "",
-            domain, false, null);
+            domain, false, false, null);
 
         // Assert
         vm.Domain.Should().Be(domain);
@@ -186,7 +186,7 @@ public class TrackUrlAnalysisResultTests
         // Act
         var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", 60, "", ipAddress, "", "", "",
-            "test.com", false, null);
+            "test.com", false, false, null);
 
         // Assert
         vm.IPAddress.Should().Be(ipAddress);
@@ -201,7 +201,7 @@ public class TrackUrlAnalysisResultTests
         // Act
         var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", 60, "", "", userAgent, "", "",
-            "test.com", false, null);
+            "test.com", false, false, null);
 
         // Assert
         vm.UserAgent.Should().Be(userAgent);
@@ -216,7 +216,7 @@ public class TrackUrlAnalysisResultTests
         // Act
         var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", 60, "", "", "", tabId, "",
-            "test.com", false, null);
+            "test.com", false, false, null);
 
         // Assert
         vm.TabId.Should().Be(tabId);
@@ -231,7 +231,7 @@ public class TrackUrlAnalysisResultTests
         // Act
         var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", 60, "", "", "", "", timezone,
-            "test.com", false, null);
+            "test.com", false, false, null);
 
         // Assert
         vm.Timezone.Should().Be(timezone);
@@ -324,7 +324,7 @@ public class TrackUrlAnalysisResultTests
         // Act
         var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", duration, "", "", "", "", "",
-            "test.com", false, null);
+            "test.com", false, false, null);
 
         // Assert
         vm.Duration.Should().Be(duration);
@@ -336,7 +336,7 @@ public class TrackUrlAnalysisResultTests
         // Act
         var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", 60, "", "", "", "", "",
-            "test.com", false, null);
+            "test.com", false, false, null);
 
         // Assert
         vm.Should().NotBeNull();
@@ -395,7 +395,7 @@ public class TrackUrlAnalysisResultTests
         // Act
         var vm = new TrackUrlAnalysisResult(
             url, "", 60, "", "", "", "", "",
-            "example.com", false, null);
+            "example.com", false, false, null);
 
         // Assert
         vm.Url.Should().Be(url);
@@ -410,7 +410,7 @@ public class TrackUrlAnalysisResultTests
         // Act
         var vm = new TrackUrlAnalysisResult(
             $"https://{domain}/page", "", 60, "", "", "", "", "",
-            domain, false, null);
+            domain, false, false, null);
 
         // Assert
         vm.Domain.Should().Be(domain);
@@ -426,7 +426,7 @@ public class TrackUrlAnalysisResultTests
         // Arrange
         var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", 60, "", "", "", "", "",
-            "test.com", false, null);
+            "test.com", false, false, null);
 
         // Assert
         vm.Should().BeAssignableTo<AnalysisResult>();
@@ -438,7 +438,7 @@ public class TrackUrlAnalysisResultTests
         // Arrange & Act
         var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", 60, "", "", "", "", "",
-            "test.com", false, null)
+            "test.com", false, false, null)
         {
             Success = true,
             analyzed_at = DateTime.UtcNow

@@ -160,6 +160,10 @@ public class UserDomainManagerService
     private UDUser CreateUDUserFromEntity(Common.Entities.User user)
     {
         Key key = user.Key ?? new Key("User", user.KeyField);
+
+        var devices = this._aSView.GetUserDevices(key);
+        var deviceAlerts = this._aSView.GetActiveDeviceAlertsByUserKey(key);
+
         var udUser = new UDUser(
             key,
 
@@ -183,8 +187,8 @@ public class UserDomainManagerService
             ),
 
             new RiskAssessment(0, "Unknown", false, 0),
-            Enumerable.Empty<UserDeviceView>(), 
-            Enumerable.Empty<DeviceAlertView>(),
+            devices, 
+            deviceAlerts,
             null,
             false
         );

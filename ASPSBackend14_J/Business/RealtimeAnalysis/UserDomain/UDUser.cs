@@ -25,7 +25,7 @@ public class UDUser
     private int maxRemoteAccessAnalysisResults = 1000;
     public UDUser(Key key, UserInfo userInfo, RiskAssessment riskAssessment, IEnumerable<UserDeviceView>? userDevices, 
         IEnumerable<DeviceAlertView>? activeAlerts, Dictionary<string, IEnumerable<BrowserTab>>? browserTabs, bool? isTaregted, 
-        bool? isCrossPlatformLocked = false, List<UserDevice>? devices = null, UserRiskProfile? riskProfile = null)
+        bool? isCrossPlatformLocked = false, UserRiskProfile? riskProfile = null)
     {
         RiskAssessment = riskAssessment;
         Key = key;
@@ -35,7 +35,9 @@ public class UDUser
         BrowserTabs = browserTabs ?? new();
         this.IsTargeted = isTaregted ?? false;
         this.IsCrossPlatformLocked = isCrossPlatformLocked ?? false;
-        this.Devices = devices ?? new List<UserDevice>();
+        //this.Devices = devices ?? new List<UserDevice>();
+        this._userDevices = userDevices ?? new List<UserDeviceView>();  
+
         this.RiskProfile = riskProfile ?? new UserRiskProfile();
         RemoteAccessAnalysisResults = new Dictionary<string, List<RemoteAccessAnalysisResult>>();
         UserUrlSurfDataByDevice = new Dictionary<string, IEnumerable<UserDeviceUrlSurfData>>();
@@ -56,7 +58,7 @@ public class UDUser
     public UserRiskProfile RiskProfile { get; private set; }  //User risk profile with vulnerability and exposure scores
     public Dictionary<string, IEnumerable<BrowserTab>>? BrowserTabs { get; private set; }
     public IEnumerable<DeviceAlertView> ActiveAlerts { get; set; }
-    public List<UserDevice> Devices { get; private set; }  //Direct access to user device entities
+    //public List<UserDevice> Devices { get; private set; }  //Direct access to user device entities
 
     public Dictionary<string, List<RemoteAccessAnalysisResult>> RemoteAccessAnalysisResults { get; private set; }
 

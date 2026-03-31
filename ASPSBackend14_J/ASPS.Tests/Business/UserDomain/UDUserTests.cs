@@ -261,8 +261,8 @@ public class UDUserTests
         var sut = new UDUser(key, userInfo, riskAssessment, null, null, null, null);
 
         // Assert
-        sut.Devices.Should().NotBeNull();
-        sut.Devices.Should().BeEmpty();
+        sut.UserDevices.Should().NotBeNull();
+        sut.UserDevices.Should().BeEmpty();
     }
 
     [Fact]

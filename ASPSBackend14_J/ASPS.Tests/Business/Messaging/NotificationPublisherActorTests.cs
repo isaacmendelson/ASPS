@@ -450,6 +450,7 @@ public class NotificationPublisherActorTests : IDisposable
             timezone: "UTC+2",
             domain: "risky-site.com",
             isSafeDomain: false,
+            isFromCache: false,
             riskAssessment: riskAssessment);
 
         var analyzerResults = new Dictionary<string, Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>>
@@ -494,6 +495,7 @@ public class NotificationPublisherActorTests : IDisposable
             timezone: "UTC",
             domain: "test.com",
             isSafeDomain: true,
+            isFromCache: false,
             riskAssessment: riskAssessment);
 
         // Assert

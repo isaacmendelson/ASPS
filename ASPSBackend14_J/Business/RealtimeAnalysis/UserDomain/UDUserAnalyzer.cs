@@ -321,7 +321,7 @@ namespace Business.RealtimeAnalysis.UserDomain
                     _logger.LogWarning($"Immediate danger detected for user {this.UDUser.Key} on device {obj.DeviceUid} with active remote access session and sensitive website open.");
                     var sUrl = this.UDUser.BrowserTabs[obj.DeviceUid].FirstOrDefault(i => this.IsSensitiveWebsite(i.Url))?.Url;
                     var immeidateDanger = new ImmediateDanger(obj.RemoteAccessApp, sUrl, obj.DeviceUid, this.UDUser.Key.Value, 
-                        this.UDUser.Devices.FirstOrDefault(i => !i.IsDeleted && i.DeviceUid == obj.DeviceUid)?.Key.Value, null, new ProtectiveAction[] { });
+                        this.UDUser.UserDevices.FirstOrDefault(i => i.DeviceUid == obj.DeviceUid)?.Key.Value, null, new ProtectiveAction[] { });
                     //{
                     //    UserKey = this.UDUser.Key,
                     //    DeviceUid = deviceUid,

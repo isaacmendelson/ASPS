@@ -1,12 +1,10 @@
-﻿using Common.Entities;
+﻿#nullable enable
+
+using Common.Entities;
 using Common.Enums;
 using Common.Models;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace Business.Views
 {
