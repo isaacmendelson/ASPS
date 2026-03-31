@@ -70,6 +70,44 @@ public class AnalysisResultReceived : DomainEvent
     }
 }
 
+public class AnalysisResultAdded : DomainEvent
+{
+    public Key Key {get; set; } 
+    public Key UserKey { get; set; }
+    public Key? DeviceAlertKey { get; set; }
+    public string DeviceUid { get; set; } = string.Empty;
+
+    public string AlertType { get; set; } = string.Empty;
+
+    public Dictionary<string, Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>> AnalyzerResults { get; set; } = new();
+
+    public Severity Severity { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public Dictionary<string, object> Details { get; set; } = new();
+    public DateTime AnalysisTimestamp { get; set; }
+
+    public AnalysisResultAdded()
+    {
+        EventType = nameof(AnalysisResultAdded);
+
+    }
+
+    public AnalysisResultAdded(Key key, Key userKey, Key? deviceAlertKey, string deviceUid, string alertType, 
+        Dictionary<string, Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>> analyzerResults, Severity severity, string message, 
+        Dictionary<string, object> details, DateTime analysisTimestamp)
+    {
+        Key = key;
+        UserKey = userKey;
+        DeviceAlertKey = deviceAlertKey;
+        DeviceUid = deviceUid;
+        AlertType = alertType;
+        AnalyzerResults = analyzerResults;
+        Severity = severity;
+        Message = message;
+        Details = details;
+        AnalysisTimestamp = analysisTimestamp;
+    }
+}
 public class SpecificAnalyzerResultReceived : DomainEvent
 {
     public string UserKeyField { get; set; } = string.Empty;

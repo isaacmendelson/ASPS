@@ -73,7 +73,10 @@ namespace Business.RealtimeAnalysis.UserDomain
 
         public Type[] GetHandleableEvents()
         {
-            return new[] { typeof(AnalysisResultReceived) };
+            return new[] { 
+                typeof(AnalysisResultAdded) ,
+                //typeof(AnalysisResultReceived) ,
+            };
         }
 
         public async Task Handle(IDomainEvent evt)
@@ -84,9 +87,92 @@ namespace Business.RealtimeAnalysis.UserDomain
                     // Handle the analysis result received event
                     await this.HandleAnalysisResultReceivedAsync(analysisEvent);
                     break;
+                case AnalysisResultAdded analysisEvent:
+                    // Handle the analysis result received event
+                    await this.HandleAnalysisResultAddedAsync(analysisEvent);
+                    break;
             }
 
             var isImmediateDanger = this.CheckImmediateDanger();
+        }
+
+        public async Task HandleAnalysisResultAddedAsync(AnalysisResultAdded analysisEvent)
+        {
+            if (analysisEvent.AnalyzerResults.TryGetValue(nameof(UDRemoteAccessAnalyzer), out var raResult))
+            {
+                var browserTabsOfUser = this.UDUser.BrowserTabs;
+                var browserTabsOfDevice = (raResult.Item1 as RemoteAccessAnalysisResult)?.BrowserTabs;
+                if (browserTabsOfUser is not null && browserTabsOfDevice is not null)
+                {
+                    browserTabsOfUser[analysisEvent.DeviceUid] = browserTabsOfDevice;
+                }
+
+                if (browserTabsOfDevice is not null && browserTabsOfDevice.Length > 0)
+                {
+                    this.UDUser.SetBrowserTabs(analysisEvent.DeviceUid, browserTabsOfDevice);
+                }
+            }
+
+
+            if (!analysisEvent.AnalyzerResults.Any())
+                return;
+
+            var firstResult = analysisEvent.AnalyzerResults.First().Value;
+            var evAnalysisResult = firstResult.Item1;
+            var evIndicators = firstResult.Item2;
+            var evProtectiveActions = firstResult.Item3;
+            this.CleanupExpiredAlerts();
+            this.GetLatestAnalysisResults();
+
+            var alerts = this._activeDeviceAlerts.OrderByDescending(i => i.Timestamp).Take(5);
+            var results = this._analysisResults.OrderByDescending(i => i.Timestamp).Take(5);
+            var remoteAccessAnalysisResults = this._asView.GetRemoteAccessAnalysisResultsByUserKey(this.UDUser.Key)?
+                .Where(i => i.Timestamp > DateTime.UtcNow.Subtract(new TimeSpan(24, 0, 0))).OrderByDescending(i => i.Timestamp).Take(5);
+            var urlAnalysisResults = this._asView.GetUrlAnalysisResultsByUserKey(this.UDUser.Key)?
+                .Where(i => i.Timestamp > DateTime.UtcNow.Subtract(new TimeSpan(24, 0, 0))).OrderByDescending(i => i.Timestamp).Take(5);
+            var indicators = new List<IIndicator>();
+            //var x = remoteAccessAnalysisResults.Select(i => indicators.AddRange(i.Indicators.ToList()  )); 
+            foreach (var ind in remoteAccessAnalysisResults.Where(i => i.Indicators is not null).Select(i => i.Indicators))
+            {
+                if (ind is not null)
+                {
+                    indicators.AddRange(ind);
+                }
+            }
+            foreach (var ind in urlAnalysisResults.Where(i => i.Indicators is not null).Select(i => i.Indicators))
+            {
+                if (ind is not null)
+                {
+                    indicators.AddRange(ind);
+                }
+            }
+
+            var remoteAccessStatus = this.GetRemoteAccessStatus();
+            var firstAnalyzerResult = analysisEvent.AnalyzerResults.FirstOrDefault();
+            if (firstAnalyzerResult.Value.Item1 == null)
+            {
+                return; // No analyzer result to process
+            }
+            switch (firstAnalyzerResult.Value.Item1)
+            {
+                case RemoteAccessAnalysisResult r:
+                    break;
+                case UrlAnalysisResult u:
+                    var websitePurpose = u.Purpose;
+
+                    //if (remoteAccessStatus.IsRemoteAccessAppActive && remoteAccessStatus.isRemoteAccessSessionActive)
+                    //{
+                    //    if ((u.Purpose?.Category == WebsiteType.Banking) || (u.Purpose?.Category == WebsiteType.Exchange))
+                    //    {
+
+                    //    }
+                    //}
+                    break;
+                case TrackUrlAnalysisResult t:
+                    HandleTrackUrlAnalysisResultReceived(t, remoteAccessStatus);
+                    break;
+            }
+
         }
 
         public async Task HandleAnalysisResultReceivedAsync(AnalysisResultReceived analysisEvent)

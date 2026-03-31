@@ -1,6 +1,7 @@
 using Business.DomainEvents;
 using Business.RealtimeAnalysis.Indicators;
 using Business.RealtimeAnalysis.UserDomain;
+using Business.Views;
 using Common.Entities;
 using Common.Enums;
 using Common.Interfaces;
@@ -10,6 +11,7 @@ using Interface.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using System;
 using System.Text.Json;
 
 namespace Business.RealtimeAnalysis;
@@ -22,13 +24,21 @@ public class AnalysisPersistenceActor : IDomainEventHandler
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<AnalysisPersistenceActor> _logger;
-
+    private readonly UserDomainManagerService _userDomainService;
+    private readonly List<IDomainEventHandler> _eventHandlers = new();
+    private readonly ASView _asView;
     public AnalysisPersistenceActor(
         IServiceProvider serviceProvider,
+        ASView asView,
+        UserDomainManagerService userDomainService,
         ILogger<AnalysisPersistenceActor> logger)
     {
         _serviceProvider = serviceProvider;
+        _asView = asView;
+        _userDomainService = userDomainService;
         _logger = logger;
+        
+        this.RegisterEventHandler(_asView);
     }
 
     public async Task Handle(IDomainEvent evt)
@@ -210,12 +220,64 @@ public class AnalysisPersistenceActor : IDomainEventHandler
 
                 // Update the AnalysisKey at the DeviceAlert record:
                 await _deviceAlertRepository.UpdateAnalysisKeyAsync(analysisEvent.DeviceAlertKeyField, analysisResultContainer.Key.Value);
+
+
+                //Fire AnalysisResultAdded domain event 
+                var analysisResultAdded = new AnalysisResultAdded(
+                    analysisResultContainer.Key,
+                    analysisResultContainer.UserKey,
+                    analysisResultContainer.DeviceAlertKey,
+                    analysisEvent.DeviceUid,
+                    analysisEvent.AlertType,
+                    analysisEvent.AnalyzerResults,
+                    analysisEvent.Severity,
+                    analysisEvent.Message,
+                    analysisEvent.Details,
+                    analysisEvent.AnalysisTimestamp
+                );
+
+                // Phase 2: fire analysis in background — ACK is returned immediately
+                _ = Task.Run(() => DispatchAlertInBackground(analysisResultAdded, analysisEvent.DeviceUid));
+
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, 
                 $"[AnalysisPersistenceActor] Error saving analysis result for {analysisEvent.AlertType} device {analysisEvent.DeviceUid} at {analysisEvent.Timestamp}");
+        }
+    }
+
+    public void RegisterEventHandler(IDomainEventHandler handler)
+    {
+        _eventHandlers.Add(handler);
+    }
+
+    private async Task DispatchAlertInBackground(AnalysisResultAdded domainEvent, string deviceUid)
+    {
+        try
+        {
+            var userManager = await _userDomainService.GetManagerForDeviceAsync(deviceUid);
+            if (userManager != null)
+            {
+                await userManager.Handle(domainEvent);
+                _logger.LogInformation("Analysis dispatched for device {DeviceUid}, user {UserKey}",
+                    deviceUid, userManager.UDUser.Key);
+            }
+            else
+            {
+                _logger.LogWarning("No UDAnalysisManager found for device {DeviceUid}", deviceUid);
+            }
+
+            foreach (var handler in _eventHandlers)
+            {
+                if (handler.GetHandleableEvents().Contains(typeof(AnalysisResultAdded)))
+                    await handler.Handle(domainEvent);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in background analysis dispatch for device {DeviceUid}", deviceUid);
         }
     }
 }
