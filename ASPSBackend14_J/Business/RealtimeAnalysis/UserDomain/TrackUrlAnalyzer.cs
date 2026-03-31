@@ -200,6 +200,7 @@ public class TrackUrlAnalyzer : ISpecificAnalyzer
             trackUrlAlert.Timezone,
             domain,
             isSafeDomain,
+            false,
             riskAssessment,
             trackedDomainInfo);
 

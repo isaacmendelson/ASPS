@@ -29,6 +29,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
     private List<AnalysisResultView> _analysisResults = new();
     private List<RemoteAccessAnalysisResultView> _remoteAccessAnalysisResults = new();
     private List<UrlAnalysisResultView> _urlAnalysisResults = new();
+    private List<TrackUrlAnalysisResultView> _trackUrlAnalysisResults = new();
     private List<KnownPhishingWebsite> _knownPhishingWebsites = new();
     private List<SafeDomain> _safeDomains = new();
     private List<string> _riskyDomains = new();
@@ -226,6 +227,11 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                         var urlView = new UrlAnalysisResultView(container);
                         _urlAnalysisResults.Add(urlView);
                         _analysisResults.Add(urlView);
+                        break;
+                    case nameof(TrackUrlAlert):
+                        var trackUrlView = new TrackUrlAnalysisResultView(container);
+                        _trackUrlAnalysisResults.Add(trackUrlView);
+                        _analysisResults.Add(trackUrlView);
                         break;
                     case nameof(RemoteAccessAlert):
                         var raView = new RemoteAccessAnalysisResultView(container);

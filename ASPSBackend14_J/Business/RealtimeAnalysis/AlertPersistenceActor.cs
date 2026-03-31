@@ -145,7 +145,7 @@ namespace Business.RealtimeAnalysis
             // Save alert entity to database using scoped repository
             if (alertEntity != null)
             {
-                _logger.LogInformation(
+                _logger.LogInformation( 
                     $"[AlertPersistenceActor] Saved device alert: " +
                     $"Key={alertEntity.Key.Value}, " +
                     $"AlertType={vm.AlertType}, " +

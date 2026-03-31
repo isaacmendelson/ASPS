@@ -69,6 +69,11 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
     private ASView _aSView;
 
     private float _riskThreshold;
+
+    private float _severityScoreThresholdCritical;
+    private float _severityScoreThresholdHigh;
+    private float _severityScoreThresholdMedium;
+
     public IReadOnlyList<ActiveDeviceAlert> ActiveDeviceAlerts => _activeDeviceAlerts.AsReadOnly();
     public IReadOnlyList<ActiveDeviceAlert> ExpiredDeviceAlerts => _expiredDeviceAlerts.AsReadOnly();
 
@@ -89,6 +94,10 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
         _logger = _loggerFactory.CreateLogger<UDAnalysis>();
         //_configuration = configuration;
         this.LoadConfiguration(configuration);
+
+        _severityScoreThresholdCritical = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdCritical", 80);
+        _severityScoreThresholdHigh = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdHigh", 80);
+        _severityScoreThresholdMedium = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdMedium", 80);
 
         _alertExpiryDays = alertExpiryDays;
         _alertDeletionDays = alertDeletionDays;
@@ -131,71 +140,43 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
 
         foreach (var analyzer in _analyzers)
         {
-            if (analyzer.CanAnalyze(deviceAlert))
+            if (!analyzer.CanAnalyze(deviceAlert))
             {
-                var result = await analyzer.AnalyzeAsync(deviceAlert, allAlerts, _configuration);
-                analysisResults[analyzer.GetType().Name] = new Tuple<string, AnalyzerResult>(deviceAlert.AlertId, result);
-
-                object firstResult = null;
-                switch (analyzer)
-                {
-                    case UDUrlAnalyzer:
-                        _logger.LogInformation($"URL Analyzer result for device {deviceUid}: Severity={result.Severity}, Message={result.Message}");
-                        // SECURITY FIX ASPS-70: Safe null handling for FirstOrDefault
-                        var resultsEntry = result.Details.FirstOrDefault(i => i.Key == "results");
-                        firstResult = resultsEntry.Key != null ? resultsEntry.Value : null;
-                        switch (firstResult)
-                        {
-                            case null:
-                                _logger.LogWarning($"URL Analyzer result for device {deviceUid} has no results in details.");
-                                break;
-                            case UrlAnalysisResult[] uarVm:
-                                _logger.LogInformation($"UrlAnalyzer: analyzer results for device {deviceUid}: Severity={result.Severity}, Message={result.Message}");
-                                break;
-
-                            default:
-                                _logger.LogWarning($"Cannot get Indicators & ProtectiveActions for type {firstResult.GetType().Name}.");
-                                break;
-                        }
-                        break;
-                        case UDTrackUrlAnalyzer:
-                            firstResult = result.Details.FirstOrDefault(i => i.Key == "risk_score").Value;
-                            switch (firstResult)
-                            {
-                                case null:
-                                    _logger.LogWarning($"URL Analyzer result for device {deviceUid} has no results in details.");
-                                    break;
-                                case TrackUrlAnalysisResult[] tuarVm:
-                                    _logger.LogInformation($"TrackUrlAnalyzer: analyzer results for device {deviceUid}: Severity={result.Severity}, Message={result.Message}");
-                                    break;
-
-                                default:
-                                    _logger.LogWarning($"Cannot get Indicators & ProtectiveActions for type {firstResult.GetType().Name}.");
-                                    break;
-                            }
-                            break;
-                    case UDRemoteAccessAnalyzer:
-                        firstResult = result;
-                        _logger.LogInformation($"RemoteAccessAnalyzer: analyzer results for device {deviceUid}: Severity={result.Severity}, Message={result.Message}");
-                        break;
-                }
-                if (firstResult is AnalysisResult[] resultsCollection && resultsCollection.Length > 0)
-                {
-                    var indicators = this._indicatorFactory.CreateIndicators(resultsCollection.First());
-                    if (indicators?.Length > 0)
-                    {
-                        result.Indicators?.AddRange(indicators.ToList());
-                    }
-
-                    var protectiveActions = this._protectiveActionsFactory.CreateProtectiveActions(resultsCollection.First(), result, deviceAlert.AlertId, deviceAlert.DeviceInfo);
-                    if (protectiveActions?.Length > 0)
-                    {
-                        result.ProtectiveActions?.AddRange(protectiveActions.ToList());
-                    }
-                }
-                analysisResults[analyzer.GetType().Name] = new Tuple<string, AnalyzerResult>(deviceAlert.AlertId, result);
-                FireSpecificAnalyzerResultReceivedEvent(activeAlert, analyzer.GetType().Name, result);
+                continue;
             }
+            var analyzerResult = await analyzer.AnalyzeAsync(deviceAlert, allAlerts, _configuration);
+            analysisResults[analyzer.GetType().Name] = new Tuple<string, AnalyzerResult>(deviceAlert.AlertId, analyzerResult);
+
+            object firstAnalysisResult = null;
+            var resultsEntry = analyzerResult.Details.FirstOrDefault(i => i.Key == "results");
+            firstAnalysisResult = resultsEntry.Key != null ? resultsEntry : null;
+            _logger.LogInformation($"{nameof(analyzer)} result for device {deviceUid}: Severity={analyzerResult.Severity}, Message={analyzerResult.Message}");
+
+            if (firstAnalysisResult is null)
+            {
+                _logger.LogWarning($"{nameof(analyzer)} result for device {deviceUid} has no results in details.");
+            }
+            else
+            {
+                _logger.LogInformation($"{nameof(analyzer)} : analyzer results for device {deviceUid}: Severity={analyzerResult.Severity}, Message={analyzerResult.Message}");
+            }
+
+            if (firstAnalysisResult is AnalysisResult[] resultsCollection && resultsCollection.Length > 0)
+            {
+                var indicators = this._indicatorFactory.CreateIndicators(resultsCollection.First());
+                if (indicators?.Length > 0)
+                {
+                    analyzerResult.Indicators?.AddRange(indicators.ToList());
+                }
+
+                var protectiveActions = this._protectiveActionsFactory.CreateProtectiveActions(resultsCollection.First(), analyzerResult, deviceAlert.AlertId, deviceAlert.DeviceInfo);
+                if (protectiveActions?.Length > 0)
+                {
+                    analyzerResult.ProtectiveActions?.AddRange(protectiveActions.ToList());
+                }
+            }
+            analysisResults[analyzer.GetType().Name] = new Tuple<string, AnalyzerResult>(deviceAlert.AlertId, analyzerResult);
+            FireSpecificAnalyzerResultReceivedEvent(activeAlert, analyzer.GetType().Name, analyzerResult);
         }
 
         var urlAnalyzerResults = new List<KeyValuePair<string, Tuple<string, AnalyzerResult>>>();
@@ -225,13 +206,19 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
                 
                 foreach (var item in urlAnalyzerResults)
                 {
+                    var r = item.Value.Item2.Details["results"];
+                    if (r is TrackUrlAnalysisResult[] vms)
+                    {
+                        foreach (var result in vms)
+                        {
+                            udAnalysisResults.Add(item.Key, new Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>(result, item.Value.Item2.Indicators.ToArray(), item.Value.Item2.ProtectiveActions.ToArray()));
+                        }
+                    }
+                    //var trackUrlResult = new TrackUrlAnalysisResult(
+                    //    t, false, new RiskAssessment((float)item.Value.Item2.Details["risk_score"], (float)item.Value.Item2.Details["risk_score"] > _riskThreshold ? "High" : "", true, 1)
+                    //);
 
-
-                    var trackUrlResult = new TrackUrlAnalysisResult(
-                        t, new RiskAssessment((float)item.Value.Item2.Details["risk_score"], (float)item.Value.Item2.Details["risk_score"] > _riskThreshold ? "High" : "", true, 1)
-                    );
-
-                    udAnalysisResults.Add(item.Key, new Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>(trackUrlResult, item.Value.Item2.Indicators?.ToArray(), item.Value.Item2.ProtectiveActions?.ToArray()));
+                    //udAnalysisResults.Add(item.Key, new Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>(trackUrlResult, item.Value.Item2.Indicators?.ToArray(), item.Value.Item2.ProtectiveActions?.ToArray()));
                 }
                 break;
 
@@ -422,6 +409,23 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
         this._configuration = configuration;
         this._riskThreshold = _configuration.GetValue<int>("TrackUrl:RiskThresholdToEnableTracking", 30);
     }
+
+    private Severity GetSeverityFromRiskScore(float val)
+    {
+        Severity severity = Severity.Unknown;
+        if (val >= _severityScoreThresholdCritical)
+            severity = Severity.Critical;  // risk score >= 80 = very dangerous
+        else if (val >= _severityScoreThresholdHigh)
+            severity = Severity.High;      // risk score >= 61 = dangerous
+        else if (val >= _severityScoreThresholdMedium)
+            severity = Severity.Medium;    // risk score >= 31 = moderate ris
+        else
+            severity = Severity.Low;       // risk score < 31 = low risk    
+
+        return severity;
+    }
+
+    //private 
 }
 
 // Analyzer result class

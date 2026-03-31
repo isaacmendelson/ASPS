@@ -289,8 +289,9 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
                     ["results"] = results.ToArray(),
                     ["errors"] = errors.ToArray(),
                     ["url"] = url,
+                    ["timestamp"] = DateTime.UtcNow,
                     ["analyzers_run"] = results.Count,
-                    ["analyzers_total"] = ExternalAnalyzers.Length
+                    ["external_analyzers_total"] = ExternalAnalyzers.Length
                 }
             );
 
@@ -557,7 +558,7 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
             Path.Combine(Directory.GetCurrentDirectory(), "Analyzers"));
 
         _riskThreshold = _configuration.GetValue<int>("TrackUrl:RiskThresholdToEnableTracking", 40);
-        _trackingDurationMinutes = _configuration.GetValue<int>("TrackUrl:TrackingDurationMinutes", 30);
+        _trackingDurationMinutes = _configuration.GetValue<int>("TrackUrl:TrackingDurationMinutes", 3000);
 
         _severityScoreThresholdCritical = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdCritical", 80);
         _severityScoreThresholdHigh = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdHigh", 80);
