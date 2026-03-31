@@ -28,13 +28,14 @@ public class TrackUrlAnalysisResultTests
         var timezone = "America/New_York";
         var domain = "example.com";
         var isSafeDomain = false;
+        var isFromCache = false;
         var riskAssessment = new RiskAssessment(20, "Monitor", false, 0.8f);
 
         // Act
         var vm = new TrackUrlAnalysisResult(
             url, fromUrl, duration, scamInProgressKey,
             ipAddress, userAgent, tabId, timezone,
-            domain, isSafeDomain, riskAssessment);
+            domain, isSafeDomain, isFromCache, riskAssessment);
 
         // Assert
         vm.Should().NotBeNull();
@@ -78,7 +79,7 @@ public class TrackUrlAnalysisResultTests
         // Act
         var vm = new TrackUrlAnalysisResult(
             url, "", 60, "", "", "", "", "",
-            domain, true, new RiskAssessment(0, "Safe", false, 1));
+            domain, true, false,new RiskAssessment(0, "Safe", false, 1));
 
         // Assert
         vm.IsSafeDomain.Should().BeTrue();
@@ -94,7 +95,7 @@ public class TrackUrlAnalysisResultTests
         // Act
         var vm = new TrackUrlAnalysisResult(
             "https://scam.com", "", 60, scamKey, "", "", "", "",
-            "scam.com", false, new RiskAssessment(60, "High", true, 0.9f));
+            "scam.com", false, false, new RiskAssessment(60, "High", true, 0.9f));
 
         // Assert
         vm.ScamInProgressKey.Should().Be(scamKey);
@@ -250,7 +251,7 @@ public class TrackUrlAnalysisResultTests
         // Act
         var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", 60, "", "", "", "", "",
-            "test.com", false, riskAssessment);
+            "test.com", false, false, riskAssessment);
 
         // Assert
         vm.risk_assessment.Should().NotBeNull();
@@ -268,7 +269,7 @@ public class TrackUrlAnalysisResultTests
         // Act
         var vm = new TrackUrlAnalysisResult(
             "https://test.com", "", 350, "", "", "", "", "",
-            "test.com", false, riskAssessment);
+            "test.com", false, false, riskAssessment);
 
         // Assert
         vm.risk_assessment?.risk_score.Should().Be(20);
@@ -284,7 +285,7 @@ public class TrackUrlAnalysisResultTests
         // Act
         var vm = new TrackUrlAnalysisResult(
             "https://scam.com", "", 60, "scam-key", "", "", "", "",
-            "scam.com", false, riskAssessment);
+            "scam.com", false, false, riskAssessment);
 
         // Assert
         vm.risk_assessment?.risk_score.Should().Be(60);
@@ -301,7 +302,7 @@ public class TrackUrlAnalysisResultTests
         // Act
         var vm = new TrackUrlAnalysisResult(
             "https://google.com", "", 120, "", "", "", "", "",
-            "google.com", true, riskAssessment);
+            "google.com", true, false, riskAssessment);
 
         // Assert
         vm.IsSafeDomain.Should().BeTrue();
@@ -368,7 +369,7 @@ public class TrackUrlAnalysisResultTests
         var vm = new TrackUrlAnalysisResult(
             url, fromUrl, duration, scamKey,
             ipAddress, userAgent, tabId, timezone,
-            domain, isSafeDomain, riskAssessment);
+            domain, isSafeDomain, false, riskAssessment);
 
         // Assert
         vm.Url.Should().Be(url);
@@ -464,7 +465,7 @@ public class TrackUrlAnalysisResultTests
         var vm = new TrackUrlAnalysisResult(
             "https://scam-site.com/login", "", 100, scamKey,
             "192.168.1.1", "Chrome", "tab-1", "UTC",
-            "scam-site.com", false, riskAssessment);
+            "scam-site.com", false, false, riskAssessment);
 
         // Assert
         vm.ScamInProgressKey.Should().Be(scamKey);
@@ -482,7 +483,7 @@ public class TrackUrlAnalysisResultTests
         var vm = new TrackUrlAnalysisResult(
             "https://normal-site.com", "", 60, "",
             "", "", "", "",
-            "normal-site.com", false, riskAssessment);
+            "normal-site.com", false, false, riskAssessment);
 
         // Assert
         vm.ScamInProgressKey.Should().BeEmpty();
@@ -504,7 +505,7 @@ public class TrackUrlAnalysisResultTests
         var vm = new TrackUrlAnalysisResult(
             "https://google.com/search", "", 120, "",
             "", "", "", "",
-            "google.com", true, riskAssessment);
+            "google.com", true, false, riskAssessment);
 
         // Assert
         vm.IsSafeDomain.Should().BeTrue();
@@ -522,7 +523,7 @@ public class TrackUrlAnalysisResultTests
         var vm = new TrackUrlAnalysisResult(
             "https://unknown-site.xyz", "", 60, "",
             "", "", "", "",
-            "unknown-site.xyz", false, riskAssessment);
+            "unknown-site.xyz", false, false, riskAssessment);
 
         // Assert
         vm.IsSafeDomain.Should().BeFalse();

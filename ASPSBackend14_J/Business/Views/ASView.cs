@@ -137,6 +137,20 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                             
                             );
                     break;
+                case TrackUrlAlert trackUrlAlert:
+                    _logger.LogInformation($"Received UrlAlert for URL: {trackUrlAlert.Url}");
+                    view = new TrackUrlAlertView(
+                        new Key(alertEvent.Alert.AlertType, alertEvent.Alert.AlertId ?? "0"),
+                        alertEvent.Alert.AlertId ?? "0",
+                        alertEvent.Alert.AlertType,
+                        alertEvent.Alert.Priority,
+                        alertEvent.Timestamp, alertEvent.Alert.Token,
+                        alertEvent.Alert.DeviceInfo.DeviceUid, alertEvent.Alert.DeviceInfo.DeviceType,
+                        alertEvent.Alert.DeviceInfo.OperatingSystem, alertEvent.Alert.DeviceInfo.MACAddress, user?.Key,
+                        trackUrlAlert.Url, trackUrlAlert.FromUrl, trackUrlAlert.Duration, trackUrlAlert.ScamInProgressKey, 
+                        trackUrlAlert.IPAddress, trackUrlAlert.UserAgent, trackUrlAlert.TabId, trackUrlAlert.Timezone
+                            );
+                    break;
                 case RemoteAccessAlert ra:
                     _logger.LogInformation($"Received RemoteAccessAlert for App: {ra.RemoteAccessApp}");
                     view = new RemoteAccessAlertView(
@@ -348,12 +362,17 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                     _users = users.ToList();
                     _userDevices = devices.ToList();
                     _userAccounts = accounts.ToList();
-                    _deviceAlerts = (List<DeviceAlertView>)(
+                    _deviceAlerts = (List<DeviceAlertView>)
                         deviceAlerts.Where(i => i is UrlAlertEntity).Select(i => new UrlAlertView(i as UrlAlertEntity))
                         .Union<DeviceAlertView>
                         (
+                        deviceAlerts.Where(i => i is TrackUrlAlertEntity).Select(i => new TrackUrlAlertView(i as TrackUrlAlertEntity))
+                        )
+                        .Union<DeviceAlertView>
+                        (
                         deviceAlerts.Where(i => i is RemoteAccessAlertEntity).Select(i => new RemoteAccessAlertView(i as RemoteAccessAlertEntity))
-                        )).OrderByDescending(i => i.Timestamp).ToList();
+                        )
+                        .OrderByDescending(i => i.Timestamp).ToList();
 
                     _remoteAccessAnalysisResults = analysisResults.Where(i => i.Discriminator == nameof(RemoteAccessAnalysisResult)).Select(i => new RemoteAccessAnalysisResultView(i)).ToList();
                     _urlAnalysisResults = analysisResults.Where(i => i.Discriminator == nameof(UrlAnalysisResult) && !i.IsDisabled).
