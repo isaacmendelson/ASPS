@@ -33,9 +33,9 @@ namespace Business.Migrations
             migrationBuilder.Sql(
                 "UPDATE AnalysisResults SET Discriminator = 'RemoteAccessAnalysisResult' WHERE Discriminator = 'RemoteAccessAlert';");
 
-            // Delete records with empty or null discriminator
+            // Delete records with empty, null, or unknown discriminator
             migrationBuilder.Sql(
-                "DELETE FROM AnalysisResults WHERE Discriminator = '' OR Discriminator IS NULL;");
+                "DELETE FROM AnalysisResults WHERE Discriminator = '' OR Discriminator IS NULL OR Discriminator = 'Unknown';");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)

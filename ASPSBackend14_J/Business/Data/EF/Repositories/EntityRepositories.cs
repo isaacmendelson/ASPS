@@ -126,11 +126,10 @@ public class AnalysisResultRepository : Repository<AnalysisResultContainer>, IAn
     {
         try
         {
-            // Get all records without tracking
-            // EF will now load all records since Discriminator is just a string property
+            var knownDiscriminators = new[] { "AnalysisResultContainer", "UrlAnalysisResult", "TrackUrlAnalysisResult", "RemoteAccessAnalysisResult" };
             var results = await _dbSet
                 .AsNoTracking()
-                .Where(a => !a.IsDeleted)
+                .Where(a => !a.IsDeleted && knownDiscriminators.Contains(a.Discriminator))
                 .ToListAsync();
 
             _logger.LogInformation("Retrieved {Count} analysis results from database", results.Count);

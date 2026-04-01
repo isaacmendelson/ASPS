@@ -592,7 +592,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
         {
             int daysToSubtract = alertExpiryDays ?? 30;
             var res = this._urlAnalysisResults
-                .Where(da => da.UserKey.Value == key.Value && da.Timestamp >= DateTime.UtcNow.AddDays(-daysToSubtract));
+                .Where(da => da.UserKey?.Value == key.Value && da.Timestamp >= DateTime.UtcNow.AddDays(-daysToSubtract));
             return res.ToList();
         }
     }

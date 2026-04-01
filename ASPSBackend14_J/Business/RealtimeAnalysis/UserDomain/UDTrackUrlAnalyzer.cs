@@ -83,12 +83,14 @@ public class UDTrackUrlAnalyzer : ISpecificAnalyzer
         var indicators = new List<IIndicator>();
         var protectiveActions = new List<IProtectiveAction>();
 
-        var analysisRecord = this._asView.GetUrlAnalysisResultsByUserKey(trackUrlAlert.DeviceInfo.UserKey)
-            .OfType<UrlAnalysisResult>()
-            .Where(i => i.Domain == domain)
-            //.Where(r => r.DeviceAlertKey == trackUrlAlert.k)
-            .OrderByDescending(r => r.analyzed_at)
-            .FirstOrDefault();
+        //var analysisRecord = this._asView.GetUrlAnalysisResultsByUserKey(trackUrlAlert.DeviceInfo.UserKey)
+        //    .OfType<UrlAnalysisResult>()
+        //    .Where(i => i.Domain == domain)
+        //    //.Where(r => r.DeviceAlertKey == trackUrlAlert.k)
+        //    .OrderByDescending(r => r.analyzed_at)
+        //    .FirstOrDefault();
+
+
         // Add protective action if risk is high
         //if (riskScore >= _severityScoreThresholdHigh)
         //{

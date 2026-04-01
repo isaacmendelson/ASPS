@@ -103,7 +103,7 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                         urlAlertEntity?.Url ?? "",
                         guid,
                         analysisEvent.UserKeyField,
-                        firstUrlResult?.GetType().Name ?? "Unknown",
+                        nameof(UrlAnalysisResult),
                         analysisEvent.Timestamp,
                         jsonValue,
                         firstUrlResult?.Error is not null,
@@ -137,11 +137,11 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                     }
                     var trackUrlAlertEntity = await _deviceAlertRepository.GetByKeyAsync(new Key(nameof(TrackUrlAlert), analysisEvent.DeviceAlertKeyField)) as TrackUrlAlertEntity;
                     analysisResultContainer = new TrackUrlAnalysisResultContainer(
-                         trackUrlAlertEntity?.Url ?? "",
-                         trackUrlAlertEntity?.FromUrl ?? "",
+                         trackUrlAlertEntity?.Url ?? (analysisEvent.AnalyzerResults.FirstOrDefault().Value.Item1 as TrackUrlAnalysisResult).Url ?? "",
+                         trackUrlAlertEntity?.FromUrl ?? (analysisEvent.AnalyzerResults.FirstOrDefault().Value.Item1 as TrackUrlAnalysisResult).FromUrl ?? "",
                          guid,
                          analysisEvent.UserKeyField,
-                         analysisEvent.AnalyzerResults.Any() ? analysisEvent.AnalyzerResults.First().Value.Item1.GetType().Name : "",
+                         nameof(TrackUrlAnalysisResult),
                          analysisEvent.Timestamp,
                          jsonValue,
                          analysisEvent.AnalyzerResults.FirstOrDefault().Value.Item1.Error is not null,
@@ -182,7 +182,7 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                          remoteAccessAlertEntity?.SessionStatus,
                          guid,
                          analysisEvent.UserKeyField,
-                         analysisEvent.AnalyzerResults.Any() ? analysisEvent.AnalyzerResults.First().Value.Item1.GetType().Name : "",
+                         nameof(RemoteAccessAnalysisResult),
                          analysisEvent.Timestamp,
                          jsonValue,
                          analysisEvent.AnalyzerResults.FirstOrDefault().Value.Item1.Error is not null,
@@ -236,7 +236,7 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                     analysisEvent.AnalysisTimestamp
                 );
 
-                // Phase 2: fire analysis in background — ACK is returned immediately
+                // Phase 2: fire analysis in background ï¿½ ACK is returned immediately
                // _ = Task.Run(() => DispatchAlertInBackground(analysisResultAdded, analysisEvent.DeviceUid));
 
             }
