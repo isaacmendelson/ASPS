@@ -36,7 +36,7 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
     private IConfiguration _configuration;
     private ASView _aSView;
 
-    private float _riskThreshold;
+    private float _riskThresholdEnableTracking;
 
     private float _severityScoreThresholdCritical;
     private float _severityScoreThresholdHigh;
@@ -115,9 +115,13 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
             var analyzerResult = await analyzer.AnalyzeAsync(deviceAlert, allAlerts, _configuration);
             analysisResults[analyzer.GetType().Name] = new Tuple<string, AnalyzerResult>(deviceAlert.AlertId, analyzerResult);
 
-            object firstAnalysisResult = null;
-            var resultsEntry = analyzerResult.Details.FirstOrDefault(i => i.Key == "results");
-            firstAnalysisResult = resultsEntry.Key != null ? resultsEntry : null;
+            AnalysisResult[]? firstAnalysisResult = null;
+            KeyValuePair<string, AnalysisResult[]> resultsEntry = analyzerResult.Details
+                .Where(i => i.Key == "results" && i.Value is AnalysisResult[])
+                .Select(i => new KeyValuePair<string, AnalysisResult[]>(i.Key, i.Value as AnalysisResult[]))
+                .FirstOrDefault();
+
+            firstAnalysisResult = resultsEntry.Key != null ? resultsEntry.Value : null;
             _logger.LogInformation($"{nameof(analyzer)} result for device {deviceUid}: Severity={analyzerResult.Severity}, Message={analyzerResult.Message}");
 
             if (firstAnalysisResult is null)
@@ -137,13 +141,12 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
                     analyzerResult.Indicators?.AddRange(indicators.ToList());
                 }
 
-                var protectiveActions = this._protectiveActionsFactory.CreateProtectiveActions(resultsCollection.First(), analyzerResult, deviceAlert.AlertId, deviceAlert.DeviceInfo);
+                var protectiveActions = this._protectiveActionsFactory.CreateProtectiveActions(resultsCollection.First(), analyzerResult, deviceAlert.AlertId, deviceAlert.DeviceInfo, this._riskThresholdEnableTracking);
                 if (protectiveActions?.Length > 0)
                 {
                     analyzerResult.ProtectiveActions?.AddRange(protectiveActions.ToList());
                 }
-            }
-            analysisResults[analyzer.GetType().Name] = new Tuple<string, AnalyzerResult>(deviceAlert.AlertId, analyzerResult);
+            }            analysisResults[analyzer.GetType().Name] = new Tuple<string, AnalyzerResult>(deviceAlert.AlertId, analyzerResult);
             FireSpecificAnalyzerResultReceivedEvent(activeAlert, analyzer.GetType().Name, analyzerResult);
         }
 
@@ -375,7 +378,7 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
     private void LoadConfiguration(IConfiguration configuration)
     {
         this._configuration = configuration;
-        this._riskThreshold = _configuration.GetValue<int>("TrackUrl:RiskThresholdToEnableTracking", 30);
+        this._riskThresholdEnableTracking = _configuration.GetValue<int>("TrackUrl:RiskThresholdToEnableTracking", 30);
     }
 
     private Severity GetSeverityFromRiskScore(float val)

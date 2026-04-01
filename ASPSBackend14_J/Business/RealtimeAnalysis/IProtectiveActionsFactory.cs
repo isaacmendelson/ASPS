@@ -12,6 +12,6 @@ namespace Business.RealtimeAnalysis
     public interface IProtectiveActionsFactory
     {
         //IProtectiveAction[] CreateProtectiveActions(AnalysisResult analysisResult);
-        IProtectiveAction[] CreateProtectiveActions(AnalysisResult analysisResult, AnalyzerResult analyzerResult, string alertId, DeviceInfo deviceInfo);
+        IProtectiveAction[] CreateProtectiveActions(AnalysisResult analysisResult, AnalyzerResult analyzerResult, string alertId, DeviceInfo deviceInfo, float trackUrlThreshold);
     }
 }

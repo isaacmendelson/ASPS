@@ -260,22 +260,22 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
             // Check if URL tracking should be enabled based on risk threshold
 
 
-            // Enable URL tracking if risk score exceeds threshold (higher score = higher risk)
-            // Risk score of 40 or above means elevated risk, enable tracking
-            if (maxRiskScore >= _riskThreshold)
-            {
-                var domain = Common.Entities.KnownPhishingWebsite.GetDomainFromUrl(url);
-                _logger.LogInformation($"⚠️ Risk threshold exceeded for {domain}. Risk score: {maxRiskScore} >= {_riskThreshold}. Enabling URL tracking for {_trackingDurationMinutes} minutes.");
+            //////// Enable URL tracking if risk score exceeds threshold (higher score = higher risk)
+            //////// Risk score of 40 or above means elevated risk, enable tracking
+            //////if (maxRiskScore >= _riskThreshold)
+            //////{
+            //////    var domain = Common.Entities.KnownPhishingWebsite.GetDomainFromUrl(url);
+            //////    _logger.LogInformation($"⚠️ Risk threshold exceeded for {domain}. Risk score: {maxRiskScore} >= {_riskThreshold}. Enabling URL tracking for {_trackingDurationMinutes} minutes.");
 
-                var trackingAction = new ProtectiveAction(
-                    //ProtectiveActionSubject.Device,
-                    alert.DeviceInfo.Key,
-                    ProtectiveActionType.EnableUrlTracking,
-                    AnalysisLevel.Device,
-                    $"EnableUrlTracking|{domain}|{_trackingDurationMinutes}",
-                    alert.AlertId);
-                protectiveActions.Add(trackingAction);
-            }
+            //////    var trackingAction = new ProtectiveAction(
+            //////        //ProtectiveActionSubject.Device,
+            //////        alert.DeviceInfo.Key,
+            //////        ProtectiveActionType.EnableUrlTracking,
+            //////        AnalysisLevel.Device,
+            //////        $"EnableUrlTracking|{domain}|{_trackingDurationMinutes}",
+            //////        alert.AlertId);
+            //////    protectiveActions.Add(trackingAction);
+            //////}
 
             var analyzerResult = new AnalyzerResult
             (
