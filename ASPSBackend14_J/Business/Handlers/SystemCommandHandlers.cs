@@ -16,7 +16,7 @@ public class SystemCommandHandlers
     {
         try
         {
-            _asView.ReInitialize();
+            await _asView.ReInitializeAsync();
 
             return new ReInitializeASViewCommandResult
             {
