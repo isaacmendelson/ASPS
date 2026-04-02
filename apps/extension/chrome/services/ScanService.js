@@ -92,7 +92,8 @@ class ScanService {
       url: url,
       trackers: pageInfo?.trackers || [],
       iframes: pageInfo?.iframes || [],
-      ipAddress: connectionService.getDeviceIpAddress()
+      ipAddress: connectionService.getDeviceIpAddress(),
+      tabId: tabId.toString()
     };
 
     if (!connectionService.send(message)) {
