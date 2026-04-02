@@ -79,6 +79,10 @@ namespace Business.RealtimeAnalysis
                         IPAddress = vm.DeviceInfo.IP,
                         Url = u.Url,
                         UserKeyField = userDevice.UserKeyField,
+                        UserAgent = u.UserAgent,
+                        //TabId = u.
+                        MAC = userDevice.MAC,
+                        UserKey = userDevice?.UserKey ?? u.DeviceInfo.UserKey
                     };
                    
                     break;

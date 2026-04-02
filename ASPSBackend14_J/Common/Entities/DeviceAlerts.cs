@@ -65,7 +65,7 @@ public abstract class DeviceAlertEntity : Entity, IDeviceAlert
     public string DeviceUid { get; set; } = string.Empty;
     public DeviceType DeviceType { get; set; }
     public OperatingSystemType OperatingSystem { get; set; }
-    public string MAC { get; set; } = string.Empty;
+    public string? MAC { get; set; } = string.Empty;
     public string? IPAddress { get; set; }
     
     // Foreign Key: Link to user if device is registered
