@@ -70,11 +70,28 @@ public class ASView : IDomainEventHandler, IBackgroundTask
         _logger.LogInformation($"ASView initialized: {_users.Count} users, {_userDevices.Count} devices, {_userAccounts.Count} accounts");
     }
 
-    public void ReInitialize()
+    public async Task ReInitializeAsync()
     {
         _logger.LogInformation("ASView re-initialization requested...");
         this.IsInitialized = false;
-        this.Initialize();
+        await InitializeAsync();
+    }
+
+    private async Task InitializeAsync()
+    {
+        if (this.IsInitialized)
+        {
+            _logger.LogInformation("ASView already initialized, skipping...");
+            return;
+        }
+
+        _logger.LogInformation("ASView initializing - loading data into memory...");
+        
+        await LoadDataAsync();
+        
+        this.IsInitialized = true;
+        
+        _logger.LogInformation($"ASView initialized: {_users.Count} users, {_userDevices.Count} devices, {_userAccounts.Count} accounts");
     }
 
     public void Stop()
