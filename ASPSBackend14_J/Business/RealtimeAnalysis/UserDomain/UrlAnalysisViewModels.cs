@@ -53,9 +53,10 @@ public class AnalysisResult : IAnalysisResult
     [DataMember]
     public ErrorMessage? Error { get; set; }
 
-    //[DataMember] 
+    [DataMember]
+    public string? ResultId { get; set; }
     //public RiskAssessmentVm? risk_assessment { get; set; }
-    
+
     [DataMember]
     public DateTime analyzed_at { get; set; }
 

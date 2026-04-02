@@ -499,7 +499,7 @@ public class ASViewTests : IDisposable
         _asView.Start();
 
         // Act - ReInitialize() should reset IsInitialized and reload
-        Action reInit = () => _asView.ReInitialize();
+        Action reInit = () => _asView.ReInitializeAsync();
 
         // Assert - Should not throw
         reInit.Should().NotThrow();

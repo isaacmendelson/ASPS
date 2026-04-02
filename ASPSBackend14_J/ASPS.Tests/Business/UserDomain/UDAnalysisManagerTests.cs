@@ -31,6 +31,7 @@ public class UDAnalysisManagerTests
     private readonly Mock<IKnownPhishingWebsiteRepository> _mockPhishingRepo;
     private readonly Mock<ISafeDomainRepository> _mockSafeDomainRepo;
     private readonly UDUser _testUser;
+    private readonly UDUserAnalyzer _userAnalyzer;
 
     public UDAnalysisManagerTests()
     {
@@ -66,6 +67,9 @@ public class UDAnalysisManagerTests
 
         _testUser = CreateMockUser();
         _mockASView = CreateMockASView();
+
+        _userAnalyzer = CreateMockUserAnalyzer();
+
     }
 
     [Fact]
@@ -297,7 +301,9 @@ public class UDAnalysisManagerTests
 
         return new UDAnalysisManager(
             _testUser,
+            _userAnalyzer,
             _mockLoggerFactory.Object,
+
             _mockASView,
             _mockConfiguration.Object,
             eventHandlers,
@@ -332,6 +338,10 @@ public class UDAnalysisManagerTests
         return new UDUser(userKey, userInfo, riskAssessment, null, null, null, false);
     }
 
+    private UDUserAnalyzer CreateMockUserAnalyzer()
+    {
+        return new UDUserAnalyzer(_testUser, _mockASView,10,180, _mockLoggerFactory.Object);
+    }
     private ASView CreateMockASView()
     {
         var services = new ServiceCollection();

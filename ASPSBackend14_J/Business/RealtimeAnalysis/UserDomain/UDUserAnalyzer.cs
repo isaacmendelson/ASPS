@@ -28,7 +28,7 @@ namespace Business.RealtimeAnalysis.UserDomain
         private List<DeviceAlertView> _activeDeviceAlerts = new();
         //private KeyValuePair<string, DeviceAlertEntity>[] _activeDeviceAlertMap = Array.Empty<KeyValuePair<string, DeviceAlertEntity>>();
         //private KeyValuePair<string, AnalysisResultContainer>[] _analysisResultMap = Array.Empty<KeyValuePair<string, AnalysisResultContainer>>();
-        private List<IAnalysisResultView> _analysisResults = new();
+        private List<AnalysisResultView> _analysisResults = new();
         private List<RemoteAccessAnalysisResultView> _remoteAccessAnalysisResults = new();
         private List<UrlAnalysisResultView> _urlAnalysisResults = new();
         private List<UserDeviceView> _devices = new();
@@ -65,10 +65,23 @@ namespace Business.RealtimeAnalysis.UserDomain
 
         
 
-        public Task AnalyzeAsync()
+        public async Task AnalyzeAsync(DeviceAlert alert)
         {
             // Placeholder for user-specific analysis logic
-            return Task.CompletedTask;
+            //return Task.CompletedTask;
+        }
+        public async Task AnalyzeAsync(Dictionary<string, Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>> analysisResult)  //AnalysisResult analysisResult )
+        {
+            // Placeholder for user-specific analysis logic
+            //return Task.CompletedTask;
+
+            var urlAnalysisResultViews = this._asView.GetUrlAnalysisResultsByUserKey(this.UDUser.Key)
+                //.Where(this._analysisResults.Select(i => i.Key).Contains(analysisResult.))
+                .Where(i => i.Discriminator == (analysisResult.FirstOrDefault().Value.Item1 as UrlAnalysisResult)?.TypeName)
+                .OrderByDescending(I => I.Timestamp)
+                .ToList();
+                
+            this._analysisResults.AddRange(urlAnalysisResultViews);
         }
 
         public Type[] GetHandleableEvents()

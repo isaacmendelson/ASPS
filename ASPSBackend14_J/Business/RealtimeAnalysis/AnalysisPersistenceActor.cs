@@ -10,6 +10,7 @@ using Common.Models.Alerts;
 using Interface.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using NetTopologySuite.Operation.Valid;
 using Newtonsoft.Json;
 using System;
 using System.Text.Json;
@@ -138,9 +139,9 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                     }
                     var trackUrlAlertEntity = await _deviceAlertRepository.GetByKeyAsync(new Key(nameof(TrackUrlAlert), analysisEvent.DeviceAlertKeyField)) as TrackUrlAlertEntity;
                     analysisResultContainer = new TrackUrlAnalysisResultContainer(
+                         guid, 
                          trackUrlAlertEntity?.Url ?? (analysisEvent.AnalyzerResults.FirstOrDefault().Value.Item1 as TrackUrlAnalysisResult).Url ?? "",
                          trackUrlAlertEntity?.FromUrl ?? (analysisEvent.AnalyzerResults.FirstOrDefault().Value.Item1 as TrackUrlAnalysisResult).FromUrl ?? "",
-                         guid,
                          analysisEvent.UserKeyField,
                          nameof(TrackUrlAnalysisResult),
                          analysisEvent.Timestamp,
@@ -223,22 +224,26 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                 await _deviceAlertRepository.UpdateAnalysisKeyAsync(analysisEvent.DeviceAlertKeyField, analysisResultContainer.Key.Value);
 
 
-                //Fire AnalysisResultAdded domain event 
-                var analysisResultAdded = new AnalysisResultAdded(
-                    analysisResultContainer.Key,
-                    analysisResultContainer.UserKey,
-                    analysisResultContainer.DeviceAlertKey,
-                    analysisEvent.DeviceUid,
-                    analysisEvent.AlertType,
-                    analysisEvent.AnalyzerResults,
-                    analysisEvent.Severity,
-                    analysisEvent.Message,
-                    analysisEvent.Details,
-                    analysisEvent.AnalysisTimestamp
-                );
 
+                //if (isValid)
+                {
+                    //Fire AnalysisResultAdded domain event 
+                    var analysisResultAdded = new AnalysisResultAdded(
+                        analysisResultContainer.Key,
+                        analysisResultContainer.UserKey,
+                        analysisResultContainer.DeviceAlertKey,
+                        analysisEvent.DeviceUid,
+                        analysisEvent.AlertType,
+                        analysisEvent.AnalyzerResults,
+                        analysisEvent.Severity,
+                        analysisEvent.Message,
+                        analysisEvent.Details,
+                        analysisEvent.AnalysisTimestamp
+                    );
+                    this._asView.Handle(analysisResultAdded);
+                }
                 // Phase 2: fire analysis in background � ACK is returned immediately
-               // _ = Task.Run(() => DispatchAlertInBackground(analysisResultAdded, analysisEvent.DeviceUid));
+                // _ = Task.Run(() => DispatchAlertInBackground(analysisResultAdded, analysisEvent.DeviceUid));
 
             }
         }

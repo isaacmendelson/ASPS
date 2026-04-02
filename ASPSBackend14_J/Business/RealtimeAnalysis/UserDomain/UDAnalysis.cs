@@ -89,13 +89,13 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
         _logger.LogInformation($"Registered event handler: {handler.GetType().Name}");
     }
 
-    public async Task AnalyzeAsync(AnalysisResult analysisResult, string deviceUid, Key deviceAlertEntityKey)
-    {
-        _logger.LogInformation($"AnalyzeAsync {analysisResult.GetType().Name} {deviceUid}. Total active alerts: {_activeDeviceAlerts.Count}");
-        this._userAnalyzer.AnalyzeAsync();
-    }
+    //public async Task AnalyzeAsync(AnalysisResult analysisResult, string deviceUid, Key deviceAlertEntityKey)
+    //{
+    //    _logger.LogInformation($"AnalyzeAsync {analysisResult.GetType().Name} {deviceUid}. Total active alerts: {_activeDeviceAlerts.Count}");
+    //    this._userAnalyzer.AnalyzeAsync(analysisResult);
+    //}
 
-    public async Task AnalyzeAsync(DeviceAlert deviceAlert, string deviceUid, string deviceAlertEntityKey)
+    public async Task<Dictionary<string, Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>>> AnalyzeAsync(DeviceAlert deviceAlert, string deviceUid, string deviceAlertEntityKey)
     {
         var activeAlert = new ActiveDeviceAlert(deviceUid, deviceAlert, deviceAlertEntityKey);
         _activeDeviceAlerts.Add(activeAlert);
@@ -147,6 +147,7 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
                     analyzerResult.ProtectiveActions?.AddRange(protectiveActions.ToList());
                 }
             }            analysisResults[analyzer.GetType().Name] = new Tuple<string, AnalyzerResult>(deviceAlert.AlertId, analyzerResult);
+            
             FireSpecificAnalyzerResultReceivedEvent(activeAlert, analyzer.GetType().Name, analyzerResult);
         }
 
@@ -222,6 +223,8 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
         
         // Clean up old alerts
         CleanupOldAlerts();
+
+        return analysisResult.AnalyzerResults;
     }
 
     /// <summary>

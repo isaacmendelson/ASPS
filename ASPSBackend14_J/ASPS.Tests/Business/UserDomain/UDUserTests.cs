@@ -273,19 +273,23 @@ public class UDUserTests
         var userInfo = CreateTestUserInfo();
         var riskAssessment = CreateTestRiskAssessment();
         var userKey = new Key("User", "test-user-123");
-        var devices = new List<UserDevice>
+        
+        
+        var smartphone = new SmartPhone { DeviceUid = "phone-001", Make = "Apple", Model = "iPhone 14", UserKey = userKey };
+        var pc = new PersonalComputer { DeviceUid = "laptop-001", Make = "Dell", Model = "XPS 15", UserKey = userKey };
+        var devices = new List<UserDeviceView>
         {
-            new SmartPhone { DeviceUid = "phone-001", Make = "Apple", Model = "iPhone 14", UserKey = userKey },
-            new PersonalComputer { DeviceUid = "laptop-001", Make = "Dell", Model = "XPS 15", UserKey = userKey }
+            new SmartPhoneView (smartphone),
+            new PersonalComputerView(pc)
         };
 
         // Act
-        var sut = new UDUser(key, userInfo, riskAssessment, null, null, null, null, false, devices);
+        var sut = new UDUser(key, userInfo, riskAssessment, devices, null, null, null, null);
 
         // Assert
-        sut.Devices.Should().HaveCount(2);
-        sut.Devices.Should().Contain(d => d.DeviceUid == "phone-001");
-        sut.Devices.Should().Contain(d => d.DeviceUid == "laptop-001");
+        sut.UserDevices.Should().HaveCount(2);
+        sut.UserDevices.Should().Contain(d => d.DeviceUid == "phone-001");
+        sut.UserDevices.Should().Contain(d => d.DeviceUid == "laptop-001");
     }
 
     [Fact]
@@ -325,7 +329,7 @@ public class UDUserTests
         );
 
         // Act
-        var sut = new UDUser(key, userInfo, riskAssessment, null, null, null, null, false, null, customRiskProfile);
+        var sut = new UDUser(key, userInfo, riskAssessment, null, null, null, null, false, customRiskProfile);
 
         // Assert
         sut.RiskProfile.Should().Be(customRiskProfile);

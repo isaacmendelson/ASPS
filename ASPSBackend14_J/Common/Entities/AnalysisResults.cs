@@ -114,7 +114,7 @@ public class TrackUrlAnalysisResultContainer : AnalysisResultContainer
 {
     protected TrackUrlAnalysisResultContainer() { }
 
-    public TrackUrlAnalysisResultContainer(string url, string fromUrl, string keyField, string userKeyField, string discriminator, DateTime timestamp, string? jsonValue, bool? hasError,
+    public TrackUrlAnalysisResultContainer(string keyField, string url, string fromUrl, string userKeyField, string discriminator, DateTime timestamp, string? jsonValue, bool? hasError,
         string? errorMessage, bool? isFromCache = false, string? deviceAlertKeyField = null)
         : base(keyField, userKeyField, discriminator, timestamp, jsonValue, hasError, errorMessage, isFromCache, deviceAlertKeyField)
     {

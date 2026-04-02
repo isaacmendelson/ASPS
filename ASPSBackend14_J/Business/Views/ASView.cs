@@ -34,7 +34,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
     private List<SafeDomain> _safeDomains = new();
     private List<string> _riskyDomains = new();
     private List<UserDeviceUrlSurfData> _riskyUrlSurfings = new();
-    
+
 
 
 
@@ -61,12 +61,12 @@ public class ASView : IDomainEventHandler, IBackgroundTask
         }
 
         _logger.LogInformation("ASView initializing - loading data into memory...");
-        
+
         // Run synchronously in background to avoid blocking - we're in a startup context
         Task.Run(async () => await LoadDataAsync()).GetAwaiter().GetResult();
-        
+
         this.IsInitialized = true;
-        
+
         _logger.LogInformation($"ASView initialized: {_users.Count} users, {_userDevices.Count} devices, {_userAccounts.Count} accounts");
     }
 
@@ -86,11 +86,11 @@ public class ASView : IDomainEventHandler, IBackgroundTask
         }
 
         _logger.LogInformation("ASView initializing - loading data into memory...");
-        
+
         await LoadDataAsync();
-        
+
         this.IsInitialized = true;
-        
+
         _logger.LogInformation($"ASView initialized: {_users.Count} users, {_userDevices.Count} devices, {_userAccounts.Count} accounts");
     }
 
@@ -103,8 +103,11 @@ public class ASView : IDomainEventHandler, IBackgroundTask
     {
         switch (evt)
         {
-            case AnalysisResultReceived analysisEvent:
-                HandleAnalysisResultReceived(analysisEvent);
+            //case AnalysisResultReceived analysisEvent:
+            //    HandleAnalysisResultReceived(analysisEvent);
+            //    break;
+            case AnalysisResultAdded analysisEvent:
+                HandleAnalysisResultAdded(analysisEvent);
                 break;
             case DeviceAlertReceived alertEvent:
                 HandleDeviceAlertReceived(alertEvent);
@@ -143,15 +146,15 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                 case UrlAlert urlAlert:
                     _logger.LogInformation($"Received UrlAlert for URL: {urlAlert.Url}");
                     view = new UrlAlertView(
-                        new Key(alertEvent.Alert.AlertType, alertEvent.Alert.AlertId ?? "0"), 
+                        new Key(alertEvent.Alert.AlertType, alertEvent.Alert.AlertId ?? "0"),
                         alertEvent.Alert.AlertId ?? "0",
                         alertEvent.Alert.AlertType,
                         alertEvent.Alert.Priority,
                         alertEvent.Timestamp, alertEvent.Alert.Token,
-                        alertEvent.Alert.DeviceInfo.DeviceUid, alertEvent.Alert.DeviceInfo.DeviceType, 
+                        alertEvent.Alert.DeviceInfo.DeviceUid, alertEvent.Alert.DeviceInfo.DeviceType,
                         alertEvent.Alert.DeviceInfo.OperatingSystem, alertEvent.Alert.DeviceInfo.MACAddress, user?.Key,
                             urlAlert.Url, urlAlert.Trackers, urlAlert.IFrameDomains, urlAlert.UserAgent
-                            
+
                             );
                     break;
                 case TrackUrlAlert trackUrlAlert:
@@ -164,7 +167,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                         alertEvent.Timestamp, alertEvent.Alert.Token,
                         alertEvent.Alert.DeviceInfo.DeviceUid, alertEvent.Alert.DeviceInfo.DeviceType,
                         alertEvent.Alert.DeviceInfo.OperatingSystem, alertEvent.Alert.DeviceInfo.MACAddress, user?.Key,
-                        trackUrlAlert.Url, trackUrlAlert.FromUrl, trackUrlAlert.Duration, trackUrlAlert.ScamInProgressKey, 
+                        trackUrlAlert.Url, trackUrlAlert.FromUrl, trackUrlAlert.Duration, trackUrlAlert.ScamInProgressKey,
                         trackUrlAlert.IPAddress, trackUrlAlert.UserAgent, trackUrlAlert.TabId, trackUrlAlert.Timezone
                             );
                     break;
@@ -196,7 +199,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
         }
     }
 
-    private void HandleAnalysisResultReceived(AnalysisResultReceived analysisEvent)
+    private void HandleAnalysisResultAdded(AnalysisResultAdded analysisEvent)
     {
         try
         {
@@ -204,13 +207,15 @@ public class ASView : IDomainEventHandler, IBackgroundTask
 
             string jsonValue = string.Empty;
             string discriminator = string.Empty;
-
+            bool IsFromCache = false;
+            
             switch (analysisEvent.AlertType)
             {
                 case nameof(UrlAlert):
                     var vm1 = analysisEvent.AnalyzerResults
                         .FirstOrDefault(i => i.Value.Item1 is UrlAnalysisResult).Value?.Item1 as UrlAnalysisResult;
                     discriminator = nameof(UrlAnalysisResult);
+                    IsFromCache = vm1.IsFromCache;
                     jsonValue = System.Text.Json.JsonSerializer.Serialize(new
                     {
                         AnalyzerResults = vm1,
@@ -221,10 +226,28 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                         DeviceUid = analysisEvent.DeviceUid
                     });
                     break;
+
+                case nameof(TrackUrlAlert):
+                    var vm3 = analysisEvent.AnalyzerResults
+                        .FirstOrDefault(i => i.Value.Item1 is TrackUrlAnalysisResult).Value?.Item1 as TrackUrlAnalysisResult;
+                    discriminator = nameof(TrackUrlAnalysisResult);
+                    IsFromCache = vm3.IsFromCache;
+                    jsonValue = System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        AnalyzerResults = vm3,
+                        Severity = analysisEvent.Severity.ToString(),
+                        Message = analysisEvent.Message,
+                        Details = analysisEvent.Details,
+                        Timestamp = analysisEvent.AnalysisTimestamp,
+                        DeviceUid = analysisEvent.DeviceUid
+                    });
+                    break;
+
                 case nameof(RemoteAccessAlert):
                     var vm2 = analysisEvent.AnalyzerResults
                         .FirstOrDefault(i => i.Value.Item1 is RemoteAccessAnalysisResult).Value?.Item1 as RemoteAccessAnalysisResult;
                     discriminator = nameof(RemoteAccessAnalysisResult);
+                    IsFromCache = false;
                     jsonValue = System.Text.Json.JsonSerializer.Serialize(new
                     {
                         AnalyzerResults = vm2,
@@ -238,19 +261,20 @@ public class ASView : IDomainEventHandler, IBackgroundTask
             }
 
             var container = new AnalysisResultContainer(
-                 Guid.NewGuid().ToString(),
-                analysisEvent.UserKeyField,
+                 analysisEvent.Key.Value,
+                analysisEvent.UserKey.Value,
                 discriminator,
                 analysisEvent.Timestamp,
                 jsonValue,
                 false,
                 null,
                 false,
-                analysisEvent.DeviceAlertKeyField
+                analysisEvent.DeviceAlertKey?.Value
             );
 
             lock (_lock)
             {
+                bool isValid = false;
                 // Create typed views so specific data (AnalysisResult, Alert) is preserved
                 switch (analysisEvent.AlertType)
                 {
@@ -258,27 +282,121 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                         var urlView = new UrlAnalysisResultView(container);
                         _urlAnalysisResults.Add(urlView);
                         _analysisResults.Add(urlView);
+                        isValid = true;
                         break;
                     case nameof(TrackUrlAlert):
                         var trackUrlView = new TrackUrlAnalysisResultView(container);
                         _trackUrlAnalysisResults.Add(trackUrlView);
                         _analysisResults.Add(trackUrlView);
+                        isValid = true;
                         break;
                     case nameof(RemoteAccessAlert):
                         var raView = new RemoteAccessAnalysisResultView(container);
                         _remoteAccessAnalysisResults.Add(raView);
+                        isValid = true;
                         _analysisResults.Add(raView);
                         break;
                 }
             }
 
-            _logger.LogInformation($"ASView added analysis result: Discriminator={discriminator}, UserKey={analysisEvent.UserKeyField}");
+            _logger.LogInformation($"ASView added analysis result: Discriminator={discriminator}, UserKey={analysisEvent.UserKey}");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error handling AnalysisResultReceived in ASView");
         }
     }
+
+    //private void HandleAnalysisResultReceived(AnalysisResultReceived analysisEvent)
+    //{
+    //    try
+    //    {
+    //        _logger.LogInformation($"ASView handling AnalysisResultReceived: AlertType={analysisEvent.AlertType}");
+
+    //        string jsonValue = string.Empty;
+    //        string discriminator = string.Empty;
+
+    //        switch (analysisEvent.AlertType)
+    //        {
+    //            case nameof(UrlAlert):
+    //                var vm1 = analysisEvent.AnalyzerResults
+    //                    .FirstOrDefault(i => i.Value.Item1 is UrlAnalysisResult).Value?.Item1 as UrlAnalysisResult;
+    //                discriminator = nameof(UrlAnalysisResult);
+    //                jsonValue = System.Text.Json.JsonSerializer.Serialize(new
+    //                {
+    //                    AnalyzerResults = vm1,
+    //                    Severity = analysisEvent.Severity.ToString(),
+    //                    Message = analysisEvent.Message,
+    //                    Details = analysisEvent.Details,
+    //                    Timestamp = analysisEvent.AnalysisTimestamp,
+    //                    DeviceUid = analysisEvent.DeviceUid
+    //                });
+    //                break;
+    //            case nameof(RemoteAccessAlert):
+    //                var vm2 = analysisEvent.AnalyzerResults
+    //                    .FirstOrDefault(i => i.Value.Item1 is RemoteAccessAnalysisResult).Value?.Item1 as RemoteAccessAnalysisResult;
+    //                discriminator = nameof(RemoteAccessAnalysisResult);
+    //                jsonValue = System.Text.Json.JsonSerializer.Serialize(new
+    //                {
+    //                    AnalyzerResults = vm2,
+    //                    Severity = analysisEvent.Severity.ToString(),
+    //                    Message = analysisEvent.Message,
+    //                    Details = analysisEvent.Details,
+    //                    Timestamp = analysisEvent.AnalysisTimestamp,
+    //                    DeviceUid = analysisEvent.DeviceUid
+    //                });
+    //                break;
+    //        }
+
+    //        var container = new AnalysisResultContainer(
+    //             Guid.NewGuid().ToString(),
+    //            analysisEvent.UserKeyField,
+    //            discriminator,
+    //            analysisEvent.Timestamp,
+    //            jsonValue,
+    //            false,
+    //            null,
+    //            false,
+    //            analysisEvent.DeviceAlertKeyField
+    //        );
+
+    //        lock (_lock)
+    //        {
+    //            bool isValid = false;
+    //            // Create typed views so specific data (AnalysisResult, Alert) is preserved
+    //            switch (analysisEvent.AlertType)
+    //            {
+    //                case nameof(UrlAlert):
+    //                    var urlView = new UrlAnalysisResultView(container);
+    //                    _urlAnalysisResults.Add(urlView);
+    //                    _analysisResults.Add(urlView);
+    //                    isValid = true;
+    //                    break;
+    //                case nameof(TrackUrlAlert):
+    //                    var trackUrlView = new TrackUrlAnalysisResultView(container);
+    //                    _trackUrlAnalysisResults.Add(trackUrlView);
+    //                    _analysisResults.Add(trackUrlView);
+    //                    isValid = true;
+    //                    break;
+    //                case nameof(RemoteAccessAlert):
+    //                    var raView = new RemoteAccessAnalysisResultView(container);
+    //                    _remoteAccessAnalysisResults.Add(raView);
+    //                    isValid = true;
+    //                    _analysisResults.Add(raView);
+    //                    break;
+    //            }
+
+
+
+    //        }
+
+    //        _logger.LogInformation($"ASView added analysis result: Discriminator={discriminator}, UserKey={analysisEvent.UserKeyField}");
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        _logger.LogError(ex, "Error handling AnalysisResultReceived in ASView");
+    //    }
+    //}
 
     private void HandleUserAdded(UserAdded evt)
     {
@@ -335,7 +453,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
         try
         {
             _logger.LogInformation("ASView LoadDataAsync starting...");
-            
+
             // Create a scope to get scoped repositories
             using (var scope = _serviceProvider.CreateScope())
             {
@@ -349,15 +467,15 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                 _logger.LogInformation("Fetching users from repository...");
                 var users = await userRepository.GetAllAsync();
                 _logger.LogInformation($"Users fetched: {users.Count()} records");
-                
+
                 _logger.LogInformation("Fetching devices from repository...");
                 var devices = await userDeviceRepository.GetAllAsync();
                 _logger.LogInformation($"Devices fetched: {devices.Count()} records");
-                
+
                 _logger.LogInformation("Fetching accounts from repository...");
                 var accounts = await userAccountRepository.GetAllAsync();
                 _logger.LogInformation($"Accounts fetched: {accounts.Count()} records");
-                
+
                 var deviceAlerts = await deviceAlertRepository.GetAllAsync();
                 _logger.LogInformation($"deviceAlerts fetched: {deviceAlerts.Count()} records");
 
@@ -372,7 +490,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                 var safeDomainRepository = scope.ServiceProvider.GetRequiredService<ISafeDomainRepository>();
                 var safeDomains = await safeDomainRepository.GetAllActiveAsync();
                 _logger.LogInformation($"safeDomains fetched: {safeDomains.Count()} records");
-                
+
                 // Use lock when updating shared state
                 lock (_lock)
                 {
@@ -401,7 +519,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                         .OrderByDescending(i => i.Timestamp).ToList();
                     _knownPhishingWebsites = knownPhishingWebsites.ToList();
                     _safeDomains = safeDomains.ToList();
-                    
+
                     _riskyDomains = _deviceAlerts
                         .OfType<UrlAlertView>()
                         .Where(u => !string.IsNullOrEmpty(u.Url) && this._knownPhishingWebsites.Select(i => i.Domain).Contains(u.Url))
@@ -429,13 +547,13 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                             (this._analysisResults.FirstOrDefault(i => i.Alert?.AlertId == u.AlertId)?.AnalysisResult as UrlAnalysisResult)?.risk_assessment,
                             q.Where(i => i.UserKey == u.UserKey && i.Url.ToLower() == u.Url.ToLower()).Select(i => new SurfHistoryItem(u.Url, i.Timestamp)).ToList()
                             )
-                        {  })
+                        { })
                         .ToList();
                 }
             }
 
             _logger.LogInformation($"ASView data loaded: {_users.Count} users, {_userDevices.Count} devices, {_userAccounts.Count} accounts");
-            
+
             // Debug: Show what was loaded
             foreach (var user in _users)
             {
@@ -462,29 +580,29 @@ public class ASView : IDomainEventHandler, IBackgroundTask
     {
         lock (_lock) { return _users.ToList(); }
     }
-    
+
     public List<UserDeviceView> GetUserDevices(Key userKey)
     {
-        lock (_lock) 
-        { 
+        lock (_lock)
+        {
             return _userDevices
                 .Where(i => i.UserKeyField?.ToString() == userKey.Value)
                 .Select(i => new UserDeviceView(i))
-                .ToList(); 
+                .ToList();
         }
     }
-    
+
     public List<UserAccountView> GetUserAccounts(Key userKey)
     {
-        lock (_lock) 
-        { 
+        lock (_lock)
+        {
             return _userAccounts
                 .Where(i => i.UserKeyField.ToString() == userKey.Value)
                 .Select(i => new UserAccountView(i))
-                .ToList(); 
+                .ToList();
         }
     }
-    
+
     public UserDevice? FindUserDeviceByDeviceUid(string deviceUid)
     {
         lock (_lock)
@@ -564,7 +682,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
         {
             int daysToSubtract = alertExpiryDays ?? 30;
             var res = this._riskyUrlSurfings
-                .Where(da => da.UserKey.Value == key.Value 
+                .Where(da => da.UserKey.Value == key.Value
                 && (daysToSubtract == 0 || da.CreatedAt >= DateTime.UtcNow.AddDays(-daysToSubtract)));
             return res.ToList();
         }
@@ -576,6 +694,28 @@ public class ASView : IDomainEventHandler, IBackgroundTask
         {
             int daysToSubtract = alertExpiryDays ?? 30;
             var res = this._remoteAccessAnalysisResults
+                .Where(da => da.UserKey?.Value == key.Value && da.Timestamp >= DateTime.UtcNow.AddDays(-daysToSubtract));
+            return res.ToList();
+        }
+    }
+
+    //internal IEnumerable<UrlAnalysisResultView> GetUrlAnalysisResultsByUserKey(Key key, int? alertExpiryDays = 30)
+    //{
+    //    lock (_lock)
+    //    {
+    //        int daysToSubtract = alertExpiryDays ?? 30;
+    //        var res = this._urlAnalysisResults
+    //            .Where(da => da.UserKey?.Value == key.Value && da.Timestamp >= DateTime.UtcNow.AddDays(-daysToSubtract));
+    //        return res.ToList();
+    //    }
+    //}
+
+    internal IEnumerable<TrackUrlAnalysisResultView> GetTrackUrlAnalysisResultsByUserKey(Key key, int? alertExpiryDays = 30)
+    {
+        lock (_lock)
+        {
+            int daysToSubtract = alertExpiryDays ?? 30;
+            var res = this._trackUrlAnalysisResults
                 .Where(da => da.UserKey?.Value == key.Value && da.Timestamp >= DateTime.UtcNow.AddDays(-daysToSubtract));
             return res.ToList();
         }
@@ -595,7 +735,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
     {
         if (string.IsNullOrWhiteSpace(domain))
             return false;
-        
+
         lock (_lock)
         {
             var normalized = domain.ToLowerInvariant();
@@ -619,7 +759,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
         {
             var urlLower = url.ToLower();
             var urlDomain = KnownPhishingWebsite.GetDomainFromUrl(urlLower);
-            
+
             cachedResult = this._urlAnalysisResults
                 .FirstOrDefault(da =>
                 {
