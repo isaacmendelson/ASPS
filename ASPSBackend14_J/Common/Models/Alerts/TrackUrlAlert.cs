@@ -34,7 +34,17 @@ public class TrackUrlAlert : DeviceAlert
     /// IP address of the request
     /// </summary>
     public string IPAddress { get; set; } = string.Empty;
-    
+
+    public string IP { get; set; } = string.Empty;
+
+    //public string IPAddress
+    //{
+    //    get
+    //    {
+    //        return this.IP;
+    //    }
+    //}
+
     /// <summary>
     /// User agent string from the browser
     /// </summary>

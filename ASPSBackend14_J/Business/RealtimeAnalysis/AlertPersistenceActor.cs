@@ -80,11 +80,11 @@ namespace Business.RealtimeAnalysis
                         DeviceUid = vm.DeviceInfo.DeviceUid,
                         DeviceType = userDevice.DeviceType,
                         OperatingSystem = userDevice.OperatingSystem,
-                        IPAddress = vm.DeviceInfo.IP,
+                        IPAddress = u.IPAddress ?? "",
                         Url = u.Url,
                         UserKeyField = userDevice.UserKeyField,
                         UserAgent = u.UserAgent,
-                        //TabId = u.
+                        TabId = u.TabId,
                         MAC = userDevice.MAC,
                         UserKey = userDevice?.UserKey ?? u.DeviceInfo.UserKey
                     };
@@ -119,7 +119,7 @@ namespace Business.RealtimeAnalysis
                         DeviceUid = vm.DeviceInfo.DeviceUid,
                         DeviceType = userDevice.DeviceType,
                         OperatingSystem = userDevice.OperatingSystem,
-                        IPAddress = vm.DeviceInfo.IP,
+                        IPAddress = vm.DeviceInfo.IP ?? "",
                         UserKeyField = userDevice.UserKeyField,
                     };
                     break;
