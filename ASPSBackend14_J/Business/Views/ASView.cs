@@ -613,7 +613,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                         &&
                         (da.Timestamp >= DateTime.UtcNow.AddMonths(-numberOfMonthsAgo) || numberOfMonthsAgo <= 0);
                 });
-            
+            //cachedResult.AnalysisResult.risk_assessment.risk_score = 95;
             return cachedResult is not null;
         }
     }

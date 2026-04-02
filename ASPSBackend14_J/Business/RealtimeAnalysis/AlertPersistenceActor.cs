@@ -57,6 +57,10 @@ namespace Business.RealtimeAnalysis
                     new Common.Exceptions.ErrorMessage("DeviceNotFound", errorMsg, Common.Enums.ResultStatusCode.NotFound));
             }
 
+            if(userDevice?.UserKey is not null && vm.DeviceInfo.UserKey is null)
+            {
+                vm.DeviceInfo.UserKey = userDevice?.UserKey;
+            }
             DeviceAlertEntity? alertEntity = null;
             var entityKey = !string.IsNullOrEmpty(alertReceived.DeviceAlertEntityKey)
                 ? alertReceived.DeviceAlertEntityKey
