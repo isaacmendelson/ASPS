@@ -56,8 +56,9 @@ class ExtensionHandler:
         trackers = data.get('trackers', [])
         iframes = data.get('iframes', [])
         ip_address = data.get('ipAddress', '') or self._local_ip
+        tab_id = data.get('tabId', '')
 
-        return self.scan_service.check_url(url, trackers, iframes, ip_address=ip_address)
+        return self.scan_service.check_url(url, trackers, iframes, ip_address=ip_address, tab_id=tab_id)
 
     def _handle_track_url_alert(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Handle TrackUrlAlert from extension - send to backend"""

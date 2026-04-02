@@ -224,7 +224,8 @@ class ZMQClient:
                        trackers: list = None, iframes: list = None,
                        mac: str = "00:11:22:33:44:55",
                        device_type: int = 1, os_type: int = 1,
-                       ip_address: str = "") -> Optional[Dict[str, Any]]:
+                       ip_address: str = "",
+                       tab_id: str = "") -> Optional[Dict[str, Any]]:
         """
         Send a UrlAlert.
 
@@ -267,7 +268,8 @@ class ZMQClient:
             "Url": url,
             "Trackers": trackers or [],
             "IFrameDomains": iframes or [],
-            "UserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+            "UserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+            "TabId": tab_id
         }
 
         if not self.connect():

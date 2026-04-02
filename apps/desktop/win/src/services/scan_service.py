@@ -100,7 +100,8 @@ class ScanService:
         url: str,
         trackers: list = None,
         iframes: list = None,
-        ip_address: str = ""
+        ip_address: str = "",
+        tab_id: str = ""
     ) -> Dict[str, Any]:
         """
         Check a URL for risks
@@ -163,7 +164,8 @@ class ScanService:
             token=token,
             trackers=trackers,
             iframes=iframes,
-            ip_address=ip_address
+            ip_address=ip_address,
+            tab_id=tab_id
         )
 
         self.event_logger.log_sent('SuspiciousUrlAlert', {'url': url})
