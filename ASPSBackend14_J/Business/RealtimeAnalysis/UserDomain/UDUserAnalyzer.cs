@@ -58,7 +58,7 @@ namespace Business.RealtimeAnalysis.UserDomain
             this._alertDeletionDays = alertDeletionDays;
             this._alertExpiryDays = alertExpiryDays;
         }
-        public string Name => "UDUserAnalyzer";
+        public string Name => nameof(UDUserAnalyzer);
         //public ExternalAnalyzer[] ExternalAnalyzers { get; }
 
         public UDUser UDUser { get; private set; }

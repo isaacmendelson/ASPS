@@ -85,7 +85,10 @@ public class UserDomainManagerService
         }
         else
         {
-            manager = new UDAnalysisManager(udUser, _loggerFactory, _aSView, _configuration, _eventHandlers, _phishingRepo, _safeDomainRepo);
+            var alertExpiryDays = _configuration.GetValue<int>("Analysis:DeviceAlertExpiryDays", 30);
+            var alertDeletionDays = _configuration.GetValue<int>("Analysis:DeviceAlertDeletionDays", 30);
+            //var userAnalyzer = new UDUserAnalyzer(udUser, _aSView, alertExpiryDays, alertDeletionDays, _loggerFactory);
+            manager = new UDAnalysisManager(udUser, new UDUserAnalyzer(udUser, _aSView, alertExpiryDays, alertDeletionDays, _loggerFactory), _loggerFactory, _aSView, _configuration, _eventHandlers, _phishingRepo, _safeDomainRepo);
         }
 
             // Add to dictionary

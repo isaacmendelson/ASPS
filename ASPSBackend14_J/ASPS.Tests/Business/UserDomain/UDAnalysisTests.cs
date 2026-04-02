@@ -248,9 +248,7 @@ public class UDAnalysisTests
             _mockLoggerFactory.Object,
             _mockIndicatorFactory.Object,
             _mockProtectiveActionsFactory.Object,
-            _mockConfiguration.Object,
-            alertExpiryDays: 30,
-            alertDeletionDays: 90
+            _mockConfiguration.Object
         );
     }
 

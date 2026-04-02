@@ -22,8 +22,8 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
 {
     private readonly List<ISpecificAnalyzer> _analyzers;
     private readonly ILogger<UDAnalysis> _logger;
-    private readonly int _alertExpiryDays;
-    private readonly int _alertDeletionDays;
+    private int _alertExpiryDays;
+    private int _alertDeletionDays;
     private readonly List<IDomainEventHandler> _eventHandlers = new();
     private readonly UDUserAnalyzer  _userAnalyzer;
     private bool _isRunning;
@@ -46,33 +46,27 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
     public IReadOnlyList<ActiveDeviceAlert> ExpiredDeviceAlerts => _expiredDeviceAlerts.AsReadOnly();
 
     public UDAnalysis(
-        UDUser udUser, 
+        UDUser udUser,
+        UDUserAnalyzer userAnalyzer,
         ASView aSView,
         List<ISpecificAnalyzer> analyzers, 
         ILoggerFactory _loggerFactory,
         IndicatorFactory indicatorFactory,
         ProtectiveActionsFactory protectiveActionsFactory,
-        IConfiguration configuration, 
-        int alertExpiryDays = 30, 
-        int alertDeletionDays = 90)
+        IConfiguration configuration)
     {
         _udUser = udUser;
+        _userAnalyzer = userAnalyzer;
         _aSView = aSView;
         _analyzers = analyzers;
         _logger = _loggerFactory.CreateLogger<UDAnalysis>();
-        //_configuration = configuration;
+
         this.LoadConfiguration(configuration);
 
-        _severityScoreThresholdCritical = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdCritical", 80);
-        _severityScoreThresholdHigh = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdHigh", 80);
-        _severityScoreThresholdMedium = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdMedium", 80);
-
-        _alertExpiryDays = alertExpiryDays;
-        _alertDeletionDays = alertDeletionDays;
         _indicatorFactory = indicatorFactory;
         _protectiveActionsFactory = protectiveActionsFactory;
         
-        _userAnalyzer = new UDUserAnalyzer(udUser, aSView, _alertExpiryDays, _alertDeletionDays, _loggerFactory);
+        //_userAnalyzer = new UDUserAnalyzer(udUser, aSView, _alertExpiryDays, _alertDeletionDays, _loggerFactory);
         _userAnalyzer.Start();
 
     }
@@ -93,6 +87,12 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
     {
         _eventHandlers.Add(handler);
         _logger.LogInformation($"Registered event handler: {handler.GetType().Name}");
+    }
+
+    public async Task AnalyzeAsync(AnalysisResult analysisResult, string deviceUid, Key deviceAlertEntityKey)
+    {
+        _logger.LogInformation($"AnalyzeAsync {analysisResult.GetType().Name} {deviceUid}. Total active alerts: {_activeDeviceAlerts.Count}");
+        this._userAnalyzer.AnalyzeAsync();
     }
 
     public async Task AnalyzeAsync(DeviceAlert deviceAlert, string deviceUid, string deviceAlertEntityKey)
@@ -379,6 +379,13 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
     {
         this._configuration = configuration;
         this._riskThresholdEnableTracking = _configuration.GetValue<int>("TrackUrl:RiskThresholdToEnableTracking", 30);
+        this._alertExpiryDays = configuration.GetValue<int>("Analysis:DeviceAlertExpiryDays", 30);
+        this._alertDeletionDays = configuration.GetValue<int>("Analysis:DeviceAlertDeletionDays", 90);
+
+        this._severityScoreThresholdCritical = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdCritical", 80);
+        this._severityScoreThresholdHigh = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdHigh", 80);
+        this._severityScoreThresholdMedium = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdMedium", 80);
+
     }
 
     private Severity GetSeverityFromRiskScore(float val)

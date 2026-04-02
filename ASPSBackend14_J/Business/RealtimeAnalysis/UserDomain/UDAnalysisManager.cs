@@ -21,16 +21,17 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
     public UDUser UDUser => _udUser;
     public UDAnalysis Analysis => _analysis;
     private bool _isRunning;
-    //private UDUserAnalyzer _userAnalyzer;
+    private UDUserAnalyzer _userAnalyzer;
     private readonly ASView _aSView;
     private bool isInitialized = false;
     private readonly IKnownPhishingWebsiteRepository _phishingRepo;
     private readonly ISafeDomainRepository _safeDomainRepo;
 
     public UDAnalysisManager(
-        UDUser udUser, 
+        UDUser udUser,
+        UDUserAnalyzer userAnalyzer,
         //ILogger<UDAnalysisManager> logger, 
-        ILoggerFactory loggerFactory, 
+        ILoggerFactory loggerFactory,
         ASView aSView,
         IConfiguration configuration,
         List<IDomainEventHandler> eventHandlers,
@@ -38,6 +39,7 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         ISafeDomainRepository safeDomainRepo)
     {
         _udUser = udUser;
+        _userAnalyzer = userAnalyzer;
         _aSView = aSView;
         _loggerFactory = loggerFactory;
         _logger = _loggerFactory.CreateLogger<UDAnalysisManager>();
@@ -53,16 +55,16 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
             new UDUrlAnalyzer(loggerFactory.CreateLogger<UDUrlAnalyzer>(), configuration, phishingRepo, aSView),
             new UDTrackUrlAnalyzer(loggerFactory.CreateLogger<UDTrackUrlAnalyzer>(), configuration, aSView)
         };
-        //_userAnalyzer = new UDUserAnalyzer(_udUser, loggerFactory.CreateLogger<UDUserAnalyzer>());
+        
 
         // Get configuration values for alert lifecycle
         var alertExpiryDays = configuration.GetValue<int>("Analysis:DeviceAlertExpiryDays", 30);
         var alertDeletionDays = configuration.GetValue<int>("Analysis:DeviceAlertDeletionDays", 90);
-        
+
         // Create single UDAnalysis for this user
         var analysisLogger = loggerFactory.CreateLogger<UDAnalysis>();
-        _analysis = new UDAnalysis(_udUser, aSView, _analyzers, _loggerFactory, new IndicatorFactory(), new ProtectiveActionsFactory(), _configuration, alertExpiryDays, alertDeletionDays);
-        
+        this._analysis = new UDAnalysis(this._udUser, this._userAnalyzer, this._aSView, this._analyzers, this._loggerFactory, new IndicatorFactory(), new ProtectiveActionsFactory(), this._configuration);
+
         // Register external event handlers first (includes ASView)
         foreach (var handler in eventHandlers)
         {
@@ -71,8 +73,8 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         _analysis.RegisterEventHandler(this);
         // Register internal UDUserAnalyzer last so it runs after ASView
         _analysis.RegisterUserAnalyzer();
-        
-        _logger.LogInformation($"UDAnalysisManager created for user {_udUser.Key} with {eventHandlers.Count} event handlers, expiry={alertExpiryDays}d, deletion={alertDeletionDays}d");
+
+        _logger.LogInformation($"UDAnalysisManager created for user {_udUser.Key} with {eventHandlers.Count} event handlers");
     }
 
     public void Start()
@@ -97,7 +99,7 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         this.LoadActiveAlerts();
         // Load Bad Url Visits
         this.LoadRiskyUserUrlSurfData();
-        
+
         isInitialized = true;
         _logger.LogInformation($"UDAnalysisManager initialized for user: {_udUser.Key}");
     }
@@ -118,11 +120,11 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
     private void LoadRiskyUserUrlSurfData()
     {
         var riskyUserUrlSurfData = _aSView.GetRiskyUrlSurfingByUserKey(_udUser.Key);
-        
+
         //_udUser.UserUrlSurfDataByDevice = riskyUserUrlSurfData
-             //.ToDictionary(g => g.DeviceUid, g => g.SurfHistory);
+        //.ToDictionary(g => g.DeviceUid, g => g.SurfHistory);
         //.ToDictionary(g => g.DeviceUid, g => g);
-        
+
         _udUser.UserUrlSurfDataByDevice = riskyUserUrlSurfData.GroupBy(d => d.DeviceUid)
                 .ToDictionary(g => g.Key, g => g.AsEnumerable());
     }
@@ -130,7 +132,7 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
     public async Task Handle(IDomainEvent evt)
     {
         if (!_isRunning) return;
-        switch(evt)
+        switch (evt)
         {
             case DeviceAlertReceived alertEvent:
                 await HandleDeviceAlertReceived(alertEvent);
@@ -153,7 +155,7 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
     private async Task HandleDeviceAlertReceived(DeviceAlertReceived alertEvent)
     {
         var deviceUid = alertEvent.DeviceUid;
-        
+
         try
         {
             // Pass alert to the single analysis instance with entity key
@@ -167,9 +169,18 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         }
     }
 
-    private Task HandleAnalysisResultReceived(AnalysisResultReceived analysisResultEvent)
+    private async Task HandleAnalysisResultReceived(AnalysisResultReceived analysisResultEvent)
     {
-        // TODO: implement post-analysis logic if needed
-        return Task.CompletedTask;
+        var deviceUid = analysisResultEvent.DeviceUid;
+
+        try
+        {
+            // Pass the analysis result to the single analysis instance with entity key
+            await _analysis.AnalyzeAsync(analysisResultEvent.AnalyzerResults.FirstOrDefault().Value.Item1, deviceUid, new Key(analysisResultEvent.AlertType, analysisResultEvent.DeviceAlertKeyField));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error handling alert from device {deviceUid} for user {_udUser.Key}");
+        }
     }
 }

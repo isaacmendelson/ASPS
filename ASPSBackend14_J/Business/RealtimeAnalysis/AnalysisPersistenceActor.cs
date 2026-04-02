@@ -93,7 +93,8 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                         });
                     }
                     var urlAlertEntity = await _deviceAlertRepository.GetByKeyAsync(new Key(nameof(UrlAlert), analysisEvent.DeviceAlertKeyField)) as UrlAlertEntity;
-                    
+                    var x = await _deviceAlertRepository.GetAllAsync();   //.GetByKeyAsync(new Key(nameof(UrlAlert), analysisEvent.DeviceAlertKeyField));
+                    var x1 = x.FirstOrDefault(i => i.AlertId == analysisEvent.DeviceAlertKeyField);
                     // Get first result safely
                     var firstUrlResult = analysisEvent.AnalyzerResults.Any() 
                         ? analysisEvent.AnalyzerResults.FirstOrDefault().Value.Item1 
