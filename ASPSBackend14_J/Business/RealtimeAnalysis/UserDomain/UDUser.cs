@@ -57,6 +57,7 @@ public class UDUser
     public bool IsCrossPlatformLocked { get; private set; }  //True if all user devices are locked (cross-platform protection)
     public UserRiskProfile RiskProfile { get; private set; }  //User risk profile with vulnerability and exposure scores
     public Dictionary<string, IEnumerable<BrowserTab>>? BrowserTabs { get; private set; }
+    
     public IEnumerable<DeviceAlertView> ActiveAlerts { get; set; }
     //public List<UserDevice> Devices { get; private set; }  //Direct access to user device entities
 
@@ -109,6 +110,26 @@ public class UDUser
     {
         this.IsCrossPlatformLocked = value;
     }
+
+    public void RemoveBrowserTabByDeviceUid(string deviceUid)
+    {
+        if (this.BrowserTabs is null || this.BrowserTabs[deviceUid] is null || this.BrowserTabs[deviceUid].Count() == 0)
+        {
+            return;
+        }
+        
+        this.BrowserTabs.Remove(deviceUid);
+    }
+
+    public void AddBrowserTabs(string deviceUid, IEnumerable<BrowserTab> browserTabs)
+    {
+        if (this.BrowserTabs is null)
+        {
+            this.BrowserTabs = new();
+        }
+        this.BrowserTabs.Add(deviceUid, browserTabs);
+    }
+
 
     // Add an alert to the active alerts list
     public void AddAlert(DeviceAlertView alert)

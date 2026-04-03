@@ -573,7 +573,7 @@ public class RealTimeAlertListener : IDisposable
             var userManager = await _userDomainService.GetManagerForDeviceAsync(deviceUid);
             if (userManager != null)
             {
-                await userManager.Handle(domainEvent);
+                userManager.Handle(domainEvent);
                 _logger.LogInformation("Analysis dispatched for device {DeviceUid}, user {UserKey}",
                     deviceUid, userManager.UDUser.Key);
             }

@@ -531,24 +531,44 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                         )
                         .ToList();
 
-                    var q = _deviceAlerts
+                    var urlAlertViews = _deviceAlerts
                         .OfType<UrlAlertView>()
-                        .Where(u => !string.IsNullOrEmpty(u.Url) && this._riskyDomains.Contains(u.Url))
+                        .Where(u => u.UserKey is not null && !string.IsNullOrEmpty(u.Url) && this._riskyDomains.Contains(KnownPhishingWebsite.GetDomainFromUrl(u.Url.ToLower())))
                         .Distinct();
 
-                    this._riskyUrlSurfings = q
-                        .Where(u => !string.IsNullOrEmpty(u.Url) && this._riskyDomains.Contains(u.Url))
-                        .Distinct()
-                        .Select(u => new UserDeviceUrlSurfData(
-                            u.UserKey,
+                    var trackUrlAlertViews = _deviceAlerts
+                        .OfType<UrlAlertView>()
+                        .Where(u => u.UserKey is not null && !string.IsNullOrEmpty(u.Url) && this._riskyDomains.Contains(KnownPhishingWebsite.GetDomainFromUrl(u.Url.ToLower())))
+                        .Distinct();
+
+
+                    this._riskyUrlSurfings.Clear();
+
+                    this._riskyUrlSurfings.AddRange(
+                        urlAlertViews.Select(u => new UserDeviceUrlSurfData(
+                            u.UserKey!,
                             u.Url,
                             u.DeviceUid,
                             MessagingApp.Unknown,
                             (this._analysisResults.FirstOrDefault(i => i.Alert?.AlertId == u.AlertId)?.AnalysisResult as UrlAnalysisResult)?.risk_assessment,
-                            q.Where(i => i.UserKey == u.UserKey && i.Url.ToLower() == u.Url.ToLower()).Select(i => new SurfHistoryItem(u.Url, i.Timestamp)).ToList()
+                            urlAlertViews.Where(i => i.UserKey == u.UserKey && i.Url.ToLower() == u.Url.ToLower()).Select(i => new SurfHistoryItem(u.Url, i.Timestamp)).ToList()
                             )
                         { })
-                        .ToList();
+                        .ToList()
+                        );
+                    this._riskyUrlSurfings.AddRange(
+                        trackUrlAlertViews.Select(u => new UserDeviceUrlSurfData(
+                            u.UserKey!,
+                            u.Url,
+                            u.DeviceUid,
+                            MessagingApp.Unknown,
+                            (this._analysisResults.FirstOrDefault(i => i.Alert?.AlertId == u.AlertId)?.AnalysisResult as TrackUrlAnalysisResult)?.risk_assessment,
+                            trackUrlAlertViews.Where(i => i.UserKey == u.UserKey && i.Url.ToLower() == u.Url.ToLower()).Select(i => new SurfHistoryItem(u.Url, i.Timestamp)).ToList()
+                            )
+                        { })
+                        .ToList()
+                        );
+
                 }
             }
 
@@ -683,7 +703,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
             int daysToSubtract = alertExpiryDays ?? 30;
             var res = this._riskyUrlSurfings
                 .Where(da => da.UserKey.Value == key.Value
-                && (daysToSubtract == 0 || da.CreatedAt >= DateTime.UtcNow.AddDays(-daysToSubtract)));
+                && (daysToSubtract == 0 || da.Timestamp >= DateTime.UtcNow.AddDays(-daysToSubtract)));
             return res.ToList();
         }
     }
@@ -699,16 +719,39 @@ public class ASView : IDomainEventHandler, IBackgroundTask
         }
     }
 
-    //internal IEnumerable<UrlAnalysisResultView> GetUrlAnalysisResultsByUserKey(Key key, int? alertExpiryDays = 30)
-    //{
-    //    lock (_lock)
-    //    {
-    //        int daysToSubtract = alertExpiryDays ?? 30;
-    //        var res = this._urlAnalysisResults
-    //            .Where(da => da.UserKey?.Value == key.Value && da.Timestamp >= DateTime.UtcNow.AddDays(-daysToSubtract));
-    //        return res.ToList();
-    //    }
-    //}
+    internal IEnumerable<AnalysisResultView> GetAnalysisResultsByUserKey(Key key, int? alertExpiryDays = 30)
+    {
+        lock (_lock)
+        {
+            int daysToSubtract = alertExpiryDays ?? 30;
+            var res = this._analysisResults
+                .Where(da => da.UserKey?.Value == key.Value && da.Timestamp >= DateTime.UtcNow.AddDays(-daysToSubtract));
+            return res.ToList();
+        }
+    }
+
+    internal IEnumerable<T> GetAnalysisResultsByUserKey<T>(Key key, int? alertExpiryDays = 30) where T : AnalysisResultView
+    {
+        lock (_lock)
+        {
+            int daysToSubtract = alertExpiryDays ?? 30;
+            var res = this._analysisResults
+                .Where(da => da is T && da.UserKey?.Value == key.Value && da.Timestamp >= DateTime.UtcNow.AddDays(-daysToSubtract))
+                .Select(i => i as T);
+            return res.ToList();
+        }
+    }
+
+    internal IEnumerable<UrlAnalysisResultView> GetUrlAnalysisResultsByUserKey(Key key, int? alertExpiryDays = 30)
+    {
+        lock (_lock)
+        {
+            int daysToSubtract = alertExpiryDays ?? 30;
+            var res = this._urlAnalysisResults
+                .Where(da => da.UserKey?.Value == key.Value && da.Timestamp >= DateTime.UtcNow.AddDays(-daysToSubtract));
+            return res.ToList();
+        }
+    }
 
     internal IEnumerable<TrackUrlAnalysisResultView> GetTrackUrlAnalysisResultsByUserKey(Key key, int? alertExpiryDays = 30)
     {
@@ -743,16 +786,6 @@ public class ASView : IDomainEventHandler, IBackgroundTask
         }
     }
 
-    internal IEnumerable<UrlAnalysisResultView> GetUrlAnalysisResultsByUserKey(Key key, int? alertExpiryDays = 30)
-    {
-        lock (_lock)
-        {
-            int daysToSubtract = alertExpiryDays ?? 30;
-            var res = this._urlAnalysisResults
-                .Where(da => da.UserKey?.Value == key.Value && da.Timestamp >= DateTime.UtcNow.AddDays(-daysToSubtract));
-            return res.ToList();
-        }
-    }
     internal bool TryGetCachedUrlAnalysis(string url, int numberOfMonthsAgo, out UrlAnalysisResultView? cachedResult)
     {
         lock (_lock)

@@ -13,18 +13,18 @@ namespace Common.Models.Alerts
         protected BrowserTab() { }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
-        public BrowserTab(string title, string userAgent, string url, DateTime? timestamp, bool isActive)
+        public BrowserTab(string title, string tabId, string userAgent, string url, DateTime? timestamp, bool isActive)
         {
             Title = title;
+            TabId = tabId;
             UserAgent = userAgent;
             Url = url;
             Timestamp = timestamp;
             IsActive = isActive;
         }
 
-
-
         public string Title { get; set; }
+        public string TabId { get; set; }
         public string UserAgent { get; set; }
         public string Url { get; set; }
         public DateTime? Timestamp { get; set; }

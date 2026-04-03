@@ -8,6 +8,7 @@ using Common.Models;
 using Common.Models.Alerts;
 using Common.ViewModels;
 using Microsoft.Extensions.Logging;
+using NetTopologySuite.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,7 +29,7 @@ namespace Business.RealtimeAnalysis.UserDomain
         private List<DeviceAlertView> _activeDeviceAlerts = new();
         //private KeyValuePair<string, DeviceAlertEntity>[] _activeDeviceAlertMap = Array.Empty<KeyValuePair<string, DeviceAlertEntity>>();
         //private KeyValuePair<string, AnalysisResultContainer>[] _analysisResultMap = Array.Empty<KeyValuePair<string, AnalysisResultContainer>>();
-        private List<AnalysisResultView> _analysisResults = new();
+        private List<AnalysisResultView> _analysisResultViews = new();
         private List<RemoteAccessAnalysisResultView> _remoteAccessAnalysisResults = new();
         private List<UrlAnalysisResultView> _urlAnalysisResults = new();
         private List<UserDeviceView> _devices = new();
@@ -67,21 +68,80 @@ namespace Business.RealtimeAnalysis.UserDomain
 
         public async Task AnalyzeAsync(DeviceAlert alert)
         {
-            // Placeholder for user-specific analysis logic
-            //return Task.CompletedTask;
+
+            switch (alert)
+            {
+                case RemoteAccessAlert r:
+
+                    // When RemoteAccessAlert is received:
+                    // 1. Update RemoteAccessStatus for user
+                    // 2. Update BrowserTabs for User (if provided)
+
+                    this._remoteAccessStatus.Add(new RemoteAccessStatusObject(r.Timestamp, r.DeviceInfo.DeviceUid, r.RemoteAccessDirection, r.RemoteAccessApp, 
+                        r.ConnectionStatus == ConnectionStatus.Open, r.SessionStatus == (int)SessionStatus.Open));
+
+                    if (r.BrowserTabs is not null)  // && r.BrowserTabs.Length > 0)
+                    {
+                        this.UDUser.SetBrowserTabs(r.DeviceInfo.DeviceUid, r.BrowserTabs);
+                    }
+                    break;
+            }
+
+            // With every device alert - check  immediate danger
+            var isImmediateDanger = this.CheckImmediateDanger();
+
+
         }
         public async Task AnalyzeAsync(Dictionary<string, Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>> analysisResult)  //AnalysisResult analysisResult )
         {
-            // Placeholder for user-specific analysis logic
-            //return Task.CompletedTask;
 
-            var urlAnalysisResultViews = this._asView.GetUrlAnalysisResultsByUserKey(this.UDUser.Key)
-                //.Where(this._analysisResults.Select(i => i.Key).Contains(analysisResult.))
-                .Where(i => i.Discriminator == (analysisResult.FirstOrDefault().Value.Item1 as UrlAnalysisResult)?.TypeName)
+            string analyzerName = analysisResult.FirstOrDefault().Key;
+            var firstResult = analysisResult.FirstOrDefault().Value;
+
+            //switch (firstResult.Item1)
+            //{
+            //    case RemoteAccessAnalysisResult r:
+            //        this._remoteAccessStatus.Add(new RemoteAccessStatusObject(r.Timestamp, r.DeviceInfo.DeviceUid, r.RemoteAccessDirection, r.RemoteAccessApp,
+            //            r.ConnectionStatus == ConnectionStatus.Open, r.SessionStatus == (int)SessionStatus.Open));
+
+            //        if (r.BrowserTabs is not null)  // && r.BrowserTabs.Length > 0)
+            //        {
+            //            this.UDUser.SetBrowserTabs(r.DeviceInfo.DeviceUid, r.BrowserTabs);
+            //        }
+            //        break;
+            //}
+
+            var isImmediateDanger = this.CheckImmediateDanger();
+            var x = this._asView.GetUrlAnalysisResultsByUserKey(this.UDUser.Key)?.ToList();
+
+            var analysisResultViews = this._asView.GetAnalysisResultsByUserKey(this.UDUser.Key)
                 .OrderByDescending(I => I.Timestamp)
                 .ToList();
-                
-            this._analysisResults.AddRange(urlAnalysisResultViews);
+
+            var urlAnalysisResultViews = this._asView.GetUrlAnalysisResultsByUserKey(this.UDUser.Key)
+                .OrderByDescending(I => I.Timestamp)
+                .ToList();
+
+            var trackUrlAnalysisResultViews = this._asView.GetTrackUrlAnalysisResultsByUserKey(this.UDUser.Key)
+               .OrderByDescending(I => I.Timestamp)
+               .ToList();
+
+            var remoteAccessAnalysisResultViews = this._asView.GetRemoteAccessAnalysisResultsByUserKey(this.UDUser.Key)
+               .OrderByDescending(I => I.Timestamp)
+               .ToList();
+
+            var riskyUserUrlSurfData = _asView.GetRiskyUrlSurfingByUserKey(this.UDUser.Key);
+
+            this._analysisResultViews = analysisResultViews;
+
+            this._analysisResultViews.AddRange(urlAnalysisResultViews.Where(i => !_analysisResultViews.Contains(i)));
+            var userRiskProfile = this.UDUser.RiskProfile;
+            var userBrowserTabs = this.UDUser.BrowserTabs;
+            var userRemoteAccessStatus = this.UDUser.RemoteAccessStatus;
+            var userRiskAsessment = this.UDUser.RiskAssessment;
+            var userUrlSurfDataByDevice = this.UDUser.UserUrlSurfDataByDevice;
+
+
         }
 
         public Type[] GetHandleableEvents()
@@ -138,7 +198,7 @@ namespace Business.RealtimeAnalysis.UserDomain
             this.GetLatestAnalysisResults();
 
             var alerts = this._activeDeviceAlerts.OrderByDescending(i => i.Timestamp).Take(5);
-            var results = this._analysisResults.OrderByDescending(i => i.Timestamp).Take(5);
+            var results = this._analysisResultViews.OrderByDescending(i => i.Timestamp).Take(5);
             var remoteAccessAnalysisResults = this._asView.GetRemoteAccessAnalysisResultsByUserKey(this.UDUser.Key)?
                 .Where(i => i.Timestamp > DateTime.UtcNow.Subtract(new TimeSpan(24, 0, 0))).OrderByDescending(i => i.Timestamp).Take(5);
             var urlAnalysisResults = this._asView.GetUrlAnalysisResultsByUserKey(this.UDUser.Key)?
@@ -217,7 +277,7 @@ namespace Business.RealtimeAnalysis.UserDomain
             this.GetLatestAnalysisResults();
             
             var alerts = this._activeDeviceAlerts.OrderByDescending(i => i.Timestamp).Take(5);
-            var results = this._analysisResults.OrderByDescending(i => i.Timestamp).Take(5);
+            var results = this._analysisResultViews.OrderByDescending(i => i.Timestamp).Take(5);
             var remoteAccessAnalysisResults = this._asView.GetRemoteAccessAnalysisResultsByUserKey(this.UDUser.Key)?
                 .Where(i => i.Timestamp > DateTime.UtcNow.Subtract(new TimeSpan(24, 0, 0))).OrderByDescending(i => i.Timestamp).Take(5);
             var urlAnalysisResults = this._asView.GetUrlAnalysisResultsByUserKey(this.UDUser.Key)?

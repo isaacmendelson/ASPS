@@ -4,6 +4,7 @@ using Business.Views;
 using Common.Entities;
 using Common.Interfaces;
 using Common.Models;
+using Common.Models.Alerts;
 using Interface.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -163,6 +164,10 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
 
         try
         {
+            if (alertEvent.Alert is RemoteAccessAlert r)
+            {
+                _= this._userAnalyzer.AnalyzeAsync(alertEvent.Alert);
+            }
             // Pass alert to the single analysis instance with entity key
             var analysisResultForDeviceAlert = await this._analysis.AnalyzeAsync(alertEvent.Alert, deviceUid, alertEvent.DeviceAlertEntityKey);
             if (analysisResultForDeviceAlert?.FirstOrDefault() is not null && analysisResultForDeviceAlert?.FirstOrDefault().Value is Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>)
