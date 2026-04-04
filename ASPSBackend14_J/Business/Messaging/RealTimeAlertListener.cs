@@ -543,7 +543,7 @@ public class RealTimeAlertListener : IDisposable
             );
 
             // Phase 2: fire analysis in background — ACK is returned immediately
-            _ = Task.Run(() => DispatchAlertInBackground(domainEvent, deviceUid));
+            _ = Task.Run(() => DispatchAlertInBackground(domainEvent, userDevice.UserKey, deviceUid));
 
             _logger.LogInformation("Alert accepted from device {DeviceUid}, type={AlertType} — dispatching analysis",
                 deviceUid, alertType);
@@ -566,16 +566,16 @@ public class RealTimeAlertListener : IDisposable
     }
 
     // Phase 2: runs on thread pool — analysis can take up to 30s (Python/ML)
-    private async Task DispatchAlertInBackground(DeviceAlertReceived domainEvent, string deviceUid)
+    private async Task DispatchAlertInBackground(DeviceAlertReceived domainEvent, Key userKey, string deviceUid)
     {
         try
         {
-            var userManager = await _userDomainService.GetManagerForDeviceAsync(deviceUid);
+            //var userManager = await _userDomainService.GetManagerForDeviceAsync(deviceUid);
+            var userManager = this._userDomainService.GetOrCreateManagerForUser(userKey);
             if (userManager != null)
             {
                 userManager.Handle(domainEvent);
-                _logger.LogInformation("Analysis dispatched for device {DeviceUid}, user {UserKey}",
-                    deviceUid, userManager.UDUser.Key);
+                _logger.LogInformation($"Analysis dispatched for device {deviceUid}, user {userKey}");
             }
             else
             {
