@@ -10,6 +10,7 @@ using Common.Enums;
 using Common.Interfaces;
 using Common.Models;
 using Interface.Repositories;
+using Business.DomainEvents;
 
 namespace ASPS.Tests.Business.Handlers;
 

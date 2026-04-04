@@ -12,10 +12,64 @@ using Microsoft.Extensions.Configuration;
 
 namespace Business.DomainEvents;
 
-public abstract class DomainEvent : IDomainEvent
+
+internal static class DomainEvents
 {
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-    public string EventType { get; set; } = string.Empty;
+    private static IDomainEventPublisher _publisher;
+
+
+    public static IDomainEventPublisher Publisher
+    {
+        get { return _publisher ??= new NullPublisher(); }
+        set { _publisher = value ?? new NullPublisher(); }
+    }
+
+    public static void Register(DomainEvent evt)
+    {
+
+        Publisher.Register(evt);
+        if (evt is AnalysisResultAdded a)
+        {
+           
+        }
+
+    }
+
+    public static void Register(IEnumerable<DomainEvent> events)
+    {
+        foreach (var e in events)
+        {
+            Publisher.Register(e);
+        }
+    }
+
+    public static void Publish()
+    {
+        Publisher.RaiseAll();
+    }
+
+    private class NullPublisher : IDomainEventPublisher
+    {
+        public void RaiseAll()
+        {
+
+        }
+
+        public void Register(IDomainEvent evt)
+        {
+
+        }
+
+        public void Register(IEnumerable<IDomainEvent> events)
+        {
+
+        }
+
+        public void Subscribe(IDomainEventHandler handler)
+        {
+
+        }
+    }
 }
 
 public class DeviceAlertReceived : DomainEvent

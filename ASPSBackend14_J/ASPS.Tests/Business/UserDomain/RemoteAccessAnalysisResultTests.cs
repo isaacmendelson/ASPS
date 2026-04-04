@@ -22,7 +22,7 @@ public class RemoteAccessAnalysisResultTests
         var direction = RemoteAccessDirection.In;
         var tabs = new BrowserTab[] 
         { 
-            new BrowserTab("Test", "Mozilla/5.0", "http://test.com", DateTime.UtcNow, true) 
+            new BrowserTab("Test", "Mozilla/5.0", "t1", "http://test.com", DateTime.UtcNow, true) 
         };
         var riskAssessment = new RiskAssessment(50f, "Medium risk", false, 1f); // MEDIUM risk
 
@@ -69,9 +69,9 @@ public class RemoteAccessAnalysisResultTests
         // Arrange
         var tabs = new BrowserTab[]
         {
-            new BrowserTab("Test 1", "Agent", "http://test1.com", DateTime.UtcNow, true),
-            new BrowserTab("Test 2", "Agent", "http://test2.com", DateTime.UtcNow, false),
-            new BrowserTab("Test 3", "Agent", "http://test3.com", DateTime.UtcNow, true)
+            new BrowserTab("Test 1", "Agent", "t1", "http://test1.com", DateTime.UtcNow, true),
+            new BrowserTab("Test 2", "Agent", "t2", "http://test2.com", DateTime.UtcNow, false),
+            new BrowserTab("Test 3", "Agent", "t3", "http://test3.com", DateTime.UtcNow, true)
         };
 
         // Act

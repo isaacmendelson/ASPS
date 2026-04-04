@@ -10,20 +10,19 @@ public class AnalysisResultContainer : Entity
 
     public AnalysisResultContainer(string keyField, string userKeyField, string discriminator, DateTime timestamp, string? jsonValue, bool? hasError, string? errorMessage, bool? isFromCache = false, string? deviceAlertKeyField = null)
     {
-        UserKeyField = userKeyField;
-        Discriminator = discriminator;
-        JsonValue = jsonValue;
-        HasError = hasError;
-        ErrorMessage = errorMessage;
-        IsFromCache = isFromCache ?? false;
-        DeviceAlertKeyField = deviceAlertKeyField;
+        this.UserKeyField = userKeyField;
+        this.Discriminator = discriminator;
+        this.JsonValue = jsonValue;
+        this.HasError = hasError;
+        this.ErrorMessage = errorMessage;
+        this.IsFromCache = isFromCache ?? false;
+        this.DeviceAlertKeyField = deviceAlertKeyField;
         this.SetKeyField(keyField);
-        Timestamp = timestamp;
+        this.Timestamp = timestamp;
         this.DateCreated = timestamp;
         this.KeyField = keyField;
         this.UserKeyField = userKeyField;
         this.Discriminator = discriminator;
-        this.Timestamp = timestamp;
     }
 
     protected AnalysisResultContainer()

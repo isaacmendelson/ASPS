@@ -86,7 +86,7 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                         var vm11 = new UrlAnalyzerResultVm(vm1,
                             res1.Value.Item2.Cast<Indicator>().ToArray(),
                             res1.Value.Item3.Cast<ProtectiveAction>().ToArray(),
-                            res1.Key, analysisEvent.DeviceUid, analysisEvent.Timestamp, analysisEvent.Severity);
+                            res1.Key, analysisEvent.DeviceUid, analysisEvent.Timestamp.UtcDateTime, analysisEvent.Severity);
                         jsonValue = JsonConvert.SerializeObject(vm11, new JsonSerializerSettings
                         {
                             TypeNameHandling = TypeNameHandling.None,
@@ -106,7 +106,7 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                         guid,
                         analysisEvent.UserKeyField,
                         nameof(UrlAnalysisResult),
-                        analysisEvent.Timestamp,
+                        analysisEvent.Timestamp.UtcDateTime,
                         jsonValue,
                         firstUrlResult?.Error is not null,
                         firstUrlResult?.Error?.Message,
@@ -130,7 +130,7 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                         var vm22 = new TrackUrlAnalyzerResultVm(vm2,
                             res2.Value.Item2.Cast<Indicator>().ToArray(),
                             res2.Value.Item3.Cast<ProtectiveAction>().ToArray(),
-                            res2.Key, analysisEvent.DeviceUid, analysisEvent.Timestamp, analysisEvent.Severity);
+                            res2.Key, analysisEvent.DeviceUid, analysisEvent.Timestamp.UtcDateTime, analysisEvent.Severity);
                         jsonValue = JsonConvert.SerializeObject(vm22, new JsonSerializerSettings
                         {
                             TypeNameHandling = TypeNameHandling.None,
@@ -144,7 +144,7 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                          trackUrlAlertEntity?.FromUrl ?? (analysisEvent.AnalyzerResults.FirstOrDefault().Value.Item1 as TrackUrlAnalysisResult).FromUrl ?? "",
                          analysisEvent.UserKeyField,
                          nameof(TrackUrlAnalysisResult),
-                         analysisEvent.Timestamp,
+                         analysisEvent.Timestamp.UtcDateTime,
                          jsonValue,
                          analysisEvent.AnalyzerResults.FirstOrDefault().Value.Item1.Error is not null,
                          analysisEvent.AnalyzerResults.FirstOrDefault().Value.Item1.Error?.Message,
@@ -166,7 +166,7 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                         var vm22 = new RemoteAccessAnalyzerResultVm(vm2,
                             res2.Value.Item2.Cast<Indicator>().ToArray(),
                             res2.Value.Item3.Cast<ProtectiveAction>().ToArray(),
-                            res2.Key, analysisEvent.DeviceUid, analysisEvent.Timestamp, analysisEvent.Severity);
+                            res2.Key, analysisEvent.DeviceUid, analysisEvent.Timestamp.UtcDateTime, analysisEvent.Severity);
                         jsonValue = JsonConvert.SerializeObject(vm22);
                         jsonValue = System.Text.Json.JsonSerializer.Serialize(new
                         {
@@ -185,7 +185,7 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                          guid,
                          analysisEvent.UserKeyField,
                          nameof(RemoteAccessAnalysisResult),
-                         analysisEvent.Timestamp,
+                         analysisEvent.AnalysisTimestamp,
                          jsonValue,
                          analysisEvent.AnalyzerResults.FirstOrDefault().Value.Item1.Error is not null,
                          analysisEvent.AnalyzerResults.FirstOrDefault().Value.Item1.Error?.Message,

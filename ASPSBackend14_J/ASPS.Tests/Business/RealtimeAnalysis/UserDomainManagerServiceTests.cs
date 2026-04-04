@@ -12,6 +12,7 @@ using Common.Entities;
 using Common.Models;
 using Common.Interfaces;
 using Interface.Repositories;
+using Business.DomainEvents;
 
 namespace ASPS.Tests.Business.RealtimeAnalysis;
 

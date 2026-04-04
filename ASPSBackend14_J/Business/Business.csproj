@@ -13,12 +13,14 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="NetTopologySuite" Version="2.6.0" />
+    <PackageReference Include="NLog" Version="6.1.2" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="7.0.0" />
     <!-- <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.2" /> -->
     <PackageReference Include="NetMQ" Version="4.0.1.13" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.1" />
+    <PackageReference Include="System.Composition.AttributedModel" Version="10.0.5" />
   </ItemGroup>
 
   <ItemGroup>

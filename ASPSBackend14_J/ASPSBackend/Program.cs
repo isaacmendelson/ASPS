@@ -1,5 +1,6 @@
 using Business.Data.EF;
 using Business.Data.EF.Repositories;
+using Business.DomainEvents;
 using Business.Handlers;
 using Business.Messaging;
 using Business.RealtimeAnalysis;

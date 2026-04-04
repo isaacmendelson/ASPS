@@ -70,13 +70,16 @@ public class UDUser
             var res = new Dictionary<string, RemoteAccessAnalysisResult>();
             foreach (var d in this._userDevices)
             {
-                var r = this.RemoteAccessAnalysisResults[d.DeviceUid]
-                    .Where(i => i.Success)
-                    .OrderByDescending(i => i.analyzed_at).FirstOrDefault();
-                if (r is not null)
+                if (this.RemoteAccessAnalysisResults.TryGetValue(d.DeviceUid, out List<RemoteAccessAnalysisResult>? rs))
                 {
-                    res[d.DeviceUid] = r;
+                    var r = rs.Where(i => i.Success)
+                    .OrderByDescending(i => i.analyzed_at).FirstOrDefault();
+                    if (r is not null)
+                    {
+                        res[d.DeviceUid] = r;
+                    }
                 }
+
             }
             return res;
         }

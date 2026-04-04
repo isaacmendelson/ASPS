@@ -1,4 +1,5 @@
 using Business.Data.EF;
+using Business.DomainEvents;
 using Business.Views;
 using Common.Entities;
 using Common.Interfaces;
