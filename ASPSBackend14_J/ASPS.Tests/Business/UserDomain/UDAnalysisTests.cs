@@ -241,8 +241,17 @@ public class UDAnalysisTests
     {
         analyzers ??= new List<ISpecificAnalyzer>();
 
+        var userAnalyzer = new UDUserAnalyzer(
+            _testUser,
+            _testASView,
+            30,
+            90,
+            _mockLoggerFactory.Object
+        );
+
         return new UDAnalysis(
             _testUser,
+            userAnalyzer,
             _testASView,
             analyzers,
             _mockLoggerFactory.Object,
