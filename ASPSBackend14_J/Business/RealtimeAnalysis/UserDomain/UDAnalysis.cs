@@ -148,7 +148,7 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
                 }
             }            analysisResults[analyzer.GetType().Name] = new Tuple<string, AnalyzerResult>(deviceAlert.AlertId, analyzerResult);
             
-            FireSpecificAnalyzerResultReceivedEvent(activeAlert, analyzer.GetType().Name, analyzerResult);
+            FireAnalyzerResultReceivedEvent(activeAlert, analyzer.GetType().Name, analyzerResult);
         }
 
         var urlAnalyzerResults = new List<KeyValuePair<string, Tuple<string, AnalyzerResult>>>();
@@ -230,23 +230,22 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
     /// <summary>
     /// Fire AnalysisResultReceived event for registered handlers
     /// </summary>
-    private void FireSpecificAnalyzerResultReceivedEvent(ActiveDeviceAlert activeAlert, string analyzerName, AnalyzerResult result)
+    private void FireAnalyzerResultReceivedEvent(ActiveDeviceAlert activeAlert, string analyzerName, AnalyzerResult result)
     {
-        var analysisEvent = new SpecificAnalyzerResultReceived
+        var analysisEvent = new AnalyzerResultReceived
         {
             UserKeyField = _udUser.Key.Value,
-            DeviceAlertKeyField = activeAlert.DeviceAlertEntityKey,  // Use entity key from DB
+            DeviceAlertKeyField = activeAlert.DeviceAlertEntityKey, 
             DeviceUid = activeAlert.DeviceUid,
             AnalyzerName = analyzerName,
             Severity = result.Severity,
             AnalysisTimestamp = activeAlert.Timestamp,
-            
         };
 
         // Notify all registered event handlers
         foreach (var handler in _eventHandlers)
         {
-            if (handler.GetHandleableEvents().Contains(typeof(SpecificAnalyzerResultReceived)))
+            if (handler.GetHandleableEvents().Contains(typeof(AnalyzerResultReceived)))
             {
                 try
                 {

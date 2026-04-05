@@ -100,10 +100,10 @@ public class DomainEventsTests
     public void SpecificAnalyzerResultReceived_DefaultConstructor_ShouldSetEventType()
     {
         // Act
-        var @event = new SpecificAnalyzerResultReceived();
+        var @event = new AnalyzerResultReceived();
 
         // Assert
-        Assert.Equal(nameof(SpecificAnalyzerResultReceived), @event.EventType);
+        Assert.Equal(nameof(AnalyzerResultReceived), @event.EventType);
         Assert.NotNull(@event.Details);
         Assert.Empty(@event.Details);
     }
@@ -112,7 +112,7 @@ public class DomainEventsTests
     public void SpecificAnalyzerResultReceived_Properties_ShouldBeSettable()
     {
         // Arrange
-        var @event = new SpecificAnalyzerResultReceived();
+        var @event = new AnalyzerResultReceived();
         var analyzerName = "URLAnalyzer";
 
         // Act

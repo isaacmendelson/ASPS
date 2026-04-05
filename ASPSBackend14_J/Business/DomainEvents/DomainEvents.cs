@@ -163,7 +163,7 @@ public class AnalysisResultAdded : DomainEvent
         AnalysisTimestamp = analysisTimestamp;
     }
 }
-public class SpecificAnalyzerResultReceived : DomainEvent
+public class AnalyzerResultReceived : DomainEvent
 {
     public string UserKeyField { get; set; } = string.Empty;
     public string DeviceAlertKeyField { get; set; } = string.Empty;
@@ -174,9 +174,9 @@ public class SpecificAnalyzerResultReceived : DomainEvent
     public Dictionary<string, object> Details { get; set; } = new();
     public DateTime AnalysisTimestamp { get; set; }
 
-    public SpecificAnalyzerResultReceived()
+    public AnalyzerResultReceived()
     {
-        EventType = nameof(SpecificAnalyzerResultReceived);
+        EventType = nameof(AnalyzerResultReceived);
     }
 }
 
