@@ -23,9 +23,9 @@ public class UDUrlAnalyzerTests
 {
     // Dependencies
     private readonly Mock<ILogger<UDUrlAnalyzer>> _loggerMock;
-    private readonly Mock<IConfiguration> _configurationMock;
+    private readonly IConfiguration _configuration;
     private readonly Mock<IKnownPhishingWebsiteRepository> _phishingRepoMock;
-    private readonly Mock<ASView> _asViewMock;
+    private readonly ASView _asView;
 
     // System Under Test
     private readonly UDUrlAnalyzer _sut;
@@ -34,30 +34,37 @@ public class UDUrlAnalyzerTests
     {
         // Setup mocks
         _loggerMock = new Mock<ILogger<UDUrlAnalyzer>>();
-        _configurationMock = new Mock<IConfiguration>();
         _phishingRepoMock = new Mock<IKnownPhishingWebsiteRepository>();
         
+        // Use InMemoryConfiguration instead of mocking (to support GetValue<T> extension method)
+        var configData = new Dictionary<string, string>
+        {
+            ["Python:ExecutablePath"] = "python",
+            ["Python:AnalyzersFolderPath"] = "/test/analyzers",
+            ["TrackUrl:RiskThresholdToEnableTracking"] = "40",
+            ["TrackUrl:TrackingDurationMinutes"] = "3000",
+            ["Analysis:SeverityScoreThresholdCritical"] = "80",
+            ["Analysis:SeverityScoreThresholdHigh"] = "80",
+            ["Analysis:SeverityScoreThresholdMedium"] = "80"
+        };
+        
+        _configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(configData!)
+            .Build();
+        
         // ASView requires IServiceProvider and ILogger<ASView>
-        var mockServiceProvider = new Mock<IServiceProvider>();
+        var services = new ServiceCollection();
         var mockASViewLogger = new Mock<ILogger<ASView>>();
-        _asViewMock = new Mock<ASView>(mockServiceProvider.Object, mockASViewLogger.Object);
-
-        // Setup default configuration values
-        _configurationMock.Setup(c => c.GetSection("Python:ExecutablePath").Value)
-            .Returns("python");
-        _configurationMock.Setup(c => c.GetSection("Python:AnalyzersFolderPath").Value)
-            .Returns("/test/analyzers");
-        _configurationMock.Setup(c => c["Python:ExecutablePath"])
-            .Returns("python");
-        _configurationMock.Setup(c => c["Python:AnalyzersFolderPath"])
-            .Returns("/test/analyzers");
+        services.AddSingleton(mockASViewLogger.Object);
+        var serviceProvider = services.BuildServiceProvider();
+        _asView = new ASView(serviceProvider, mockASViewLogger.Object, _configuration);
 
         // Create instance
         _sut = new UDUrlAnalyzer(
             _loggerMock.Object,
-            _configurationMock.Object,
+            _configuration,
             _phishingRepoMock.Object,
-            _asViewMock.Object
+            _asView
         );
     }
 
@@ -69,9 +76,9 @@ public class UDUrlAnalyzerTests
         // Act
         var instance = new UDUrlAnalyzer(
             _loggerMock.Object,
-            _configurationMock.Object,
+            _configuration,
             _phishingRepoMock.Object,
-            _asViewMock.Object
+            _asView
         );
 
         // Assert
@@ -197,12 +204,11 @@ public class UDUrlAnalyzerTests
 
         _phishingRepoMock.Setup(r => r.IsPhishingUrlAsync(It.IsAny<string>())).ReturnsAsync(false);
         _phishingRepoMock.Setup(r => r.IsPhishingDomainAsync(It.IsAny<string>())).ReturnsAsync(false);
-        _configurationMock.Setup(c => c.GetSection("Analysis:CacheEnabled").Value).Returns("false");
 
         // Act
         try
         {
-            var result = await _sut.AnalyzeAsync(alert, new List<DeviceAlert>(), _configurationMock.Object);
+            var result = await _sut.AnalyzeAsync(alert, new List<DeviceAlert>(), _configuration);
         }
         catch
         {
@@ -232,12 +238,11 @@ public class UDUrlAnalyzerTests
 
         _phishingRepoMock.Setup(r => r.IsPhishingUrlAsync(It.IsAny<string>())).ReturnsAsync(false);
         _phishingRepoMock.Setup(r => r.IsPhishingDomainAsync(It.IsAny<string>())).ReturnsAsync(false);
-        _configurationMock.Setup(c => c.GetSection("Analysis:CacheEnabled").Value).Returns("false");
 
         // Act
         try
         {
-            var result = await _sut.AnalyzeAsync(alert, new List<DeviceAlert>(), _configurationMock.Object);
+            var result = await _sut.AnalyzeAsync(alert, new List<DeviceAlert>(), _configuration);
         }
         catch
         {
@@ -256,14 +261,37 @@ public class UDUrlAnalyzerTests
     public void Configuration_RiskThresholdToEnableTracking_ShouldBeReadFromConfig()
     {
         // Arrange
-        var configMock = new Mock<IConfiguration>();
-        configMock.Setup(c => c.GetSection("TrackUrl:RiskThresholdToEnableTracking").Value)
-            .Returns("50");
+        var configData = new Dictionary<string, string>
+        {
+            ["Python:ExecutablePath"] = "python",
+            ["Python:AnalyzersFolderPath"] = "/test/analyzers",
+            ["TrackUrl:RiskThresholdToEnableTracking"] = "50", // Custom value
+            ["TrackUrl:TrackingDurationMinutes"] = "3000",
+            ["Analysis:SeverityScoreThresholdCritical"] = "80",
+            ["Analysis:SeverityScoreThresholdHigh"] = "80",
+            ["Analysis:SeverityScoreThresholdMedium"] = "80"
+        };
+        
+        var customConfig = new ConfigurationBuilder()
+            .AddInMemoryCollection(configData!)
+            .Build();
+        
+        var mockASViewLogger = new Mock<ILogger<ASView>>();
+        var services = new ServiceCollection();
+        services.AddSingleton(mockASViewLogger.Object);
+        var serviceProvider = services.BuildServiceProvider();
+        var asView = new ASView(serviceProvider, mockASViewLogger.Object, customConfig);
 
-        // Act
-        var threshold = int.Parse(configMock.Object.GetSection("TrackUrl:RiskThresholdToEnableTracking").Value ?? "40");
+        // Act - create instance with custom config
+        var analyzer = new UDUrlAnalyzer(
+            _loggerMock.Object,
+            customConfig,
+            _phishingRepoMock.Object,
+            asView
+        );
 
-        // Assert
+        // Assert - verify config was read correctly
+        var threshold = customConfig.GetValue<int>("TrackUrl:RiskThresholdToEnableTracking", 40);
         threshold.Should().Be(50);
     }
 
@@ -271,14 +299,37 @@ public class UDUrlAnalyzerTests
     public void Configuration_TrackingDurationMinutes_ShouldBeReadFromConfig()
     {
         // Arrange
-        var configMock = new Mock<IConfiguration>();
-        configMock.Setup(c => c.GetSection("TrackUrl:TrackingDurationMinutes").Value)
-            .Returns("60");
+        var configData = new Dictionary<string, string>
+        {
+            ["Python:ExecutablePath"] = "python",
+            ["Python:AnalyzersFolderPath"] = "/test/analyzers",
+            ["TrackUrl:RiskThresholdToEnableTracking"] = "40",
+            ["TrackUrl:TrackingDurationMinutes"] = "60", // Custom value
+            ["Analysis:SeverityScoreThresholdCritical"] = "80",
+            ["Analysis:SeverityScoreThresholdHigh"] = "80",
+            ["Analysis:SeverityScoreThresholdMedium"] = "80"
+        };
+        
+        var customConfig = new ConfigurationBuilder()
+            .AddInMemoryCollection(configData!)
+            .Build();
+        
+        var mockASViewLogger = new Mock<ILogger<ASView>>();
+        var services = new ServiceCollection();
+        services.AddSingleton(mockASViewLogger.Object);
+        var serviceProvider = services.BuildServiceProvider();
+        var asView = new ASView(serviceProvider, mockASViewLogger.Object, customConfig);
 
-        // Act
-        var duration = int.Parse(configMock.Object.GetSection("TrackUrl:TrackingDurationMinutes").Value ?? "30");
+        // Act - create instance with custom config
+        var analyzer = new UDUrlAnalyzer(
+            _loggerMock.Object,
+            customConfig,
+            _phishingRepoMock.Object,
+            asView
+        );
 
-        // Assert
+        // Assert - verify config was read correctly
+        var duration = customConfig.GetValue<int>("TrackUrl:TrackingDurationMinutes", 3000);
         duration.Should().Be(60);
     }
 

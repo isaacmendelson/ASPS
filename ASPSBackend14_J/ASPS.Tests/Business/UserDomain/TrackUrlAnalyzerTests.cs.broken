@@ -12,6 +12,7 @@ using Common.Models.Alerts;
 using FluentAssertions;
 using Interface.Repositories;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -27,7 +28,7 @@ public class TrackUrlAnalyzerTests
 {
     // Dependencies
     private readonly Mock<ILogger<TrackUrlAnalyzer>> _loggerMock;
-    private readonly Mock<ASView> _asViewMock;
+    private readonly ASView _asView;
     private readonly Mock<ITrackedDomainRepository> _trackedDomainRepositoryMock;
     private readonly Mock<IConfiguration> _configurationMock;
 
@@ -41,10 +42,21 @@ public class TrackUrlAnalyzerTests
         _configurationMock = new Mock<IConfiguration>();
         _trackedDomainRepositoryMock = new Mock<ITrackedDomainRepository>();
         
+        // Setup SafeDomainRepository mock with google.com as safe domain
+        var safeDomainRepoMock = new Mock<ISafeDomainRepository>();
+        safeDomainRepoMock.Setup(x => x.GetAllAsync())
+            .ReturnsAsync(new List<SafeDomain>
+            {
+                new SafeDomain { Domain = "google.com", IsDeleted = false }
+            });
+        
         // ASView requires IServiceProvider and ILogger<ASView>
-        var mockServiceProvider = new Mock<IServiceProvider>();
+        var services = new ServiceCollection();
         var mockASViewLogger = new Mock<ILogger<ASView>>();
-        _asViewMock = new Mock<ASView>(mockServiceProvider.Object, mockASViewLogger.Object);
+        services.AddSingleton(mockASViewLogger.Object);
+        services.AddSingleton(safeDomainRepoMock.Object);
+        var serviceProvider = services.BuildServiceProvider();
+        _asView = new ASView(serviceProvider, mockASViewLogger.Object, _configurationMock.Object);
 
         // Default: no tracked domains
         _trackedDomainRepositoryMock
@@ -54,7 +66,7 @@ public class TrackUrlAnalyzerTests
         // Create instance
         _sut = new TrackUrlAnalyzer(
             _loggerMock.Object,
-            _asViewMock.Object,
+            _asView,
             _trackedDomainRepositoryMock.Object
         );
     }
@@ -67,7 +79,7 @@ public class TrackUrlAnalyzerTests
         // Act
         var instance = new TrackUrlAnalyzer(
             _loggerMock.Object,
-            _asViewMock.Object,
+            _asView,
             _trackedDomainRepositoryMock.Object
         );
 
@@ -173,7 +185,6 @@ public class TrackUrlAnalyzerTests
             Timezone = "UTC"
         };
         var historicalAlerts = new List<DeviceAlert>();
-        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
 
         // Act
         var result = await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);
@@ -200,7 +211,6 @@ public class TrackUrlAnalyzerTests
             AlertId = "test-456"
         };
         var historicalAlerts = new List<DeviceAlert>();
-        _asViewMock.Setup(x => x.IsSafeDomain("google.com")).Returns(true);
 
         // Act
         var result = await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);
@@ -228,7 +238,6 @@ public class TrackUrlAnalyzerTests
             AlertId = "test-789"
         };
         var historicalAlerts = new List<DeviceAlert>();
-        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
 
         // Act
         var result = await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);
@@ -254,7 +263,6 @@ public class TrackUrlAnalyzerTests
             AlertId = "test-abc"
         };
         var historicalAlerts = new List<DeviceAlert>();
-        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
 
         // Act
         var result = await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);
@@ -281,7 +289,6 @@ public class TrackUrlAnalyzerTests
             AlertId = "test-scam"
         };
         var historicalAlerts = new List<DeviceAlert>();
-        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
 
         // Act
         var result = await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);
@@ -316,7 +323,6 @@ public class TrackUrlAnalyzerTests
             AlertId = "test-complete"
         };
         var historicalAlerts = new List<DeviceAlert>();
-        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
 
         // Act
         var result = await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);
@@ -349,7 +355,6 @@ public class TrackUrlAnalyzerTests
             AlertId = "log-test"
         };
         var historicalAlerts = new List<DeviceAlert>();
-        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
 
         // Act
         await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);
@@ -381,7 +386,6 @@ public class TrackUrlAnalyzerTests
             AlertId = "test-null-from"
         };
         var historicalAlerts = new List<DeviceAlert>();
-        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
 
         // Act
         var result = await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);
@@ -402,7 +406,6 @@ public class TrackUrlAnalyzerTests
             AlertId = "test-zero-duration"
         };
         var historicalAlerts = new List<DeviceAlert>();
-        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
 
         // Act
         var result = await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);
@@ -437,7 +440,6 @@ public class TrackUrlAnalyzerTests
             AlertId = "test-tracked-exact"
         };
         var historicalAlerts = new List<DeviceAlert>();
-        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
 
         // Act
         var result = await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);
@@ -481,7 +483,6 @@ public class TrackUrlAnalyzerTests
             AlertId = "test-tracked-subdomain"
         };
         var historicalAlerts = new List<DeviceAlert>();
-        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
 
         // Act
         var result = await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);
@@ -525,7 +526,6 @@ public class TrackUrlAnalyzerTests
             AlertId = "test-no-tracked"
         };
         var historicalAlerts = new List<DeviceAlert>();
-        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
 
         // Act
         var result = await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);
@@ -555,7 +555,6 @@ public class TrackUrlAnalyzerTests
             AlertId = "test-empty-tracked"
         };
         var historicalAlerts = new List<DeviceAlert>();
-        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
 
         // Act
         var result = await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);
@@ -590,7 +589,6 @@ public class TrackUrlAnalyzerTests
             AlertId = "test-multilevel-subdomain"
         };
         var historicalAlerts = new List<DeviceAlert>();
-        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
 
         // Act
         var result = await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);
@@ -617,7 +615,6 @@ public class TrackUrlAnalyzerTests
             AlertId = "test-repo-call"
         };
         var historicalAlerts = new List<DeviceAlert>();
-        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
 
         // Act
         await _sut.AnalyzeAsync(alert, historicalAlerts, _configurationMock.Object);

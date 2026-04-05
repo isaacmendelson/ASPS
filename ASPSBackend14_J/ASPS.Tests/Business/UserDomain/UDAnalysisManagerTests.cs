@@ -178,7 +178,7 @@ public class UDAnalysisManagerTests
 
         // Assert
         Assert.Contains(typeof(DeviceAlertReceived), events);
-        Assert.Contains(typeof(AnalysisResultReceived), events);
+        Assert.Contains(typeof(AnalysisResultAdded), events);
         Assert.Equal(2, events.Length);
     }
 
@@ -382,5 +382,32 @@ public class UDAnalysisManagerTests
         _mockConfiguration.Setup(c => c["Analysis:DeviceAlertDeletionDays"]).Returns("90");
         _mockConfiguration.Setup(c => c["Python:ExecutablePath"]).Returns("python");
         _mockConfiguration.Setup(c => c["Python:AnalyzersFolderPath"]).Returns("/tmp/analyzers");
+        
+        // TrackUrl sections
+        var riskThresholdSection = new Mock<IConfigurationSection>();
+        riskThresholdSection.Setup(s => s.Value).Returns("40");
+        _mockConfiguration.Setup(c => c.GetSection("TrackUrl:RiskThresholdToEnableTracking"))
+            .Returns(riskThresholdSection.Object);
+        
+        var trackingDurationSection = new Mock<IConfigurationSection>();
+        trackingDurationSection.Setup(s => s.Value).Returns("3000");
+        _mockConfiguration.Setup(c => c.GetSection("TrackUrl:TrackingDurationMinutes"))
+            .Returns(trackingDurationSection.Object);
+        
+        // Analysis severity sections
+        var criticalSection = new Mock<IConfigurationSection>();
+        criticalSection.Setup(s => s.Value).Returns("80");
+        _mockConfiguration.Setup(c => c.GetSection("Analysis:SeverityScoreThresholdCritical"))
+            .Returns(criticalSection.Object);
+        
+        var highSection = new Mock<IConfigurationSection>();
+        highSection.Setup(s => s.Value).Returns("80");
+        _mockConfiguration.Setup(c => c.GetSection("Analysis:SeverityScoreThresholdHigh"))
+            .Returns(highSection.Object);
+        
+        var mediumSection = new Mock<IConfigurationSection>();
+        mediumSection.Setup(s => s.Value).Returns("80");
+        _mockConfiguration.Setup(c => c.GetSection("Analysis:SeverityScoreThresholdMedium"))
+            .Returns(mediumSection.Object);
     }
 }

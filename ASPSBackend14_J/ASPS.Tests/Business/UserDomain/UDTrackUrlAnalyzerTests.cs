@@ -26,9 +26,33 @@ public class UDTrackUrlAnalyzerTests
         _loggerMock = new Mock<ILogger<UDTrackUrlAnalyzer>>();
         _configurationMock = new Mock<IConfiguration>();
         
-        var mockServiceProvider = new Mock<IServiceProvider>();
+        // Setup configuration sections
+        var riskThresholdSection = new Mock<IConfigurationSection>();
+        riskThresholdSection.Setup(s => s.Value).Returns("40");
+        _configurationMock.Setup(c => c.GetSection("TrackUrl:RiskThresholdToEnableTracking")).Returns(riskThresholdSection.Object);
+        
+        var trackingDurationSection = new Mock<IConfigurationSection>();
+        trackingDurationSection.Setup(s => s.Value).Returns("3000");
+        _configurationMock.Setup(c => c.GetSection("TrackUrl:TrackingDurationMinutes")).Returns(trackingDurationSection.Object);
+        
+        var criticalSection = new Mock<IConfigurationSection>();
+        criticalSection.Setup(s => s.Value).Returns("80");
+        _configurationMock.Setup(c => c.GetSection("Analysis:SeverityScoreThresholdCritical")).Returns(criticalSection.Object);
+        
+        var highSection = new Mock<IConfigurationSection>();
+        highSection.Setup(s => s.Value).Returns("80");
+        _configurationMock.Setup(c => c.GetSection("Analysis:SeverityScoreThresholdHigh")).Returns(highSection.Object);
+        
+        var mediumSection = new Mock<IConfigurationSection>();
+        mediumSection.Setup(s => s.Value).Returns("80");
+        _configurationMock.Setup(c => c.GetSection("Analysis:SeverityScoreThresholdMedium")).Returns(mediumSection.Object);
+        
+        // Mock ASView
+        var services = new ServiceCollection();
         var mockASViewLogger = new Mock<ILogger<ASView>>();
-        _asViewMock = new Mock<ASView>(mockServiceProvider.Object, mockASViewLogger.Object);
+        services.AddSingleton(mockASViewLogger.Object);
+        var serviceProvider = services.BuildServiceProvider();
+        _asViewMock = new Mock<ASView>(serviceProvider, mockASViewLogger.Object, _configurationMock.Object);
 
         _sut = new UDTrackUrlAnalyzer(_loggerMock.Object, _configurationMock.Object, _asViewMock.Object);
     }
@@ -59,11 +83,15 @@ public class UDTrackUrlAnalyzerTests
     [Fact]
     public async Task AnalyzeAsync_WithSafeDomain_ReturnsLowRisk()
     {
+        // Arrange: Mock IsSafeDomain to return true for google.com
+        _asViewMock.Setup(v => v.IsSafeDomain("google.com")).Returns(true);
+        
         var alert = new TrackUrlAlert { Url = "https://google.com/path", Duration = 300000, AlertId = "alert-1" };
-        _asViewMock.Setup(x => x.IsSafeDomain("google.com")).Returns(true);
 
+        // Act
         var result = await _sut.AnalyzeAsync(alert, new List<DeviceAlert>(), _configurationMock.Object);
 
+        // Assert
         result.Severity.Should().Be(Severity.Low);
         result.Details["risk_score"].Should().Be(5);
         result.Details["risk_reason"].Should().Be("Whitelisted domain (SafeDomains)");
@@ -72,12 +100,16 @@ public class UDTrackUrlAnalyzerTests
     [Fact]
     public async Task AnalyzeAsync_WithScamInProgressKey_ReturnsHighRisk()
     {
+        // Arrange: Mock IsSafeDomain to return false
+        _asViewMock.Setup(v => v.IsSafeDomain(It.IsAny<string>())).Returns(false);
+        
         var alert = new TrackUrlAlert { Url = "https://scam.com", Duration = 60000, ScamInProgressKey = "scam-123", AlertId = "alert-2" };
-        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
 
+        // Act
         var result = await _sut.AnalyzeAsync(alert, new List<DeviceAlert>(), _configurationMock.Object);
 
-        result.Severity.Should().Be(Severity.High);
+        // Assert - ScamInProgressKey results in 90 risk score, which is >= 80 threshold for Critical
+        result.Severity.Should().Be(Severity.Critical);
         result.Details["risk_score"].Should().Be(90);
         result.Details["scam_in_progress_key"].Should().Be("scam-123");
     }
@@ -86,7 +118,6 @@ public class UDTrackUrlAnalyzerTests
     public async Task AnalyzeAsync_WithDurationOver10Minutes_ReturnsHighRisk()
     {
         var alert = new TrackUrlAlert { Url = "https://suspicious.com", Duration = 720000, AlertId = "alert-3" };
-        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
 
         var result = await _sut.AnalyzeAsync(alert, new List<DeviceAlert>(), _configurationMock.Object);
 
@@ -99,7 +130,6 @@ public class UDTrackUrlAnalyzerTests
     public async Task AnalyzeAsync_WithDurationOver5Minutes_ReturnsMediumRisk()
     {
         var alert = new TrackUrlAlert { Url = "https://suspicious.com", Duration = 420000, AlertId = "alert-4" };
-        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
 
         var result = await _sut.AnalyzeAsync(alert, new List<DeviceAlert>(), _configurationMock.Object);
 
@@ -111,7 +141,6 @@ public class UDTrackUrlAnalyzerTests
     public async Task AnalyzeAsync_WithShortDuration_ReturnsLowRisk()
     {
         var alert = new TrackUrlAlert { Url = "https://example.com", Duration = 60000, AlertId = "alert-5" };
-        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
 
         var result = await _sut.AnalyzeAsync(alert, new List<DeviceAlert>(), _configurationMock.Object);
 
@@ -123,7 +152,6 @@ public class UDTrackUrlAnalyzerTests
     public async Task AnalyzeAsync_WithHighRisk_AddsNotificationAction()
     {
         var alert = new TrackUrlAlert { Url = "https://scam.com", Duration = 900000, AlertId = "alert-6" };
-        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
 
         var result = await _sut.AnalyzeAsync(alert, new List<DeviceAlert>(), _configurationMock.Object);
 
@@ -152,7 +180,6 @@ public class UDTrackUrlAnalyzerTests
             Timezone = "UTC",
             AlertId = "alert-8"
         };
-        _asViewMock.Setup(x => x.IsSafeDomain(It.IsAny<string>())).Returns(false);
 
         var result = await _sut.AnalyzeAsync(alert, new List<DeviceAlert>(), _configurationMock.Object);
 

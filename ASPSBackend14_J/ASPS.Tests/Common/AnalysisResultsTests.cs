@@ -407,13 +407,12 @@ public class UrlAnalysisResultContainerTests
     }
 
     [Theory]
-    [InlineData("http://example.com")]
-    [InlineData("https://example.com")]
-    [InlineData("https://example.com:8080/path?query=value")]
-    [InlineData("")]
-    public void Url_AcceptsVariousFormats(string url)
+    [InlineData("http://example.com", "example.com")]
+    [InlineData("https://example.com", "example.com")]
+    [InlineData("https://example.com:8080/path?query=value", "example.com")]
+    [InlineData("", "")]
+    public void Url_AcceptsVariousFormats(string url, string expectedDomain)
     {
-        // Arrange
         // Arrange
         var d = DateTime.UtcNow;
         
@@ -425,7 +424,7 @@ public class UrlAnalysisResultContainerTests
 
         // Act & Assert
         result.Url.Should().Be(url);
-        result.Domain.Should().Be("example.com");
+        result.Domain.Should().Be(expectedDomain);
         result.Discriminator.Should().Be(dis);
         result.UserKeyField.Should().Be(userKeyField);
         result.KeyField.Should().Be(keyField);

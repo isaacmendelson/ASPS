@@ -537,7 +537,7 @@ public class UserRiskProfileTests
 
         // Assert
         // 1 scam × 3.0 weight × 0.8 confidence = 2.4
-        result.Should().Be(2.4);
+        result.Should().BeApproximately(2.4, 0.0001);
     }
 
     [Theory]
@@ -556,7 +556,7 @@ public class UserRiskProfileTests
         var result = sut.CalculateActiveThreats(scamInProgress: 1, confidence: confidence);
 
         // Assert
-        result.Should().Be(expected);
+        result.Should().BeApproximately(expected, 0.0001);
     }
 
     #endregion

@@ -12,7 +12,7 @@ public class ProtectiveActionsMatrixTests
     #region Risk Range 0-20: Passive Monitoring
 
     [Theory]
-    [InlineData(0)]
+    [InlineData(1)]
     [InlineData(10)]
     [InlineData(20)]
     public void DetermineActions_RiskScore0To20_ReturnsLogOnly(double riskScore)

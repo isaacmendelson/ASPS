@@ -4,6 +4,8 @@ using Business.Views;
 using Common.Entities;
 using Common.Models;
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -18,9 +20,12 @@ public class UDUserAnalyzerTests
         // Use NullLoggerFactory instead of mocking extension methods
         var loggerFactory = NullLoggerFactory.Instance;
 
-        var mockServiceProvider = new Mock<System.IServiceProvider>();
+        var services = new ServiceCollection();
         var mockASViewLogger = new Mock<ILogger<ASView>>();
-        var asViewMock = new Mock<ASView>(mockServiceProvider.Object, mockASViewLogger.Object);
+        services.AddSingleton(mockASViewLogger.Object);
+        var serviceProvider = services.BuildServiceProvider();
+        var mockConfiguration = new Mock<IConfiguration>();
+        var asView = new ASView(serviceProvider, mockASViewLogger.Object, mockConfiguration.Object);
 
         var testKey = new Key("test", "user", "123");
         var testUser = new UDUser(
@@ -35,7 +40,7 @@ public class UDUserAnalyzerTests
 
         return new UDUserAnalyzer(
             testUser,
-            asViewMock.Object,
+            asView,
             alertExpiryDays: 30,
             alertDeletionDays: 90,
             loggerFactory

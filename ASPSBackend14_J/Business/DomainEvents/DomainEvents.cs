@@ -82,6 +82,7 @@ public class DeviceAlertReceived : DomainEvent
     public DeviceAlertReceived(DeviceAlert alert, Priority priority, string deviceUid, DateTime receiveTimestamp, DateTime messageTimestamp, string deviceAlertEntityKey)
     {
         EventType = nameof(DeviceAlertReceived);
+        Timestamp = DateTimeOffset.UtcNow;
         Alert = alert;
         Priority = priority;
         DeviceUid = deviceUid;

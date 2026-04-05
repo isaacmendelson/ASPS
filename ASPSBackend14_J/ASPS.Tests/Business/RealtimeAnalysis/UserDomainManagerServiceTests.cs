@@ -22,7 +22,7 @@ public class UserDomainManagerServiceTests : IDisposable
     private readonly Mock<ILoggerFactory> _loggerFactoryMock;
     private readonly Mock<ILogger<UserDomainManagerService>> _loggerMock;
     private readonly IConfiguration _configuration;
-    private readonly Mock<ASView> _asViewMock;
+    private readonly ASView _asView;
     private readonly Mock<IKnownPhishingWebsiteRepository> _phishingRepoMock;
     private readonly Mock<ISafeDomainRepository> _safeDomainRepoMock;
     private readonly UserDomainManagerService _sut;
@@ -48,9 +48,11 @@ public class UserDomainManagerServiceTests : IDisposable
         _configuration = configBuilder.Build();
         
         // ASView requires IServiceProvider and ILogger<ASView>
-        var mockServiceProvider = new Mock<IServiceProvider>();
+        var services = new ServiceCollection();
         var mockAsViewLogger = new Mock<ILogger<ASView>>();
-        _asViewMock = new Mock<ASView>(mockServiceProvider.Object, mockAsViewLogger.Object);
+        services.AddSingleton(mockAsViewLogger.Object);
+        var serviceProvider = services.BuildServiceProvider();
+        _asView = new ASView(serviceProvider, mockAsViewLogger.Object, _configuration);
         
         _phishingRepoMock = new Mock<IKnownPhishingWebsiteRepository>();
         _safeDomainRepoMock = new Mock<ISafeDomainRepository>();
@@ -61,7 +63,7 @@ public class UserDomainManagerServiceTests : IDisposable
             _loggerFactoryMock.Object,
             _configuration,
             _context,
-            _asViewMock.Object,
+            _asView,
             eventHandlers,
             _phishingRepoMock.Object,
             _safeDomainRepoMock.Object);

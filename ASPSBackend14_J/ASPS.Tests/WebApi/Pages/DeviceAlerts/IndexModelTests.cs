@@ -6,6 +6,7 @@ using WebApi.Pages.DeviceAlerts;
 using WebApi.Services;
 using Business.Queries;
 using Common.Entities;
+using Common.Messaging;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -62,7 +63,7 @@ public class IndexModelTests
         };
 
         _cqrsClientMock
-            .Setup(x => x.SendQueryAsync<GetRecentAlertsQueryResult>(It.IsAny<GetRecentAlertsQuery>()))
+            .Setup(x => x.SendQueryAsync<GetRecentAlertsQueryResult>(It.Is<Query>(q => q is GetRecentAlertsQuery)))
             .ReturnsAsync(queryResult);
 
         // Mock user query
@@ -112,7 +113,7 @@ public class IndexModelTests
         };
 
         _cqrsClientMock
-            .Setup(x => x.SendQueryAsync<GetRecentAlertsQueryResult>(It.IsAny<GetRecentAlertsQuery>()))
+            .Setup(x => x.SendQueryAsync<GetRecentAlertsQueryResult>(It.Is<Query>(q => q is GetRecentAlertsQuery)))
             .ReturnsAsync(queryResult);
 
         _cqrsClientMock
@@ -151,7 +152,7 @@ public class IndexModelTests
         };
 
         _cqrsClientMock
-            .Setup(x => x.SendQueryAsync<GetRecentAlertsQueryResult>(It.IsAny<GetRecentAlertsQuery>()))
+            .Setup(x => x.SendQueryAsync<GetRecentAlertsQueryResult>(It.Is<Query>(q => q is GetRecentAlertsQuery)))
             .ReturnsAsync(queryResult);
 
         // Act
@@ -170,8 +171,8 @@ public class IndexModelTests
         GetRecentAlertsQuery? capturedQuery = null;
 
         _cqrsClientMock
-            .Setup(x => x.SendQueryAsync<GetRecentAlertsQueryResult>(It.IsAny<GetRecentAlertsQuery>()))
-            .Callback<GetRecentAlertsQuery>(q => capturedQuery = q)
+            .Setup(x => x.SendQueryAsync<GetRecentAlertsQueryResult>(It.IsAny<Query>()))
+            .Callback<Query>(q => capturedQuery = q as GetRecentAlertsQuery)
             .ReturnsAsync(new GetRecentAlertsQueryResult { Success = true, Alerts = new List<DeviceAlertEntity>() });
 
         // Act
@@ -187,7 +188,7 @@ public class IndexModelTests
     {
         // Arrange
         _cqrsClientMock
-            .Setup(x => x.SendQueryAsync<GetRecentAlertsQueryResult>(It.IsAny<GetRecentAlertsQuery>()))
+            .Setup(x => x.SendQueryAsync<GetRecentAlertsQueryResult>(It.Is<Query>(q => q is GetRecentAlertsQuery)))
             .ReturnsAsync(new GetRecentAlertsQueryResult { Success = true, Alerts = new List<DeviceAlertEntity>() });
 
         // Act

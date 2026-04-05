@@ -1,0 +1,14 @@
+Problem: Multiple Setup() calls for SendQueryAsync with different query types conflict in Moq.
+
+Solution: Use .Returns<Query>() with a switch/if to handle different query types dynamically.
+
+Example:
+_mockCqrsClient
+    .Setup(x => x.SendQueryAsync<GetUserByKeycloakIdQueryResult>(It.IsAny<Query>()))
+    .Returns<Query>(q => {
+        if (q is GetUserByKeycloakIdQuery)
+            return Task.FromResult(new GetUserByKeycloakIdQueryResult { Success = true, User = ... });
+        if (q is GetSimulationUsersQuery)
+            return Task.FromResult(new GetSimulationUsersQueryResult { Success = true, Users = ... });
+        throw new NotImplementedException();
+    });

@@ -19,7 +19,11 @@ public class SystemCommandHandlersTests
 
     public SystemCommandHandlersTests()
     {
-        _asViewMock = new Mock<ASView>(MockBehavior.Loose, null, null, null);
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        var loggerMock = new Mock<Microsoft.Extensions.Logging.ILogger<ASView>>();
+        var configurationMock = new Mock<Microsoft.Extensions.Configuration.IConfiguration>();
+        
+        _asViewMock = new Mock<ASView>(serviceProviderMock.Object, loggerMock.Object, configurationMock.Object);
         _sut = new SystemCommandHandlers(_asViewMock.Object);
     }
 

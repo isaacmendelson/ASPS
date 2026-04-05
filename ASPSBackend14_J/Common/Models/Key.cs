@@ -12,8 +12,11 @@ public sealed class Key : IEquatable<Key>, IXmlSerializable
 {
     private static readonly char[] _splitChars = { '#' };
 
+    [DataMember]
     public string Type { get; set; } = string.Empty;
+    [DataMember]
     public string Value { get; set; } = string.Empty;
+    [DataMember]
     public string? InstanceName { get; set; }
 
     public Key()

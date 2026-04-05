@@ -3,6 +3,8 @@ using Moq;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 using WebApi.Pages.Simulations;
 using WebApi.Services;
 using Business.Queries;
@@ -28,6 +30,22 @@ public class SimulationsIndexModelTests
         _mockCqrsClient = new Mock<ICQRSClient>();
         _mockLogger = new Mock<ILogger<IndexModel>>();
         _sut = new IndexModel(_mockCqrsClient.Object, _mockLogger.Object);
+        
+        // Setup PageContext with mock User
+        var claims = new List<Claim>
+        {
+            new Claim("sub", "test-keycloak-id-123")
+        };
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var claimsPrincipal = new ClaimsPrincipal(identity);
+        
+        _sut.PageContext = new Microsoft.AspNetCore.Mvc.RazorPages.PageContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = claimsPrincipal
+            }
+        };
     }
 
     [Fact]
@@ -57,7 +75,7 @@ public class SimulationsIndexModelTests
         };
 
         _mockCqrsClient
-            .Setup(x => x.SendQueryAsync<GetSimulationsQueryResult>(It.IsAny<GetSimulationsQuery>()))
+            .Setup(x => x.SendQueryAsync<GetSimulationsQueryResult>(It.Is<Query>(q => q is GetSimulationsQuery)))
             .ReturnsAsync(queryResult);
 
         // Act
@@ -100,7 +118,7 @@ public class SimulationsIndexModelTests
         };
 
         _mockCqrsClient
-            .Setup(x => x.SendQueryAsync<GetSimulationsQueryResult>(It.IsAny<GetSimulationsQuery>()))
+            .Setup(x => x.SendQueryAsync<GetSimulationsQueryResult>(It.Is<Query>(q => q is GetSimulationsQuery)))
             .ReturnsAsync(queryResult);
 
         // Act
@@ -121,7 +139,7 @@ public class SimulationsIndexModelTests
         var commandResult = new DeleteSimulationCommandResult { Success = true };
 
         _mockCqrsClient
-            .Setup(x => x.SendCommandAsync<DeleteSimulationCommandResult>(It.IsAny<Command>()))
+            .Setup(x => x.SendCommandAsync<DeleteSimulationCommandResult>(It.Is<Command>(c => c is DeleteSimulationCommand)))
             .Callback<Command>(c => capturedCommand = c as DeleteSimulationCommand)
             .ReturnsAsync(commandResult);
 
@@ -147,7 +165,7 @@ public class SimulationsIndexModelTests
         };
 
         _mockCqrsClient
-            .Setup(x => x.SendCommandAsync<DeleteSimulationCommandResult>(It.IsAny<DeleteSimulationCommand>()))
+            .Setup(x => x.SendCommandAsync<DeleteSimulationCommandResult>(It.Is<Command>(c => c is DeleteSimulationCommand)))
             .ReturnsAsync(commandResult);
 
         // Act
@@ -165,6 +183,23 @@ public class SimulationsIndexModelTests
         // Arrange
         var simulationKey = "test-sim-key-123";
         RunSimulationCommand? capturedCommand = null;
+
+        // Mock user authentication query
+        var mockUser = new User 
+        { 
+            KeyField = "test-user-key",
+            FirstName = "Test",
+            LastName = "User",
+            Email = "test@example.com"
+        };
+
+        _mockCqrsClient
+            .Setup(x => x.SendQueryAsync<GetUserByKeycloakIdQueryResult>(It.IsAny<Query>()))
+            .ReturnsAsync(new GetUserByKeycloakIdQueryResult 
+            { 
+                Success = true, 
+                User = mockUser
+            });
 
         var commandResult = new RunSimulationCommandResult
         {
@@ -193,6 +228,24 @@ public class SimulationsIndexModelTests
     {
         // Arrange
         var simulationKey = "test-sim-key-123";
+
+        // Mock user authentication query
+        var mockUser = new User 
+        { 
+            KeyField = "test-user-key",
+            FirstName = "Test",
+            LastName = "User",
+            Email = "test@example.com"
+        };
+
+        _mockCqrsClient
+            .Setup(x => x.SendQueryAsync<GetUserByKeycloakIdQueryResult>(It.IsAny<Query>()))
+            .ReturnsAsync(new GetUserByKeycloakIdQueryResult 
+            { 
+                Success = true, 
+                User = mockUser
+            });
+
         var commandResult = new RunSimulationCommandResult
         {
             Success = false,
@@ -200,7 +253,7 @@ public class SimulationsIndexModelTests
         };
 
         _mockCqrsClient
-            .Setup(x => x.SendCommandAsync<RunSimulationCommandResult>(It.IsAny<RunSimulationCommand>()))
+            .Setup(x => x.SendCommandAsync<RunSimulationCommandResult>(It.IsAny<Command>()))
             .ReturnsAsync(commandResult);
 
         // Act

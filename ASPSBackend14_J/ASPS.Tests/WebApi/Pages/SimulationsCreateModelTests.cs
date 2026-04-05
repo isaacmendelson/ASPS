@@ -4,12 +4,15 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 using WebApi.Pages.Simulations;
 using WebApi.Services;
 using Business.Commands;
 using Business.Queries;
 using Common.Models;
 using Common.Messaging;
+using Common.Entities;
 using System.Text.Json;
 
 namespace ASPS.Tests.WebApi.Pages;
@@ -29,6 +32,24 @@ public class SimulationsCreateModelTests
         _mockCqrsClient = new Mock<ICQRSClient>();
         _mockLogger = new Mock<ILogger<CreateModel>>();
         _sut = new CreateModel(_mockCqrsClient.Object, _mockLogger.Object);
+        
+        // Setup default Page Context with authenticated user
+        var claims = new List<Claim>
+        {
+            new Claim("sub", "test-keycloak-id")
+        };
+        var identity = new ClaimsIdentity(claims, "TestAuthType");
+        var claimsPrincipal = new ClaimsPrincipal(identity);
+        
+        var httpContext = new DefaultHttpContext
+        {
+            User = claimsPrincipal
+        };
+        
+        _sut.PageContext = new PageContext
+        {
+            HttpContext = httpContext
+        };
     }
 
     [Fact]
@@ -59,7 +80,7 @@ public class SimulationsCreateModelTests
         };
 
         _mockCqrsClient
-            .Setup(x => x.SendQueryAsync<GetSimulationUsersQueryResult>(It.IsAny<GetSimulationUsersQuery>()))
+            .Setup(x => x.SendQueryAsync<GetSimulationUsersQueryResult>(It.Is<Query>(q => q is GetSimulationUsersQuery)))
             .ReturnsAsync(queryResult);
 
         // Act
@@ -99,20 +120,43 @@ public class SimulationsCreateModelTests
             SimulationKey = new Key("Simulation", "new-sim-key")
         };
 
+        // Mock user authentication query
         _mockCqrsClient
-            .Setup(x => x.SendCommandAsync<CreateSimulationCommandResult>(It.IsAny<Command>()))
+            .Setup(x => x.SendQueryAsync<GetUserByKeycloakIdQueryResult>(It.Is<Query>(q => q is GetUserByKeycloakIdQuery)))
+            .ReturnsAsync(new GetUserByKeycloakIdQueryResult 
+            { 
+                Success = true, 
+                User = new User 
+                { 
+                    KeyField = "test-user-key",
+                    FirstName = "Test",
+                    LastName = "User",
+                    Email = "test@example.com"
+                }
+            });
+
+        _mockCqrsClient
+            .Setup(x => x.SendCommandAsync<CreateSimulationCommandResult>(It.Is<Command>(c => c is CreateSimulationCommand)))
             .Callback<Command>(c => capturedCommand = c as CreateSimulationCommand)
             .ReturnsAsync(commandResult);
 
         // Mock available users query
         _mockCqrsClient
-            .Setup(x => x.SendQueryAsync<GetSimulationUsersQueryResult>(It.IsAny<Query>()))
+            .Setup(x => x.SendQueryAsync<GetSimulationUsersQueryResult>(It.Is<Query>(q => q is GetSimulationUsersQuery)))
             .ReturnsAsync(new GetSimulationUsersQueryResult { Success = true, Users = new List<SimulationUserDto>() });
 
         // Act
         var result = await _sut.OnPostAsync();
 
         // Assert
+        _mockCqrsClient.Verify(x => x.SendQueryAsync<GetUserByKeycloakIdQueryResult>(It.IsAny<Query>()), Times.Once, "GetUserByKeycloakId was not called");
+        _mockCqrsClient.Verify(x => x.SendCommandAsync<CreateSimulationCommandResult>(It.IsAny<Command>()), Times.Once, "CreateSimulation was not called");
+        
+        if (!string.IsNullOrEmpty(_sut.ErrorMessage))
+        {
+            throw new Exception($"Unexpected error: {_sut.ErrorMessage}");
+        }
+        
         result.Should().BeOfType<RedirectToPageResult>();
         ((RedirectToPageResult)result).PageName.Should().Be("Index");
         
@@ -132,7 +176,7 @@ public class SimulationsCreateModelTests
         _sut.StepsJson = "[]";
 
         _mockCqrsClient
-            .Setup(x => x.SendQueryAsync<GetSimulationUsersQueryResult>(It.IsAny<GetSimulationUsersQuery>()))
+            .Setup(x => x.SendQueryAsync<GetSimulationUsersQueryResult>(It.Is<Query>(q => q is GetSimulationUsersQuery)))
             .ReturnsAsync(new GetSimulationUsersQueryResult { Success = true, Users = new List<SimulationUserDto>() });
 
         // Act
@@ -143,7 +187,7 @@ public class SimulationsCreateModelTests
         _sut.ErrorMessage.Should().Contain("name is required");
         
         _mockCqrsClient.Verify(
-            x => x.SendCommandAsync<CreateSimulationCommandResult>(It.IsAny<CreateSimulationCommand>()),
+            x => x.SendCommandAsync<CreateSimulationCommandResult>(It.Is<Command>(c => c is CreateSimulationCommand)),
             Times.Never);
     }
 
@@ -156,7 +200,7 @@ public class SimulationsCreateModelTests
         _sut.StepsJson = "{ invalid json [[[";
 
         _mockCqrsClient
-            .Setup(x => x.SendQueryAsync<GetSimulationUsersQueryResult>(It.IsAny<GetSimulationUsersQuery>()))
+            .Setup(x => x.SendQueryAsync<GetSimulationUsersQueryResult>(It.Is<Query>(q => q is GetSimulationUsersQuery)))
             .ReturnsAsync(new GetSimulationUsersQueryResult { Success = true, Users = new List<SimulationUserDto>() });
 
         // Act
@@ -167,7 +211,7 @@ public class SimulationsCreateModelTests
         _sut.ErrorMessage.Should().Contain("Invalid steps JSON");
         
         _mockCqrsClient.Verify(
-            x => x.SendCommandAsync<CreateSimulationCommandResult>(It.IsAny<CreateSimulationCommand>()),
+            x => x.SendCommandAsync<CreateSimulationCommandResult>(It.Is<Command>(c => c is CreateSimulationCommand)),
             Times.Never);
     }
 
@@ -185,12 +229,27 @@ public class SimulationsCreateModelTests
             Message = "Failed to create simulation"
         };
 
+        // Mock user authentication query
         _mockCqrsClient
-            .Setup(x => x.SendCommandAsync<CreateSimulationCommandResult>(It.IsAny<CreateSimulationCommand>()))
+            .Setup(x => x.SendQueryAsync<GetUserByKeycloakIdQueryResult>(It.Is<Query>(q => q is GetUserByKeycloakIdQuery)))
+            .ReturnsAsync(new GetUserByKeycloakIdQueryResult 
+            { 
+                Success = true, 
+                User = new User 
+                { 
+                    KeyField = "test-user-key",
+                    FirstName = "Test",
+                    LastName = "User",
+                    Email = "test@example.com"
+                }
+            });
+
+        _mockCqrsClient
+            .Setup(x => x.SendCommandAsync<CreateSimulationCommandResult>(It.Is<Command>(c => c is CreateSimulationCommand)))
             .ReturnsAsync(commandResult);
 
         _mockCqrsClient
-            .Setup(x => x.SendQueryAsync<GetSimulationUsersQueryResult>(It.IsAny<GetSimulationUsersQuery>()))
+            .Setup(x => x.SendQueryAsync<GetSimulationUsersQueryResult>(It.Is<Query>(q => q is GetSimulationUsersQuery)))
             .ReturnsAsync(new GetSimulationUsersQueryResult { Success = true, Users = new List<SimulationUserDto>() });
 
         // Act
@@ -216,13 +275,28 @@ public class SimulationsCreateModelTests
             SimulationKey = new Key("Simulation", "new-sim-key")
         };
 
+        // Mock user authentication query
         _mockCqrsClient
-            .Setup(x => x.SendCommandAsync<CreateSimulationCommandResult>(It.IsAny<Command>()))
+            .Setup(x => x.SendQueryAsync<GetUserByKeycloakIdQueryResult>(It.Is<Query>(q => q is GetUserByKeycloakIdQuery)))
+            .ReturnsAsync(new GetUserByKeycloakIdQueryResult 
+            { 
+                Success = true, 
+                User = new User 
+                { 
+                    KeyField = "test-user-key",
+                    FirstName = "Test",
+                    LastName = "User",
+                    Email = "test@example.com"
+                }
+            });
+
+        _mockCqrsClient
+            .Setup(x => x.SendCommandAsync<CreateSimulationCommandResult>(It.Is<Command>(c => c is CreateSimulationCommand)))
             .Callback<Command>(c => capturedCommand = c as CreateSimulationCommand)
             .ReturnsAsync(commandResult);
 
         _mockCqrsClient
-            .Setup(x => x.SendQueryAsync<GetSimulationUsersQueryResult>(It.IsAny<Query>()))
+            .Setup(x => x.SendQueryAsync<GetSimulationUsersQueryResult>(It.Is<Query>(q => q is GetSimulationUsersQuery)))
             .ReturnsAsync(new GetSimulationUsersQueryResult { Success = true, Users = new List<SimulationUserDto>() });
 
         // Act

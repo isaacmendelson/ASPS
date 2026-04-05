@@ -83,26 +83,18 @@ public class UDTrackUrlAnalyzer : ISpecificAnalyzer
         var indicators = new List<IIndicator>();
         var protectiveActions = new List<IProtectiveAction>();
 
-        //var analysisRecord = this._asView.GetUrlAnalysisResultsByUserKey(trackUrlAlert.DeviceInfo.UserKey)
-        //    .OfType<UrlAnalysisResult>()
-        //    .Where(i => i.Domain == domain)
-        //    //.Where(r => r.DeviceAlertKey == trackUrlAlert.k)
-        //    .OrderByDescending(r => r.analyzed_at)
-        //    .FirstOrDefault();
-
-
         // Add protective action if risk is high
-        //if (riskScore >= _severityScoreThresholdHigh)
-        //{
-        //    var notificationAction = new ProtectiveAction(
-        //        trackUrlAlert.DeviceInfo.Key,
-        //        ProtectiveActionType.UserDisplayNotification,
-        //        AnalysisLevel.Device,
-        //        $"Suspicious activity detected on tracked URL: {domain}",
-        //        alert.AlertId
-        //    );
-        //    protectiveActions.Add(notificationAction);
-        //}
+        if (riskScore >= 60)
+        {
+            var notificationAction = new ProtectiveAction(
+                trackUrlAlert.DeviceInfo.Key,
+                ProtectiveActionType.DisplayNotification,
+                AnalysisLevel.Device,
+                $"Suspicious activity detected on tracked URL: {domain}",
+                alert.AlertId
+            );
+            protectiveActions.Add(notificationAction);
+        }
 
         var message = $"TrackUrlAlert analyzed: {domain}, Risk={riskScore}, Duration={trackUrlAlert.Duration}";
 
@@ -152,18 +144,21 @@ public class UDTrackUrlAnalyzer : ISpecificAnalyzer
                     ["results"] = results.ToArray(),
                     ["errors"] = errors.ToArray(),
                     ["url"] = trackUrlAlert.Url,
+                    ["domain"] = domain,
                     ["from_url"] = trackUrlAlert.FromUrl ?? "",
                     ["duration"] = trackUrlAlert.Duration,
+                    ["duration_ms"] = trackUrlAlert.Duration,
+                    ["timezone"] = trackUrlAlert.Timezone ?? "",
                     ["device_uid"] = trackUrlAlert.DeviceInfo.DeviceUid,
                     ["alert_id"] = trackUrlAlert.AlertId ?? "",
                     ["risk_score"] = riskScore,
+                    ["risk_reason"] = GetRiskReason(trackUrlAlert, domain),
                     ["ip_address"] = trackUrlAlert.IPAddress,
                     ["tab_id"] = trackUrlAlert.TabId,
                     ["user_key"] = trackUrlAlert.DeviceInfo.UserKey,
                     ["timestamp"] = DateTime.UtcNow,
                     ["analyzers_run"] = results.Count,
                     ["external_analyzers_total"] = ExternalAnalyzers.Length,
-                    ["risk_reason"] = GetRiskReason(trackUrlAlert, domain),
                     ["scam_in_progress_key"] = trackUrlAlert.ScamInProgressKey ?? "N/A",
                 }
             );
@@ -184,7 +179,7 @@ public class UDTrackUrlAnalyzer : ISpecificAnalyzer
         if (!string.IsNullOrEmpty(domain) && _asView.IsSafeDomain(domain))
         {
             _logger.LogInformation($"Domain '{domain}' is whitelisted (SafeDomains). Risk: LOW");
-            return 0;
+            return 5;
         }
 
         // Check if scam is in progress (highest priority)
@@ -194,7 +189,24 @@ public class UDTrackUrlAnalyzer : ISpecificAnalyzer
             return 90;
         }
 
-        return 0;
+        // Check duration (in milliseconds)
+        // Duration > 10 minutes (600,000 ms)
+        if (alert.Duration > 600000)
+        {
+            _logger.LogInformation($"Duration {alert.Duration}ms > 10 minutes. Risk: HIGH");
+            return 60;
+        }
+
+        // Duration > 5 minutes (300,000 ms)
+        if (alert.Duration > 300000)
+        {
+            _logger.LogInformation($"Duration {alert.Duration}ms > 5 minutes. Risk: MEDIUM");
+            return 40;
+        }
+
+        // Default: short duration
+        _logger.LogInformation($"Duration {alert.Duration}ms is short. Risk: LOW");
+        return 20;
     }
 
     /// <summary>
@@ -216,12 +228,12 @@ public class UDTrackUrlAnalyzer : ISpecificAnalyzer
         Severity severity = Severity.Unknown;
         if (val >= _severityScoreThresholdCritical)
             severity = Severity.Critical;  // risk score >= 80 = very dangerous
-        else if (val >= _severityScoreThresholdHigh)
-            severity = Severity.High;      // risk score >= 61 = dangerous
-        else if (val >= _severityScoreThresholdMedium)
-            severity = Severity.Medium;    // risk score >= 31 = moderate ris
+        else if (val >= 60)
+            severity = Severity.High;      // risk score >= 60 = dangerous
+        else if (val >= 40)
+            severity = Severity.Medium;    // risk score >= 40 = moderate risk
         else
-            severity = Severity.Low;       // risk score < 31 = low risk    
+            severity = Severity.Low;       // risk score < 40 = low risk    
 
         return severity;
     }

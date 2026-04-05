@@ -31,8 +31,9 @@ public class CommandQueryHandlersTests
             // Create proper mocks for ASView dependencies
             var serviceProviderMock = new Mock<IServiceProvider>();
             var loggerMock = new Mock<Microsoft.Extensions.Logging.ILogger<ASView>>();
+            var configurationMock = new Mock<Microsoft.Extensions.Configuration.IConfiguration>();
             
-            _asViewMock = new Mock<ASView>(serviceProviderMock.Object, loggerMock.Object);
+            _asViewMock = new Mock<ASView>(serviceProviderMock.Object, loggerMock.Object, configurationMock.Object);
             _sut = new UserCommandHandlers(_userRepositoryMock.Object, _asViewMock.Object);
         }
 

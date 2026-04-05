@@ -221,7 +221,7 @@ namespace ASPS.Tests.Common
             var result = key.ToString();
 
             // Assert
-            result.Should().Be("DeviceKey:device123");
+            result.Should().Be("DeviceKey#device123");
         }
 
         [Fact]
@@ -234,7 +234,7 @@ namespace ASPS.Tests.Common
             var result = key.ToString();
 
             // Assert
-            result.Should().Be("UserKey:user456:instance1");
+            result.Should().Be("UserKey#user456#instance1");
         }
 
         [Fact]
@@ -247,7 +247,7 @@ namespace ASPS.Tests.Common
             var result = key.ToString();
 
             // Assert
-            result.Should().Be(":");
+            result.Should().Be("#");
         }
 
         #endregion

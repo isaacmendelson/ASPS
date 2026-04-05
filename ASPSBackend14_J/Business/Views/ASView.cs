@@ -70,7 +70,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
         _logger.LogInformation($"ASView initialized: {_users.Count} users, {_userDevices.Count} devices, {_userAccounts.Count} accounts");
     }
 
-    public async Task ReInitializeAsync()
+    public virtual async Task ReInitializeAsync()
     {
         _logger.LogInformation("ASView re-initialization requested...");
         this.IsInitialized = false;

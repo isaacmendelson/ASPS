@@ -1,0 +1,168 @@
+Test run for /root/.openclaw/workspace-ceo/asps/ASPSBackend14_J/ASPS.Tests/bin/Debug/net8.0/ASPS.Tests.dll (.NETCoreApp,Version=v8.0)
+VSTest version 17.11.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.17] ASPS.Tests: Skipping test case with duplicate ID '4cf16f5959d0b983d124f26f8c3fd2cbf28af7c3' ('ASPS.Tests.Common.PersonalComputerTests.Type_AcceptsDifferentComputerTypes(type: Desktop)' and 'ASPS.Tests.Common.PersonalComputerTests.Type_AcceptsDifferentComputerTypes(type: Desktop)')
+[xUnit.net 00:00:00.44]     ASPS.Tests.Business.UserDomain.UDTrackUrlAnalyzerTests.AnalyzeAsync_WithScamInProgressKey_ReturnsHighRisk [FAIL]
+[xUnit.net 00:00:00.45]     ASPS.Tests.Business.UserDomain.UDTrackUrlAnalyzerTests.AnalyzeAsync_WithSafeDomain_ReturnsLowRisk [FAIL]
+  Failed ASPS.Tests.Business.UserDomain.UDTrackUrlAnalyzerTests.AnalyzeAsync_WithScamInProgressKey_ReturnsHighRisk [18 ms]
+  Error Message:
+   Expected result.Severity to be Severity.High {value: 3}, but found Severity.Critical {value: 4}.
+  Stack Trace:
+     at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.AddPreFormattedFailure(String formattedFailureMessage)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(String message, Object[] args)
+   at FluentAssertions.Primitives.EnumAssertions`2.Be(TEnum expected, String because, Object[] becauseArgs)
+   at ASPS.Tests.Business.UserDomain.UDTrackUrlAnalyzerTests.AnalyzeAsync_WithScamInProgressKey_ReturnsHighRisk() in /root/.openclaw/workspace-ceo/asps/ASPSBackend14_J/ASPS.Tests/Business/UserDomain/UDTrackUrlAnalyzerTests.cs:line 101
+--- End of stack trace from previous location ---
+  Failed ASPS.Tests.Business.UserDomain.UDTrackUrlAnalyzerTests.AnalyzeAsync_WithSafeDomain_ReturnsLowRisk [1 ms]
+  Error Message:
+   Expected result.Details["risk_score"] to be 5, but found 20.
+  Stack Trace:
+     at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.AddPreFormattedFailure(String formattedFailureMessage)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(String message, Object[] args)
+   at FluentAssertions.Primitives.ObjectAssertions`2.Be(TSubject expected, String because, Object[] becauseArgs)
+   at ASPS.Tests.Business.UserDomain.UDTrackUrlAnalyzerTests.AnalyzeAsync_WithSafeDomain_ReturnsLowRisk() in /root/.openclaw/workspace-ceo/asps/ASPSBackend14_J/ASPS.Tests/Business/UserDomain/UDTrackUrlAnalyzerTests.cs:line 90
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:00.51]     ASPS.Tests.WebApi.Pages.DeviceAlerts.IndexModelTests.OnGetAsync_WithSearchFilter_PassesSearchToQuery [FAIL]
+  Failed ASPS.Tests.WebApi.Pages.DeviceAlerts.IndexModelTests.OnGetAsync_WithSearchFilter_PassesSearchToQuery [2 ms]
+  Error Message:
+   System.ArgumentException : Invalid callback. Setup on method with parameters (Query) cannot invoke callback with parameters (GetRecentAlertsQuery).
+  Stack Trace:
+     at Moq.MethodCall.SetCallbackBehavior(Delegate callback) in /_/src/Moq/MethodCall.cs:line 166
+   at Moq.Language.Flow.NonVoidSetupPhrase`2.Callback[T1](Action`1 callback) in /_/src/Moq/Language/Flow/NonVoidSetupPhrase.cs:line 40
+   at ASPS.Tests.WebApi.Pages.DeviceAlerts.IndexModelTests.OnGetAsync_WithSearchFilter_PassesSearchToQuery() in /root/.openclaw/workspace-ceo/asps/ASPSBackend14_J/ASPS.Tests/WebApi/Pages/DeviceAlerts/IndexModelTests.cs:line 172
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:01.00]     ASPS.Tests.WebApi.Services.NetMQClientServiceTests.Constructor_WithCurveKeyManager_CreatesInstance [SKIP]
+  Skipped ASPS.Tests.WebApi.Services.NetMQClientServiceTests.Constructor_WithCurveKeyManager_CreatesInstance [1 ms]
+[xUnit.net 00:00:01.01]     ASPS.Tests.WebApi.Services.NetMQClientServiceTests.SendQueryAsync_WithRunningBackend_SendsAndReceivesQuery [SKIP]
+[xUnit.net 00:00:01.01]     ASPS.Tests.WebApi.Services.NetMQClientServiceTests.SendCommandAsync_WithRunningBackend_SendsAndReceivesCommand [SKIP]
+  Skipped ASPS.Tests.WebApi.Services.NetMQClientServiceTests.SendQueryAsync_WithRunningBackend_SendsAndReceivesQuery [1 ms]
+  Skipped ASPS.Tests.WebApi.Services.NetMQClientServiceTests.SendCommandAsync_WithRunningBackend_SendsAndReceivesCommand [1 ms]
+[xUnit.net 00:00:01.39]     ASPS.Tests.Business.UserDomain.TrackUrlAnalyzerTests.AnalyzeAsync_WithSafeDomain_ReturnsLowSeverityAndZeroRiskScore [FAIL]
+  Failed ASPS.Tests.Business.UserDomain.TrackUrlAnalyzerTests.AnalyzeAsync_WithSafeDomain_ReturnsLowSeverityAndZeroRiskScore [1 ms]
+  Error Message:
+   Expected result.Details["is_safe_domain"] to be True, but found False.
+  Stack Trace:
+     at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.AddPreFormattedFailure(String formattedFailureMessage)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(String message, Object[] args)
+   at FluentAssertions.Primitives.ObjectAssertions`2.Be(TSubject expected, String because, Object[] becauseArgs)
+   at ASPS.Tests.Business.UserDomain.TrackUrlAnalyzerTests.AnalyzeAsync_WithSafeDomain_ReturnsLowSeverityAndZeroRiskScore() in /root/.openclaw/workspace-ceo/asps/ASPSBackend14_J/ASPS.Tests/Business/UserDomain/TrackUrlAnalyzerTests.cs:line 212
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:01.43]     ASPS.Tests.WebApi.Pages.SimulationsIndexModelTests.OnPostRunAsync_WhenCommandFails_SetsErrorMessage [FAIL]
+  Failed ASPS.Tests.WebApi.Pages.SimulationsIndexModelTests.OnPostRunAsync_WhenCommandFails_SetsErrorMessage [2 ms]
+  Error Message:
+   Expected _sut.ErrorMessage to be a match with the expectation, but it differs at index 0:
+   ↓ (actual)
+  "Error running simulation: Object reference not set to an instance of an object."
+  "Simulation runner is unavailable"
+   ↑ (expected)
+  Stack Trace:
+     at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.AddPreFormattedFailure(String formattedFailureMessage)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(String message)
+   at FluentAssertions.Primitives.StringEqualityStrategy.AssertForEquality(AssertionChain assertionChain, String subject, String expected)
+   at FluentAssertions.Primitives.StringValidator.Validate(String subject, String expected)
+   at FluentAssertions.Primitives.StringAssertions`1.Be(String expected, String because, Object[] becauseArgs)
+   at ASPS.Tests.WebApi.Pages.SimulationsIndexModelTests.OnPostRunAsync_WhenCommandFails_SetsErrorMessage() in /root/.openclaw/workspace-ceo/asps/ASPSBackend14_J/ASPS.Tests/WebApi/Pages/SimulationsIndexModelTests.cs:line 211
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:01.43]     ASPS.Tests.WebApi.Pages.SimulationsIndexModelTests.OnPostRunAsync_WithValidKey_RunsSimulationAndRedirects [FAIL]
+  Failed ASPS.Tests.WebApi.Pages.SimulationsIndexModelTests.OnPostRunAsync_WithValidKey_RunsSimulationAndRedirects [1 ms]
+  Error Message:
+   Expected capturedCommand not to be <null>.
+  Stack Trace:
+     at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.AddPreFormattedFailure(String formattedFailureMessage)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(String message)
+   at FluentAssertions.Primitives.ReferenceTypeAssertions`2.NotBeNull(String because, Object[] becauseArgs)
+   at ASPS.Tests.WebApi.Pages.SimulationsIndexModelTests.OnPostRunAsync_WithValidKey_RunsSimulationAndRedirects() in /root/.openclaw/workspace-ceo/asps/ASPSBackend14_J/ASPS.Tests/WebApi/Pages/SimulationsIndexModelTests.cs:line 186
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:01.44]     ASPS.Tests.WebApi.Pages.SimulationsCreateModelTests.OnPostAsync_WhenCommandFails_SetsErrorAndReturnsPage [FAIL]
+[xUnit.net 00:00:01.44]     ASPS.Tests.WebApi.Pages.SimulationsCreateModelTests.OnPostAsync_WithEmptyStepsJson_CreatesSimulationWithNoSteps [FAIL]
+  Failed ASPS.Tests.WebApi.Pages.SimulationsCreateModelTests.OnPostAsync_WhenCommandFails_SetsErrorAndReturnsPage [7 ms]
+  Error Message:
+   Expected _sut.ErrorMessage to be a match with the expectation, but it differs at index 0:
+   ↓ (actual)
+  "Error creating simulation: Object reference not set to an instance of an object."
+  "Failed to create simulation"
+   ↑ (expected)
+  Stack Trace:
+     at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.AddPreFormattedFailure(String formattedFailureMessage)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(String message)
+   at FluentAssertions.Primitives.StringEqualityStrategy.AssertForEquality(AssertionChain assertionChain, String subject, String expected)
+   at FluentAssertions.Primitives.StringValidator.Validate(String subject, String expected)
+   at FluentAssertions.Primitives.StringAssertions`1.Be(String expected, String because, Object[] becauseArgs)
+   at ASPS.Tests.WebApi.Pages.SimulationsCreateModelTests.OnPostAsync_WhenCommandFails_SetsErrorAndReturnsPage() in /root/.openclaw/workspace-ceo/asps/ASPSBackend14_J/ASPS.Tests/WebApi/Pages/SimulationsCreateModelTests.cs:line 201
+--- End of stack trace from previous location ---
+  Failed ASPS.Tests.WebApi.Pages.SimulationsCreateModelTests.OnPostAsync_WithEmptyStepsJson_CreatesSimulationWithNoSteps [5 ms]
+  Error Message:
+   Expected type to be Microsoft.AspNetCore.Mvc.RedirectToPageResult, but found Microsoft.AspNetCore.Mvc.RazorPages.PageResult.
+  Stack Trace:
+     at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.AddPreFormattedFailure(String formattedFailureMessage)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(String message)
+   at FluentAssertions.Types.TypeAssertions.Be(Type expected, String because, Object[] becauseArgs)
+   at FluentAssertions.Primitives.ReferenceTypeAssertions`2.BeOfType(Type expectedType, String because, Object[] becauseArgs)
+   at FluentAssertions.Primitives.ReferenceTypeAssertions`2.BeOfType[T](String because, Object[] becauseArgs)
+   at ASPS.Tests.WebApi.Pages.SimulationsCreateModelTests.OnPostAsync_WithEmptyStepsJson_CreatesSimulationWithNoSteps() in /root/.openclaw/workspace-ceo/asps/ASPSBackend14_J/ASPS.Tests/WebApi/Pages/SimulationsCreateModelTests.cs:line 232
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:01.45]     ASPS.Tests.WebApi.Pages.SimulationsCreateModelTests.OnPostAsync_WithValidData_CreatesSimulationAndRedirects [FAIL]
+  Failed ASPS.Tests.WebApi.Pages.SimulationsCreateModelTests.OnPostAsync_WithValidData_CreatesSimulationAndRedirects [1 ms]
+  Error Message:
+   Expected type to be Microsoft.AspNetCore.Mvc.RedirectToPageResult, but found Microsoft.AspNetCore.Mvc.RazorPages.PageResult.
+  Stack Trace:
+     at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.AddPreFormattedFailure(String formattedFailureMessage)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(String message)
+   at FluentAssertions.Types.TypeAssertions.Be(Type expected, String because, Object[] becauseArgs)
+   at FluentAssertions.Primitives.ReferenceTypeAssertions`2.BeOfType(Type expectedType, String because, Object[] becauseArgs)
+   at FluentAssertions.Primitives.ReferenceTypeAssertions`2.BeOfType[T](String because, Object[] becauseArgs)
+   at ASPS.Tests.WebApi.Pages.SimulationsCreateModelTests.OnPostAsync_WithValidData_CreatesSimulationAndRedirects() in /root/.openclaw/workspace-ceo/asps/ASPSBackend14_J/ASPS.Tests/WebApi/Pages/SimulationsCreateModelTests.cs:line 116
+--- End of stack trace from previous location ---
+[xUnit.net 00:00:01.64]     ASPS.Tests.RealTimeAlertListenerTests.UrlAlert_ValidJson_ShouldDeserializeCorrectly [FAIL]
+  Failed ASPS.Tests.RealTimeAlertListenerTests.UrlAlert_ValidJson_ShouldDeserializeCorrectly [1 ms]
+  Error Message:
+   Expected alert.Trackers[0].Value to be "tracker-1" with a length of 9, but "" has a length of 0, differs near "" (index 0).
+  Stack Trace:
+     at FluentAssertions.Execution.LateBoundTestFramework.Throw(String message)
+   at FluentAssertions.Execution.DefaultAssertionStrategy.HandleFailure(String message)
+   at FluentAssertions.Execution.AssertionScope.AddPreFormattedFailure(String formattedFailureMessage)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Execution.AssertionChain.FailWith(Func`1 getFailureReason)
+   at FluentAssertions.Primitives.StringEqualityStrategy.ValidateAgainstLengthDifferences(AssertionChain assertion, String subject, String expected)
+   at FluentAssertions.Primitives.StringEqualityStrategy.AssertForEquality(AssertionChain assertionChain, String subject, String expected)
+   at FluentAssertions.Primitives.StringValidator.Validate(String subject, String expected)
+   at FluentAssertions.Primitives.StringAssertions`1.Be(String expected, String because, Object[] becauseArgs)
+   at ASPS.Tests.RealTimeAlertListenerTests.UrlAlert_ValidJson_ShouldDeserializeCorrectly() in /root/.openclaw/workspace-ceo/asps/ASPSBackend14_J/ASPS.Tests/RealTimeAlertListenerTests.cs:line 136
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+Failed!  - Failed:    10, Passed:  1326, Skipped:     3, Total:  1339, Duration: 21 s - ASPS.Tests.dll (net8.0)
