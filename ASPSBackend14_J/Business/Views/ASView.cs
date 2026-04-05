@@ -214,6 +214,13 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                 case nameof(UrlAlert):
                     var vm1 = analysisEvent.AnalyzerResults
                         .FirstOrDefault(i => i.Value.Item1 is UrlAnalysisResult).Value?.Item1 as UrlAnalysisResult;
+                    
+                    if (vm1 == null)
+                    {
+                        _logger.LogWarning("UrlAnalysisResult not found in AnalyzerResults for AlertType={AlertType}", analysisEvent.AlertType);
+                        return;
+                    }
+                    
                     discriminator = nameof(UrlAnalysisResult);
                     IsFromCache = vm1.IsFromCache;
                     jsonValue = System.Text.Json.JsonSerializer.Serialize(new
@@ -230,6 +237,13 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                 case nameof(TrackUrlAlert):
                     var vm3 = analysisEvent.AnalyzerResults
                         .FirstOrDefault(i => i.Value.Item1 is TrackUrlAnalysisResult).Value?.Item1 as TrackUrlAnalysisResult;
+                    
+                    if (vm3 == null)
+                    {
+                        _logger.LogWarning("TrackUrlAnalysisResult not found in AnalyzerResults for AlertType={AlertType}", analysisEvent.AlertType);
+                        return;
+                    }
+                    
                     discriminator = nameof(TrackUrlAnalysisResult);
                     IsFromCache = vm3.IsFromCache;
                     jsonValue = System.Text.Json.JsonSerializer.Serialize(new
@@ -246,6 +260,13 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                 case nameof(RemoteAccessAlert):
                     var vm2 = analysisEvent.AnalyzerResults
                         .FirstOrDefault(i => i.Value.Item1 is RemoteAccessAnalysisResult).Value?.Item1 as RemoteAccessAnalysisResult;
+                    
+                    if (vm2 == null)
+                    {
+                        _logger.LogWarning("RemoteAccessAnalysisResult not found in AnalyzerResults for AlertType={AlertType}", analysisEvent.AlertType);
+                        return;
+                    }
+                    
                     discriminator = nameof(RemoteAccessAnalysisResult);
                     IsFromCache = false;
                     jsonValue = System.Text.Json.JsonSerializer.Serialize(new
