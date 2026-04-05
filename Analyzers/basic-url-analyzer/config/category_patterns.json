@@ -1,0 +1,831 @@
+{
+    "version": "2.0",
+    "description": "Website category patterns for Layer 2 (domain) and Layer 3 (content) detection",
+
+    "domain_patterns": {
+        "exact_tld": {
+            "description": "Exact TLD matches - highest confidence (0.90)",
+            "patterns": {
+                ".bank": "banking",
+                ".insurance": "insurance",
+                ".pharmacy": "pharmacy",
+                ".hospital": "hospital",
+                ".casino": "gambling",
+                ".bet": "sports_betting",
+                ".xxx": "adult_content",
+                ".adult": "adult_content",
+                ".porn": "adult_content",
+                ".sex": "adult_content",
+                ".travel": "travel",
+                ".news": "news",
+                ".church": "religious",
+                ".charity": "nonprofit",
+                ".law": "legal",
+                ".attorney": "legal",
+                ".lawyer": "legal",
+                ".auto": "automotive",
+                ".car": "automotive",
+                ".cars": "automotive",
+                ".restaurant": "restaurant",
+                ".food": "restaurant",
+                ".game": "gaming",
+                ".app": "saas",
+                ".dev": "developer_tools",
+                ".tech": "saas",
+                ".store": "ecommerce",
+                ".shop": "ecommerce",
+                ".buy": "ecommerce",
+                ".market": "marketplace",
+                ".realty": "real_estate",
+                ".homes": "real_estate",
+                ".house": "real_estate"
+            }
+        },
+        "country_specific": {
+            "description": "Country-specific patterns - high confidence (0.85)",
+            "patterns": {
+                ".gov.il": "government",
+                ".gov.uk": "government",
+                ".gov.au": "government",
+                ".gov.us": "government",
+                ".gov.ca": "government",
+                ".ac.il": "university",
+                ".ac.uk": "university",
+                ".ac.jp": "university",
+                ".muni.il": "municipality",
+                ".sch.il": "school",
+                ".idf.il": "military",
+                ".police.il": "government",
+                ".health.il": "hospital",
+                ".org.il": "nonprofit"
+            }
+        },
+        "generic_tld": {
+            "description": "Generic government/education patterns - good confidence (0.80)",
+            "patterns": {
+                ".gov": "government",
+                ".mil": "military",
+                ".edu": "university",
+                ".int": "government"
+            }
+        }
+    },
+
+    "categories": {
+        "banking": {
+            "name_en": "Banking",
+            "name_he": "בנקאות",
+            "group": "financial",
+            "keywords_en": [
+                "bank", "banking", "account", "deposit", "savings", "checking",
+                "wire transfer", "atm", "branch", "online banking", "mobile banking",
+                "debit card", "credit card", "iban", "swift", "personal banking",
+                "business banking", "current account", "overdraft", "direct debit"
+            ],
+            "keywords_he": ["בנק", "חשבון", "פיקדון", "חיסכון", "העברה", "סניף", "כרטיס אשראי", "כרטיס חיוב"],
+            "structure_signals": ["login_form", "account_form"]
+        },
+        "credit_union": {
+            "name_en": "Credit Union",
+            "name_he": "אגודת אשראי",
+            "group": "financial",
+            "keywords_en": [
+                "credit union", "member", "cooperative", "share account",
+                "member savings", "credit union membership", "cu"
+            ],
+            "keywords_he": ["קואופרטיב", "אגודת אשראי"],
+            "structure_signals": []
+        },
+        "insurance": {
+            "name_en": "Insurance",
+            "name_he": "ביטוח",
+            "group": "financial",
+            "keywords_en": [
+                "insurance", "policy", "premium", "claim", "coverage",
+                "underwriting", "deductible", "actuary", "insurer",
+                "life insurance", "car insurance", "health insurance",
+                "home insurance", "renters insurance", "liability"
+            ],
+            "keywords_he": ["ביטוח", "פוליסה", "פרמיה", "תביעה", "כיסוי", "ביטוח רכב", "ביטוח חיים", "ביטוח בריאות"],
+            "structure_signals": ["quote_form"]
+        },
+        "investment": {
+            "name_en": "Investment",
+            "name_he": "השקעות",
+            "group": "financial",
+            "keywords_en": [
+                "investment", "portfolio", "mutual fund", "hedge fund",
+                "asset management", "wealth", "advisory", "fiduciary",
+                "etf", "bonds", "securities", "roi", "returns",
+                "fund manager", "capital", "diversification"
+            ],
+            "keywords_he": ["השקעה", "תיק", "קרן", "נכסים", "ייעוץ", "תשואה", "ניירות ערך", "הון"],
+            "structure_signals": []
+        },
+        "stock_trading": {
+            "name_en": "Stock Trading",
+            "name_he": "מסחר מניות",
+            "group": "financial",
+            "keywords_en": [
+                "stock", "trading", "broker", "nasdaq", "nyse", "shares",
+                "equity", "dividend", "market", "ticker", "bull", "bear",
+                "ipo", "day trading", "swing trading", "stock exchange",
+                "candlestick", "chart", "technical analysis", "fundamental analysis"
+            ],
+            "keywords_he": ["מניה", "מסחר", "ברוקר", "בורסה", "דיבידנד", "מניות", "שוק ההון"],
+            "structure_signals": ["trading_chart", "price_ticker"]
+        },
+        "crypto_exchange": {
+            "name_en": "Crypto Exchange",
+            "name_he": "בורסת קריפטו",
+            "group": "financial",
+            "keywords_en": [
+                "crypto", "bitcoin", "ethereum", "exchange", "wallet",
+                "blockchain", "token", "defi", "nft", "altcoin",
+                "binance", "coinbase", "trading pair", "spot", "futures",
+                "staking", "yield", "liquidity", "swap", "web3",
+                "btc", "eth", "usdt", "cryptocurrency", "mining"
+            ],
+            "keywords_he": ["קריפטו", "ביטקוין", "אתריום", "ארנק", "בלוקצ'יין", "מטבע דיגיטלי", "כריית"],
+            "structure_signals": ["trading_chart", "price_ticker", "wallet_connect"]
+        },
+        "payment_service": {
+            "name_en": "Payment Service",
+            "name_he": "שירותי תשלום",
+            "group": "financial",
+            "keywords_en": [
+                "payment", "pay", "transfer", "checkout", "invoice",
+                "billing", "wallet", "fintech", "remittance", "send money",
+                "receive money", "paypal", "venmo", "stripe", "square",
+                "contactless", "qr pay", "digital wallet"
+            ],
+            "keywords_he": ["תשלום", "העברה", "חשבונית", "ארנק דיגיטלי", "שליחת כסף"],
+            "structure_signals": ["payment_form"]
+        },
+        "lending": {
+            "name_en": "Lending",
+            "name_he": "הלוואות",
+            "group": "financial",
+            "keywords_en": [
+                "loan", "lending", "mortgage", "borrow", "interest rate",
+                "credit", "refinance", "installment", "apr", "principal",
+                "collateral", "personal loan", "business loan", "student loan",
+                "auto loan", "pre-approval", "debt consolidation"
+            ],
+            "keywords_he": ["הלוואה", "משכנתא", "אשראי", "ריבית", "מימון", "החזר", "פריסת תשלומים"],
+            "structure_signals": ["loan_calculator", "application_form"]
+        },
+
+        "ecommerce": {
+            "name_en": "E-commerce",
+            "name_he": "קניות אונליין",
+            "group": "shopping",
+            "keywords_en": [
+                "shop", "store", "buy", "cart", "checkout", "product",
+                "shipping", "delivery", "order", "add to cart", "price",
+                "sale", "discount", "coupon", "free shipping", "returns",
+                "wishlist", "in stock", "out of stock", "quantity"
+            ],
+            "keywords_he": ["חנות", "קנייה", "עגלה", "מוצר", "משלוח", "הזמנה", "מבצע", "הנחה", "מחיר"],
+            "structure_signals": ["shopping_cart", "product_listing", "checkout_form"]
+        },
+        "marketplace": {
+            "name_en": "Marketplace",
+            "name_he": "שוק מקוון",
+            "group": "shopping",
+            "keywords_en": [
+                "marketplace", "seller", "buyer", "listing", "used",
+                "second hand", "peer-to-peer", "vendor", "merchant",
+                "sell online", "buy and sell", "pre-owned"
+            ],
+            "keywords_he": ["שוק", "מוכר", "קונה", "יד שנייה", "מודעה"],
+            "structure_signals": ["product_listing", "seller_profile"]
+        },
+        "auction": {
+            "name_en": "Auction",
+            "name_he": "מכירה פומבית",
+            "group": "shopping",
+            "keywords_en": [
+                "auction", "bid", "bidding", "lot", "hammer",
+                "going once", "highest bidder", "reserve price",
+                "starting bid", "bid history", "live auction"
+            ],
+            "keywords_he": ["מכירה פומבית", "הצעת מחיר", "מכרז"],
+            "structure_signals": ["bid_form"]
+        },
+        "classifieds": {
+            "name_en": "Classifieds",
+            "name_he": "לוח מודעות",
+            "group": "shopping",
+            "keywords_en": [
+                "classifieds", "ad", "listing", "for sale", "wanted",
+                "free", "post ad", "local ads", "buy sell trade"
+            ],
+            "keywords_he": ["לוח", "מודעה", "למכירה", "דרושים", "חינם"],
+            "structure_signals": ["listing_form"]
+        },
+        "grocery": {
+            "name_en": "Grocery",
+            "name_he": "סופרמרקט",
+            "group": "shopping",
+            "keywords_en": [
+                "grocery", "supermarket", "fresh", "produce", "organic",
+                "food delivery", "pantry", "bakery", "dairy", "meat",
+                "vegetables", "fruits", "weekly deal"
+            ],
+            "keywords_he": ["סופר", "מכולת", "טרי", "אורגני", "משלוח מזון", "ירקות", "פירות"],
+            "structure_signals": ["shopping_cart", "product_listing"]
+        },
+        "fashion": {
+            "name_en": "Fashion",
+            "name_he": "אופנה",
+            "group": "shopping",
+            "keywords_en": [
+                "fashion", "clothing", "apparel", "outfit", "dress",
+                "shoes", "accessories", "designer", "style", "collection",
+                "wear", "size", "fit", "mens", "womens", "trending"
+            ],
+            "keywords_he": ["אופנה", "ביגוד", "נעליים", "אקססוריז", "סטייל", "שמלה", "חולצה"],
+            "structure_signals": ["product_listing", "size_selector"]
+        },
+        "electronics": {
+            "name_en": "Electronics",
+            "name_he": "אלקטרוניקה",
+            "group": "shopping",
+            "keywords_en": [
+                "electronics", "gadget", "phone", "laptop", "computer",
+                "camera", "tablet", "headphones", "tech", "smart",
+                "bluetooth", "wireless", "specs", "specifications"
+            ],
+            "keywords_he": ["אלקטרוניקה", "טלפון", "מחשב", "מצלמה", "טאבלט", "אוזניות"],
+            "structure_signals": ["product_listing", "specs_table"]
+        },
+
+        "government": {
+            "name_en": "Government",
+            "name_he": "ממשלה",
+            "group": "government",
+            "keywords_en": [
+                "government", "ministry", "federal", "national",
+                "public service", "citizen", "official", "department",
+                "state", "agency", "regulation", "policy", "legislation"
+            ],
+            "keywords_he": ["ממשלה", "משרד", "לאומי", "שירות ציבורי", "אזרח", "רשמי", "מדינה", "חוק"],
+            "structure_signals": ["gov_seal", "official_form"]
+        },
+        "municipality": {
+            "name_en": "Municipality",
+            "name_he": "עירייה",
+            "group": "government",
+            "keywords_en": [
+                "municipality", "city", "town", "council",
+                "local authority", "mayor", "civic", "municipal",
+                "city hall", "borough", "district"
+            ],
+            "keywords_he": ["עירייה", "מועצה", "ראש עיר", "רשות מקומית", "עירוני"],
+            "structure_signals": ["official_form"]
+        },
+        "military": {
+            "name_en": "Military",
+            "name_he": "צבא",
+            "group": "government",
+            "keywords_en": [
+                "military", "army", "navy", "air force", "defense",
+                "armed forces", "veteran", "marine", "soldier",
+                "national guard", "pentagon", "base"
+            ],
+            "keywords_he": ["צבא", "צהל", "ביטחון", "חיל", "מילואים", "חייל"],
+            "structure_signals": []
+        },
+        "court": {
+            "name_en": "Court",
+            "name_he": "בית משפט",
+            "group": "government",
+            "keywords_en": [
+                "court", "judicial", "judge", "verdict", "tribunal",
+                "case", "lawsuit", "hearing", "ruling", "docket",
+                "supreme court", "district court"
+            ],
+            "keywords_he": ["בית משפט", "שופט", "פסק דין", "משפט", "דיון", "תביעה"],
+            "structure_signals": []
+        },
+        "tax_authority": {
+            "name_en": "Tax Authority",
+            "name_he": "רשות המיסים",
+            "group": "government",
+            "keywords_en": [
+                "tax", "revenue", "irs", "customs", "vat",
+                "filing", "return", "refund", "taxation", "duty",
+                "income tax", "tax bracket", "withholding"
+            ],
+            "keywords_he": ["מס", "מע\"מ", "רשות המיסים", "שומה", "החזר מס", "דוח שנתי"],
+            "structure_signals": ["tax_form"]
+        },
+        "public_service": {
+            "name_en": "Public Service",
+            "name_he": "שירות ציבורי",
+            "group": "government",
+            "keywords_en": [
+                "public service", "civil service", "social security",
+                "welfare", "permit", "license", "registration",
+                "benefits", "disability", "unemployment"
+            ],
+            "keywords_he": ["שירות ציבורי", "ביטוח לאומי", "רווחה", "רישיון", "היתר", "קצבה"],
+            "structure_signals": ["application_form"]
+        },
+
+        "hospital": {
+            "name_en": "Hospital",
+            "name_he": "בית חולים",
+            "group": "health",
+            "keywords_en": [
+                "hospital", "emergency", "ward", "surgery", "inpatient",
+                "outpatient", "er", "icu", "medical center",
+                "department", "admission", "discharge"
+            ],
+            "keywords_he": ["בית חולים", "מיון", "ניתוח", "אשפוז", "מרכז רפואי", "חדר מיון"],
+            "structure_signals": []
+        },
+        "clinic": {
+            "name_en": "Clinic",
+            "name_he": "מרפאה",
+            "group": "health",
+            "keywords_en": [
+                "clinic", "doctor", "physician", "appointment", "checkup",
+                "consultation", "specialist", "general practitioner",
+                "family doctor", "walk-in", "primary care"
+            ],
+            "keywords_he": ["מרפאה", "רופא", "תור", "בדיקה", "מומחה", "רופא משפחה"],
+            "structure_signals": ["appointment_form"]
+        },
+        "pharmacy": {
+            "name_en": "Pharmacy",
+            "name_he": "בית מרקחת",
+            "group": "health",
+            "keywords_en": [
+                "pharmacy", "drug", "prescription", "medication", "otc",
+                "refill", "pharmacist", "drugstore", "medicine",
+                "dose", "side effects", "generic"
+            ],
+            "keywords_he": ["בית מרקחת", "תרופה", "מרשם", "רוקח", "תרופות"],
+            "structure_signals": []
+        },
+        "telehealth": {
+            "name_en": "Telehealth",
+            "name_he": "רפואה מרחוק",
+            "group": "health",
+            "keywords_en": [
+                "telehealth", "telemedicine", "virtual visit", "online doctor",
+                "video consultation", "remote care", "e-health",
+                "virtual clinic", "online consultation"
+            ],
+            "keywords_he": ["רפואה מרחוק", "ייעוץ מקוון", "רופא אונליין"],
+            "structure_signals": ["video_call", "appointment_form"]
+        },
+        "mental_health": {
+            "name_en": "Mental Health",
+            "name_he": "בריאות הנפש",
+            "group": "health",
+            "keywords_en": [
+                "therapy", "therapist", "counseling", "psychologist",
+                "psychiatrist", "mental health", "anxiety", "depression",
+                "wellness", "mindfulness", "cognitive behavioral",
+                "support group", "self-care"
+            ],
+            "keywords_he": ["טיפול", "פסיכולוג", "ייעוץ", "בריאות הנפש", "חרדה", "דיכאון", "פסיכיאטר"],
+            "structure_signals": ["appointment_form"]
+        },
+
+        "university": {
+            "name_en": "University",
+            "name_he": "אוניברסיטה",
+            "group": "education",
+            "keywords_en": [
+                "university", "college", "faculty", "campus", "degree",
+                "bachelor", "master", "phd", "research", "professor",
+                "semester", "academic", "alumni", "enrollment", "admission"
+            ],
+            "keywords_he": ["אוניברסיטה", "מכללה", "פקולטה", "תואר", "מחקר", "פרופסור", "סמסטר"],
+            "structure_signals": ["enrollment_form"]
+        },
+        "school": {
+            "name_en": "School",
+            "name_he": "בית ספר",
+            "group": "education",
+            "keywords_en": [
+                "school", "k-12", "elementary", "high school",
+                "middle school", "teacher", "student", "class",
+                "grade", "homework", "parent", "principal"
+            ],
+            "keywords_he": ["בית ספר", "תלמיד", "מורה", "כיתה", "ציון", "שיעורי בית", "מנהל"],
+            "structure_signals": []
+        },
+        "online_course": {
+            "name_en": "Online Course",
+            "name_he": "קורס מקוון",
+            "group": "education",
+            "keywords_en": [
+                "course", "tutorial", "lesson", "certificate", "mooc",
+                "instructor", "curriculum", "syllabus", "udemy",
+                "coursera", "skillshare", "masterclass", "bootcamp"
+            ],
+            "keywords_he": ["קורס", "שיעור", "תעודה", "לימוד", "הכשרה", "סדנה"],
+            "structure_signals": ["enrollment_form", "video_player"]
+        },
+        "elearning": {
+            "name_en": "E-learning",
+            "name_he": "למידה מקוונת",
+            "group": "education",
+            "keywords_en": [
+                "e-learning", "lms", "learning platform", "quiz",
+                "assignment", "grade", "enrollment", "learning management",
+                "moodle", "canvas", "blackboard", "classroom"
+            ],
+            "keywords_he": ["למידה מקוונת", "מבחן", "ציון", "הרשמה", "פלטפורמת למידה"],
+            "structure_signals": ["login_form", "quiz_form"]
+        },
+
+        "streaming": {
+            "name_en": "Streaming",
+            "name_he": "סטרימינג",
+            "group": "entertainment",
+            "keywords_en": [
+                "stream", "watch", "movie", "series", "episode",
+                "subscribe", "binge", "on demand", "netflix",
+                "hulu", "disney", "hbo", "prime video", "playlist"
+            ],
+            "keywords_he": ["צפייה", "סרט", "סדרה", "פרק", "מנוי", "שידור"],
+            "structure_signals": ["video_player"]
+        },
+        "gaming": {
+            "name_en": "Gaming",
+            "name_he": "גיימינג",
+            "group": "entertainment",
+            "keywords_en": [
+                "game", "gaming", "play", "gamer", "esports",
+                "multiplayer", "console", "pc game", "steam",
+                "playstation", "xbox", "nintendo", "rpg", "fps",
+                "download game", "free to play"
+            ],
+            "keywords_he": ["משחק", "שחקן", "גיימר", "קונסולה", "אונליין"],
+            "structure_signals": ["game_embed"]
+        },
+        "gambling": {
+            "name_en": "Gambling / Casino",
+            "name_he": "הימורים / קזינו",
+            "group": "entertainment",
+            "keywords_en": [
+                "casino", "gambling", "bet", "slot", "poker",
+                "roulette", "blackjack", "jackpot", "wager",
+                "spin", "dealer", "chips", "payout", "bonus",
+                "free spins", "deposit bonus", "live casino"
+            ],
+            "keywords_he": ["קזינו", "הימורים", "הימור", "פוקר", "רולטה", "ג'קפוט"],
+            "structure_signals": ["deposit_form"]
+        },
+        "sports_betting": {
+            "name_en": "Sports Betting",
+            "name_he": "הימורי ספורט",
+            "group": "entertainment",
+            "keywords_en": [
+                "sports bet", "odds", "spread", "handicap",
+                "over under", "parlay", "bookie", "sportsbook",
+                "live betting", "in-play", "accumulator", "tipster"
+            ],
+            "keywords_he": ["הימורי ספורט", "אודס", "טוטו", "ניחוש", "הימור ספורט"],
+            "structure_signals": ["bet_slip"]
+        },
+        "adult_content": {
+            "name_en": "Adult Content",
+            "name_he": "תוכן למבוגרים",
+            "group": "entertainment",
+            "keywords_en": [
+                "adult", "18+", "nsfw", "mature content", "explicit",
+                "xxx", "adult entertainment", "age verification"
+            ],
+            "keywords_he": ["תוכן למבוגרים", "מעל 18"],
+            "structure_signals": ["age_gate"]
+        },
+
+        "news": {
+            "name_en": "News",
+            "name_he": "חדשות",
+            "group": "media",
+            "keywords_en": [
+                "news", "breaking", "headline", "reporter", "editorial",
+                "press", "article", "correspondent", "journalism",
+                "exclusive", "live update", "newsroom", "column"
+            ],
+            "keywords_he": ["חדשות", "כתבה", "מהדורה", "כתב", "מאמר", "עיתון", "מגזין"],
+            "structure_signals": ["article_list"]
+        },
+        "blog": {
+            "name_en": "Blog",
+            "name_he": "בלוג",
+            "group": "media",
+            "keywords_en": [
+                "blog", "post", "author", "comment", "tag",
+                "archive", "personal", "opinion", "subscribe",
+                "read more", "published", "category"
+            ],
+            "keywords_he": ["בלוג", "פוסט", "מחבר", "תגובה", "ארכיון"],
+            "structure_signals": ["comment_section"]
+        },
+        "forum": {
+            "name_en": "Forum",
+            "name_he": "פורום",
+            "group": "media",
+            "keywords_en": [
+                "forum", "thread", "topic", "reply", "discussion",
+                "board", "community", "moderator", "member",
+                "post", "views", "sticky", "subforum"
+            ],
+            "keywords_he": ["פורום", "שרשור", "דיון", "קהילה", "תגובה"],
+            "structure_signals": ["thread_list"]
+        },
+        "social_network": {
+            "name_en": "Social Network",
+            "name_he": "רשת חברתית",
+            "group": "media",
+            "keywords_en": [
+                "social", "profile", "friend", "follow", "share",
+                "like", "post", "feed", "connect", "timeline",
+                "story", "status", "notification", "hashtag"
+            ],
+            "keywords_he": ["חברתי", "פרופיל", "חבר", "עוקב", "שיתוף", "פוסט", "סטורי"],
+            "structure_signals": ["profile_page", "feed"]
+        },
+        "messaging": {
+            "name_en": "Messaging",
+            "name_he": "הודעות",
+            "group": "media",
+            "keywords_en": [
+                "message", "chat", "inbox", "send", "conversation",
+                "dm", "group chat", "call", "video call",
+                "voice message", "emoji", "attachment"
+            ],
+            "keywords_he": ["הודעה", "צ'אט", "שיחה", "שליחה", "קבוצה"],
+            "structure_signals": ["chat_interface"]
+        },
+
+        "legal": {
+            "name_en": "Legal Services",
+            "name_he": "שירותים משפטיים",
+            "group": "services",
+            "keywords_en": [
+                "lawyer", "attorney", "legal", "law firm", "counsel",
+                "litigation", "contract", "lawsuit", "court",
+                "legal advice", "practice areas", "consultation",
+                "defense", "prosecution", "settlement"
+            ],
+            "keywords_he": ["עורך דין", "משפט", "חוזה", "ייעוץ משפטי", "תביעה", "משרד עורכי דין"],
+            "structure_signals": ["consultation_form"]
+        },
+        "accounting": {
+            "name_en": "Accounting",
+            "name_he": "ראיית חשבון",
+            "group": "services",
+            "keywords_en": [
+                "accounting", "accountant", "cpa", "bookkeeping",
+                "audit", "tax preparation", "payroll", "financial statement",
+                "balance sheet", "profit and loss"
+            ],
+            "keywords_he": ["רואה חשבון", "הנהלת חשבונות", "ביקורת", "מאזן", "דוח כספי"],
+            "structure_signals": []
+        },
+        "real_estate": {
+            "name_en": "Real Estate",
+            "name_he": "נדל\"ן",
+            "group": "services",
+            "keywords_en": [
+                "real estate", "property", "house", "apartment", "rent",
+                "realtor", "listing", "mortgage", "condo", "townhouse",
+                "bedroom", "sqft", "sq ft", "square feet",
+                "for sale", "for rent", "open house", "mls"
+            ],
+            "keywords_he": ["נדלן", "דירה", "בית", "שכירות", "מכירה", "תיווך", "נכס", "חדרים"],
+            "structure_signals": ["property_listing", "map_embed"]
+        },
+        "travel": {
+            "name_en": "Travel",
+            "name_he": "תיירות",
+            "group": "services",
+            "keywords_en": [
+                "travel", "hotel", "flight", "vacation", "tourism",
+                "booking", "destination", "resort", "trip", "tour",
+                "airline", "hostel", "airbnb", "itinerary",
+                "check-in", "check-out", "room"
+            ],
+            "keywords_he": ["תיירות", "מלון", "טיסה", "חופשה", "הזמנה", "יעד", "טיול", "נופש"],
+            "structure_signals": ["booking_form", "date_picker", "map_embed"]
+        },
+        "job_board": {
+            "name_en": "Job Board",
+            "name_he": "לוח דרושים",
+            "group": "services",
+            "keywords_en": [
+                "job", "career", "hiring", "recruit", "resume", "cv",
+                "apply", "employer", "vacancy", "position",
+                "salary", "full-time", "part-time", "remote",
+                "internship", "job search"
+            ],
+            "keywords_he": ["דרושים", "משרה", "קריירה", "קורות חיים", "מועמד", "שכר", "חצי משרה"],
+            "structure_signals": ["job_listing", "application_form"]
+        },
+
+        "saas": {
+            "name_en": "SaaS",
+            "name_he": "תוכנה כשירות",
+            "group": "technology",
+            "keywords_en": [
+                "saas", "platform", "dashboard", "subscription", "plan",
+                "workspace", "integration", "api", "free trial",
+                "pricing", "enterprise", "team", "collaborate"
+            ],
+            "keywords_he": ["פלטפורמה", "מנוי", "תוכנית", "ניסיון חינם"],
+            "structure_signals": ["pricing_table", "signup_form"]
+        },
+        "cloud": {
+            "name_en": "Cloud Services",
+            "name_he": "שירותי ענן",
+            "group": "technology",
+            "keywords_en": [
+                "cloud", "hosting", "server", "infrastructure", "storage",
+                "compute", "deploy", "scalable", "aws", "azure",
+                "gcp", "kubernetes", "docker", "devops", "cdn"
+            ],
+            "keywords_he": ["ענן", "שרת", "תשתית", "אחסון"],
+            "structure_signals": ["pricing_table"]
+        },
+        "web_hosting": {
+            "name_en": "Web Hosting",
+            "name_he": "אחסון אתרים",
+            "group": "technology",
+            "keywords_en": [
+                "hosting", "domain", "cpanel", "dns", "ssl",
+                "bandwidth", "uptime", "server", "shared hosting",
+                "vps", "dedicated", "wordpress hosting"
+            ],
+            "keywords_he": ["אחסון", "דומיין", "שרת", "אתר"],
+            "structure_signals": ["pricing_table"]
+        },
+        "vpn_proxy": {
+            "name_en": "VPN / Proxy",
+            "name_he": "VPN / פרוקסי",
+            "group": "technology",
+            "keywords_en": [
+                "vpn", "proxy", "privacy", "anonymous", "unblock",
+                "encrypt", "tunnel", "no log", "ip address",
+                "geo-restriction", "bypass", "secure connection"
+            ],
+            "keywords_he": ["פרטיות", "אנונימי", "הצפנה", "חיבור מאובטח"],
+            "structure_signals": ["pricing_table"]
+        },
+        "developer_tools": {
+            "name_en": "Developer Tools",
+            "name_he": "כלי פיתוח",
+            "group": "technology",
+            "keywords_en": [
+                "developer", "api", "sdk", "github", "repository",
+                "code", "debug", "documentation", "framework",
+                "open source", "library", "npm", "package", "cli"
+            ],
+            "keywords_he": ["מפתח", "קוד", "תיעוד", "פריימוורק"],
+            "structure_signals": ["code_block", "api_docs"]
+        },
+
+        "restaurant": {
+            "name_en": "Restaurant",
+            "name_he": "מסעדה",
+            "group": "other",
+            "keywords_en": [
+                "restaurant", "menu", "reservation", "dine", "chef",
+                "cuisine", "order food", "takeout", "delivery",
+                "table", "appetizer", "entree", "dessert"
+            ],
+            "keywords_he": ["מסעדה", "תפריט", "הזמנה", "שף", "מנה", "משלוח"],
+            "structure_signals": ["menu_list", "reservation_form"]
+        },
+        "automotive": {
+            "name_en": "Automotive",
+            "name_he": "רכב",
+            "group": "other",
+            "keywords_en": [
+                "car", "auto", "vehicle", "dealer", "used car",
+                "truck", "motorcycle", "repair", "lease", "test drive",
+                "mileage", "model", "make", "sedan", "suv"
+            ],
+            "keywords_he": ["רכב", "מכונית", "אוטו", "סוכנות", "יד שנייה", "מוסך", "ליסינג"],
+            "structure_signals": ["vehicle_listing"]
+        },
+        "pets": {
+            "name_en": "Pets",
+            "name_he": "חיות מחמד",
+            "group": "other",
+            "keywords_en": [
+                "pet", "dog", "cat", "vet", "veterinary",
+                "grooming", "adoption", "pet food", "puppy",
+                "kitten", "breed", "shelter", "animal", "pet store"
+            ],
+            "keywords_he": ["חיות מחמד", "כלב", "חתול", "וטרינר", "אילוף", "גור"],
+            "structure_signals": []
+        },
+        "nonprofit": {
+            "name_en": "Non-profit",
+            "name_he": "עמותה",
+            "group": "other",
+            "keywords_en": [
+                "nonprofit", "charity", "donate", "volunteer",
+                "foundation", "ngo", "cause", "mission",
+                "fundraise", "impact", "community", "help"
+            ],
+            "keywords_he": ["עמותה", "תרומה", "מתנדב", "קרן", "סיוע", "ארגון"],
+            "structure_signals": ["donation_form"]
+        },
+        "language_learning": {
+            "name_en": "Language Learning",
+            "name_he": "לימוד שפות",
+            "group": "education",
+            "keywords_en": [
+                "language learning", "learn language", "vocabulary", "fluency",
+                "grammar", "pronunciation", "translate", "translation",
+                "bilingual", "multilingual", "native speaker", "immersion",
+                "flashcard", "phrase", "conversation practice", "streak",
+                "lesson", "beginner", "intermediate", "advanced",
+                "english", "spanish", "french", "german", "japanese",
+                "chinese", "arabic", "hebrew", "korean", "portuguese",
+                "language app", "language course", "speak", "listen"
+            ],
+            "keywords_he": ["לימוד שפות", "שפה", "אוצר מילים", "דקדוק", "תרגום", "שיחה", "מילים"],
+            "structure_signals": ["quiz_form"]
+        },
+        "review_directory": {
+            "name_en": "Review & Directory",
+            "name_he": "ביקורות ומדריך עסקים",
+            "group": "services",
+            "keywords_en": [
+                "review", "reviews", "rating", "ratings", "stars",
+                "business listing", "directory", "find a", "near me",
+                "top rated", "best", "worst", "recommend", "recommendation",
+                "testimonial", "feedback", "verified review", "customer review",
+                "compare", "comparison", "pros and cons", "score",
+                "write a review", "user review", "critic", "rated"
+            ],
+            "keywords_he": ["ביקורת", "דירוג", "כוכבים", "המלצה", "חוות דעת", "השוואה", "מדריך עסקים"],
+            "structure_signals": ["rating_widget"]
+        },
+        "ride_delivery": {
+            "name_en": "Ride & Delivery",
+            "name_he": "נסיעות ומשלוחים",
+            "group": "services",
+            "keywords_en": [
+                "ride", "rider", "driver", "pickup", "dropoff",
+                "delivery", "deliver", "order food", "food delivery",
+                "courier", "dispatch", "eta", "track order",
+                "ride hailing", "rideshare", "carpool", "taxi",
+                "on demand", "real time", "nearby", "arrive",
+                "fare", "trip", "destination", "passenger"
+            ],
+            "keywords_he": ["נסיעה", "נהג", "משלוח", "הזמנת אוכל", "שליח", "מונית", "איסוף"],
+            "structure_signals": ["map_embed", "booking_form"]
+        },
+        "religious": {
+            "name_en": "Religious",
+            "name_he": "דת",
+            "group": "other",
+            "keywords_en": [
+                "church", "mosque", "synagogue", "temple", "prayer",
+                "faith", "worship", "congregation", "sermon",
+                "bible", "quran", "torah", "spiritual", "ministry"
+            ],
+            "keywords_he": ["בית כנסת", "מסגד", "כנסייה", "תפילה", "קהילה", "רב", "דת"],
+            "structure_signals": []
+        }
+    },
+
+    "scoring": {
+        "layer2_confidence": {
+            "exact_tld": 0.90,
+            "country_specific": 0.85,
+            "generic_tld": 0.80
+        },
+        "layer3_weights": {
+            "title": 3.0,
+            "meta_description": 2.0,
+            "h1": 2.5,
+            "h2": 1.5,
+            "body_text": 1.0,
+            "domain": 2.0
+        },
+        "layer3_component_weights": {
+            "keyword_score": 0.60,
+            "structure_score": 0.25,
+            "meta_score": 0.15
+        },
+        "confidence_thresholds": {
+            "high": 0.70,
+            "medium": 0.40,
+            "low": 0.10
+        }
+    }
+}

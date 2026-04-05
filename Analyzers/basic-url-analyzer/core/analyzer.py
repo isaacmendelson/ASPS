@@ -26,6 +26,7 @@ from .purpose_classifier import PurposeClassifier
 from .ml_classifier import MLClassifier
 from .reputation_checker import ReputationChecker
 from .category_classifier import CategoryClassifier
+from .url_inspector import URLInspector
 from scrapers.playwright_scraper import PlaywrightScraper
 from utils.logger import setup_logger
 from utils.validators import URLValidator
@@ -52,6 +53,7 @@ class ScamAnalyzer:
         self.whois_checker = WhoisChecker()
         self.reputation_checker = ReputationChecker()
         self.category_classifier = CategoryClassifier()
+        self.url_inspector = URLInspector()
         self.scraper = PlaywrightScraper()
         self.content_extractor = ContentExtractor()
         self.rules_engine = RulesEngine()
@@ -115,7 +117,10 @@ class ScamAnalyzer:
             # Track missing data
             missing_data = []
             warnings = []
-            
+
+            # Step 0: URL string inspection (no network needed)
+            url_inspection = self.url_inspector.inspect(url)
+
             # Step 1: WHOIS lookup
             whois_data = self.whois_checker.check(domain)
             if not whois_data['success']:
@@ -163,10 +168,9 @@ class ScamAnalyzer:
             # Step 4.6: ML prediction (if enabled AND content is English)
             ml_result = {'success': False, 'score': 0.0, 'note': 'ML disabled'}
 
-            # Check if site is well-known (reputation override)
+            # Reputation data (informational only, does not override ML)
             is_well_known = reputation_data.get('is_well_known', False)
             reputable_mentions = reputation_data.get('reputable_mentions', 0)
-            reputation_override = is_well_known and reputable_mentions >= 3
 
             # Skip ML for non-English content (model trained on English only)
             if not is_english:
@@ -232,18 +236,6 @@ class ScamAnalyzer:
                             f"Domain age override: {domain_age_days} days old (5+ years), rules low ({rules_score:.2f}) -> LOW risk"
                         )
                         combined_score = min(ml_score, 0.25)  # Cap at 25% = LOW risk
-                    # REPUTATION OVERRIDE: If site is well-known, don't let ML override to HIGH
-                    elif reputation_override:
-                        # Well-known sites with 3+ mentions: cap ML score at 0.20 (LOW risk)
-                        if ml_score >= 0.70:
-                            self.logger.info(
-                                f"Reputation override: ML says {ml_score:.2f} but site is well-known "
-                                f"({reputable_mentions} mentions) - using rules only"
-                            )
-                            # Use only rules score for well-known sites
-                            combined_score = min(rules_score, 0.25)  # Cap at 25% risk = LOW
-                        else:
-                            combined_score = self._tiered_score_combination(ml_score, rules_score)
                     else:
                         # Normal tiered combination for unknown sites
                         combined_score = self._tiered_score_combination(ml_score, rules_score)
@@ -260,23 +252,57 @@ class ScamAnalyzer:
             )
 
             # Step 5.5: Category classification (what type of site is this)
-            category_result = self.category_classifier.classify(content)
+            category_result = self.category_classifier.classify(content, domain)
 
-            # Map purpose category to backend WebsiteType enum values:
-            # Unknown=0, Analytics=1, Banking=2, News=3, ECommerce=4, Telecom=5, Dating=6, Exchange=7
+            # Map category to backend WebsiteType enum values
             _CATEGORY_TO_WEBSITE_TYPE = {
-                'crypto_scam': 'Exchange',
-                'investment_scam': 'Exchange',
-                'fake_ecommerce': 'ECommerce',
-                'romance_scam': 'Dating',
-                'finance_banking': 'Banking',
-                'news_media': 'News',
-                'ecommerce_shopping': 'ECommerce',
-                'technology': 'Analytics',
-                'entertainment': 'Unknown',
-                'social_network': 'Unknown',
+                # Financial
+                'banking': 'Banking', 'credit_union': 'Banking',
+                'insurance': 'Insurance', 'investment': 'Investment',
+                'stock_trading': 'Exchange', 'crypto_exchange': 'Exchange',
+                'payment_service': 'Banking', 'lending': 'Banking',
+                # Shopping
+                'ecommerce': 'ECommerce', 'marketplace': 'ECommerce',
+                'auction': 'ECommerce', 'classifieds': 'ECommerce',
+                'grocery': 'ECommerce', 'fashion': 'ECommerce', 'electronics': 'ECommerce',
+                # Government
+                'government': 'Government', 'municipality': 'Government',
+                'military': 'Government', 'court': 'Government',
+                'tax_authority': 'Government', 'public_service': 'Government',
+                # Health
+                'hospital': 'Healthcare', 'clinic': 'Healthcare',
+                'pharmacy': 'Healthcare', 'telehealth': 'Healthcare',
+                'mental_health': 'Healthcare',
+                # Education
+                'university': 'Education', 'school': 'Education',
+                'online_course': 'Education', 'elearning': 'Education',
+                # Entertainment
+                'streaming': 'Entertainment', 'gaming': 'Entertainment',
+                'gambling': 'Gambling', 'sports_betting': 'Gambling',
+                'adult_content': 'AdultContent',
+                # Media
+                'news': 'News', 'blog': 'News', 'forum': 'Analytics',
+                'social_network': 'Dating', 'messaging': 'Dating',
+                # Services
+                'legal': 'Legal', 'accounting': 'Analytics',
+                'real_estate': 'RealEstate', 'travel': 'Travel', 'job_board': 'Analytics',
+                # Technology
+                'saas': 'Analytics', 'cloud': 'Analytics', 'web_hosting': 'Analytics',
+                'vpn_proxy': 'Analytics', 'developer_tools': 'Analytics',
+                # Other
+                'restaurant': 'Restaurant', 'automotive': 'Unknown',
+                'pets': 'Unknown', 'nonprofit': 'Nonprofit', 'religious': 'Unknown',
+                # New categories
+                'language_learning': 'Education',
+                'review_directory': 'Analytics',
+                'ride_delivery': 'ECommerce',
+                # Legacy purpose classifier mappings
+                'crypto_scam': 'Exchange', 'investment_scam': 'Exchange',
+                'fake_ecommerce': 'ECommerce', 'romance_scam': 'Dating',
+                'finance_banking': 'Banking', 'news_media': 'News',
+                'ecommerce_shopping': 'ECommerce', 'technology': 'Analytics',
             }
-            raw_category = classification.get('category', 'unknown')
+            raw_category = category_result.get('category', 'unknown')
             mapped_category = _CATEGORY_TO_WEBSITE_TYPE.get(raw_category, 'Unknown')
 
             # Build complete result
@@ -329,10 +355,14 @@ class ScamAnalyzer:
                     'reputation_score': reputation_data.get('reputation_score', 0.0),
                     'score_adjustment': reputation_data.get('score_adjustment', 0)
                 },
+                'url_inspection': url_inspection,
                 'website_category': {
                     'category': category_result.get('category', 'unknown'),
+                    'category_group': category_result.get('category_group', 'unknown'),
                     'name_en': category_result.get('name_en', 'Unknown'),
-                    'confidence': category_result.get('confidence', 0.0)
+                    'confidence': category_result.get('confidence', 0.0),
+                    'detection_method': category_result.get('detection_method', 'none'),
+                    'matched_signals': category_result.get('matched_signals', [])
                 },
                 'red_flags': self._generate_red_flags(
                     analysis.get('detected_patterns', []),
