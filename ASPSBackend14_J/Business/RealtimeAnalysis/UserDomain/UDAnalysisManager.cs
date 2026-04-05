@@ -139,11 +139,11 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
             case DeviceAlertReceived alertEvent:
                 await HandleDeviceAlertReceived(alertEvent);
                 break;
-            //case AnalysisResultReceived analysisResultEvent:
-            //    HandleAnalysisResultReceived(analysisResultEvent);
-            //    break;
+            case AnalysisResultReceived analysisResultEvent:
+                await HandleAnalysisResultReceived(analysisResultEvent);
+                break;
             case AnalysisResultAdded analysisResultEvent:
-                HandleAnalysisResultAdded(analysisResultEvent);
+                await HandleAnalysisResultAdded(analysisResultEvent);
                 break;
         }
     }
@@ -153,7 +153,7 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         return new[]
         {
             typeof(DeviceAlertReceived),
-            //typeof(AnalysisResultReceived)
+            typeof(AnalysisResultReceived),
             typeof(AnalysisResultAdded)
         };
     }
@@ -168,12 +168,12 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
             {
                 _= this._userAnalyzer.AnalyzeAsync(alertEvent.Alert);
             }
-            // Pass alert to the single analysis instance with entity key
-            var analysisResultForDeviceAlert = await this._analysis.AnalyzeAsync(alertEvent.Alert, deviceUid, alertEvent.DeviceAlertEntityKey);
-            if (analysisResultForDeviceAlert?.FirstOrDefault() is not null && analysisResultForDeviceAlert?.FirstOrDefault().Value is Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>)
-            {
-                await this._userAnalyzer.AnalyzeAsync(analysisResultForDeviceAlert);
-            }
+            //// Pass alert to the single analysis instance with entity key
+            //var analysisResultForDeviceAlert = await this._analysis.AnalyzeAsync(alertEvent.Alert, deviceUid, alertEvent.DeviceAlertEntityKey);
+            //if (analysisResultForDeviceAlert?.FirstOrDefault() is not null && analysisResultForDeviceAlert?.FirstOrDefault().Value is Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>)
+            //{
+            //    await this._userAnalyzer.AnalyzeAsync(analysisResultForDeviceAlert);
+            //}
             //_logger.LogInformation($"Alert from device {deviceUid} analyzed. Severity: {_analysis.Result?.OverallSeverity}, Active alerts: {_analysis.ActiveDeviceAlerts.Count}");
         }
         catch (Exception ex)
@@ -182,21 +182,21 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         }
     }
 
-    //private async Task HandleAnalysisResultReceived(AnalysisResultReceived analysisResultEvent)
-    //{
-    //    var deviceUid = analysisResultEvent.DeviceUid;
+    private async Task HandleAnalysisResultReceived(AnalysisResultReceived analysisResultEvent)
+    {
+        var deviceUid = analysisResultEvent.DeviceUid;
 
-    //    try
-    //    {
-    //        // Pass the analysis result to the single analysis instance with entity key
-    //        //await this._analysis.AnalyzeAsync(analysisResultEvent.AnalyzerResults.FirstOrDefault().Value.Item1, deviceUid, new Key(analysisResultEvent.AlertType, analysisResultEvent.DeviceAlertKeyField));
-    //        this._userAnalyzer.AnalyzeAsync(analysisResultEvent.AnalyzerResults.FirstOrDefault().Value.Item1);
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        _logger.LogError(ex, $"Error handling alert from device {deviceUid} for user {_udUser.Key}");
-    //    }
-    //}
+        try
+        {
+            // Pass the analysis result to the single analysis instance with entity key
+            //await this._analysis.AnalyzeAsync(analysisResultEvent.AnalyzerResults.FirstOrDefault().Value.Item1, deviceUid, new Key(analysisResultEvent.AlertType, analysisResultEvent.DeviceAlertKeyField));
+            this._userAnalyzer.AnalyzeAsync(analysisResultEvent.AnalyzerResults);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error handling alert from device {deviceUid} for user {_udUser.Key}");
+        }
+    }
     private async Task HandleAnalysisResultAdded(AnalysisResultAdded analysisResultEvent)
     {
         var deviceUid = analysisResultEvent.DeviceUid;

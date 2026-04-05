@@ -171,6 +171,8 @@ class Program
                 services.AddSingleton<IDomainEventHandler, AnalysisPersistenceActor>();
                 services.AddSingleton<IDomainEventHandler, NotificationPublisherActor>();
 
+                services.AddSingleton<IDomainEventsContext, DomainEventsContext>();
+
                 // Add UserDomainManagerService (manages per-user analysis instances)
                 services.AddSingleton<UserDomainManagerService>();
 

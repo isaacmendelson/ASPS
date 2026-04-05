@@ -21,6 +21,7 @@ namespace Business.RealtimeAnalysis.UserDomain;
 public class UDAnalysis : IBackgroundTask, IDomainEventHandler
 {
     private readonly List<ISpecificAnalyzer> _analyzers;
+    private readonly List<IDomainEvent> _events = new();
     private readonly ILogger<UDAnalysis> _logger;
     private int _alertExpiryDays;
     private int _alertDeletionDays;
@@ -35,6 +36,7 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
     private IProtectiveActionsFactory _protectiveActionsFactory;
     private IConfiguration _configuration;
     private ASView _aSView;
+    private readonly DomainEventPublisher _domainEventPublisher;
 
     private float _riskThresholdEnableTracking;
 
@@ -65,7 +67,7 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
 
         _indicatorFactory = indicatorFactory;
         _protectiveActionsFactory = protectiveActionsFactory;
-        
+        _domainEventPublisher = new DomainEventPublisher(_eventHandlers);
         //_userAnalyzer = new UDUserAnalyzer(udUser, aSView, _alertExpiryDays, _alertDeletionDays, _loggerFactory);
         _userAnalyzer.Start();
 
@@ -86,7 +88,10 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
     public void RegisterEventHandler(IDomainEventHandler handler)
     {
         _eventHandlers.Add(handler);
-        _logger.LogInformation($"Registered event handler: {handler.GetType().Name}");
+        _logger.LogInformation($"Registered event handler: {handler.GetType().Name}, user={this._udUser.Key.Value}");
+        
+        _domainEventPublisher.Subscribe(handler);
+        _logger.LogInformation($"Subscribed event handler to DomainEventPublisher: {handler.GetType().Name}, user={this._udUser.Key.Value}");
     }
 
     //public async Task AnalyzeAsync(AnalysisResult analysisResult, string deviceUid, Key deviceAlertEntityKey)
@@ -241,22 +246,24 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
             Severity = result.Severity,
             AnalysisTimestamp = activeAlert.Timestamp,
         };
+        this._domainEventPublisher.Register(analysisEvent);
+        this._domainEventPublisher.RaiseAll();
 
         // Notify all registered event handlers
-        foreach (var handler in _eventHandlers)
-        {
-            if (handler.GetHandleableEvents().Contains(typeof(AnalyzerResultReceived)))
-            {
-                try
-                {
-                    handler.Handle(analysisEvent);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, $"Error in event handler {handler.GetType().Name} for {analyzerName}");
-                }
-            }
-        }
+        //foreach (var handler in _eventHandlers)
+        //{
+        //    if (handler.GetHandleableEvents().Contains(typeof(AnalyzerResultReceived)))
+        //    {
+        //        try
+        //        {
+        //            handler.Handle(analysisEvent);
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            _logger.LogError(ex, $"Error in event handler {handler.GetType().Name} for {analyzerName}");
+        //        }
+        //    }
+        //}
 
         _logger.LogDebug($"Fired SpecificAnalyzerResultReceived event: {analyzerName}, Severity: {result.Severity}");
     }
@@ -277,25 +284,28 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
             AlertType = activeAlert.Alert.AlertType
         };
 
-        // Notify all registered event handlers
-        _logger.LogInformation($"[DEBUG] FireAnalysisResultEvent: {_eventHandlers.Count} handlers registered");
-        foreach (var handler in _eventHandlers)
-        {
-            _logger.LogInformation($"[DEBUG] Checking handler: {handler.GetType().Name}, handles AnalysisResultReceived: {handler.GetHandleableEvents().Contains(typeof(AnalysisResultReceived))}");
-            if (handler.GetHandleableEvents().Contains(typeof(AnalysisResultReceived)))
-            {
-                try
-                {
-                    _logger.LogInformation($"[DEBUG] Calling handler.Handle for {handler.GetType().Name}");
-                    handler.Handle(analysisEvent); 
-                    _logger.LogInformation($"[DEBUG] Handler.Handle completed for {handler.GetType().Name}");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, $"Error in event handler {handler.GetType().Name} for device  {activeAlert.DeviceUid}, at {activeAlert.Timestamp} Severity: {result.OverallSeverity}");
-                }
-            }
-        }
+        this._domainEventPublisher.Register(analysisEvent);
+        this._domainEventPublisher.RaiseAll();
+
+        //// Notify all registered event handlers
+        //_logger.LogInformation($"[DEBUG] FireAnalysisResultEvent: {_eventHandlers.Count} handlers registered");
+        //foreach (var handler in _eventHandlers)
+        //{
+        //    _logger.LogInformation($"[DEBUG] Checking handler: {handler.GetType().Name}, handles AnalysisResultReceived: {handler.GetHandleableEvents().Contains(typeof(AnalysisResultReceived))}");
+        //    if (handler.GetHandleableEvents().Contains(typeof(AnalysisResultReceived)))
+        //    {
+        //        try
+        //        {
+        //            _logger.LogInformation($"[DEBUG] Calling handler.Handle for {handler.GetType().Name}");
+        //            handler.Handle(analysisEvent); 
+        //            _logger.LogInformation($"[DEBUG] Handler.Handle completed for {handler.GetType().Name}");
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            _logger.LogError(ex, $"Error in event handler {handler.GetType().Name} for device  {activeAlert.DeviceUid}, at {activeAlert.Timestamp} Severity: {result.OverallSeverity}");
+        //        }
+        //    }
+        //}
 
         _logger.LogInformation($"Fired AnalysisResultReceived event for device: {activeAlert.DeviceUid}, at {activeAlert.Timestamp} Severity: {result.OverallSeverity}");
     }

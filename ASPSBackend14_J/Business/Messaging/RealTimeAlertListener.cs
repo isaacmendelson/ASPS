@@ -45,6 +45,7 @@ public class RealTimeAlertListener : IDisposable
     private readonly int _port;
     private readonly SocketMode _mode;
     private readonly AlertPersistenceActor _alertPersistenceActor;
+    private readonly DomainEventPublisher _domainEventPublisher;
 
     public RealTimeAlertListener(
         ILoggerFactory _loggerFactory,
@@ -70,11 +71,17 @@ public class RealTimeAlertListener : IDisposable
         _alertPersistenceActor = new AlertPersistenceActor(deviceAlertRepository, _loggerFactory, _asView, _serviceProvider);
         this.RegisterEventHandler(_alertPersistenceActor);
         this.RegisterEventHandler(_asView);
+
+        _domainEventPublisher = new DomainEventPublisher(_eventHandlers);
+
     }
 
     public void RegisterEventHandler(IDomainEventHandler handler)
     {
         _eventHandlers.Add(handler);
+        _logger.LogInformation($"Registered event handler: {handler.GetType().Name}");
+
+        
     }
 
     public void Start()
@@ -570,6 +577,10 @@ public class RealTimeAlertListener : IDisposable
     {
         try
         {
+
+            this._domainEventPublisher.Register(domainEvent);
+            this._domainEventPublisher.RaiseAll();
+
             //var userManager = await _userDomainService.GetManagerForDeviceAsync(deviceUid);
             var userManager = this._userDomainService.GetOrCreateManagerForUser(userKey);
             if (userManager != null)
@@ -582,11 +593,11 @@ public class RealTimeAlertListener : IDisposable
                 _logger.LogWarning("No UDAnalysisManager found for device {DeviceUid}", deviceUid);
             }
 
-            foreach (var handler in _eventHandlers)
-            {
-                if (handler.GetHandleableEvents().Contains(typeof(DeviceAlertReceived)))
-                    await handler.Handle(domainEvent);
-            }
+            //foreach (var handler in _eventHandlers)
+            //{
+            //    if (handler.GetHandleableEvents().Contains(typeof(DeviceAlertReceived)))
+            //        await handler.Handle(domainEvent);
+            //}
         }
         catch (Exception ex)
         {
