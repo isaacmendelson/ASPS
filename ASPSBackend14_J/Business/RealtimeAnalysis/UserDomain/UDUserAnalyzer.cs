@@ -87,8 +87,8 @@ namespace Business.RealtimeAnalysis.UserDomain
                     break;
             }
 
-            // With every device alert - check  immediate danger
-            var isImmediateDanger = this.CheckImmediateDanger();
+            // With every device alert - detect  immediate danger
+            var isImmediateDanger = this.DetectImmediateDanger();
 
             if (isImmediateDanger)
             {
@@ -102,7 +102,7 @@ namespace Business.RealtimeAnalysis.UserDomain
             string analyzerName = analysisResult.FirstOrDefault().Key;
             var firstResult = analysisResult.FirstOrDefault().Value;
 
-            var isImmediateDanger = this.CheckImmediateDanger();
+            var isImmediateDanger = this.DetectImmediateDanger();
             
             var analysisResultViews = this._asView.GetAnalysisResultsByUserKey(this.UDUser.Key)
                 .OrderByDescending(I => I.Timestamp)
@@ -161,7 +161,7 @@ namespace Business.RealtimeAnalysis.UserDomain
                     break;
             }
 
-            var isImmediateDanger = this.CheckImmediateDanger();
+            var isImmediateDanger = this.DetectImmediateDanger();
         }
 
         public async Task HandleAnalysisResultAddedAsync(AnalysisResultAdded analysisEvent)
@@ -456,7 +456,7 @@ namespace Business.RealtimeAnalysis.UserDomain
 
         }
 
-        private bool CheckImmediateDanger()
+        private bool DetectImmediateDanger()
         {
             bool res = false;
             var remoteAccessStatus = this.GetRemoteAccessStatus();
@@ -491,16 +491,15 @@ namespace Business.RealtimeAnalysis.UserDomain
                     {
                         this._immediateDangers = new();
                     }
-                    if (!this._immediateDangers.Any(i => i.RemoteAccessApp == remoteAccessApp && i.DeviceUid == deviceUid && i.SensitiveUrl.ToLower() == sUrl))
+                    if (!this._immediateDangers.Any(i => i.RemoteAccessApp == remoteAccessApp && i.DeviceUid == deviceUid && i.SensitiveUrl?.ToLower() == sUrl))
                     {
-                        var immeidateDanger = new ImmediateDanger(remoteAccessApp, sUrl, deviceUid, this.UDUser.Key.Value,
-                        this.UDUser.UserDevices.FirstOrDefault(i => i.DeviceUid == deviceUid)?.Key.Value, null, new ProtectiveAction[] { });
-                        if (this._immediateDangers.Any(i => !i.IsClosed() && i.DeviceUid == deviceUid && i.RemoteAccessApp == remoteAccessApp))
+                        var immeidateDanger = new ImmediateDanger(remoteAccessApp, sUrl, deviceUid, this.UDUser.Key.Value, 
+                            this.UDUser.UserDevices.FirstOrDefault(i => i.DeviceUid == deviceUid)?.Key.Value);
+                        if (this._immediateDangers.Any(i => i.EndTime == null && i.DeviceUid == immeidateDanger.DeviceUid && i.RemoteAccessApp == immeidateDanger.RemoteAccessApp))
                         {
                             this._immediateDangers.Add(immeidateDanger);
                         }
                     }
-
                 }
             }
             return res;
