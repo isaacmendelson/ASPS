@@ -10,7 +10,9 @@ namespace Business.RealtimeAnalysis
 {
     public class ImmediateDanger
     {
-        public ImmediateDanger(RemoteAccessApp? remoteAccessApp, string? sensitiveUrl, string deviceUid, string? userKey, string? deviceKey, Key? scamInProgressKey, ProtectiveAction[] protectiveActions)
+        public ImmediateDanger(RemoteAccessApp? remoteAccessApp, string? sensitiveUrl, string deviceUid, string? userKey, string? deviceKey, Key? deviceAlertKey = null
+            //, Key? scamInProgressKey, ProtectiveAction[] protectiveActions
+            )
         {
             Timestamp = DateTime.UtcNow;
             RemoteAccessApp = remoteAccessApp;
@@ -18,8 +20,9 @@ namespace Business.RealtimeAnalysis
             DeviceUid = deviceUid;
             UserKey = userKey;
             DeviceKey = deviceKey;
-            ScamInProgressKey = scamInProgressKey;
-            ProtectiveActions = protectiveActions;
+            DeviceAlertKey = deviceAlertKey;
+            //ScamInProgressKey = scamInProgressKey;
+            //ProtectiveActions = protectiveActions;
 
         }
 
@@ -29,15 +32,16 @@ namespace Business.RealtimeAnalysis
         public string DeviceUid { get; set; }
         public string? UserKey { get; set; }
         public string? DeviceKey { get; set; }
-        public Key? ScamInProgressKey { get; set; }
+        public Key? DeviceAlertKey { get; set; }
 
-        public ProtectiveAction[] ProtectiveActions { get; set; } = Array.Empty<ProtectiveAction>();
+        //public ProtectiveAction[] ProtectiveActions { get; set; } = Array.Empty<ProtectiveAction>();
 
         public DateTime? EndTime { get; set; }
 
 
         public bool IsClosed()
         {
+
             return this.EndTime is null;
         }
 
