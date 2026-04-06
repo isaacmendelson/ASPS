@@ -281,7 +281,8 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
             AnalyzerResults = result.AnalyzerResults,
             Severity = result.OverallSeverity,
             AnalysisTimestamp = result.AnalysisTimestamp,
-            AlertType = activeAlert.Alert.AlertType
+            AlertType = activeAlert.Alert.AlertType,
+            Timestamp = activeAlert.Alert.Timestamp
         };
 
         this._domainEventPublisher.Register(analysisEvent);

@@ -245,7 +245,7 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                 // Phase 2: fire analysis in background � ACK is returned immediately
                 // _ = Task.Run(() => DispatchAlertInBackground(analysisResultAdded, analysisEvent.DeviceUid));
 
-            }
+                }
         }
         catch (Exception ex)
         {

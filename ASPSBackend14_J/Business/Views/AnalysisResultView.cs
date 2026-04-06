@@ -19,8 +19,23 @@ namespace Business.Views
     public class AnalysisResultView : ASItemView, IAnalysisResultView
     {
         protected AnalysisResultView() { }
+        //public AnalysisResultView(AnalysisResult analysisResult)   //, IIndicator[] indicators, IProtectiveAction[] protectiveActions, string analyzerName)
+        //     : base(entity.Key, "a r ")
+        //{
+        //    this.UserKey = new Key(nameof(User), entity.UserKeyField);
+        //    this.Discriminator = entity.Discriminator;
+        //    //this.Indicators = indicators;
+        //    //this.ProtectiveActions = protectiveActions;
+        //    //this.AnalyzerName = analyzerName;
+        //    this.HasError = entity.HasError;
+        //    this.ErrorMessage = entity.ErrorMessage;
+        //    this.Timestamp = entity.Timestamp;
+        //    this.IsFromCache = entity.IsFromCache;
+        //    this.DeviceAlertKey = new Key(Discriminator, entity.DeviceAlertKeyField);
+        //}
+
         public AnalysisResultView(AnalysisResultContainer entity)   //, IIndicator[] indicators, IProtectiveAction[] protectiveActions, string analyzerName)
-             : base(entity.Key, "a r ")
+            : base(entity.Key, "a r ")
         {
             this.UserKey = new Key(nameof(User), entity.UserKeyField);
             this.Discriminator = entity.Discriminator;

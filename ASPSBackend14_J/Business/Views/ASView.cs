@@ -103,9 +103,9 @@ public class ASView : IDomainEventHandler, IBackgroundTask
     {
         switch (evt)
         {
-            //case AnalysisResultReceived analysisEvent:
-            //    HandleAnalysisResultReceived(analysisEvent);
-            //    break;
+            case AnalysisResultReceived analysisEvent:
+                HandleAnalysisResultReceived(analysisEvent);
+                break;
             case AnalysisResultAdded analysisEvent:
                 HandleAnalysisResultAdded(analysisEvent);
                 break;
@@ -328,96 +328,96 @@ public class ASView : IDomainEventHandler, IBackgroundTask
         }
     }
 
-    //private void HandleAnalysisResultReceived(AnalysisResultReceived analysisEvent)
-    //{
-    //    try
-    //    {
-    //        _logger.LogInformation($"ASView handling AnalysisResultReceived: AlertType={analysisEvent.AlertType}");
+    private void HandleAnalysisResultReceived(AnalysisResultReceived analysisEvent)
+    {
+        try
+        {
+            _logger.LogInformation($"ASView handling AnalysisResultReceived: AlertType={analysisEvent.AlertType}");
 
-    //        string jsonValue = string.Empty;
-    //        string discriminator = string.Empty;
+            string jsonValue = string.Empty;
+            string discriminator = string.Empty;
 
-    //        switch (analysisEvent.AlertType)
-    //        {
-    //            case nameof(UrlAlert):
-    //                var vm1 = analysisEvent.AnalyzerResults
-    //                    .FirstOrDefault(i => i.Value.Item1 is UrlAnalysisResult).Value?.Item1 as UrlAnalysisResult;
-    //                discriminator = nameof(UrlAnalysisResult);
-    //                jsonValue = System.Text.Json.JsonSerializer.Serialize(new
-    //                {
-    //                    AnalyzerResults = vm1,
-    //                    Severity = analysisEvent.Severity.ToString(),
-    //                    Message = analysisEvent.Message,
-    //                    Details = analysisEvent.Details,
-    //                    Timestamp = analysisEvent.AnalysisTimestamp,
-    //                    DeviceUid = analysisEvent.DeviceUid
-    //                });
-    //                break;
-    //            case nameof(RemoteAccessAlert):
-    //                var vm2 = analysisEvent.AnalyzerResults
-    //                    .FirstOrDefault(i => i.Value.Item1 is RemoteAccessAnalysisResult).Value?.Item1 as RemoteAccessAnalysisResult;
-    //                discriminator = nameof(RemoteAccessAnalysisResult);
-    //                jsonValue = System.Text.Json.JsonSerializer.Serialize(new
-    //                {
-    //                    AnalyzerResults = vm2,
-    //                    Severity = analysisEvent.Severity.ToString(),
-    //                    Message = analysisEvent.Message,
-    //                    Details = analysisEvent.Details,
-    //                    Timestamp = analysisEvent.AnalysisTimestamp,
-    //                    DeviceUid = analysisEvent.DeviceUid
-    //                });
-    //                break;
-    //        }
+            switch (analysisEvent.AlertType)
+            {
+                case nameof(UrlAlert):
+                    var vm1 = analysisEvent.AnalyzerResults
+                        .FirstOrDefault(i => i.Value.Item1 is UrlAnalysisResult).Value?.Item1 as UrlAnalysisResult;
+                    discriminator = nameof(UrlAnalysisResult);
+                    jsonValue = System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        AnalyzerResults = vm1,
+                        Severity = analysisEvent.Severity.ToString(),
+                        Message = analysisEvent.Message,
+                        Details = analysisEvent.Details,
+                        Timestamp = analysisEvent.AnalysisTimestamp,
+                        DeviceUid = analysisEvent.DeviceUid
+                    });
+                    break;
+                case nameof(RemoteAccessAlert):
+                    var vm2 = analysisEvent.AnalyzerResults
+                        .FirstOrDefault(i => i.Value.Item1 is RemoteAccessAnalysisResult).Value?.Item1 as RemoteAccessAnalysisResult;
+                    discriminator = nameof(RemoteAccessAnalysisResult);
+                    jsonValue = System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        AnalyzerResults = vm2,
+                        Severity = analysisEvent.Severity.ToString(),
+                        Message = analysisEvent.Message,
+                        Details = analysisEvent.Details,
+                        Timestamp = analysisEvent.AnalysisTimestamp,
+                        DeviceUid = analysisEvent.DeviceUid
+                    });
+                    break;
+            }
 
-    //        var container = new AnalysisResultContainer(
-    //             Guid.NewGuid().ToString(),
-    //            analysisEvent.UserKeyField,
-    //            discriminator,
-    //            analysisEvent.Timestamp,
-    //            jsonValue,
-    //            false,
-    //            null,
-    //            false,
-    //            analysisEvent.DeviceAlertKeyField
-    //        );
+            var container = new AnalysisResultContainer(
+                 Guid.NewGuid().ToString(),
+                analysisEvent.UserKeyField,
+                discriminator,
+                analysisEvent.AnalysisTimestamp,
+                jsonValue,
+                false,
+                null,
+                false,
+                analysisEvent.DeviceAlertKeyField
+            );
 
-    //        lock (_lock)
-    //        {
-    //            bool isValid = false;
-    //            // Create typed views so specific data (AnalysisResult, Alert) is preserved
-    //            switch (analysisEvent.AlertType)
-    //            {
-    //                case nameof(UrlAlert):
-    //                    var urlView = new UrlAnalysisResultView(container);
-    //                    _urlAnalysisResults.Add(urlView);
-    //                    _analysisResults.Add(urlView);
-    //                    isValid = true;
-    //                    break;
-    //                case nameof(TrackUrlAlert):
-    //                    var trackUrlView = new TrackUrlAnalysisResultView(container);
-    //                    _trackUrlAnalysisResults.Add(trackUrlView);
-    //                    _analysisResults.Add(trackUrlView);
-    //                    isValid = true;
-    //                    break;
-    //                case nameof(RemoteAccessAlert):
-    //                    var raView = new RemoteAccessAnalysisResultView(container);
-    //                    _remoteAccessAnalysisResults.Add(raView);
-    //                    isValid = true;
-    //                    _analysisResults.Add(raView);
-    //                    break;
-    //            }
+            lock (_lock)
+            {
+                bool isValid = false;
+                // Create typed views so specific data (AnalysisResult, Alert) is preserved
+                switch (analysisEvent.AlertType)
+                {
+                    case nameof(UrlAlert):
+                        var urlView = new UrlAnalysisResultView(container);
+                        _urlAnalysisResults.Add(urlView);
+                        _analysisResults.Add(urlView);
+                        isValid = true;
+                        break;
+                    case nameof(TrackUrlAlert):
+                        var trackUrlView = new TrackUrlAnalysisResultView(container);
+                        _trackUrlAnalysisResults.Add(trackUrlView);
+                        _analysisResults.Add(trackUrlView);
+                        isValid = true;
+                        break;
+                    case nameof(RemoteAccessAlert):
+                        var raView = new RemoteAccessAnalysisResultView(container);
+                        _remoteAccessAnalysisResults.Add(raView);
+                        isValid = true;
+                        _analysisResults.Add(raView);
+                        break;
+                }
 
 
 
-    //        }
+            }
 
-    //        _logger.LogInformation($"ASView added analysis result: Discriminator={discriminator}, UserKey={analysisEvent.UserKeyField}");
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        _logger.LogError(ex, "Error handling AnalysisResultReceived in ASView");
-    //    }
-    //}
+            _logger.LogInformation($"ASView added analysis result: Discriminator={discriminator}, UserKey={analysisEvent.UserKeyField}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling AnalysisResultReceived in ASView");
+        }
+    }
 
     private void HandleUserAdded(UserAdded evt)
     {

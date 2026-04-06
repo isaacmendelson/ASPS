@@ -15,6 +15,7 @@ namespace Common.Enums
         ECommerce = 4,
         Telecom = 5,
         Dating = 6,
-        Exchange = 7
+        Exchange = 7,
+        Healthcare = 8,
     }
 }

@@ -168,6 +168,7 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
             {
                 _= this._userAnalyzer.AnalyzeAsync(alertEvent.Alert);
             }
+            this._analysis.AnalyzeAsync(alertEvent.Alert, deviceUid, alertEvent.DeviceAlertEntityKey);
             //// Pass alert to the single analysis instance with entity key
             //var analysisResultForDeviceAlert = await this._analysis.AnalyzeAsync(alertEvent.Alert, deviceUid, alertEvent.DeviceAlertEntityKey);
             //if (analysisResultForDeviceAlert?.FirstOrDefault() is not null && analysisResultForDeviceAlert?.FirstOrDefault().Value is Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>)

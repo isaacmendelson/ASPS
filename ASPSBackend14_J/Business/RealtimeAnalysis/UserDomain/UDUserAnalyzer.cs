@@ -41,7 +41,7 @@ namespace Business.RealtimeAnalysis.UserDomain
         //private KeyValuePair<string, IProtectiveAction>[] _protectiveActions = Array.Empty<KeyValuePair<string, IProtectiveAction>>();
 
         private List<RemoteAccessStatusObject> _remoteAccessStatus = new();
-
+        private List<ImmediateDanger> _immediateDangers = new();
         //private List<BrowserTab> _browserTabs = new();
 
         public UDUserAnalyzer(
@@ -90,6 +90,10 @@ namespace Business.RealtimeAnalysis.UserDomain
             // With every device alert - check  immediate danger
             var isImmediateDanger = this.CheckImmediateDanger();
 
+            if (isImmediateDanger)
+            {
+                // RaiseImmediateDangerAlert
+            }
 
         }
         public async Task AnalyzeAsync(Dictionary<string, Tuple<AnalysisResult, IIndicator[], IProtectiveAction[]>> analysisResult)  //AnalysisResult analysisResult )
@@ -113,7 +117,7 @@ namespace Business.RealtimeAnalysis.UserDomain
 
             var isImmediateDanger = this.CheckImmediateDanger();
             var x = this._asView.GetUrlAnalysisResultsByUserKey(this.UDUser.Key)?.ToList();
-
+            //this._analysisResultViews.Add(new AnalysisResultView(analysisResult)
             var analysisResultViews = this._asView.GetAnalysisResultsByUserKey(this.UDUser.Key)
                 .OrderByDescending(I => I.Timestamp)
                 .ToList();
@@ -141,6 +145,11 @@ namespace Business.RealtimeAnalysis.UserDomain
             var userRiskAsessment = this.UDUser.RiskAssessment;
             var userUrlSurfDataByDevice = this.UDUser.UserUrlSurfDataByDevice;
 
+
+            if (isImmediateDanger)
+            {
+                // RaiseImmediateDangerAlert
+            }
 
         }
 
@@ -469,24 +478,32 @@ namespace Business.RealtimeAnalysis.UserDomain
             {
                 return false;
             }
-            var remoteAccessObjectsWithActiveRemoteAccess = this._remoteAccessStatus.Where(i => i.isRemoteAccessSessionActive && i.RemoteAccessDirection == RemoteAccessDirection.In);
-                //.Select(i => i.DeviceUid).ToHashSet();  
-
-            foreach (var obj in remoteAccessObjectsWithActiveRemoteAccess.Where(i => i is not null))
+            var remoteAccessObjectsWithActiveSession = this._remoteAccessStatus.OrderByDescending(i => i.Timestamp).Where(i => i.isRemoteAccessSessionActive && i.RemoteAccessDirection == RemoteAccessDirection.In);
+            //var remoteAccessObjectsWithActiveRemoteAccess = this._remoteAccessStatus.OrderByDescending(i => i.Timestamp).Where(i => i.isRemoteAccessSessionActive);
+                
+            var deviceUids = remoteAccessObjectsWithActiveSession.Select(i => i.DeviceUid).ToHashSet();
+            var urlAnalysisResultViews = this._asView.GetUrlAnalysisResultsByUserKey(this.UDUser.Key)
+                .OrderByDescending(I => I.Timestamp)
+                .ToList();
+            
+            foreach (var deviceUid in deviceUids.Where(i => i is not null))
             {
-                if (this.UDUser.BrowserTabs is not null && this.UDUser.BrowserTabs[obj.DeviceUid].Any(i => this.IsSensitiveWebsite(i.Url)))
+                if (this.UDUser.BrowserTabs is not null && this.UDUser.BrowserTabs[deviceUid].Any(i => this.IsSensitiveWebsite(i.Url)))
                 {
                     res = true;
-                    _logger.LogWarning($"Immediate danger detected for user {this.UDUser.Key} on device {obj.DeviceUid} with active remote access session and sensitive website open.");
-                    var sUrl = this.UDUser.BrowserTabs[obj.DeviceUid].FirstOrDefault(i => this.IsSensitiveWebsite(i.Url))?.Url;
-                    var immeidateDanger = new ImmediateDanger(obj.RemoteAccessApp, sUrl, obj.DeviceUid, this.UDUser.Key.Value, 
-                        this.UDUser.UserDevices.FirstOrDefault(i => i.DeviceUid == obj.DeviceUid)?.Key.Value, null, new ProtectiveAction[] { });
-                    //{
-                    //    UserKey = this.UDUser.Key,
-                    //    DeviceUid = deviceUid,
-                    //    Timestamp = DateTime.UtcNow,
-                    //    Description = "Active remote access session detected with sensitive website open."
-                    //};
+                    var remoteAccessApp = remoteAccessObjectsWithActiveSession.OrderByDescending(i => i.Timestamp).FirstOrDefault(i => i.DeviceUid == deviceUid)?.RemoteAccessApp;
+                    _logger.LogWarning($"Immediate danger detected for user {this.UDUser.Key} on device {deviceUid} with active remote access session and sensitive website open.");
+                    var sUrl = this.UDUser.BrowserTabs[deviceUid].FirstOrDefault(i => this.IsSensitiveWebsite(i.Url))?.Url;
+                    if (this._immediateDangers is null)
+                    {
+                        this._immediateDangers = new();
+                    }
+                    if (!this._immediateDangers.Any(i => i.RemoteAccessApp == remoteAccessApp && i.DeviceUid == deviceUid && i.SensitiveUrl.ToLower() == sUrl))
+                    {
+                        var immeidateDanger = new ImmediateDanger(remoteAccessApp, sUrl, deviceUid, this.UDUser.Key.Value,
+                        this.UDUser.UserDevices.FirstOrDefault(i => i.DeviceUid == deviceUid)?.Key.Value, null, new ProtectiveAction[] { });
+                        this._immediateDangers.Add(immeidateDanger);
+                    }
 
                 }
             }
@@ -495,7 +512,21 @@ namespace Business.RealtimeAnalysis.UserDomain
 
         private bool IsSensitiveWebsite(string url)
         {
-            // Placeholder for logic to determine if a website is sensitive (e.g., banking, exchange)
+            if (url is null || String.IsNullOrEmpty(url))
+            {
+                return false;
+            }
+            var domain = KnownPhishingWebsite.GetDomainFromUrl(url).ToLower();
+            string[] sensitiveWebsiteCategories = "crypto_exchange,bank".Split(',');
+            var urlAnalysisResultViews = this._asView.GetUrlAnalysisResultsByUserKey(this.UDUser.Key)
+                .OrderByDescending(I => I.Timestamp)
+                .ToList();
+            var view = urlAnalysisResultViews.FirstOrDefault(i => i.AnalysisResult is UrlAnalysisResult uv && uv.Domain.ToLower() == domain.ToLower());
+            if (sensitiveWebsiteCategories.Contains(view?.AnalysisResult?.website_category?.Category.ToLower()))
+            {
+                return true;
+            }
+            
             return false;
         }
     }
