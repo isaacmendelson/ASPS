@@ -102,22 +102,8 @@ namespace Business.RealtimeAnalysis.UserDomain
             string analyzerName = analysisResult.FirstOrDefault().Key;
             var firstResult = analysisResult.FirstOrDefault().Value;
 
-            //switch (firstResult.Item1)
-            //{
-            //    case RemoteAccessAnalysisResult r:
-            //        this._remoteAccessStatus.Add(new RemoteAccessStatusObject(r.Timestamp, r.DeviceInfo.DeviceUid, r.RemoteAccessDirection, r.RemoteAccessApp,
-            //            r.ConnectionStatus == ConnectionStatus.Open, r.SessionStatus == (int)SessionStatus.Open));
-
-            //        if (r.BrowserTabs is not null)  // && r.BrowserTabs.Length > 0)
-            //        {
-            //            this.UDUser.SetBrowserTabs(r.DeviceInfo.DeviceUid, r.BrowserTabs);
-            //        }
-            //        break;
-            //}
-
             var isImmediateDanger = this.CheckImmediateDanger();
-            var x = this._asView.GetUrlAnalysisResultsByUserKey(this.UDUser.Key)?.ToList();
-            //this._analysisResultViews.Add(new AnalysisResultView(analysisResult)
+            
             var analysisResultViews = this._asView.GetAnalysisResultsByUserKey(this.UDUser.Key)
                 .OrderByDescending(I => I.Timestamp)
                 .ToList();
@@ -476,19 +462,26 @@ namespace Business.RealtimeAnalysis.UserDomain
             var remoteAccessStatus = this.GetRemoteAccessStatus();
             if (!this._remoteAccessStatus.Any(i => i.isRemoteAccessSessionActive && i.RemoteAccessDirection == RemoteAccessDirection.In))
             {
-                return false;
+                //return false;
             }
             var remoteAccessObjectsWithActiveSession = this._remoteAccessStatus.OrderByDescending(i => i.Timestamp).Where(i => i.isRemoteAccessSessionActive && i.RemoteAccessDirection == RemoteAccessDirection.In);
-            //var remoteAccessObjectsWithActiveRemoteAccess = this._remoteAccessStatus.OrderByDescending(i => i.Timestamp).Where(i => i.isRemoteAccessSessionActive);
+            //remoteAccessObjectsWithActiveSession = this._remoteAccessStatus.OrderByDescending(i => i.Timestamp).Where(i => i.isRemoteAccessSessionActive);
                 
-            var deviceUids = remoteAccessObjectsWithActiveSession.Select(i => i.DeviceUid).ToHashSet();
+            var activeDeviceUids = remoteAccessObjectsWithActiveSession.Select(i => i.DeviceUid).ToHashSet();
             var urlAnalysisResultViews = this._asView.GetUrlAnalysisResultsByUserKey(this.UDUser.Key)
                 .OrderByDescending(I => I.Timestamp)
                 .ToList();
-            
-            foreach (var deviceUid in deviceUids.Where(i => i is not null))
+            var userDervices = this.UDUser.UserDevices.Select(i => i.DeviceUid);
+            foreach (var deviceUid in userDervices)
             {
-                if (this.UDUser.BrowserTabs is not null && this.UDUser.BrowserTabs[deviceUid].Any(i => this.IsSensitiveWebsite(i.Url)))
+                if ((activeDeviceUids?.Count == 0 || !activeDeviceUids.Contains(deviceUid)) && this._immediateDangers.Any() && this._immediateDangers.Any(i => i.EndTime == null && i.DeviceUid == deviceUid))
+                {
+                    foreach (var item in this._immediateDangers.Where(i => i.DeviceUid == deviceUid && i.EndTime == null))
+                    {
+                        item.EndTime = DateTime.UtcNow;
+                    }
+                }
+                else if (this.UDUser.BrowserTabs is not null && this.UDUser.BrowserTabs.ContainsKey(deviceUid) && this.UDUser.BrowserTabs[deviceUid].Select(i => i.Url).Any(i => this.IsSensitiveWebsite(i)))
                 {
                     res = true;
                     var remoteAccessApp = remoteAccessObjectsWithActiveSession.OrderByDescending(i => i.Timestamp).FirstOrDefault(i => i.DeviceUid == deviceUid)?.RemoteAccessApp;
@@ -502,7 +495,10 @@ namespace Business.RealtimeAnalysis.UserDomain
                     {
                         var immeidateDanger = new ImmediateDanger(remoteAccessApp, sUrl, deviceUid, this.UDUser.Key.Value,
                         this.UDUser.UserDevices.FirstOrDefault(i => i.DeviceUid == deviceUid)?.Key.Value, null, new ProtectiveAction[] { });
-                        this._immediateDangers.Add(immeidateDanger);
+                        if (this._immediateDangers.Any(i => !i.IsClosed() && i.DeviceUid == deviceUid && i.RemoteAccessApp == remoteAccessApp))
+                        {
+                            this._immediateDangers.Add(immeidateDanger);
+                        }
                     }
 
                 }

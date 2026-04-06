@@ -20,6 +20,7 @@ namespace Business.RealtimeAnalysis
             DeviceKey = deviceKey;
             ScamInProgressKey = scamInProgressKey;
             ProtectiveActions = protectiveActions;
+
         }
 
         public DateTime Timestamp { get; set; }
@@ -31,6 +32,14 @@ namespace Business.RealtimeAnalysis
         public Key? ScamInProgressKey { get; set; }
 
         public ProtectiveAction[] ProtectiveActions { get; set; } = Array.Empty<ProtectiveAction>();
+
+        public DateTime? EndTime { get; set; }
+
+
+        public bool IsClosed()
+        {
+            return this.EndTime is null;
+        }
 
     }
 }
