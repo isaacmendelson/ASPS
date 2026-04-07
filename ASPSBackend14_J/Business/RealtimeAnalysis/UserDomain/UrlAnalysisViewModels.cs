@@ -340,7 +340,13 @@ public class MatchedSignalVm
 
 public class Purpose
 {
-    public WebsiteType Category { get; set; } = WebsiteType.Unknown;
+    /// <summary>
+    /// Website category name (e.g., "banking", "ecommerce").
+    /// Replaces WebsiteType enum - use ASView.GetCategoryView(categoryName) to get full category details.
+    /// JIRA: SCRUM-821
+    /// </summary>
+    public string CategoryName { get; set; } = "unknown";
+    
     public float Confidence { get; set; }
     public string Description { get; set; } = string.Empty;
 }

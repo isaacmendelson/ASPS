@@ -235,7 +235,7 @@ namespace Business.RealtimeAnalysis.UserDomain
 
                     //if (remoteAccessStatus.IsRemoteAccessAppActive && remoteAccessStatus.isRemoteAccessSessionActive)
                     //{
-                    //    if ((u.Purpose?.Category == WebsiteType.Banking) || (u.Purpose?.Category == WebsiteType.Exchange))
+                    //    if ((u.Purpose?.CategoryName == "banking") || (u.Purpose?.CategoryName == "exchange"))
                     //    {
 
                     //    }
@@ -316,7 +316,7 @@ namespace Business.RealtimeAnalysis.UserDomain
 
                     //if (remoteAccessStatus.IsRemoteAccessAppActive && remoteAccessStatus.isRemoteAccessSessionActive)
                     //{
-                    //    if ((u.Purpose?.Category == WebsiteType.Banking) || (u.Purpose?.Category == WebsiteType.Exchange))
+                    //    if ((u.Purpose?.CategoryName == "banking") || (u.Purpose?.CategoryName == "exchange"))
                     //    {
 
                     //    }

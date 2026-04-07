@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace Common.Enums
 {
+    [Obsolete("Use WebsiteCategoryViews from ASView instead")]
     public enum WebsiteType
     {
         Unknown = 0,
