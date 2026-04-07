@@ -34,8 +34,12 @@ public class ASView : IDomainEventHandler, IBackgroundTask
     private List<SafeDomain> _safeDomains = new();
     private List<string> _riskyDomains = new();
     private List<UserDeviceUrlSurfData> _riskyUrlSurfings = new();
-
-
+    
+    /// <summary>
+    /// Website categories loaded from repository.
+    /// JIRA: SCRUM-820
+    /// </summary>
+    public List<WebsiteCategoryView> WebsiteCategoryViews { get; private set; } = new();
 
 
     public ASView(
@@ -512,6 +516,10 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                 var safeDomains = await safeDomainRepository.GetAllActiveAsync();
                 _logger.LogInformation($"safeDomains fetched: {safeDomains.Count()} records");
 
+                var websiteCategoryRepository = scope.ServiceProvider.GetRequiredService<IWebsiteCategoryRepository>();
+                var websiteCategories = await websiteCategoryRepository.GetAllAsync();
+                _logger.LogInformation($"websiteCategories fetched: {websiteCategories.Count()} records");
+
                 // Use lock when updating shared state
                 lock (_lock)
                 {
@@ -540,6 +548,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                         .OrderByDescending(i => i.Timestamp).ToList();
                     _knownPhishingWebsites = knownPhishingWebsites.ToList();
                     _safeDomains = safeDomains.ToList();
+                    WebsiteCategoryViews = websiteCategories.Select(wc => new WebsiteCategoryView(wc)).ToList();
 
                     _riskyDomains = _deviceAlerts
                         .OfType<UrlAlertView>()
@@ -826,6 +835,24 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                 });
             //cachedResult.AnalysisResult.risk_assessment.risk_score = 95;
             return cachedResult is not null;
+        }
+    }
+
+    /// <summary>
+    /// Get a website category view by category name.
+    /// JIRA: SCRUM-820
+    /// </summary>
+    /// <param name="categoryName">The name of the category to retrieve</param>
+    /// <returns>Matching WebsiteCategoryView or null if not found</returns>
+    public WebsiteCategoryView? GetCategoryView(string categoryName)
+    {
+        if (string.IsNullOrWhiteSpace(categoryName))
+            return null;
+
+        lock (_lock)
+        {
+            return WebsiteCategoryViews.FirstOrDefault(c => 
+                c.Tag.Name.Equals(categoryName, StringComparison.OrdinalIgnoreCase));
         }
     }
 }

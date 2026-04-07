@@ -139,6 +139,7 @@ class Program
                 services.AddScoped<ISimulationRepository, SimulationRepository>();
                 services.AddScoped<IBlacklistedPhoneNumberRepository, BlacklistedPhoneNumberRepository>(); // ASPS-282
                 services.AddScoped<IBankWebsiteRepository, BankWebsiteRepository>(); // ASPS-297
+                services.AddScoped<IWebsiteCategoryRepository, WebsiteCategoryRepository>(); // SCRUM-820
 
                 // Add Handlers
                 services.AddScoped<UserCommandHandlers>();
