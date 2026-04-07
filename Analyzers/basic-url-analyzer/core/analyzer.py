@@ -147,6 +147,14 @@ class ScamAnalyzer:
                     missing_data.append('content_analysis')
                     warnings.append(f"Content extraction failed: {content['error']}")
             
+            # Step 3.5: Content validity check
+            content_status = self._check_content_validity(content, scrape_result)
+            if not content_status['is_valid']:
+                self.logger.warning(
+                    f"Content not valid: {content_status['status']} - {content_status['detail']}"
+                )
+                warnings.append(f"Content may be incomplete - {content_status['detail']}")
+
             # Step 4: Rules engine analysis
             analysis = self.rules_engine.analyze(content, whois_data)
 
@@ -204,13 +212,17 @@ class ScamAnalyzer:
                     ml_score = ml_result['score']  # 0.0-1.0
 
                     # DOMAIN AGE OVERRIDE: Old domains are trustworthy
-                    # Tiered approach based on domain age:
-                    # - 15+ years: trust almost always (scams NEVER survive this long)
-                    # - 10+ years: trust if ML < 95%
-                    # - 7+ years: trust if rules < 50% AND ML < 90%
-                    # - 5+ years: trust if rules < 20% AND ML < 85%
+                    # BUT skip if URL inspector detected a suspicious subdomain
+                    # (e.g. paypal-login.evil.com — evil.com is old but subdomain is phishing)
                     domain_age_days = whois_data.get('age_days', 0)
-                    if domain_age_days > 5475 and ml_score < 0.995:  # 15+ years - almost always trust
+                    has_suspicious_subdomain = 'suspicious_subdomain' in url_inspection.get('flags', [])
+
+                    if has_suspicious_subdomain:
+                        self.logger.info(
+                            "Suspicious subdomain detected - skipping domain age override"
+                        )
+                        combined_score = self._tiered_score_combination(ml_score, rules_score)
+                    elif domain_age_days > 5475 and ml_score < 0.995:  # 15+ years - almost always trust
                         self.logger.info(
                             f"Domain age override: {domain_age_days} days old (15+ years) -> LOW risk"
                         )
@@ -252,7 +264,20 @@ class ScamAnalyzer:
             )
 
             # Step 5.5: Category classification (what type of site is this)
-            category_result = self.category_classifier.classify(content, domain)
+            # Skip category classification if content is not valid
+            if content_status['is_valid']:
+                category_result = self.category_classifier.classify(content, domain)
+            else:
+                self.logger.info(
+                    f"Skipping category classification - content not valid ({content_status['status']})"
+                )
+                category_result = {
+                    'success': False, 'category': 'unknown', 'category_group': 'unknown',
+                    'name_en': 'Unknown', 'name_he': 'לא ידוע', 'confidence': 0.0,
+                    'detection_method': 'none', 'matched_signals': [],
+                    'secondary_category': None, 'secondary_confidence': 0.0,
+                    'all_scores': {}, 'error': content_status['detail']
+                }
 
             # Map category to backend WebsiteType enum values
             _CATEGORY_TO_WEBSITE_TYPE = {
@@ -308,14 +333,22 @@ class ScamAnalyzer:
             # Build complete result
             # Use raw risk score: 0 = error/no result, 1 = safest, 100 = most dangerous
             risk_score = analysis.get('risk_score', 0)
+            risk_level = analysis.get('risk_level', 'UNKNOWN')
+
+            # Determine scam type based on category + risk level
+            scam_type = self._determine_scam_type(
+                risk_level, risk_score,
+                category_result.get('category', 'unknown')
+            )
 
             result.update({
                 'risk_assessment': {
                     'risk_score': risk_score,  # New scale: 0 = error, 1 = safe, 100 = dangerous
-                    'risk_level': analysis.get('risk_level', 'UNKNOWN'),
+                    'risk_level': risk_level,
                     'is_scam': analysis.get('is_scam', False),
                     'confidence': self._calculate_confidence(missing_data)
                 },
+                'scam_type': scam_type,
                 'purpose': {
                     'category': mapped_category,
                     'confidence': classification.get('confidence', 0.0),
@@ -355,6 +388,7 @@ class ScamAnalyzer:
                     'reputation_score': reputation_data.get('reputation_score', 0.0),
                     'score_adjustment': reputation_data.get('score_adjustment', 0)
                 },
+                'content_status': content_status,
                 'url_inspection': url_inspection,
                 'website_category': {
                     'category': category_result.get('category', 'unknown'),
@@ -410,6 +444,179 @@ class ScamAnalyzer:
         
         return max(confidence, 0.3)  # Minimum 30% confidence
     
+    def _check_content_validity(self, content: Dict, scrape_result: Dict) -> Dict:
+        """
+        Check if extracted content is valid or if we got a block page,
+        agreement page, error page, etc.
+
+        Returns:
+            Dict with is_valid, status, detail
+        """
+        result = {'is_valid': True, 'status': 'ok', 'detail': ''}
+
+        # If scraping failed entirely
+        if not scrape_result.get('success'):
+            return {'is_valid': False, 'status': 'scrape_failed', 'detail': 'Scraping failed - could not load page'}
+
+        # If content extraction failed
+        if not content.get('success'):
+            return {'is_valid': False, 'status': 'extraction_failed', 'detail': 'Content extraction failed'}
+
+        title = (content.get('title', '') or '').lower().strip()
+        word_count = content.get('word_count', 0)
+        body_text = (content.get('body_text', '') or '').lower()
+
+        # Check 1: Too little content
+        if word_count < 50:
+            return {
+                'is_valid': False,
+                'status': 'empty',
+                'detail': f'Page has only {word_count} words - content did not load properly'
+            }
+
+        # Check 2: Block page titles
+        block_indicators = [
+            'access denied', '403 forbidden', '401 unauthorized',
+            'blocked', 'captcha', 'robot check', 'are you human',
+            'just a moment', 'checking your browser', 'attention required',
+            'please wait', 'verify you are human', 'security check',
+            'pardon our interruption', 'one more step'
+        ]
+        for indicator in block_indicators:
+            if indicator in title:
+                return {
+                    'is_valid': False,
+                    'status': 'blocked',
+                    'detail': f"Page returned '{title}' - content is not the actual website"
+                }
+
+        # Check 3: Agreement/consent pages
+        agreement_indicators = [
+            'agreement', 'terms of use', 'terms of service',
+            'consent', 'cookie policy', 'usage agreement',
+            'accept terms', 'privacy notice'
+        ]
+        for indicator in agreement_indicators:
+            if indicator in title:
+                return {
+                    'is_valid': False,
+                    'status': 'agreement',
+                    'detail': f"Page shows agreement/consent page instead of actual content"
+                }
+
+        # Check 4: Error pages
+        error_indicators = [
+            '404', 'not found', '500', 'server error',
+            'something went wrong', 'page not available',
+            'service unavailable', '502 bad gateway', '503'
+        ]
+        for indicator in error_indicators:
+            if indicator in title:
+                return {
+                    'is_valid': False,
+                    'status': 'error_page',
+                    'detail': f"Page returned error: '{title}'"
+                }
+
+        # Check 5: JS render failure - lots of HTML but very little text
+        # Use high thresholds to avoid false positives on minimal pages (e.g. google.com homepage)
+        html_length = len(scrape_result.get('html', ''))
+        if html_length > 50000 and word_count < 30:
+            return {
+                'is_valid': False,
+                'status': 'js_render_fail',
+                'detail': f'Large HTML ({html_length} chars) but only {word_count} words extracted - JavaScript may not have rendered'
+            }
+
+        return result
+
+    def _determine_scam_type(self, risk_level: str, risk_score: int, category: str) -> str:
+        """Determine scam type based on website category and risk level"""
+        # LOW risk = no scam type
+        if risk_level == 'LOW':
+            return ''
+
+        _CATEGORY_TO_SCAM_TYPE = {
+            # Financial
+            'banking': 'Suspected Banking Fraud',
+            'credit_union': 'Suspected Banking Fraud',
+            'insurance': 'Suspected Insurance Fraud',
+            'investment': 'Suspected Investment Fraud',
+            'stock_trading': 'Suspected Investment Fraud',
+            'crypto_exchange': 'Suspected Crypto Fraud',
+            'payment_service': 'Suspected Payment Fraud',
+            'lending': 'Suspected Lending Fraud',
+            # Shopping
+            'ecommerce': 'Suspected Fake Online Store',
+            'marketplace': 'Suspected Fake Marketplace',
+            'auction': 'Suspected Auction Fraud',
+            'classifieds': 'Suspected Classifieds Fraud',
+            'grocery': 'Suspected Fake Online Store',
+            'fashion': 'Suspected Fake Online Store',
+            'electronics': 'Suspected Fake Online Store',
+            # Government
+            'government': 'Suspected Government Impersonation',
+            'municipality': 'Suspected Government Impersonation',
+            'military': 'Suspected Government Impersonation',
+            'court': 'Suspected Government Impersonation',
+            'tax_authority': 'Suspected Tax Scam',
+            'public_service': 'Suspected Government Impersonation',
+            # Health
+            'hospital': 'Suspected Health Fraud',
+            'clinic': 'Suspected Health Fraud',
+            'pharmacy': 'Suspected Fake Pharmacy',
+            'telehealth': 'Suspected Health Fraud',
+            'mental_health': 'Suspected Health Fraud',
+            # Education
+            'university': 'Suspected Fake Education Site',
+            'school': 'Suspected Fake Education Site',
+            'online_course': 'Suspected Fake Education Site',
+            'elearning': 'Suspected Fake Education Site',
+            'language_learning': 'Suspected Fake Education Site',
+            # Entertainment
+            'streaming': 'Suspected Fake Streaming Site',
+            'gaming': 'Suspected Gaming Fraud',
+            'gambling': 'Suspected Illegal Gambling',
+            'sports_betting': 'Suspected Illegal Gambling',
+            'adult_content': 'Suspected Adult Content Scam',
+            # Media
+            'news': 'Suspected Fake News Site',
+            'blog': 'Suspected Fake Blog',
+            'forum': 'Suspected Fake Forum',
+            'social_network': 'Suspected Social Engineering',
+            'messaging': 'Suspected Social Engineering',
+            # Services
+            'legal': 'Suspected Fake Legal Service',
+            'accounting': 'Suspected Fake Service',
+            'real_estate': 'Suspected Real Estate Fraud',
+            'travel': 'Suspected Travel Fraud',
+            'job_board': 'Suspected Job Scam',
+            'review_directory': 'Suspected Fake Reviews',
+            'ride_delivery': 'Suspected Fake Service',
+            # Technology
+            'saas': 'Suspected Tech Support Scam',
+            'cloud': 'Suspected Tech Support Scam',
+            'web_hosting': 'Suspected Tech Support Scam',
+            'vpn_proxy': 'Suspected Fake VPN/Privacy Scam',
+            'developer_tools': 'Suspected Tech Support Scam',
+            # Other
+            'restaurant': 'Suspected Fake Business',
+            'automotive': 'Suspected Fake Business',
+            'pets': 'Suspected Fake Business',
+            'nonprofit': 'Suspected Charity Fraud',
+            'religious': 'Suspected Charity Fraud',
+        }
+
+        scam_type = _CATEGORY_TO_SCAM_TYPE.get(category, '')
+
+        if not scam_type:
+            if risk_level == 'HIGH':
+                return 'Unknown Fraud Type - Requires Investigation'
+            else:
+                return 'Suspicious Activity Detected - Requires Investigation'
+
+        return scam_type
+
     def _determine_risk_level(self, risk_score: int) -> str:
         """Determine risk level from score"""
         if risk_score < 30:

@@ -1,0 +1,327 @@
+[
+  {
+    "url": "https://www.linkedin.com/feed/",
+    "risk_score": 25,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "unknown",
+    "category_name": "Unknown",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://www.namecheap.com/domains/registration/results/?domain=7xl.com",
+    "risk_score": 25,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "web_hosting",
+    "category_name": "Web Hosting",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://claude.ai/new",
+    "risk_score": 25,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "unknown",
+    "category_name": "Unknown",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://rehovot.mynet.co.il/",
+    "risk_score": 25,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "ecommerce",
+    "category_name": "E-commerce",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://www.kraken.com/",
+    "risk_score": 25,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "crypto_exchange",
+    "category_name": "Crypto Exchange",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://www.sisense.com/glossary/deterministic-finite-automata/",
+    "risk_score": 7,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "unknown",
+    "category_name": "Unknown",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://docs.google.com/spreadsheets/d/1tFIbfWgJclvn0XvYOOg1Hm7kd3bHYbQGNIGLpUHZkaA/edit?gid=0#gid=0",
+    "risk_score": 12,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "social_network",
+    "category_name": "Social Network",
+    "url_risk_score": 5,
+    "url_flags": [
+      "long_url"
+    ]
+  },
+  {
+    "url": "https://gvd.ie/",
+    "risk_score": 2,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "cloud",
+    "category_name": "Cloud Services",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://dashboard.gvdmarkets.com/#/register?lang=en",
+    "risk_score": 36,
+    "risk_level": "MEDIUM",
+    "is_scam": false,
+    "scam_type": "Suspicious Activity Detected - Requires Investigation",
+    "category": "unknown",
+    "category_name": "Unknown",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://duskseodigital.com/",
+    "risk_score": 0,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "unknown",
+    "category_name": "Unknown",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://verifiedcopytraders.org/",
+    "risk_score": 92,
+    "risk_level": "HIGH",
+    "is_scam": true,
+    "scam_type": "Suspected Crypto Fraud",
+    "category": "crypto_exchange",
+    "category_name": "Crypto Exchange",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://www.vtmarkets.com/?utm_source=chatgpt.com",
+    "risk_score": 92,
+    "risk_level": "HIGH",
+    "is_scam": true,
+    "scam_type": "Suspected Investment Fraud",
+    "category": "stock_trading",
+    "category_name": "Stock Trading",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://login.sonos.com/",
+    "risk_score": 25,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "unknown",
+    "category_name": "Unknown",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://www.abbreviations.com/dsfdsf#google_vignette",
+    "risk_score": 1,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "news",
+    "category_name": "News",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://www.bankofamerica.com/",
+    "risk_score": 11,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "banking",
+    "category_name": "Banking",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://www.blockchainassetfund.com/",
+    "risk_score": 92,
+    "risk_level": "HIGH",
+    "is_scam": true,
+    "scam_type": "Suspected Crypto Fraud",
+    "category": "crypto_exchange",
+    "category_name": "Crypto Exchange",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://www.blockchain.com/",
+    "risk_score": 22,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "ecommerce",
+    "category_name": "E-commerce",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://coinmarketcap.com/currencies/coinmarketcap-20-index/",
+    "risk_score": 14,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "crypto_exchange",
+    "category_name": "Crypto Exchange",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://www.coingecko.com/",
+    "risk_score": 25,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "crypto_exchange",
+    "category_name": "Crypto Exchange",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://www.binance.com/en",
+    "risk_score": 25,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "crypto_exchange",
+    "category_name": "Crypto Exchange",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://jsonviewer.stack.hu/",
+    "risk_score": 11,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "unknown",
+    "category_name": "Unknown",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://www.sharkninja.com/",
+    "risk_score": 5,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "ecommerce",
+    "category_name": "E-commerce",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://www.globes.co.il/portal/instrument.aspx?instrumentid=378478&mode=graph",
+    "risk_score": 25,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "stock_trading",
+    "category_name": "Stock Trading",
+    "url_risk_score": 5,
+    "url_flags": [
+      "long_url"
+    ]
+  },
+  {
+    "url": "https://www.mizrahi-tefahot.co.il/",
+    "risk_score": 15,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "banking",
+    "category_name": "Banking",
+    "url_risk_score": 5,
+    "url_flags": [
+      "hyphen_in_domain"
+    ]
+  },
+  {
+    "url": "https://web.whatsapp.com/",
+    "risk_score": 25,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "electronics",
+    "category_name": "Electronics",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.10.2",
+    "risk_score": 7,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "developer_tools",
+    "category_name": "Developer Tools",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://smspva.com/",
+    "risk_score": 92,
+    "risk_level": "HIGH",
+    "is_scam": true,
+    "scam_type": "Suspected Payment Fraud",
+    "category": "payment_service",
+    "category_name": "Payment Service",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://www.disney.co.il/",
+    "risk_score": 25,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "unknown",
+    "category_name": "Unknown",
+    "url_risk_score": 0,
+    "url_flags": []
+  },
+  {
+    "url": "https://edwarddonner.com/2024/11/13/llm-engineering-resources/",
+    "risk_score": 15,
+    "risk_level": "LOW",
+    "is_scam": false,
+    "scam_type": "",
+    "category": "online_course",
+    "category_name": "Online Course",
+    "url_risk_score": 0,
+    "url_flags": []
+  }
+]

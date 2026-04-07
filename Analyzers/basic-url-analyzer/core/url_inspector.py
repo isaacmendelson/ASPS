@@ -3,16 +3,17 @@ URL phishing inspector - analyzes URL string for phishing indicators without
 making any network requests.
 
 Checks performed (all URL-string-only, no network):
-  1. UsingIP         - Domain is a raw IP address
-  2. LongURL         - URL length exceeds safe thresholds
-  3. ShortURL        - Domain is a known URL shortener
-  4. SymbolAt        - URL contains @ symbol (hides real domain)
-  5. DoubleSlash     - Path contains // redirect trick
-  6. HyphenInDomain  - Domain contains hyphens (common in phishing)
-  7. SubdomainCount  - Excessive subdomains
-  8. NonStandardPort - Non-standard port (not 80/443)
-  9. HttpsInDomain   - Domain name contains "https" text
- 10. SuspiciousChars - Encoded control chars, homograph/unicode tricks
+  1. UsingIP            - Domain is a raw IP address
+  2. LongURL            - URL length exceeds safe thresholds
+  3. ShortURL           - Domain is a known URL shortener
+  4. SymbolAt           - URL contains @ symbol (hides real domain)
+  5. DoubleSlash        - Path contains // redirect trick
+  6. HyphenInDomain     - Domain contains hyphens (common in phishing)
+  7. SubdomainCount     - Excessive subdomains
+  8. NonStandardPort    - Non-standard port (not 80/443)
+  9. HttpsInDomain      - Domain name contains "https" text
+ 10. SuspiciousChars    - Encoded control chars, homograph/unicode tricks
+ 11. SuspiciousSubdomain - Subdomain contains brand name unrelated to domain
 """
 
 import re
@@ -64,6 +65,41 @@ _SHORTENER_DOMAINS = frozenset({
     'naver.me', 'me2.do', 'cstu.io', 'ay.live', 'fly.link',
     'murl.com', 'trib.al', 'dfrk.co', 'waa.ai', 'link.ac',
     'urls.fr', 's.coop', 'zi.ma', 'ctt.ac', 'go.ly',
+})
+
+# Common/legitimate subdomains to skip in brand-impersonation check
+_COMMON_SUBDOMAINS = frozenset({
+    'www', 'mail', 'app', 'admin', 'blog', 'api', 'dev', 'staging', 'test',
+    'm', 'mobile', 'portal', 'secure', 'login', 'my', 'account', 'dashboard',
+    'cdn', 'static', 'assets', 'img', 'docs', 'help', 'support', 'store', 'shop',
+})
+
+# Well-known brand names commonly targeted in phishing
+_PHISHING_BRANDS = frozenset({
+    # Banks
+    'paypal', 'bankofamerica', 'wellsfargo', 'chase', 'citibank', 'hsbc',
+    'barclays', 'bankhapoalim', 'leumi', 'mizrahi', 'discount',
+    # Tech
+    'google', 'apple', 'microsoft', 'amazon', 'facebook', 'instagram',
+    'netflix', 'twitter', 'linkedin', 'dropbox', 'icloud', 'outlook',
+    'yahoo', 'gmail',
+    # Crypto
+    'binance', 'coinbase', 'blockchain', 'metamask', 'ledger', 'trezor',
+    'kraken',
+    # Payment
+    'stripe', 'venmo', 'cashapp', 'zelle', 'wise', 'revolut',
+    # Shopping
+    'ebay', 'walmart', 'target', 'bestbuy', 'aliexpress',
+    # Other
+    'dhl', 'fedex', 'ups', 'usps', 'irs', 'gov',
+})
+
+# Country-code second-level domains (shared with subdomain_count check)
+_CC_SLDS = frozenset({
+    'co.uk', 'co.il', 'com.au', 'com.br', 'co.jp', 'co.kr',
+    'co.nz', 'co.za', 'com.mx', 'com.ar', 'com.cn', 'com.tw',
+    'com.sg', 'com.hk', 'org.uk', 'org.il', 'net.au', 'ac.uk',
+    'ac.il', 'gov.il', 'gov.uk', 'gov.au', 'edu.au',
 })
 
 # Homograph characters that mimic Latin letters
@@ -122,7 +158,7 @@ class URLInspector:
 
         self.logger.info(f"Inspecting URL: {url}")
 
-        # Run all 10 checks
+        # Run all 11 checks
         checks = {
             'using_ip': self._check_using_ip(domain),
             'long_url': self._check_long_url(url),
@@ -134,6 +170,7 @@ class URLInspector:
             'non_standard_port': self._check_non_standard_port(parsed),
             'https_in_domain': self._check_https_in_domain(domain),
             'suspicious_characters': self._check_suspicious_chars(url),
+            'suspicious_subdomain': self._check_suspicious_subdomain(domain),
         }
 
         # Collect flags (checks that flagged something)
@@ -314,6 +351,49 @@ class URLInspector:
             return self._flag(severity, detail)
 
         return self._safe('No suspicious characters detected')
+
+    def _check_suspicious_subdomain(self, domain: str) -> Dict:
+        """Check 11: Does the subdomain contain a brand name unrelated to the main domain?"""
+        parts = domain.split('.')
+        if len(parts) < 3:
+            return self._safe('No subdomain present')
+
+        # Determine TLD length (1 for .com, 2 for .co.il etc.)
+        tld_parts = 1
+        if len(parts) >= 2:
+            last_two = '.'.join(parts[-2:])
+            if last_two in _CC_SLDS:
+                tld_parts = 2
+
+        # main_domain is the label just before the TLD
+        # e.g. evil.com -> "evil", evil.co.il -> "evil"
+        main_domain_label = parts[-(tld_parts + 1)]
+        full_registered_domain = '.'.join(parts[-(tld_parts + 1):])
+
+        # subdomain labels are everything before the registered domain
+        subdomain_labels = parts[:-(tld_parts + 1)]
+        if not subdomain_labels:
+            return self._safe('No subdomain present')
+
+        # Join all subdomain labels into one string for brand matching
+        subdomain_text = '-'.join(subdomain_labels).lower()
+
+        # Skip if subdomain is only common/legitimate labels
+        if all(label in _COMMON_SUBDOMAINS for label in subdomain_labels):
+            return self._safe('Subdomain contains only common labels')
+
+        # Check each brand
+        for brand in _PHISHING_BRANDS:
+            if brand in subdomain_text:
+                # Check if brand matches the main domain (legitimate use)
+                if brand in main_domain_label:
+                    continue
+                return self._flag(
+                    'high',
+                    f"Subdomain contains brand '{brand}' but domain is '{full_registered_domain}'"
+                )
+
+        return self._safe('No brand impersonation detected in subdomain')
 
     # ------------------------------------------------------------------
     # Helpers
