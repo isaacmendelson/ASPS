@@ -44,6 +44,7 @@ public class AppDbContext : DbContext
     public DbSet<Simulation> Simulations { get; set; }
     public DbSet<BlacklistedPhoneNumber> BlacklistedPhoneNumbers { get; set; }
     public DbSet<BankWebsite> BankWebsites { get; set; }
+    public DbSet<WebsiteCategory> WebsiteCategories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -570,6 +571,55 @@ public class AppDbContext : DbContext
             // Indexes for performance
             entity.HasIndex(e => e.Domain);
             entity.HasIndex(e => e.IsActive);
+            entity.HasIndex(e => e.DateDeleted);
+        });
+
+        // WebsiteCategory configuration
+        // JIRA: SCRUM-819
+        modelBuilder.Entity<WebsiteCategory>(entity =>
+        {
+            entity.ToTable("WebsiteCategories");
+            entity.HasKey(e => e.KeyField);
+            entity.Property(e => e.KeyField)
+                .HasColumnName("Key")
+                .HasColumnType("varchar(36)")
+                .IsRequired();
+
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.ParentId)
+                .HasColumnType("varchar(36)")
+                .IsRequired(false);
+
+            entity.Property(e => e.DateCreated)
+                .IsRequired();
+
+            entity.Property(e => e.DateDeleted);
+
+            entity.Property(e => e.Source)
+                .HasMaxLength(100);
+
+            // Self-referencing Parent relationship
+            entity.HasOne(e => e.Parent)
+                .WithMany()
+                .HasForeignKey(e => e.ParentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Ignore computed properties
+            entity.Ignore(e => e.Tag);
+            entity.Ignore(e => e.TypeName);
+            entity.Ignore(e => e.Key);
+
+            // Unique index on Name
+            entity.HasIndex(e => e.Name)
+                .IsUnique();
+
+            // Index on ParentId for performance
+            entity.HasIndex(e => e.ParentId);
+
+            // Index on DateDeleted for soft-delete queries
             entity.HasIndex(e => e.DateDeleted);
         });
     }
