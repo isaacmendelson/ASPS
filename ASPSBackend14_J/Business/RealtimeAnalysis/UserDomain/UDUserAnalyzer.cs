@@ -87,8 +87,9 @@ namespace Business.RealtimeAnalysis.UserDomain
                     break;
             }
 
+            Key? key = alert.AlertId is not null ? new Key(alert.GetType().Name, alert.AlertId) : null;
             // With every device alert - detect  immediate danger
-            var isImmediateDanger = this.DetectImmediateDanger();
+            var isImmediateDanger = this.DetectImmediateDanger(key);
 
             if (isImmediateDanger)
             {
@@ -101,8 +102,8 @@ namespace Business.RealtimeAnalysis.UserDomain
 
             string analyzerName = analysisResult.FirstOrDefault().Key;
             var firstResult = analysisResult.FirstOrDefault().Value;
-
-            var isImmediateDanger = this.DetectImmediateDanger();
+            var key = firstResult.Item1.ResultId is not null ? new Key(firstResult.Item1.GetType().Name, firstResult.Item1.ResultId) : null;
+            var isImmediateDanger = this.DetectImmediateDanger(key);
             
             var analysisResultViews = this._asView.GetAnalysisResultsByUserKey(this.UDUser.Key)
                 .OrderByDescending(I => I.Timestamp)
@@ -149,19 +150,23 @@ namespace Business.RealtimeAnalysis.UserDomain
 
         public async Task Handle(IDomainEvent evt)
         {
+            Key? key = null;
+
             switch(evt)
             {
                 case AnalysisResultReceived analysisEvent:
+                    key = analysisEvent.DeviceAlertKeyField is not null ? new Key(analysisEvent.GetType().Name, analysisEvent.DeviceAlertKeyField) : null;
                     // Handle the analysis result received event
                     await this.HandleAnalysisResultReceivedAsync(analysisEvent);
                     break;
                 case AnalysisResultAdded analysisEvent:
+                    key = analysisEvent.DeviceAlertKey is not null ? new Key(analysisEvent.GetType().Name, analysisEvent.DeviceAlertKey.Value) : null;
                     // Handle the analysis result received event
                     await this.HandleAnalysisResultAddedAsync(analysisEvent);
                     break;
             }
 
-            var isImmediateDanger = this.DetectImmediateDanger();
+            var isImmediateDanger = this.DetectImmediateDanger(key);
         }
 
         public async Task HandleAnalysisResultAddedAsync(AnalysisResultAdded analysisEvent)
@@ -456,7 +461,7 @@ namespace Business.RealtimeAnalysis.UserDomain
 
         }
 
-        private bool DetectImmediateDanger()
+        private bool DetectImmediateDanger(Key? alertKey)
         {
             bool res = false;
             var remoteAccessStatus = this.GetRemoteAccessStatus();
@@ -493,8 +498,9 @@ namespace Business.RealtimeAnalysis.UserDomain
                     }
                     if (!this._immediateDangers.Any(i => i.RemoteAccessApp == remoteAccessApp && i.DeviceUid == deviceUid && i.SensitiveUrl?.ToLower() == sUrl))
                     {
+                        // Create new immediate danger instance and add to the list
                         var immeidateDanger = new ImmediateDanger(remoteAccessApp, sUrl, deviceUid, this.UDUser.Key.Value, 
-                            this.UDUser.UserDevices.FirstOrDefault(i => i.DeviceUid == deviceUid)?.Key.Value);
+                            this.UDUser.UserDevices.FirstOrDefault(i => i.DeviceUid == deviceUid)?.Key.Value, alertKey);
                         if (this._immediateDangers.Any(i => i.EndTime == null && i.DeviceUid == immeidateDanger.DeviceUid && i.RemoteAccessApp == immeidateDanger.RemoteAccessApp))
                         {
                             this._immediateDangers.Add(immeidateDanger);
