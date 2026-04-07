@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.ComponentModel.DataAnnotations.Schema;
 using Common.Enums;
 using Common.Models;

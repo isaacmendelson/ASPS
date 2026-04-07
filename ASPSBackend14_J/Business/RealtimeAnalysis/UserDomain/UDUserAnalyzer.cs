@@ -523,7 +523,7 @@ namespace Business.RealtimeAnalysis.UserDomain
                 .OrderByDescending(I => I.Timestamp)
                 .ToList();
             var view = urlAnalysisResultViews.FirstOrDefault(i => i.AnalysisResult is UrlAnalysisResult uv && uv.Domain.ToLower() == domain.ToLower());
-            if (sensitiveWebsiteCategories.Contains(view?.AnalysisResult?.website_category?.Category.ToLower()))
+            if (sensitiveWebsiteCategories.Contains(view?.AnalysisResult?.website_category?.Category.Name.ToLower()))
             {
                 return true;
             }
