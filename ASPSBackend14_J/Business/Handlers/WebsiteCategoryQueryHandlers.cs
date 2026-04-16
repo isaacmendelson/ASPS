@@ -25,7 +25,7 @@ public class WebsiteCategoryQueryHandlers
     {
         try
         {
-            var allCategories = await _repository.GetAllAsync();
+            var allCategories = await _repository.GetAllQueryableAsync();
 
             // Apply ParentId filter if specified
             if (!string.IsNullOrWhiteSpace(query.ParentId))

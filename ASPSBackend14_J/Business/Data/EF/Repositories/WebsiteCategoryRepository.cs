@@ -31,6 +31,14 @@ public class WebsiteCategoryRepository : IWebsiteCategoryRepository
             .ToListAsync();
     }
 
+    public async Task<IQueryable<WebsiteCategory>> GetAllQueryableAsync()
+    {
+        return _context.WebsiteCategories
+            .Where(c => c.DateDeleted == null)
+            .Include(c => c.Parent)
+            .OrderBy(c => c.Name);
+    }
+
     public async Task<WebsiteCategory?> GetByNameAsync(string name)
     {
         if (string.IsNullOrWhiteSpace(name))

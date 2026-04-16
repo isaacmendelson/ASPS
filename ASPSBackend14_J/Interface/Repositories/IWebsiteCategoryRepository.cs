@@ -9,6 +9,7 @@ namespace Interface.Repositories;
 public interface IWebsiteCategoryRepository
 {
     Task<IEnumerable<WebsiteCategory>> GetAllAsync();
+    Task<IQueryable<WebsiteCategory>> GetAllQueryableAsync();
     Task<WebsiteCategory?> GetByNameAsync(string name);
     Task<int> AddAsync(WebsiteCategory category);
     Task UpdateAsync(WebsiteCategory category);
