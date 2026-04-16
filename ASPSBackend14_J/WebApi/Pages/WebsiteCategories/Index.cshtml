@@ -36,9 +36,12 @@ else
         @for (int i = 0; i < topLevelParents.Count; i++)
         {
             var parent = topLevelParents[i];
-            var children = childCategories.Where(c => c.ParentId == parent.KeyField).OrderBy(c => c.Name).ToList();
+            //var children = childCategories.Where(c => c.ParentId == parent.KeyField).OrderBy(c => c.Name).ToList();
+            var children = childCategories.Where(c => c.ParentId == parent.Name).OrderBy(c => c.Name).ToList();
+
             var accordionId = "collapse-" + i;
-            
+
+            <div class="d-none">Debug: Parent '@parent.Name' KeyField='@parent.KeyField' child count=@childCategories.Count</div>
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button @(i == 0 ? "" : "collapsed")" type="button" data-bs-toggle="collapse" data-bs-target="#@accordionId" aria-expanded="@(i == 0 ? "true" : "false")">
