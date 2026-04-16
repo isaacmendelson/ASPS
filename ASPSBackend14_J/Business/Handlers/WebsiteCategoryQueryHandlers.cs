@@ -25,7 +25,7 @@ public class WebsiteCategoryQueryHandlers
     {
         try
         {
-            var allCategories = await _repository.GetAllQueryableAsync();
+            var allCategories = await _repository.GetAllAsync();
 
             // Apply ParentId filter if specified
             if (!string.IsNullOrWhiteSpace(query.ParentId))
@@ -46,8 +46,13 @@ public class WebsiteCategoryQueryHandlers
 
             var totalCount = allCategories.Count();
 
+            // Sort by ParentId (null/empty first for top-level), then by Name - groups categories together
+            var sortedCategories = allCategories
+                .OrderBy(c => string.IsNullOrEmpty(c.ParentId) ? "AAA" : c.ParentId)
+                .ThenBy(c => c.Name);
+
             // Apply pagination
-            var pagedCategories = allCategories
+            var pagedCategories = sortedCategories
                 .Skip((query.Page - 1) * query.PageSize)
                 .Take(query.PageSize)
                 .ToList();
