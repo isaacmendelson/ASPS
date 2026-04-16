@@ -611,6 +611,7 @@ public class AppDbContext : DbContext
             entity.Ignore(e => e.Tag);
             entity.Ignore(e => e.TypeName);
             entity.Ignore(e => e.Key);
+            entity.Ignore(e => e.IsDeleted);
 
             // Unique index on Name
             entity.HasIndex(e => e.Name)
