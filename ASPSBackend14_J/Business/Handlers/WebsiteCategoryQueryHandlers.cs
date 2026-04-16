@@ -108,7 +108,7 @@ public class WebsiteCategoryQueryHandlers
             var allCategories = await _repository.GetAllAsync();
             // Get unique parent categories (categories that have at least one child or are top-level)
             var parents = allCategories
-                .Where(c => string.IsNullOrEmpty(c.ParentId) || allCategories.Any(child => child.ParentId == c.Name))
+                .Where(c => string.IsNullOrEmpty(c.ParentId) || allCategories.Any(child => child.ParentId == c.KeyField))
                 .OrderBy(c => c.Name)
                 .ToList();
 
