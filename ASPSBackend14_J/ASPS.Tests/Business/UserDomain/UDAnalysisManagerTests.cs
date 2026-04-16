@@ -30,6 +30,7 @@ public class UDAnalysisManagerTests
     private readonly ASView _mockASView;
     private readonly Mock<IKnownPhishingWebsiteRepository> _mockPhishingRepo;
     private readonly Mock<ISafeDomainRepository> _mockSafeDomainRepo;
+    private readonly Mock<IWebsiteCategoryRepository> _mockWebsiteCategoryRepo;
     private readonly UDUser _testUser;
     private readonly UDUserAnalyzer _userAnalyzer;
 
@@ -64,6 +65,7 @@ public class UDAnalysisManagerTests
 
         _mockPhishingRepo = new Mock<IKnownPhishingWebsiteRepository>();
         _mockSafeDomainRepo = new Mock<ISafeDomainRepository>();
+        _mockWebsiteCategoryRepo = new Mock<IWebsiteCategoryRepository>();
 
         _testUser = CreateMockUser();
         _mockASView = CreateMockASView();
@@ -308,7 +310,8 @@ public class UDAnalysisManagerTests
             _mockConfiguration.Object,
             eventHandlers,
             _mockPhishingRepo.Object,
-            _mockSafeDomainRepo.Object
+            _mockSafeDomainRepo.Object,
+            _mockWebsiteCategoryRepo.Object
         );
     }
 

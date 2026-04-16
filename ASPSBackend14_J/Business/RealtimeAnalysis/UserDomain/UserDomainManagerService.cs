@@ -27,6 +27,7 @@ public class UserDomainManagerService
     private readonly List<IDomainEventHandler> _eventHandlers;
     private readonly IKnownPhishingWebsiteRepository _phishingRepo;
     private readonly ISafeDomainRepository _safeDomainRepo;
+    private readonly IWebsiteCategoryRepository _websiteCategoryRepo;
     private readonly ASView _aSView;
 
     public UserDomainManagerService(

@@ -159,6 +159,10 @@ public class CQRSGateway : IDisposable
             "GetSimulationUserDevicesQuery" => await HandleGetSimulationUserDevicesQuery(messageJson, scope),
             "GetSimulationDevicesQuery" => await HandleGetSimulationDevicesQuery(messageJson, scope),
             "GetUserByKeycloakIdQuery" => await HandleGetUserByKeycloakIdQuery(messageJson, scope),
+            // Website Category Queries (SCRUM-822)
+            "GetAllWebsiteCategoriesQuery" => await HandleGetAllWebsiteCategoriesQuery(messageJson, scope),
+            "GetWebsiteCategoryByNameQuery" => await HandleGetWebsiteCategoryByNameQuery(messageJson, scope),
+            "GetParentCategoriesQuery" => await HandleGetParentCategoriesQuery(messageJson, scope),
             _ => CreateErrorResponse($"Unknown query type: {queryType}")
         };
     }
@@ -187,6 +191,9 @@ public class CQRSGateway : IDisposable
             "UpdateSimulationCommand" => await HandleUpdateSimulationCommand(messageJson, scope),
             "DeleteSimulationCommand" => await HandleDeleteSimulationCommand(messageJson, scope),
             "RunSimulationCommand" => await HandleRunSimulationCommand(messageJson, scope),
+            // Website Category Commands (SCRUM-822)
+            "CreateWebsiteCategoryCommand" => await HandleCreateWebsiteCategoryCommand(messageJson, scope),
+            "UpdateWebsiteCategoryCommand" => await HandleUpdateWebsiteCategoryCommand(messageJson, scope),
             _ => CreateErrorResponse($"Unknown command type: {commandType}")
         };
     }
@@ -733,6 +740,74 @@ public class CQRSGateway : IDisposable
         if (command == null) return CreateErrorResponse("Invalid RunSimulationCommand format");
 
         var handler = scope.ServiceProvider.GetRequiredService<SimulationCommandHandlers>();
+        var result = await handler.HandleAsync(command);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    // Website Category Query Handlers (SCRUM-822)
+    private async Task<string> HandleGetAllWebsiteCategoriesQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetAllWebsiteCategoriesQuery>(messageJson) ?? new GetAllWebsiteCategoriesQuery();
+        var handler = scope.ServiceProvider.GetRequiredService<WebsiteCategoryQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleGetWebsiteCategoryByNameQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetWebsiteCategoryByNameQuery>(messageJson);
+        if (query == null) return CreateErrorResponse("Invalid GetWebsiteCategoryByNameQuery format");
+
+        var handler = scope.ServiceProvider.GetRequiredService<WebsiteCategoryQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleGetParentCategoriesQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetParentCategoriesQuery>(messageJson) ?? new GetParentCategoriesQuery();
+        var handler = scope.ServiceProvider.GetRequiredService<WebsiteCategoryQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    // Website Category Command Handlers (SCRUM-822)
+    private async Task<string> HandleCreateWebsiteCategoryCommand(string messageJson, IServiceScope scope)
+    {
+        var command = JsonConvert.DeserializeObject<CreateWebsiteCategoryCommand>(messageJson);
+        if (command == null) return CreateErrorResponse("Invalid CreateWebsiteCategoryCommand format");
+
+        var handler = scope.ServiceProvider.GetRequiredService<WebsiteCategoryCommandHandlers>();
+        var result = await handler.HandleAsync(command);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleUpdateWebsiteCategoryCommand(string messageJson, IServiceScope scope)
+    {
+        var command = JsonConvert.DeserializeObject<UpdateWebsiteCategoryCommand>(messageJson);
+        if (command == null) return CreateErrorResponse("Invalid UpdateWebsiteCategoryCommand format");
+
+        var handler = scope.ServiceProvider.GetRequiredService<WebsiteCategoryCommandHandlers>();
         var result = await handler.HandleAsync(command);
         return JsonConvert.SerializeObject(result, new JsonSerializerSettings
         {

@@ -151,6 +151,8 @@ class Program
                 services.AddScoped<SimulationCommandHandlers>();
                 services.AddScoped<BlacklistedPhoneNumberQueryHandlers>(); // ASPS-282
                 services.AddScoped<BankWebsiteQueryHandlers>(); // ASPS-297
+                services.AddScoped<WebsiteCategoryQueryHandlers>(); // SCRUM-822
+                services.AddScoped<WebsiteCategoryCommandHandlers>(); // SCRUM-822
 
                 // Add CQRS Gateway (listens for Commands/Queries from WebApi)
                 services.AddSingleton<CQRSGateway>();

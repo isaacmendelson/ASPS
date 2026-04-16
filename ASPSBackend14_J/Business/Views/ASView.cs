@@ -468,6 +468,11 @@ public class ASView : IDomainEventHandler, IBackgroundTask
         _logger.LogInformation("ASView: System configuration changed, reloading System Configuration data...");
         this._configuration = evt.NewConfiguration;
     }
+
+    /// <summary>
+    /// Handles WebsiteCategoryViewsChanged event by reloading website categories from database.
+    /// JIRA: SCRUM-823
+    /// </summary>
     public Type[] GetHandleableEvents()
     {
         return new[] { typeof(AnalysisResultReceived), typeof(DeviceAlertReceived), typeof(UserAdded), typeof(UserUpdated), typeof(UserDeleted), typeof(SystemConfigurationChanged) };

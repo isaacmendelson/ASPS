@@ -1,0 +1,107 @@
+@page
+@model WebApi.Pages.WebsiteCategories.CreateModel
+@{
+    ViewData["Title"] = "Create Website Category";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Create Website Category</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a asp-page="Index" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Error!</strong> @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <strong>Success!</strong> @Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Category Information</h6>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label asp-for="Input.Name" class="form-label">Name <span class="text-danger">*</span></label>
+                        <input asp-for="Input.Name" class="form-control" placeholder="e.g., Shopping, News, Social Media" required />
+                        <span asp-validation-for="Input.Name" class="text-danger"></span>
+                        <div class="form-text">The category name must be unique.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.ParentId" class="form-label">Parent Category</label>
+                        <select asp-for="Input.ParentId" class="form-select">
+                            <option value="">-- No Parent (Top-Level) --</option>
+                            @foreach (var parent in Model.AllParents)
+                            {
+                                <option value="@parent.KeyField">@parent.Name</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Input.ParentId" class="text-danger"></span>
+                        <div class="form-text">Optional: Select a parent category to create a sub-category.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Source" class="form-label">Source</label>
+                        <input asp-for="Input.Source" class="form-control" placeholder="e.g., Manual, Import, API" />
+                        <span asp-validation-for="Input.Source" class="text-danger"></span>
+                        <div class="form-text">Optional: Where this category came from (for reference).</div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="d-flex justify-content-between">
+                        <a asp-page="Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Create Category
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-info">
+                    <i class="fas fa-info-circle"></i> Information
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2"><strong>Required Fields:</strong></p>
+                <ul class="mb-3">
+                    <li>Name</li>
+                </ul>
+                <p class="mb-2"><strong>Validation Rules:</strong></p>
+                <ul class="mb-0">
+                    <li>Name must be unique</li>
+                    <li>Parent category is optional</li>
+                    <li>Source is optional</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
