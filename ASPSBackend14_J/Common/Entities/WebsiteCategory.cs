@@ -37,7 +37,7 @@ namespace Common.Entities
         public string Name { get; set; }
 
         [DataMember] 
-        public string ParentId { get; set; }
+        public string ParentId { get; set; } = string.Empty;
 
         [NotMapped]
         [ForeignKey(nameof(ParentId))]  
