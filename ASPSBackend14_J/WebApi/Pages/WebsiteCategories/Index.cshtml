@@ -32,7 +32,7 @@ else
         <span class="badge bg-secondary">@topLevelParents.Count groups</span>
     </div>
 
-    @* Parent categories table (always visible) *@
+    @* Parent categories table *@
     @if (topLevelParents.Any())
     {
         <div class="card mb-4 shadow-sm">
@@ -51,8 +51,11 @@ else
                     <tbody>
                         @foreach (var parent in topLevelParents)
                         {
-                            var childCount = childCategories.Count(c => c.ParentId == parent.KeyField);
-                            <tr data-bs-toggle="collapse" data-bs-target="#child-@parent.KeyField.Replace("-", "")" style="cursor: pointer;">
+                            var children = childCategories.Where(c => c.ParentId == parent.KeyField).OrderBy(c => c.Name).ToList();
+                            var childCount = children.Count;
+                            var rowId = "child-" + parent.KeyField.Replace("-", "_").Replace(":", "_");
+                            
+                            <tr data-bs-toggle="collapse" data-bs-target="#@rowId" style="cursor: pointer;">
                                 <td>
                                     <i class="fas fa-folder text-warning me-2"></i>
                                     <strong>@parent.Name</strong>
@@ -66,34 +69,43 @@ else
                                     </a>
                                 </td>
                             </tr>
-                            @* Child rows (hidden by default, shown when parent clicked) *@
-                            <tr class="collapse" id="child-@parent.KeyField.Replace("-", "")">
-                                <td colspan="3" class="bg-light p-3">
-                                    <table class="table table-sm table-bordered mb-0 bg-white">
-                                        <thead class="table-secondary">
-                                            <tr>
-                                                <th>Category Name</th>
-                                                <th>Source</th>
-                                                <th>Date Created</th>
-                                                <th></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var child in childCategories.Where(c => c.ParentId == parent.KeyField).OrderBy(c => c.Name))
-                                            {
-                                                <tr>
-                                                    <td class="ps-4">└ @child.Name</td>
-                                                    <td><code>@(child.Source ?? "-")</code></td>
-                                                    <td>@child.DateCreated.ToString("yyyy-MM-dd")</td>
-                                                    <td>
-                                                        <a asp-page="Edit" asp-route-name="@child.Name" class="btn btn-sm btn-outline-primary btn-sm">
-                                                            <i class="fas fa-edit"></i>
-                                                        </a>
-                                                    </td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
+                            @* Child rows *@
+                            <tr>
+                                <td colspan="3" class="p-0">
+                                    <div class="collapse" id="@rowId">
+                                        @if (children.Any())
+                                        {
+                                            <table class="table table-sm table-bordered mb-0 bg-white">
+                                                <thead class="table-secondary">
+                                                    <tr>
+                                                        <th>Category Name</th>
+                                                        <th>Source</th>
+                                                        <th>Date Created</th>
+                                                        <th></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var child in children)
+                                                    {
+                                                        <tr>
+                                                            <td class="ps-4">└ @child.Name</td>
+                                                            <td><code>@(child.Source ?? "-")</code></td>
+                                                            <td>@child.DateCreated.ToString("yyyy-MM-dd")</td>
+                                                            <td>
+                                                                <a asp-page="Edit" asp-route-name="@child.Name" class="btn btn-sm btn-outline-primary btn-sm">
+                                                                    <i class="fas fa-edit"></i>
+                                                                </a>
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        }
+                                        else
+                                        {
+                                            <div class="p-2 text-muted">No children</div>
+                                        }
+                                    </div>
                                 </td>
                             </tr>
                         }
@@ -105,14 +117,15 @@ else
 }
 
 <style>
-    tr[data-bs-toggle="collapse"] td:first-child::after {
-        content: '\f107'; /* chevron-down */
+    tr[data-bs-toggle="collapse"] td:first-child::before {
+        content: '\f107';
         font-family: 'Font Awesome 5 Free';
         font-weight: 900;
-        float: right;
+        margin-right: 8px;
         transition: transform 0.2s;
+        display: inline-block;
     }
-    tr[data-bs-toggle="collapse"].collapsed td:first-child::after {
-        content: '\f105'; /* chevron-right */
+    tr[data-bs-toggle="collapse"]:not(.collapsed) td:first-child::before {
+        content: '\f106';
     }
 </style>
