@@ -41,6 +41,7 @@ public class ASViewTests : IDisposable
         services.AddScoped<IAnalysisResultRepository, AnalysisResultRepository>();
         services.AddScoped<IKnownPhishingWebsiteRepository, KnownPhishingWebsiteRepository>();
         services.AddScoped<ISafeDomainRepository, SafeDomainRepository>();
+        services.AddScoped<IWebsiteCategoryRepository, WebsiteCategoryRepository>(); // SCRUM-820
         
         // Add loggers for repositories
         services.AddSingleton(Mock.Of<ILogger<UserRepository>>());
@@ -50,6 +51,7 @@ public class ASViewTests : IDisposable
         services.AddSingleton(Mock.Of<ILogger<AnalysisResultRepository>>());
         services.AddSingleton(Mock.Of<ILogger<KnownPhishingWebsiteRepository>>());
         services.AddSingleton(Mock.Of<ILogger<SafeDomainRepository>>());
+        services.AddSingleton(Mock.Of<ILogger<WebsiteCategoryRepository>>()); // SCRUM-820
 
         _serviceProvider = services.BuildServiceProvider();
         _asView = new ASView(_serviceProvider, _loggerMock.Object, _mockConfiguration.Object);
@@ -507,6 +509,117 @@ public class ASViewTests : IDisposable
         // Data should still be accessible
         var users = _asView.GetUsers();
         users.Should().HaveCount(1);
+    }
+
+    #endregion
+
+    #region WebsiteCategoryViews Tests (SCRUM-820)
+
+    [Fact]
+    public void WebsiteCategoryViews_OnInitialize_LoadsCategoriesFromRepository()
+    {
+        // Arrange
+        var category1 = new WebsiteCategory("Social Media", null, "Test");
+        var category2 = new WebsiteCategory("News", null, "Test");
+        _context.WebsiteCategories.AddRange(category1, category2);
+        _context.SaveChanges();
+
+        // Act
+        _asView.Start();
+
+        // Assert
+        _asView.WebsiteCategoryViews.Should().HaveCount(2);
+        _asView.WebsiteCategoryViews.Should().Contain(c => c.Tag.Name == "Social Media");
+        _asView.WebsiteCategoryViews.Should().Contain(c => c.Tag.Name == "News");
+    }
+
+    [Fact]
+    public void GetCategoryView_WhenCategoryExists_ReturnsCategory()
+    {
+        // Arrange
+        var category = new WebsiteCategory("Entertainment", null, "Test");
+        _context.WebsiteCategories.Add(category);
+        _context.SaveChanges();
+
+        _asView.Start();
+
+        // Act
+        var result = _asView.GetCategoryView("Entertainment");
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.Tag.Name.Should().Be("Entertainment");
+    }
+
+    [Fact]
+    public void GetCategoryView_CaseInsensitive()
+    {
+        // Arrange
+        var category = new WebsiteCategory("Shopping", null, "Test");
+        _context.WebsiteCategories.Add(category);
+        _context.SaveChanges();
+
+        _asView.Start();
+
+        // Act
+        var result = _asView.GetCategoryView("SHOPPING");
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.Tag.Name.Should().Be("Shopping");
+    }
+
+    [Fact]
+    public void GetCategoryView_WhenCategoryDoesNotExist_ReturnsNull()
+    {
+        // Arrange
+        _asView.Start();
+
+        // Act
+        var result = _asView.GetCategoryView("NonExistentCategory");
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void GetCategoryView_WhenCategoryNameIsNullOrWhitespace_ReturnsNull(string? categoryName)
+    {
+        // Arrange
+        _asView.Start();
+
+        // Act
+        var result = _asView.GetCategoryView(categoryName!);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void GetCategoryView_WithParentCategory_ReturnsCorrectHierarchy()
+    {
+        // Arrange
+        var parentCategory = new WebsiteCategory("Tech", null, "Test");
+        _context.WebsiteCategories.Add(parentCategory);
+        _context.SaveChanges();
+
+        var childCategory = new WebsiteCategory("Programming", parentCategory.KeyField, "Test");
+        _context.WebsiteCategories.Add(childCategory);
+        _context.SaveChanges();
+
+        _asView.Start();
+
+        // Act
+        var result = _asView.GetCategoryView("Programming");
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.Tag.Name.Should().Be("Programming");
+        result.Parent.Should().NotBeNull();
+        result.Parent!.Tag.Name.Should().Be("Tech");
     }
 
     #endregion

@@ -25,6 +25,7 @@ public class UDUrlAnalyzerTests
     private readonly Mock<ILogger<UDUrlAnalyzer>> _loggerMock;
     private readonly IConfiguration _configuration;
     private readonly Mock<IKnownPhishingWebsiteRepository> _phishingRepoMock;
+    private readonly Mock<IWebsiteCategoryRepository> _websiteCategoryRepoMock;
     private readonly ASView _asView;
 
     // System Under Test
@@ -35,6 +36,7 @@ public class UDUrlAnalyzerTests
         // Setup mocks
         _loggerMock = new Mock<ILogger<UDUrlAnalyzer>>();
         _phishingRepoMock = new Mock<IKnownPhishingWebsiteRepository>();
+        _websiteCategoryRepoMock = new Mock<IWebsiteCategoryRepository>();
         
         // Use InMemoryConfiguration instead of mocking (to support GetValue<T> extension method)
         var configData = new Dictionary<string, string>

@@ -1,4 +1,5 @@
 using Business.RealtimeAnalysis.Indicators;
+using Business.Views;
 using Common.Entities;
 using Common.Enums;
 using Common.Interfaces;
@@ -220,21 +221,107 @@ public class Reputation
     public float ScoreAdjustment { get; set; }
 
 }
-public class WebsiteCategory
+public class WebsiteCategoryResult
 {
-    public WebsiteCategory(string category, string nameEn, float confidence)
+    protected WebsiteCategoryResult() { }
+
+    public WebsiteCategoryResult(WebsiteCategory category, WebsiteCategory categoryGroup, string nameEn, float confidence, string detectionMethod, MatchedSignal[] matchedSignals)
     {
-        Category = category;
+        Category = new WebsiteCategoryView(category);
+        CategoryGroup = new WebsiteCategoryView(categoryGroup);
         NameEn = nameEn;
         Confidence = confidence;
+        DetectionMethod = detectionMethod;
+        MatchedSignals = matchedSignals;
     }
 
-    protected WebsiteCategory() { }
+    public WebsiteCategoryResult(WebsiteCategoryResultVm vm)
+    {
+        this.Category = new WebsiteCategoryView(vm.category, vm.category_group, vm.detection_method);
+        this.CategoryGroup = new WebsiteCategoryView(vm.category_group,null, vm.detection_method);
+        this.DetectionMethod = vm.detection_method;
+        this.Confidence = vm.confidence;
+        this.MatchedSignals = vm.matched_signals.Select(i => new MatchedSignal(i)).ToArray();
+        this.NameEn = vm.name_en;
 
-    public string Category { get; set; }
+    }
+
+    public WebsiteCategoryView Category { get; set; }
+    public WebsiteCategoryView CategoryGroup { get; set; }
     public string NameEn { get; set; }
     public float Confidence { get; set; }
+    public string DetectionMethod { get; set; }
+    public MatchedSignal[] MatchedSignals { get; set; }
 }
+
+public class WebsiteCategoryResultVm
+{
+    protected WebsiteCategoryResultVm() { }
+    public WebsiteCategoryResultVm(string category, string category_group, string name_en, float confidence, string detection_method, MatchedSignalVm[] matched_signals)
+    {
+        this.category = category;
+        this.category_group = category_group;
+        this.name_en = name_en;
+        this.confidence = confidence;
+        this.detection_method = detection_method;
+        this.matched_signals = matched_signals;
+    }
+
+
+    public string category { get; set; }
+    public string category_group { get; set; }
+    public string name_en { get; set; }
+    public float confidence { get; set; }
+    public string detection_method { get; set; }
+    public MatchedSignalVm[] matched_signals { get; set; }
+}
+
+public class  MatchedSignal
+{
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+    protected MatchedSignal() { }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+
+    public MatchedSignal(string type, string value, float weight, string segment)
+    {
+        Type = type;
+        Value = value;
+        Weight = weight;
+        Segment = segment;
+    }
+    public MatchedSignal(MatchedSignalVm vm)
+    {
+        this.Value = vm.value;
+        this.Weight = vm.weight;
+        this.Segment = vm.segment;
+        this.Type = vm.type;
+    }
+
+    public string Type { get; set; }
+    public string Value { get; set; }
+    public float Weight { get; set; }
+    public string Segment { get; set; }
+}
+public class MatchedSignalVm
+{
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+    protected MatchedSignalVm() { }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+
+    public MatchedSignalVm(string type, string value, float weight, string segment)
+    {
+        this.type = type;
+        this.value = value;
+        this.weight = weight;
+        this.segment = segment;
+    }
+
+    public string type { get; set; }
+    public string value { get; set; }
+    public float weight { get; set; }
+    public string segment { get; set; }
+}
+
 //public class RiskAssessmentVm
 //{
 //    public RiskAssessmentVm(float risk_score, string risk_level, bool is_scam, float confidence)
@@ -253,7 +340,13 @@ public class WebsiteCategory
 
 public class Purpose
 {
-    public WebsiteType Category { get; set; } = WebsiteType.Unknown;
+    /// <summary>
+    /// Website category name (e.g., "banking", "ecommerce").
+    /// Replaces WebsiteType enum - use ASView.GetCategoryView(categoryName) to get full category details.
+    /// JIRA: SCRUM-821
+    /// </summary>
+    public string CategoryName { get; set; } = "unknown";
+    
     public float Confidence { get; set; }
     public string Description { get; set; } = string.Empty;
 }
@@ -328,6 +421,7 @@ public class ContentAnalysis
         this.FormTypes = vm.form_types;
         this.HasSuspiciousKeywords = vm.HasSuspiciousKeywords;
         this.WordCount = vm.word_count;
+        this.IsEnglish = vm.is_english;
     }
     public bool Success { get; set; }
     public string Title { get; set; }
@@ -340,6 +434,7 @@ public class ContentAnalysis
 
     public List<int> FormTypes { get; set; }
     public int WordCount { get; set; }
+    public bool? IsEnglish { get; set; }
 }
 
 public class ContentAnalysisVm
@@ -352,6 +447,7 @@ public class ContentAnalysisVm
     public int cta_count { get; set; }
     public List<int> form_types { get; set; } = new List<int>();
     public int word_count { get; set; }
+    public bool? is_english { get; set; }
 }
 
 public class ScrapingStatusVm

@@ -24,7 +24,7 @@ def inspector():
 def _assert_success(result):
     assert result['success'] is True
     assert result['error'] == ''
-    assert result['total_checks'] == 10
+    assert result['total_checks'] == 11
 
 
 def _assert_error(result):
@@ -293,3 +293,57 @@ class TestOutputStructure:
         assert result['risk_level'] == 'UNKNOWN'
         assert result['checks'] == {}
         assert result['flags'] == []
+
+
+# =========================================================================
+# Check 11: Suspicious subdomain (brand impersonation)
+# =========================================================================
+
+class TestSuspiciousSubdomain:
+
+    def test_paypal_in_subdomain_of_evil_domain(self, inspector):
+        result = inspector.inspect('http://paypal-secure-login.evil.com')
+        _assert_success(result)
+        assert _has_flag(result, 'suspicious_subdomain')
+        assert result['checks']['suspicious_subdomain']['risk'] == 'high'
+        assert "paypal" in result['checks']['suspicious_subdomain']['detail']
+
+    def test_google_in_subdomain_of_scam_domain(self, inspector):
+        result = inspector.inspect('http://google-verify.scamsite.com')
+        _assert_success(result)
+        assert _has_flag(result, 'suspicious_subdomain')
+
+    def test_amazon_in_subdomain_of_phishing_domain(self, inspector):
+        result = inspector.inspect('http://amazon-order-confirm.phishing.com')
+        _assert_success(result)
+        assert _has_flag(result, 'suspicious_subdomain')
+
+    def test_www_paypal_com_no_flag(self, inspector):
+        """Brand matches domain - should NOT flag"""
+        result = inspector.inspect('https://www.paypal.com')
+        _assert_success(result)
+        assert not _has_flag(result, 'suspicious_subdomain')
+
+    def test_app_google_com_no_flag(self, inspector):
+        """Common subdomain - should NOT flag"""
+        result = inspector.inspect('https://app.google.com')
+        _assert_success(result)
+        assert not _has_flag(result, 'suspicious_subdomain')
+
+    def test_mail_example_com_no_flag(self, inspector):
+        """Common subdomain on non-brand domain - should NOT flag"""
+        result = inspector.inspect('https://mail.example.com')
+        _assert_success(result)
+        assert not _has_flag(result, 'suspicious_subdomain')
+
+    def test_no_brand_in_subdomain_no_flag(self, inspector):
+        """Subdomain with no brand name - should NOT flag"""
+        result = inspector.inspect('http://my-cool-site.example.com')
+        _assert_success(result)
+        assert not _has_flag(result, 'suspicious_subdomain')
+
+    def test_hebrew_bank_brand_in_subdomain(self, inspector):
+        """Hebrew bank brand in subdomain of unrelated .co.il domain"""
+        result = inspector.inspect('http://bankhapoalim-login.evil.co.il')
+        _assert_success(result)
+        assert _has_flag(result, 'suspicious_subdomain')

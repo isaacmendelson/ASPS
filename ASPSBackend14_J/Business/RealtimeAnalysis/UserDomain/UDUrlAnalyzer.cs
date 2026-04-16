@@ -1,6 +1,7 @@
 using Business.DomainEvents;
 using Business.RealtimeAnalysis.Indicators;
 using Business.Views;
+using Common.Entities;
 using Common.Enums;
 using Common.Interfaces;
 using Common.Models;
@@ -182,6 +183,9 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
                     result.phishing_check = phishingCheckResult;
                     results.Add(result);
                     _logger.LogInformation($"Analyzer {analyzer.ScriptFile} completed successfully. Risk Score: {result.risk_assessment?.risk_score ?? 0}");
+                    
+                    // SCRUM-823: Auto-detect new WebsiteCategory from UrlAnalysisResult
+                    await DetectAndCreateNewWebsiteCategoryAsync(result);
                 }
                 else
                 {
@@ -578,4 +582,9 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
     {
         return [typeof(SystemConfigurationChanged)];
     }
-}
+
+    /// <summary>
+    /// Detects new WebsiteCategory from UrlAnalysisResult and creates it if not exists.
+    /// JIRA: SCRUM-823
+    /// </summary>
+    }

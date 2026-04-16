@@ -1,0 +1,118 @@
+@page "{name}"
+@model WebApi.Pages.WebsiteCategories.EditModel
+@{
+    ViewData["Title"] = "Edit Website Category";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Edit Website Category</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a asp-page="Index" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Error!</strong> @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <strong>Success!</strong> @Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (Model.Category == null)
+{
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i> Category not found.
+    </div>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Category Information</h6>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        <input type="hidden" asp-for="Name" />
+
+                        <div class="mb-3">
+                            <label class="form-label">Name <span class="text-muted">(Read-Only)</span></label>
+                            <input type="text" class="form-control" value="@Model.Category.Name" disabled />
+                            <div class="form-text">The category name cannot be changed.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.ParentId" class="form-label">Parent Category</label>
+                            <select asp-for="Input.ParentId" class="form-select">
+                                <option value="">-- No Parent (Top-Level) --</option>
+                                @foreach (var parent in Model.AllParents)
+                                {
+                                    <option value="@parent.KeyField">@parent.Name</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Input.ParentId" class="text-danger"></span>
+                            <div class="form-text">Optional: Select a parent category to create a sub-category.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.Source" class="form-label">Source</label>
+                            <input asp-for="Input.Source" class="form-control" placeholder="e.g., Manual, Import, API" />
+                            <span asp-validation-for="Input.Source" class="text-danger"></span>
+                            <div class="form-text">Optional: Where this category came from (for reference).</div>
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-page="Index" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-info">
+                        <i class="fas fa-info-circle"></i> Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2"><strong>Category Details:</strong></p>
+                    <ul class="mb-3">
+                        <li>Name: <strong>@Model.Category.Name</strong></li>
+                        <li>Created: <strong>@Model.Category.DateCreated.ToString("yyyy-MM-dd HH:mm")</strong></li>
+                    </ul>
+                    <p class="mb-2"><strong>Editable Fields:</strong></p>
+                    <ul class="mb-0">
+                        <li>Parent category</li>
+                        <li>Source</li>
+                    </ul>
+                    <p class="text-muted mt-2 mb-0"><small>The name cannot be changed to maintain data integrity.</small></p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

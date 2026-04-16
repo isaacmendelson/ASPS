@@ -235,7 +235,7 @@ namespace Business.RealtimeAnalysis.UserDomain
 
                     //if (remoteAccessStatus.IsRemoteAccessAppActive && remoteAccessStatus.isRemoteAccessSessionActive)
                     //{
-                    //    if ((u.Purpose?.Category == WebsiteType.Banking) || (u.Purpose?.Category == WebsiteType.Exchange))
+                    //    if ((u.Purpose?.CategoryName == "banking") || (u.Purpose?.CategoryName == "exchange"))
                     //    {
 
                     //    }
@@ -316,7 +316,7 @@ namespace Business.RealtimeAnalysis.UserDomain
 
                     //if (remoteAccessStatus.IsRemoteAccessAppActive && remoteAccessStatus.isRemoteAccessSessionActive)
                     //{
-                    //    if ((u.Purpose?.Category == WebsiteType.Banking) || (u.Purpose?.Category == WebsiteType.Exchange))
+                    //    if ((u.Purpose?.CategoryName == "banking") || (u.Purpose?.CategoryName == "exchange"))
                     //    {
 
                     //    }
@@ -523,7 +523,7 @@ namespace Business.RealtimeAnalysis.UserDomain
                 .OrderByDescending(I => I.Timestamp)
                 .ToList();
             var view = urlAnalysisResultViews.FirstOrDefault(i => i.AnalysisResult is UrlAnalysisResult uv && uv.Domain.ToLower() == domain.ToLower());
-            if (sensitiveWebsiteCategories.Contains(view?.AnalysisResult?.website_category?.Category.ToLower()))
+            if (sensitiveWebsiteCategories.Contains(view?.AnalysisResult?.website_category?.Category.Name.ToLower()))
             {
                 return true;
             }

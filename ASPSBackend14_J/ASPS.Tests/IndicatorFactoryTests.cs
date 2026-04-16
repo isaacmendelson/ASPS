@@ -201,7 +201,7 @@ namespace ASPS.Tests
                 Url = "https://shop.com",
                 Purpose = new Purpose
                 {
-                    Category = WebsiteType.ECommerce,
+                    CategoryName = "ecommerce",
                     Confidence = 0.9f,
                     Description = "Online shopping"
                 }
@@ -216,6 +216,7 @@ namespace ASPS.Tests
             
             var websiteTypeIndicator = result.OfType<WebsiteTypeIndicator>().FirstOrDefault();
             websiteTypeIndicator.Should().NotBeNull();
+            websiteTypeIndicator.CategoryName.Should().Be("ecommerce");
         }
 
         [Fact]
@@ -227,7 +228,7 @@ namespace ASPS.Tests
                 Url = "https://unknown.com",
                 Purpose = new Purpose
                 {
-                    Category = WebsiteType.Unknown,
+                    CategoryName = "unknown",
                     Confidence = 0.1f
                 }
             };
@@ -336,7 +337,7 @@ namespace ASPS.Tests
                 },
                 Purpose = new Purpose
                 {
-                    Category = WebsiteType.Banking,
+                    CategoryName = "banking",
                     Confidence = 0.85f
                 },
                 content_analysis = new ContentAnalysisVm
@@ -386,7 +387,7 @@ namespace ASPS.Tests
                 },
                 Purpose = new Purpose
                 {
-                    Category = WebsiteType.Banking,
+                    CategoryName = "banking",
                     Confidence = 0.7f
                 }
             };

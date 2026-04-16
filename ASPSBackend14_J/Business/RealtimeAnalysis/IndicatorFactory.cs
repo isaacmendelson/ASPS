@@ -62,9 +62,9 @@ namespace Business.RealtimeAnalysis
                         }
                     }
 
-                    if (vm.Purpose is not null && vm.Purpose.Category != WebsiteType.Unknown)
+                    if (vm.Purpose is not null && !string.IsNullOrEmpty(vm.Purpose.CategoryName) && vm.Purpose.CategoryName != "unknown")
                     {
-                        var websiteTypeIndicator = new WebsiteTypeIndicator(vm.Purpose?.Category??0, new NumericScore(0, vm.Purpose is null ? 0 :vm.Purpose.Confidence, true), AnalysisLevel.Device, 1, 1.0f);
+                        var websiteTypeIndicator = new WebsiteTypeIndicator(vm.Purpose.CategoryName, new NumericScore(0, vm.Purpose.Confidence, true), AnalysisLevel.Device, 1, 1.0f);
                         res.Add(websiteTypeIndicator);
                     }
                     if (vm.content_analysis?.Success == true && vm.content_analysis?.HasSuspiciousKeywords == true)

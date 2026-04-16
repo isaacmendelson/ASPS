@@ -139,6 +139,7 @@ class Program
                 services.AddScoped<ISimulationRepository, SimulationRepository>();
                 services.AddScoped<IBlacklistedPhoneNumberRepository, BlacklistedPhoneNumberRepository>(); // ASPS-282
                 services.AddScoped<IBankWebsiteRepository, BankWebsiteRepository>(); // ASPS-297
+                services.AddScoped<IWebsiteCategoryRepository, WebsiteCategoryRepository>(); // SCRUM-820
 
                 // Add Handlers
                 services.AddScoped<UserCommandHandlers>();
@@ -150,6 +151,8 @@ class Program
                 services.AddScoped<SimulationCommandHandlers>();
                 services.AddScoped<BlacklistedPhoneNumberQueryHandlers>(); // ASPS-282
                 services.AddScoped<BankWebsiteQueryHandlers>(); // ASPS-297
+                services.AddScoped<WebsiteCategoryQueryHandlers>(); // SCRUM-822
+                services.AddScoped<WebsiteCategoryCommandHandlers>(); // SCRUM-822
 
                 // Add CQRS Gateway (listens for Commands/Queries from WebApi)
                 services.AddSingleton<CQRSGateway>();

@@ -38,6 +38,10 @@ namespace Business.RealtimeAnalysis.UserDomain
         public Purpose? Purpose { get; set; }
 
         [DataMember]
+        public WebsiteCategoryResult? WebsiteCategory { get; set; }
+
+
+        [DataMember]
         public WhoisVm? Whois { get; set; }
 
         [DataMember]
@@ -62,7 +66,7 @@ namespace Business.RealtimeAnalysis.UserDomain
         public RiskAssessment? risk_assessment { get; set; }
 
         [DataMember]
-        public WebsiteCategory? website_category { get; set; }
+        public WebsiteCategoryResult? website_category { get; set; }
 
         [DataMember]
         public Reputation? Reputation { get; set; }
