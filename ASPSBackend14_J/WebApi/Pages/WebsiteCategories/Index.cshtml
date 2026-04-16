@@ -21,7 +21,7 @@
     </div>
 }
 
-@if (Model.Categories == null || Model.Categories.Count == 0)
+@if (Model.Categories == null || !Model.Categories.Any())
 {
     <div class="alert alert-info">
         <i class="fas fa-info-circle"></i> No categories found. <a asp-page="Create">Create the first one</a>.
@@ -29,57 +29,54 @@
 }
 else
 {
+    var parentGroups = Model.Categories
+        .Where(c => !string.IsNullOrEmpty(c.ParentId))
+        .GroupBy(c => c.ParentId)
+        .ToDictionary(g => g.Key, g => g.ToList());
+    
+    var topLevelCategories = Model.Categories.Where(c => string.IsNullOrEmpty(c.ParentId)).ToList();
+
     <div class="mb-3">
-        <span class="badge bg-primary">@Model.Categories.Count categories</span>
+        <span class="badge bg-primary fs-6">@Model.Categories.Count categories</span>
+        <span class="badge bg-secondary ms-2">@parentGroups.Count groups</span>
     </div>
 
     <div class="accordion" id="categoriesAccordion">
-        @{
-            var parents = Model.Categories
-                .Where(c => !string.IsNullOrEmpty(c.ParentId))
-                .Select(c => c.ParentId)
-                .Distinct()
-                .ToList();
-            
-            var topLevelCategories = Model.Categories.Where(c => string.IsNullOrEmpty(c.ParentId)).ToList();
-        }
         
-        @* Top-level categories (no parent) *@
+        @* Parent categories accordion *@
         @if (topLevelCategories.Any())
         {
+            var parentChildren = Model.Categories.Where(c => topLevelCategories.Any(t => t.Name == c.ParentId)).ToList();
+            
             <div class="accordion-item">
-                <h2 class="accordion-header" id="heading-toplevel">
-                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-toplevel" aria-expanded="true">
-                        <i class="fas fa-layer-group me-2"></i> Parent Categories (@parents.Count)
+                <h2 class="accordion-header" id="heading-parents">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-parents" aria-expanded="true">
+                        <i class="fas fa-folder me-2"></i> Parent Categories (@topLevelCategories.Count)
                     </button>
                 </h2>
-                <div id="collapse-toplevel" class="accordion-collapse collapse show" aria-labelledby="heading-toplevel">
+                <div id="collapse-parents" class="accordion-collapse collapse show" aria-labelledby="heading-parents">
                     <div class="accordion-body p-0">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="table-dark">
                                 <tr>
-                                    <th>Name</th>
-                                    <th>Source</th>
-                                    <th>Date Created</th>
-                                    <th>Child Count</th>
+                                    <th>Group Name</th>
+                                    <th>Children Count</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var parent in Model.AllParents.Where(p => topLevelCategories.Any(t => t.Name == p.Name)))
+                                @foreach (var parent in topLevelCategories)
                                 {
-                                    var childCount = Model.Categories.Count(c => c.ParentId == parent.KeyField);
+                                    var childCount = parentGroups.ContainsKey(parent.KeyField) ? parentGroups[parent.KeyField].Count : 0;
                                     <tr>
                                         <td>
-                                            <i class="fas fa-folder text-warning me-2"></i>
+                                            <i class="fas fa-folder-open text-warning me-2"></i>
                                             <strong>@parent.Name</strong>
                                         </td>
-                                        <td><code>@(parent.Source ?? "-")</code></td>
-                                        <td>@parent.DateCreated.ToString("yyyy-MM-dd")</td>
-                                        <td><span class="badge bg-secondary">@childCount children</span></td>
+                                        <td><span class="badge bg-info">@childCount</span></td>
                                         <td>
-                                            <a asp-page="Edit" asp-route-name="@parent.Name" class="btn btn-sm btn-outline-primary">
-                                                <i class="fas fa-edit"></i> Edit
+                                            <a asp-page="Edit" asp-route-name="@parent.Name" class="btn btn-sm btn-outline-light">
+                                                <i class="fas fa-edit"></i>
                                             </a>
                                         </td>
                                     </tr>
@@ -92,10 +89,10 @@ else
         }
         
         @* Child categories grouped by parent *@
-        @foreach (var parent in Model.AllParents.Where(p => Model.Categories.Any(c => c.ParentId == p.KeyField)))
+        @foreach (var parent in topLevelCategories)
         {
-            var children = Model.Categories.Where(c => c.ParentId == parent.KeyField).ToList();
-            if (!children.Any()) continue;
+            if (!parentGroups.ContainsKey(parent.KeyField)) { continue; }
+            var children = parentGroups[parent.KeyField];
             
             <div class="accordion-item">
                 <h2 class="accordion-header" id="heading-@parent.KeyField">
@@ -105,36 +102,36 @@ else
                 </h2>
                 <div id="collapse-@parent.KeyField" class="accordion-collapse collapse" aria-labelledby="heading-@parent.KeyField">
                     <div class="accordion-body p-0">
-                        <table class="table table-hover mb-0">
+                        <table class="table table-hover table-striped mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Name</th>
+                                    <th>Category Name</th>
                                     <th>Source</th>
                                     <th>Date Created</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var child in children)
+                                @foreach (var child in children.OrderBy(c => c.Name))
                                 {
                                     <tr>
                                         <td>
-                                            <span class="ms-4 text-muted">└</span> @child.Name
+                                            <span class="text-muted me-2">└</span> @child.Name
                                         </td>
                                         <td>
                                             @if (!string.IsNullOrEmpty(child.Source))
                                             {
-                                                <code>@child.Source</code>
+                                                <code class="small">@child.Source</code>
                                             }
                                             else
                                             {
                                                 <span class="text-muted">-</span>
                                             }
                                         </td>
-                                        <td>@child.DateCreated.ToString("yyyy-MM-dd")</td>
+                                        <td class="text-muted small">@child.DateCreated.ToString("yyyy-MM-dd")</td>
                                         <td>
                                             <a asp-page="Edit" asp-route-name="@child.Name" class="btn btn-sm btn-outline-primary">
-                                                <i class="fas fa-edit"></i> Edit
+                                                <i class="fas fa-edit"></i>
                                             </a>
                                         </td>
                                     </tr>
@@ -150,15 +147,28 @@ else
 
 <style>
     .accordion-item {
-        border: 1px solid rgba(0,0,0,.125);
-        border-radius: 0.25rem;
-        margin-bottom: 0.5rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem !important;
+        margin-bottom: 0.75rem;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .accordion-button {
+        font-weight: 600;
+        font-size: 1.1rem;
+        background-color: #f8f9fa;
     }
     .accordion-button:not(.collapsed) {
         background-color: #e7f1ff;
         color: #0d6efd;
     }
-    .accordion-button {
+    .table {
+        font-size: 0.95rem;
+    }
+    .table thead th {
         font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
     }
 </style>
