@@ -607,17 +607,13 @@ public class AppDbContext : DbContext
                 .HasForeignKey(e => e.ParentId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Ignore computed properties
+            // Ignore computed properties only
             entity.Ignore(e => e.Tag);
             entity.Ignore(e => e.TypeName);
             entity.Ignore(e => e.Key);
             entity.Ignore(e => e.IsDeleted);
             entity.Ignore(e => e.IsDisabled);
             // IsEnabled does not exist
-            entity.Ignore(e => e.Name);
-            entity.Ignore(e => e.ParentId);
-            entity.Ignore(e => e.DateCreated);
-            entity.Ignore(e => e.Source);
 
             // Unique index on Name
             entity.HasIndex(e => e.Name)
