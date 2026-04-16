@@ -40,18 +40,13 @@ namespace WebApi.Pages.WebsiteCategories
         {
             try
             {
-                if (CurrentPage < 1) CurrentPage = 1;
+                _logger.LogInformation("Loading all website categories (no pagination)");
 
-                _logger.LogInformation("Loading website categories via CQRS (Page={Page}, Search={Search}, ParentId={ParentId})", 
-                    CurrentPage, Search, ParentId);
-
-                // Load all categories with filters
+                // Load all categories - no pagination
                 var query = new GetAllWebsiteCategoriesQuery
                 {
-                    Page = CurrentPage,
-                    PageSize = PageSize,
-                    Search = Search,
-                    ParentId = ParentId
+                    Page = 1,
+                    PageSize = 500 // Just a high number to get all
                 };
                 var result = await _cqrsClient.SendQueryAsync<GetAllWebsiteCategoriesQueryResult>(query);
 
@@ -59,9 +54,7 @@ namespace WebApi.Pages.WebsiteCategories
                 {
                     Categories = result.Categories;
                     TotalCount = result.TotalCount;
-                    TotalPages = (int)Math.Ceiling((double)result.TotalCount / result.PageSize);
-                    if (TotalPages < 1) TotalPages = 1;
-                    _logger.LogInformation("Website categories loaded: {Count} of {Total}", Categories.Count, TotalCount);
+                    _logger.LogInformation("Website categories loaded: {Count}", Categories.Count);
                 }
                 else
                 {
@@ -69,13 +62,17 @@ namespace WebApi.Pages.WebsiteCategories
                     _logger.LogError("Failed to load website categories: {Message}", result.Message);
                 }
 
-                // Load parent categories for dropdown
+                // Load parent categories (top-level with children)
                 var parentQuery = new GetParentCategoriesQuery();
                 var parentResult = await _cqrsClient.SendQueryAsync<GetParentCategoriesQueryResult>(parentQuery);
 
                 if (parentResult.Success)
                 {
-                    AllParents = parentResult.Parents;
+                    AllParents = parentResult.Parents
+                        .Where(p => !string.IsNullOrEmpty(p.Name))
+                        .OrderBy(p => p.Name)
+                        .ToList();
+                    _logger.LogInformation("Parent categories loaded: {Count}", AllParents.Count);
                 }
                 else
                 {
