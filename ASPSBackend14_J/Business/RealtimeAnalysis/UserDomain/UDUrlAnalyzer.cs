@@ -586,5 +586,34 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
     /// <summary>
     /// Detects new WebsiteCategory from UrlAnalysisResult and creates it if not exists.
     /// JIRA: SCRUM-823
+    /// Note: Full implementation pending - for now just logging
+    /// TODO: Add actual DB persistence via IWebsiteCategoryRepository
     /// </summary>
+    private Task DetectAndCreateNewWebsiteCategoryAsync(UrlAnalysisResult result)
+    {
+        try
+        {
+            if (result?.Purpose?.CategoryName == null)
+            {
+                return Task.CompletedTask;
+            }
+
+            var categoryName = result.Purpose.CategoryName;
+            var source = "basic-url-analyzer";
+
+            _logger.LogInformation(
+                "SCRUM-823: Detected WebsiteCategory from URL analysis. " +
+                "Category: {CategoryName}, URL: {Url}",
+                categoryName, result.Url);
+
+            // TODO: Implement actual category creation via IWebsiteCategoryRepository
+            // The service layer should handle DB persistence
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "SCRUM-823: Failed to process WebsiteCategory detection");
+        }
+        
+        return Task.CompletedTask;
     }
+}
