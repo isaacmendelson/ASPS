@@ -15,160 +15,104 @@
 
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <strong>Error!</strong> @Model.ErrorMessage
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
 }
 
 @if (Model.Categories == null || !Model.Categories.Any())
 {
-    <div class="alert alert-info">
-        <i class="fas fa-info-circle"></i> No categories found. <a asp-page="Create">Create the first one</a>.
-    </div>
+    <div class="alert alert-info">No categories found.</div>
 }
 else
 {
-    var parentGroups = Model.Categories
-        .Where(c => !string.IsNullOrEmpty(c.ParentId))
-        .GroupBy(c => c.ParentId)
-        .ToDictionary(g => g.Key, g => g.ToList());
+    var topLevelParents = Model.Categories.Where(c => string.IsNullOrEmpty(c.ParentId)).OrderBy(c => c.Name).ToList();
+    var childCategories = Model.Categories.Where(c => !string.IsNullOrEmpty(c.ParentId)).ToList();
     
-    var topLevelCategories = Model.Categories.Where(c => string.IsNullOrEmpty(c.ParentId)).ToList();
-
     <div class="mb-3">
-        <span class="badge bg-primary fs-6">@Model.Categories.Count categories</span>
-        <span class="badge bg-secondary ms-2">@parentGroups.Count groups</span>
+        <span class="badge bg-primary">@Model.Categories.Count categories</span>
+        <span class="badge bg-secondary">@topLevelParents.Count groups</span>
     </div>
 
-    <div class="accordion" id="categoriesAccordion">
-        
-        @* Parent categories accordion *@
-        @if (topLevelCategories.Any())
-        {
-            var parentChildren = Model.Categories.Where(c => topLevelCategories.Any(t => t.Name == c.ParentId)).ToList();
-            
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="heading-parents">
-                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-parents" aria-expanded="true">
-                        <i class="fas fa-folder me-2"></i> Parent Categories (@topLevelCategories.Count)
-                    </button>
-                </h2>
-                <div id="collapse-parents" class="accordion-collapse collapse show" aria-labelledby="heading-parents">
-                    <div class="accordion-body p-0">
-                        <table class="table table-hover table-striped mb-0">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Group Name</th>
-                                    <th>Children Count</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var parent in topLevelCategories)
-                                {
-                                    var childCount = parentGroups.ContainsKey(parent.KeyField) ? parentGroups[parent.KeyField].Count : 0;
-                                    <tr>
-                                        <td>
-                                            <i class="fas fa-folder-open text-warning me-2"></i>
-                                            <strong>@parent.Name</strong>
-                                        </td>
-                                        <td><span class="badge bg-info">@childCount</span></td>
-                                        <td>
-                                            <a asp-page="Edit" asp-route-name="@parent.Name" class="btn btn-sm btn-outline-light">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+    @* Parent categories table (always visible) *@
+    @if (topLevelParents.Any())
+    {
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i> Parent Categories</h5>
             </div>
-        }
-        
-        @* Child categories grouped by parent *@
-        @foreach (var parent in topLevelCategories)
-        {
-            if (!parentGroups.ContainsKey(parent.KeyField)) { continue; }
-            var children = parentGroups[parent.KeyField];
-            
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="heading-@parent.KeyField">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@parent.KeyField" aria-expanded="false">
-                        <i class="fas fa-folder-open me-2"></i> @parent.Name (@children.Count children)
-                    </button>
-                </h2>
-                <div id="collapse-@parent.KeyField" class="accordion-collapse collapse" aria-labelledby="heading-@parent.KeyField">
-                    <div class="accordion-body p-0">
-                        <table class="table table-hover table-striped mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Category Name</th>
-                                    <th>Source</th>
-                                    <th>Date Created</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var child in children.OrderBy(c => c.Name))
-                                {
-                                    <tr>
-                                        <td>
-                                            <span class="text-muted me-2">└</span> @child.Name
-                                        </td>
-                                        <td>
-                                            @if (!string.IsNullOrEmpty(child.Source))
+            <div class="card-body p-0">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Group Name</th>
+                            <th class="text-center">Children</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var parent in topLevelParents)
+                        {
+                            var childCount = childCategories.Count(c => c.ParentId == parent.KeyField);
+                            <tr data-bs-toggle="collapse" data-bs-target="#child-@parent.KeyField.Replace("-", "")" style="cursor: pointer;">
+                                <td>
+                                    <i class="fas fa-folder text-warning me-2"></i>
+                                    <strong>@parent.Name</strong>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary">@childCount</span>
+                                </td>
+                                <td class="text-end">
+                                    <a asp-page="Edit" asp-route-name="@parent.Name" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation()">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            @* Child rows (hidden by default, shown when parent clicked) *@
+                            <tr class="collapse" id="child-@parent.KeyField.Replace("-", "")">
+                                <td colspan="3" class="bg-light p-3">
+                                    <table class="table table-sm table-bordered mb-0 bg-white">
+                                        <thead class="table-secondary">
+                                            <tr>
+                                                <th>Category Name</th>
+                                                <th>Source</th>
+                                                <th>Date Created</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var child in childCategories.Where(c => c.ParentId == parent.KeyField).OrderBy(c => c.Name))
                                             {
-                                                <code class="small">@child.Source</code>
+                                                <tr>
+                                                    <td class="ps-4">└ @child.Name</td>
+                                                    <td><code>@(child.Source ?? "-")</code></td>
+                                                    <td>@child.DateCreated.ToString("yyyy-MM-dd")</td>
+                                                    <td>
+                                                        <a asp-page="Edit" asp-route-name="@child.Name" class="btn btn-sm btn-outline-primary btn-sm">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                    </td>
+                                                </tr>
                                             }
-                                            else
-                                            {
-                                                <span class="text-muted">-</span>
-                                            }
-                                        </td>
-                                        <td class="text-muted small">@child.DateCreated.ToString("yyyy-MM-dd")</td>
-                                        <td>
-                                            <a asp-page="Edit" asp-route-name="@child.Name" class="btn btn-sm btn-outline-primary">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                                        </tbody>
+                                    </table>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
-        }
-    </div>
+        </div>
+    }
 }
 
 <style>
-    .accordion-item {
-        border: 1px solid #dee2e6;
-        border-radius: 0.5rem !important;
-        margin-bottom: 0.75rem;
-        overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    tr[data-bs-toggle="collapse"] td:first-child::after {
+        content: '\f107'; /* chevron-down */
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        float: right;
+        transition: transform 0.2s;
     }
-    .accordion-button {
-        font-weight: 600;
-        font-size: 1.1rem;
-        background-color: #f8f9fa;
-    }
-    .accordion-button:not(.collapsed) {
-        background-color: #e7f1ff;
-        color: #0d6efd;
-    }
-    .table {
-        font-size: 0.95rem;
-    }
-    .table thead th {
-        font-weight: 600;
-        text-transform: uppercase;
-        font-size: 0.85rem;
-        letter-spacing: 0.5px;
+    tr[data-bs-toggle="collapse"].collapsed td:first-child::after {
+        content: '\f105'; /* chevron-right */
     }
 </style>
