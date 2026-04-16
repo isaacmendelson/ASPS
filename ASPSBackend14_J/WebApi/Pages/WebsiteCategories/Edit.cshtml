@@ -59,7 +59,7 @@ else
                                 <option value="">-- No Parent (Top-Level) --</option>
                                 @foreach (var parent in Model.AllParents)
                                 {
-                                    <option value="@parent.KeyField">@parent.Name</option>
+                                    <option value="@parent.Name">@parent.Name</option>
                                 }
                             </select>
                             <span asp-validation-for="Input.ParentId" class="text-danger"></span>
