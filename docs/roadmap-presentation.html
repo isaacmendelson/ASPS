@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASPS - Roadmap & Planning</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --now: #10b981;
+    --now-bg: #ecfdf5;
+    --now-border: #6ee7b7;
+    --angel: #3b82f6;
+    --angel-bg: #eff6ff;
+    --angel-border: #93c5fd;
+    --vc: #8b5cf6;
+    --vc-bg: #f5f3ff;
+    --vc-border: #c4b5fd;
+    --gap: #f59e0b;
+    --gap-bg: #fffbeb;
+    --gap-border: #fcd34d;
+    --dark: #1e293b;
+    --gray: #64748b;
+    --light: #f8fafc;
+    --white: #ffffff;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.06);
+  }
+
+  body {
+    font-family: 'Heebo', sans-serif;
+    background: var(--light);
+    color: var(--dark);
+    line-height: 1.6;
+  }
+
+  /* ===== SLIDE SYSTEM ===== */
+  .slide {
+    min-height: 100vh;
+    padding: 60px 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    page-break-after: always;
+    position: relative;
+  }
+
+  .slide::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 5%;
+    right: 5%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #cbd5e1, transparent);
+  }
+
+  .slide:last-child::after { display: none; }
+
+  /* ===== TITLE SLIDE ===== */
+  .slide-title {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1e293b 100%);
+    color: white;
+  }
+
+  .slide-title h1 {
+    font-size: 3.5rem;
+    font-weight: 800;
+    margin-bottom: 16px;
+    letter-spacing: -1px;
+  }
+
+  .slide-title .subtitle {
+    font-size: 1.4rem;
+    font-weight: 300;
+    opacity: 0.8;
+    margin-bottom: 48px;
+  }
+
+  .slide-title .stage-legend {
+    display: flex;
+    gap: 40px;
+    justify-content: center;
+    margin-top: 20px;
+  }
+
+  .stage-legend .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.1rem;
+  }
+
+  .legend-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+  }
+
+  .legend-dot.now { background: var(--now); }
+  .legend-dot.angel { background: var(--angel); }
+  .legend-dot.vc { background: var(--vc); }
+  .legend-dot.gap { background: var(--gap); }
+
+  /* ===== SLIDE HEADERS ===== */
+  .slide-header {
+    margin-bottom: 40px;
+  }
+
+  .slide-header h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--dark);
+    margin-bottom: 8px;
+  }
+
+  .slide-header .slide-desc {
+    font-size: 1rem;
+    color: var(--gray);
+  }
+
+  /* ===== ROADMAP MATRIX ===== */
+  .matrix {
+    width: 100%;
+    flex: 1;
+  }
+
+  .matrix-header {
+    display: grid;
+    grid-template-columns: 280px 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 0 4px;
+  }
+
+  .matrix-header .col-title {
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 12px 8px;
+    border-radius: 10px;
+    letter-spacing: 0.3px;
+  }
+
+  .col-title.now-col { background: var(--now); color: white; }
+  .col-title.angel-col { background: var(--angel); color: white; }
+  .col-title.vc-col { background: var(--vc); color: white; }
+
+  .category-block {
+    margin-bottom: 20px;
+  }
+
+  .category-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--dark);
+    padding: 10px 16px;
+    background: white;
+    border-radius: 10px;
+    margin-bottom: 6px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .category-icon {
+    font-size: 1.2rem;
+    width: 28px;
+    text-align: center;
+  }
+
+  .matrix-row {
+    display: grid;
+    grid-template-columns: 280px 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 4px;
+    padding: 0 4px;
+  }
+
+  .row-label {
+    font-size: 0.85rem;
+    padding: 8px 12px 8px 16px;
+    display: flex;
+    align-items: center;
+    color: #475569;
+    line-height: 1.4;
+  }
+
+  .cell {
+    border-radius: 8px;
+    padding: 6px 10px;
+    text-align: center;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    transition: transform 0.15s;
+  }
+
+  .cell:hover { transform: scale(1.03); }
+
+  .cell.active-now {
+    background: var(--now-bg);
+    border: 1.5px solid var(--now-border);
+    color: #047857;
+    font-weight: 600;
+  }
+
+  .cell.active-angel {
+    background: var(--angel-bg);
+    border: 1.5px solid var(--angel-border);
+    color: #1d4ed8;
+    font-weight: 600;
+  }
+
+  .cell.active-vc {
+    background: var(--vc-bg);
+    border: 1.5px solid var(--vc-border);
+    color: #6d28d9;
+    font-weight: 600;
+  }
+
+  .cell.gap {
+    background: var(--gap-bg);
+    border: 1.5px dashed var(--gap-border);
+    color: #b45309;
+    font-weight: 600;
+  }
+
+  .cell.empty {
+    background: transparent;
+    border: 1px dashed #e2e8f0;
+  }
+
+  .cell .checkmark::before { content: "\25CF  "; font-weight: 800; }
+  .cell .question::before { content: "?  "; font-weight: 800; }
+
+  /* ===== ANALYSIS CARDS ===== */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    flex: 1;
+  }
+
+  .card {
+    background: white;
+    border-radius: 14px;
+    padding: 28px;
+    box-shadow: var(--shadow);
+    border-right: 4px solid #e2e8f0;
+  }
+
+  .card.red { border-right-color: #ef4444; }
+  .card.orange { border-right-color: #f59e0b; }
+  .card.blue { border-right-color: #3b82f6; }
+  .card.green { border-right-color: #10b981; }
+  .card.purple { border-right-color: #8b5cf6; }
+
+  .card h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .card li {
+    padding: 6px 0;
+    font-size: 0.9rem;
+    color: #475569;
+    border-bottom: 1px solid #f1f5f9;
+    line-height: 1.5;
+  }
+
+  .card li:last-child { border-bottom: none; }
+
+  /* ===== QUESTIONS SLIDE ===== */
+  .questions-list {
+    flex: 1;
+  }
+
+  .question-item {
+    display: flex;
+    gap: 20px;
+    padding: 20px 0;
+    border-bottom: 1px solid #e2e8f0;
+    align-items: flex-start;
+  }
+
+  .question-item:last-child { border-bottom: none; }
+
+  .q-number {
+    min-width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+  }
+
+  .q-content h4 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .q-content p {
+    font-size: 0.9rem;
+    color: var(--gray);
+  }
+
+  /* ===== 4 TRACKS SLIDE ===== */
+  .tracks-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    flex: 1;
+  }
+
+  .track {
+    background: white;
+    border-radius: 14px;
+    padding: 30px;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .track::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 4px;
+  }
+
+  .track.track-product::before { background: linear-gradient(90deg, #10b981, #3b82f6); }
+  .track.track-compliance::before { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+  .track.track-gtm::before { background: linear-gradient(90deg, #8b5cf6, #ec4899); }
+  .track.track-hiring::before { background: linear-gradient(90deg, #06b6d4, #3b82f6); }
+
+  .track h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+
+  .track li {
+    padding: 5px 0;
+    font-size: 0.88rem;
+    color: #475569;
+  }
+
+  /* ===== ANGEL SUMMARY ===== */
+  .summary-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    flex: 1;
+    align-items: start;
+  }
+
+  .summary-card {
+    background: white;
+    border-radius: 14px;
+    padding: 30px 24px;
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .summary-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 4px;
+    background: var(--angel);
+  }
+
+  .summary-card .icon {
+    font-size: 2.5rem;
+    margin-bottom: 14px;
+  }
+
+  .summary-card h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .summary-card p {
+    font-size: 0.85rem;
+    color: var(--gray);
+    line-height: 1.5;
+  }
+
+  /* ===== TYPE BADGES ===== */
+  .type-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+    margin-right: 4px;
+  }
+
+  .type-tech { background: #dbeafe; color: #1e40af; }
+  .type-compliance { background: #fef3c7; color: #92400e; }
+  .type-ops { background: #fce7f3; color: #9d174d; }
+  .type-hire { background: #d1fae5; color: #065f46; }
+
+  /* ===== PRINT ===== */
+  @media print {
+    .slide { page-break-after: always; padding: 40px; }
+    .cell:hover { transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== SLIDE 1: TITLE ==================== -->
+<div class="slide slide-title">
+  <h1>ASPS - Product Roadmap</h1>
+  <div class="subtitle">תכנית פיתוח לפי שלבי גיוס</div>
+  <div class="stage-legend">
+    <div class="legend-item">
+      <div class="legend-dot now"></div>
+      <span>לפתח לפני Angel</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot angel"></div>
+      <span>לפתח בשלב Angel</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot vc"></div>
+      <span>לפתח בשלב VC</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot gap"></div>
+      <span>לא מסווג / פתוח</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 2: PRODUCT ROADMAP ==================== -->
+<div class="slide">
+  <div class="slide-header">
+    <h2>Product Roadmap - ניהול לקוחות ואנליזה</h2>
+    <div class="slide-desc">מה צריך לפתח בכל שלב גיוס</div>
+  </div>
+
+  <div class="matrix">
+    <div class="matrix-header">
+      <div></div>
+      <div class="col-title now-col">לפתח לפני Angel</div>
+      <div class="col-title angel-col">לפתח בשלב Angel</div>
+      <div class="col-title vc-col">לפתח בשלב VC</div>
+    </div>
+
+    <!-- Customer Management -->
+    <div class="category-block">
+      <div class="category-title"><span class="category-icon">👥</span> ניהול לקוחות ומוטבים</div>
+      <div class="matrix-row">
+        <div class="row-label">רישום לקוח, מכשירים, מעקב ולוח בקרה</div>
+        <div class="cell active-now"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">פורטל לקוחות</div>
+        <div class="cell active-now"><span class="checkmark"></span></div>
+        <div class="cell active-angel"><span class="checkmark">שדרוג</span></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">Keycloak + Identity Providers</div>
+        <div class="cell empty"></div>
+        <div class="cell active-angel"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">תשתיות חיוב לקוחות</div>
+        <div class="cell gap"><span class="question">לא מסווג</span></div>
+        <div class="cell gap"><span class="question">לא מסווג</span></div>
+        <div class="cell empty"></div>
+      </div>
+    </div>
+
+    <!-- Analysis - Fraud -->
+    <div class="category-block">
+      <div class="category-title"><span class="category-icon">🔍</span> אנליזה - זיהוי תרחישי הונאה</div>
+      <div class="matrix-row">
+        <div class="row-label">Tech Support Scam</div>
+        <div class="cell active-now"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">Investment Scam</div>
+        <div class="cell active-now"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">תרחישי הונאה נוספים</div>
+        <div class="cell gap"><span class="question">לפרט</span></div>
+        <div class="cell gap"><span class="question">לפרט</span></div>
+        <div class="cell empty"></div>
+      </div>
+    </div>
+
+    <!-- Analysis - Danger -->
+    <div class="category-block">
+      <div class="category-title"><span class="category-icon">⚠️</span> אנליזה - זיהוי סכנה מיידית וסריקות</div>
+      <div class="matrix-row">
+        <div class="row-label">Remote Access + Sensitive Website</div>
+        <div class="cell active-now"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">סריקת SMS</div>
+        <div class="cell active-now"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">סריקת Email</div>
+        <div class="cell active-now"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">סריקת WhatsApp</div>
+        <div class="cell empty"></div>
+        <div class="cell active-angel"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">זיהוי מספר טלפון חד-פעמי / ידוע</div>
+        <div class="cell active-now"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">זיהוי קול סינתטי</div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+        <div class="cell active-vc"><span class="checkmark"></span></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">מצבי סכנה מיידית נוספים</div>
+        <div class="cell gap"><span class="question">לפרט</span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+    </div>
+
+    <!-- Track URL & Domain -->
+    <div class="category-block">
+      <div class="category-title"><span class="category-icon">🌐</span> אנליזה - Tracked URLs & Domains</div>
+      <div class="matrix-row">
+        <div class="row-label">השלמת טיפול ב-TrackUrlAlert</div>
+        <div class="cell gap"><span class="question">לא מסווג</span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">ניהול Tracked URLs</div>
+        <div class="cell gap"><span class="question">לא מסווג</span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">הפצת דומיין מסוכן בין לקוחות</div>
+        <div class="cell gap"><span class="question">לא מסווג</span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 3: MORE PRODUCT ==================== -->
+<div class="slide">
+  <div class="slide-header">
+    <h2>Product Roadmap - הסלמה, מודיעין ואפליקציה</h2>
+    <div class="slide-desc">מה צריך לפתח בכל שלב גיוס (המשך)</div>
+  </div>
+
+  <div class="matrix">
+    <div class="matrix-header">
+      <div></div>
+      <div class="col-title now-col">לפתח לפני Angel</div>
+      <div class="col-title angel-col">לפתח בשלב Angel</div>
+      <div class="col-title vc-col">לפתח בשלב VC</div>
+    </div>
+
+    <!-- Escalation -->
+    <div class="category-block">
+      <div class="category-title"><span class="category-icon">🔔</span> ניהול הסלמה והתראות</div>
+      <div class="matrix-row">
+        <div class="row-label">ניהול העדפות לקוח (Risk Score שונים)</div>
+        <div class="cell active-now"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">Protective Actions - התרעות, הודעות, SMS</div>
+        <div class="cell active-now"><span class="checkmark"></span></div>
+        <div class="cell active-angel"><span class="checkmark">שדרוג</span></div>
+        <div class="cell empty"></div>
+      </div>
+    </div>
+
+    <!-- Intelligence -->
+    <div class="category-block">
+      <div class="category-title"><span class="category-icon">🧠</span> מודיעין - Intelligence</div>
+      <div class="matrix-row">
+        <div class="row-label">Blacklisted: Scam</div>
+        <div class="cell active-now"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">Blacklisted: Phishing</div>
+        <div class="cell active-now"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">Bank Websites</div>
+        <div class="cell active-now"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">Scam Websites</div>
+        <div class="cell active-now"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">Lead Lists</div>
+        <div class="cell active-now"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">Blacklisted: Phone Numbers</div>
+        <div class="cell active-now"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">Data Collaboration Manager</div>
+        <div class="cell gap"><span class="question">לא מסווג</span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+    </div>
+
+    <!-- Languages -->
+    <div class="category-block">
+      <div class="category-title"><span class="category-icon">🌍</span> תמיכה בשפות</div>
+      <div class="matrix-row">
+        <div class="row-label">עברית + אנגלית US</div>
+        <div class="cell active-now"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">רוסית, אנגלית UK, צרפתית, גרמנית</div>
+        <div class="cell empty"></div>
+        <div class="cell active-angel"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">ספרדית, ערבית + נוספות</div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+        <div class="cell active-vc"><span class="checkmark"></span></div>
+      </div>
+    </div>
+
+    <!-- App -->
+    <div class="category-block">
+      <div class="category-title"><span class="category-icon">📱</span> אפליקציה</div>
+      <div class="matrix-row">
+        <div class="row-label">Android - בסיסי</div>
+        <div class="cell active-now"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">Android - מושלם</div>
+        <div class="cell empty"></div>
+        <div class="cell active-angel"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">iOS + Browser Extension</div>
+        <div class="cell empty"></div>
+        <div class="cell active-angel"><span class="checkmark"></span></div>
+        <div class="cell active-vc"><span class="checkmark">תוספת</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 4: INFRASTRUCTURE & COMPLIANCE ==================== -->
+<div class="slide">
+  <div class="slide-header">
+    <h2>תשתיות, אבטחת מידע ומשפטיות</h2>
+    <div class="slide-desc"><span class="type-badge type-compliance">תהליכים</span> תהליכים ארוכים, לא פיצ'רים - דורשים יועצים חיצוניים ותקציב נפרד</div>
+  </div>
+
+  <div class="matrix">
+    <div class="matrix-header">
+      <div></div>
+      <div class="col-title now-col">לפתח לפני Angel</div>
+      <div class="col-title angel-col">לפתח בשלב Angel</div>
+      <div class="col-title vc-col">לפתח בשלב VC</div>
+    </div>
+
+    <!-- Production -->
+    <div class="category-block">
+      <div class="category-title"><span class="category-icon">🏗️</span> תשתיות Production</div>
+      <div class="matrix-row">
+        <div class="row-label">Pipeline: Dev → Automation → Production</div>
+        <div class="cell empty"></div>
+        <div class="cell active-angel"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">מערך QA</div>
+        <div class="cell empty"></div>
+        <div class="cell active-angel"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">Cloud, Backup, Recovery, Scalability</div>
+        <div class="cell empty"></div>
+        <div class="cell active-angel"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">Automation</div>
+        <div class="cell empty"></div>
+        <div class="cell active-angel"><span class="checkmark"></span></div>
+        <div class="cell active-vc"><span class="checkmark">הרחבה</span></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">בדיקות עומס - Load Tests</div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+        <div class="cell active-vc"><span class="checkmark"></span></div>
+      </div>
+    </div>
+
+    <!-- Security -->
+    <div class="category-block">
+      <div class="category-title"><span class="category-icon">🔐</span> אבטחת מידע - Data Security</div>
+      <div class="matrix-row">
+        <div class="row-label">ISO-27001</div>
+        <div class="cell empty"></div>
+        <div class="cell active-angel"><span class="checkmark">9-12 חודשים</span></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">SOC 2 Type I</div>
+        <div class="cell empty"></div>
+        <div class="cell active-angel"><span class="checkmark">6-9 חודשים</span></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">CCPA</div>
+        <div class="cell empty"></div>
+        <div class="cell active-angel"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">GDPR</div>
+        <div class="cell empty"></div>
+        <div class="cell active-angel"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">Penetration Tests</div>
+        <div class="cell empty"></div>
+        <div class="cell active-angel"><span class="checkmark"></span></div>
+        <div class="cell empty"></div>
+      </div>
+    </div>
+
+    <!-- Legal -->
+    <div class="category-block">
+      <div class="category-title"><span class="category-icon">⚖️</span> משפטיות Legal</div>
+      <div class="matrix-row">
+        <div class="row-label">תשתית משפטית</div>
+        <div class="cell empty"></div>
+        <div class="cell active-angel"><span class="checkmark"></span></div>
+        <div class="cell active-vc"><span class="checkmark">הרחבה</span></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">ביטוח</div>
+        <div class="cell gap"><span class="question">לא ברור</span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 5: GO TO MARKET & TRUST ==================== -->
+<div class="slide">
+  <div class="slide-header">
+    <h2>Go-to-Market, Trust ופיתוח עסקי</h2>
+    <div class="slide-desc"><span class="type-badge type-ops">תפעול</span> <span class="type-badge type-hire">גיוס</span> ערבוב של פעילויות, תוכן ותפקידים</div>
+  </div>
+
+  <div class="matrix">
+    <div class="matrix-header">
+      <div></div>
+      <div class="col-title now-col">לפתח לפני Angel</div>
+      <div class="col-title angel-col">לפתח בשלב Angel</div>
+      <div class="col-title vc-col">לפתח בשלב VC</div>
+    </div>
+
+    <!-- Trust -->
+    <div class="category-block">
+      <div class="category-title"><span class="category-icon">🤝</span> בניית Trust</div>
+      <div class="matrix-row">
+        <div class="row-label">יח"צ - PR</div>
+        <div class="cell gap"><span class="question">לא מסווג</span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">שירות לקוחות - תשתית AI + מודל היברידי</div>
+        <div class="cell empty"></div>
+        <div class="cell active-angel"><span class="checkmark"></span></div>
+        <div class="cell active-vc"><span class="checkmark">הרחבה</span></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">Education Center: Articles, Blog, Movies, TV</div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+        <div class="cell active-vc"><span class="checkmark"></span></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">Community Services</div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+        <div class="cell active-vc"><span class="checkmark"></span></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">Legal Advice (ייעוץ משפטי חינם - התנדבותי)</div>
+        <div class="cell gap"><span class="question">לא מסווג</span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+    </div>
+
+    <!-- Business Development -->
+    <div class="category-block">
+      <div class="category-title"><span class="category-icon">📈</span> פיתוח עסקי - Business Development</div>
+      <div class="matrix-row">
+        <div class="row-label">שיווק ופרסום</div>
+        <div class="cell gap"><span class="question">לא מסווג</span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">B2B Manager</div>
+        <div class="cell gap"><span class="question">תפקיד</span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+      <div class="matrix-row">
+        <div class="row-label">NPO Manager (שותפויות עם עמותות)</div>
+        <div class="cell gap"><span class="question">תפקיד</span></div>
+        <div class="cell empty"></div>
+        <div class="cell empty"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 6: GAP ANALYSIS ==================== -->
+<div class="slide">
+  <div class="slide-header">
+    <h2>ניתוח פערים - Gap Analysis</h2>
+    <div class="slide-desc">דברים שצריך להחליט עליהם לפני שזו תכנית עבודה</div>
+  </div>
+
+  <div class="cards-grid">
+    <div class="card red">
+      <h3>🔴 פריטים לא מסווגים</h3>
+      <ul>
+        <li><strong>תשתיות חיוב לקוחות</strong> - קריטי. בלי זה אין הכנסות. Now או Angel?</li>
+        <li><strong>השלמת TrackUrlAlert</strong> - כנראה Now? כבר בפיתוח</li>
+        <li><strong>ניהול Tracked URLs</strong> - קשור ל-TrackUrlAlert</li>
+        <li><strong>הפצת דומיין מסוכן בין לקוחות</strong> - Network Effect חזק!</li>
+        <li><strong>Data Collaboration Manager</strong> - לא מוגדר</li>
+        <li><strong>שיווק, B2B, NPO</strong> - תפקידים? תקציב? מתי?</li>
+      </ul>
+    </div>
+
+    <div class="card orange">
+      <h3>🟠 ערבוב קטגוריות</h3>
+      <ul>
+        <li><strong>ISO + SOC2 + GDPR</strong> = תהליכים של חודשים עם יועצים, לא פיצ'רים</li>
+        <li><strong>B2B Manager / NPO Manager</strong> = תפקידים, לא בניית פיצ'ר</li>
+        <li><strong>Education Center / Community</strong> = יצירת תוכן מתמשכת, לא פיתוח חד-פעמי</li>
+        <li><strong>"Android בסיסי" מול "מושלם"</strong> - מה ההבדל? בלי הגדרה תריבו</li>
+      </ul>
+    </div>
+
+    <div class="card blue">
+      <h3>🔵 תלויות נסתרות</h3>
+      <ul>
+        <li><strong>Keycloak</strong> (Angel) מול <strong>Auth CURVE קיים</strong> - שילוב או החלפה?</li>
+        <li><strong>Protective Actions</strong> תלוי ב<strong>העדפות לקוח</strong></li>
+        <li><strong>iOS</strong> רק ב-VC - בישראל זה 40% מהשוק</li>
+        <li><strong>Load Tests</strong> רק ב-VC - אבל Angel מדבר על "מאות אלפי משתמשים"</li>
+      </ul>
+    </div>
+
+    <div class="card purple">
+      <h3>🟣 חסר בתמונה</h3>
+      <ul>
+        <li><strong>מודל עסקי ותמחור</strong> - Subscription? Freemium? B2B?</li>
+        <li><strong>Hiring Plan</strong> - כמה מפתחים? מתי? איזה roles?</li>
+        <li><strong>Runway</strong> - כמה חודשים עד VC? כמה כסף נצרך?</li>
+        <li><strong>KPIs</strong> - מה מגדיר הצלחה בכל שלב?</li>
+        <li><strong>איך מגיעים ללקוחות ראשונים?</strong></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 7: KEY QUESTIONS ==================== -->
+<div class="slide">
+  <div class="slide-header">
+    <h2>שאלות מפתח לדיון</h2>
+    <div class="slide-desc">7 שאלות שצריך לענות עליהן כדי להפוך את זה לתכנית עבודה</div>
+  </div>
+
+  <div class="questions-list">
+    <div class="question-item">
+      <div class="q-number">1</div>
+      <div class="q-content">
+        <h4>מה ההגדרה של "Android בסיסי" מול "Android מושלם"?</h4>
+        <p>בלי הגדרה כתובה, אתם תגלו בעוד 3 חודשים שכל אחד חשב על משהו אחר. צריך רשימת features ספציפית לכל אחד.</p>
+      </div>
+    </div>
+    <div class="question-item">
+      <div class="q-number">2</div>
+      <div class="q-content">
+        <h4>תשתיות חיוב - לפני Angel או אחריו?</h4>
+        <p>אם אין לקוחות משלמים לפני Angel, האנג'ל צריך יותר כסף. אם יש - צריך תשתית חיוב עכשיו. ההחלטה הזו משפיעה על הכל.</p>
+      </div>
+    </div>
+    <div class="question-item">
+      <div class="q-number">3</div>
+      <div class="q-content">
+        <h4>ISO-27001 + SOC 2 ביחד - מוסכם?</h4>
+        <p>זה 9-12 חודשים וכמה עשרות אלפי דולר עם יועץ חיצוני. חלק ניכר מתקציב ה-Angel. האם B2C בכלל צריך SOC2 בשלב הזה? אולי רק Pentest + GDPR מספיקים?</p>
+      </div>
+    </div>
+    <div class="question-item">
+      <div class="q-number">4</div>
+      <div class="q-content">
+        <h4>iOS רק ב-VC - בטוחים?</h4>
+        <p>בישראל iPhone זה ~40% מהשוק, בארה"ב ~55%. אם מתחילים ב-B2C, חצי מהלקוחות הפוטנציאליים לא יכולים להשתמש במוצר עד שלב VC.</p>
+      </div>
+    </div>
+    <div class="question-item">
+      <div class="q-number">5</div>
+      <div class="q-content">
+        <h4>זיהוי קול סינתטי (VC) - R&D או רכישה?</h4>
+        <p>פיתוח עצמי = צוות ML + חודשים של אימון. רכישת API = מהר אבל תלות. צריך להחליט עכשיו כי זה משפיע על Hiring Plan.</p>
+      </div>
+    </div>
+    <div class="question-item">
+      <div class="q-number">6</div>
+      <div class="q-content">
+        <h4>"הפצת דומיין מסוכן בין לקוחות" - למה לא בולט יותר?</h4>
+        <p>זה Network Effect אמיתי: ככל שיש יותר לקוחות, כולם מוגנים יותר. זו הנקודה האסטרטגית החזקה ביותר במוצר ונראה שהיא "נבלעה" בתוך הרשימה.</p>
+      </div>
+    </div>
+    <div class="question-item">
+      <div class="q-number">7</div>
+      <div class="q-content">
+        <h4>כמה חודשי Runway ה-Angel צריך לתת?</h4>
+        <p>הסיכום למטה מציג "מה" אבל לא "כמה זמן ובכמה כסף". בלי זה אי אפשר להגדיר את גודל הגיוס.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 8: PROPOSED STRUCTURE ==================== -->
+<div class="slide">
+  <div class="slide-header">
+    <h2>המלצה: 4 מסלולים מקבילים</h2>
+    <div class="slide-desc">במקום טבלה אחת שטוחה - 4 tracks שרצים במקביל, כל אחד עם ציר זמן ותקציב משלו</div>
+  </div>
+
+  <div class="tracks-grid">
+    <div class="track track-product">
+      <h3>🛠️ Product Track</h3>
+      <ul>
+        <li>פיצ'רים טכניים בלבד</li>
+        <li>כל פיצ'ר עם הגדרת "מוכן"</li>
+        <li>הערכת מאמץ בשבועות</li>
+        <li>תלויות בין פיצ'רים</li>
+        <li><strong>בעלות:</strong> CTO / Dev Lead</li>
+        <li><strong>כלי:</strong> Linear / Jira + Sprints</li>
+      </ul>
+    </div>
+    <div class="track track-compliance">
+      <h3>🔐 Compliance Track</h3>
+      <ul>
+        <li>ISO, SOC2, GDPR, CCPA, Pentest</li>
+        <li>Legal + ביטוח</li>
+        <li>כל תהליך: עלות, יועץ, timeline</li>
+        <li>אבני דרך חיצוניות (לא sprints)</li>
+        <li><strong>בעלות:</strong> CEO / COO</li>
+        <li><strong>כלי:</strong> Project plan + Gantt</li>
+      </ul>
+    </div>
+    <div class="track track-gtm">
+      <h3>📣 Go-to-Market Track</h3>
+      <ul>
+        <li>שיווק, PR, Education</li>
+        <li>Community, תוכן</li>
+        <li>שותפויות (NPO, B2B)</li>
+        <li>מודל תמחור</li>
+        <li><strong>בעלות:</strong> CEO / BD</li>
+        <li><strong>כלי:</strong> Notion / Strategy doc</li>
+      </ul>
+    </div>
+    <div class="track track-hiring">
+      <h3>👤 Hiring Track</h3>
+      <ul>
+        <li>B2B Manager - מתי?</li>
+        <li>NPO Manager - מתי?</li>
+        <li>מפתחים נוספים?</li>
+        <li>יוצר תוכן?</li>
+        <li><strong>בעלות:</strong> CEO</li>
+        <li><strong>כלי:</strong> Timeline + Budget</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 9: ANGEL SUMMARY ==================== -->
+<div class="slide">
+  <div class="slide-header">
+    <h2>בשביל מה צריך Angel?</h2>
+    <div class="slide-desc">4 יעדים מרכזיים שהגיוס מאפשר</div>
+  </div>
+
+  <div class="summary-cards">
+    <div class="summary-card">
+      <div class="icon">🚀</div>
+      <h4>השלמת פיתוח מהירה</h4>
+      <p>לוח זמנים קצר ביותר אפשרי כדי לזכות בראשוניות בשוק. Android מושלם, WhatsApp, הסלמה משודרגת, שפות נוספות.</p>
+    </div>
+    <div class="summary-card">
+      <div class="icon">🔐</div>
+      <h4>אבטחת מידע ותקנים</h4>
+      <p>היערכות לרמת ביטחון מידע ועמידה בתקנים ורגולציה ברמות הגבוהות ביותר. ISO-27001, SOC 2, GDPR, CCPA, Pentest.</p>
+    </div>
+    <div class="summary-card">
+      <div class="icon">☁️</div>
+      <h4>תשתיות Production</h4>
+      <p>הפעלה חלקה תוך גידול מהיר לסדרי גודל של מאות אלפי משתמשים בתוך חודשים ספורים. Pipeline, QA, Cloud, Automation.</p>
+    </div>
+    <div class="summary-card">
+      <div class="icon">⚖️</div>
+      <h4>תשתית משפטית וביטוחית</h4>
+      <p>הגנה משפטית וביטוחית שמאפשרת פעילות מסחרית ללא סיכון. תנאי שימוש, פרטיות, רגולציה.</p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
