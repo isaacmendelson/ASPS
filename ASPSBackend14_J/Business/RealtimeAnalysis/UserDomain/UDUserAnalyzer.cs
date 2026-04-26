@@ -144,7 +144,7 @@ namespace Business.RealtimeAnalysis.UserDomain
         {
             return new[] { 
                 typeof(AnalysisResultAdded) ,
-                //typeof(AnalysisResultReceived) ,
+                typeof(AnalysisResultReceived) ,
             };
         }
 
