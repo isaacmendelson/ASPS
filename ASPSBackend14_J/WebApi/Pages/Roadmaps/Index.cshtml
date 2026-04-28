@@ -83,6 +83,10 @@ else
                                 <a asp-page="Edit" asp-route-id="@r.Id" class="btn btn-outline-primary" title="ערוך">
                                     <i class="fas fa-edit"></i>
                                 </a>
+                                <a asp-page="Edit" asp-page-handler="Viewer" asp-route-id="@r.Id"
+                                   class="btn btn-outline-secondary" title="ייצוא Viewer offline">
+                                    <i class="fas fa-download"></i>
+                                </a>
                                 @if (!r.IsArchived)
                                 {
                                     <form method="post" asp-page-handler="Archive" asp-route-id="@r.Id" class="d-inline"

@@ -64,6 +64,11 @@
         <span id="conflictIndicator" class="badge bg-danger" style="display:none">
             <i class="fas fa-exclamation-triangle"></i> קונפליקט גרסאות
         </span>
+        <a asp-page-handler="Viewer" asp-route-id="@Model.Roadmap.Id"
+           class="btn btn-sm btn-outline-secondary"
+           title="ייצוא Viewer offline (HTML עם הנתונים מוטבעים)">
+            <i class="fas fa-download"></i> Viewer
+        </a>
         <button type="button" class="btn btn-sm btn-primary" id="manualSaveBtn">
             <i class="fas fa-save"></i> שמור
         </button>
