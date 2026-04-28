@@ -1,0 +1,1952 @@
+@*
+ * _RoadmapSpaBody.cshtml — extracted from docs/roadmap-presentation-editable.html.
+ *
+ * Contains the SPA's static UI templates (toolbar, title slide, journey map,
+ * gap/tracks/summary slides, modals). Wrapped in <div class="rm-spa"> so the
+ * scoped CSS in /css/roadmap-spa.css applies. The behaviour script lives in
+ * /js/roadmap-spa.js — DO NOT inline it here.
+ *
+ * Re-generate with _extract_spa_body.js whenever the source HTML changes.
+ *@
+
+<div class="rm-spa">
+<!-- ===================== FLOATING TOOLBAR ===================== -->
+<div class="toolbar">
+  <div class="tb-search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+    <input id="search" placeholder="חיפוש…" type="text">
+  </div>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" id="btnSync" title="סנכרון מקובץ asps-roadmap.json (GitHub)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-15-6.7L3 8"></path><polyline points="3 3 3 8 8 8"></polyline><path d="M3 12a9 9 0 0 0 15 6.7l3-2.7"></path><polyline points="21 21 21 16 16 16"></polyline></svg>
+    GitHub
+  </button>
+  <button class="tb-btn" id="btnImport" title="ייבוא JSON">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+    ייבוא
+  </button>
+  <button class="tb-btn" id="btnExport" title="ייצוא JSON">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+    ייצוא
+  </button>
+  <button class="tb-btn" id="btnPrint" title="הדפסה / PDF">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+  </button>
+  <button class="tb-btn" id="btnReset" title="איפוס לברירת מחדל">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+  </button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" id="btnAddSlide" title="שקף חדש">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line><line x1="14" y1="14" x2="18" y2="14"></line><line x1="16" y1="12" x2="16" y2="16"></line></svg>
+    שקף
+  </button>
+  <button class="tb-btn" id="btnAddCat" title="קטגוריה חדשה">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
+    קטגוריה
+  </button>
+  <button class="tb-btn primary" id="btnAdd">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    פריט חדש
+  </button>
+</div>
+
+<!-- ===================== SLIDE 1: TITLE ===================== -->
+<div class="slide slide-title">
+  <h1>ASPS Roadmap</h1>
+  <div class="subtitle">תכנית פיתוח לפי שלבי גיוס</div>
+  <div class="tagline">Roadmap אינטראקטיבי — לחצו על כל תא לעריכה, גררו פריטים בין שלבים, הוסיפו פריטים חדשים, ושתפו עם הצוות באמצעות ייצוא JSON.</div>
+
+  <div class="stage-legend">
+    <div class="legend-item"><div class="legend-dot now"></div><span>לפני Angel</span></div>
+    <div class="legend-item"><div class="legend-dot angel"></div><span>בשלב Angel</span></div>
+    <div class="legend-item"><div class="legend-dot vc"></div><span>בשלב VC</span></div>
+    <div class="legend-item"><div class="legend-dot gap"></div><span>לא מסווג</span></div>
+  </div>
+
+  <div class="hero-stats" id="heroStats">
+    <div class="stat"><span class="n">57</span><span class="l">פריטים</span></div>
+    <div class="stat"><span class="n">7</span><span class="l">הושלמו</span></div>
+    <div class="stat"><span class="n">12%</span><span class="l">התקדמות</span></div>
+    <div class="stat"><span class="n" style="color:#fcd34d">13</span><span class="l">לא מסווג</span></div>
+  </div>
+  <div class="scroll-hint">↓ גללו כדי להמשיך</div>
+</div>
+
+<!-- ===================== SLIDE 1.5: JOURNEY MAP ===================== -->
+<div class="slide journey-slide" data-screen-label="01.5 Journey Map">
+  <div class="slide-header">
+    <div class="txt">
+      <div class="slide-num">מפת המסע</div>
+      <h2>המסע של ASPS — מהתחלה ל-VC</h2>
+      <div class="slide-desc">לחצו על כל תחנה כדי לראות מה יש, מה חסר, ומה הצעדים הבאים · הנתונים מתעדכנים בזמן אמת</div>
+    </div>
+  </div>
+
+  <div class="journey-wrap">
+    <div class="journey-map" id="journeyMap">
+      <!-- Imbalance warnings -->
+      <div class="journey-warnings" id="journeyWarnings"></div>
+
+      <svg class="journey-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <defs>
+          <filter id="glowFilter" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="1.2" result="blur"></feGaussianBlur>
+            <feMerge><feMergeNode in="blur"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge>
+          </filter>
+        </defs>
+        <!-- Curved path — top→bottom. Each segment drawn twice: dashed bg + solid fg fill by pct -->
+        <path class="journey-path-bg" id="pathSeg1" stroke="#cbd5e1" d="M 82,14 C 68,22 40,22 28,38"></path>
+        <path class="journey-path-fill" id="pathSeg1Fill" stroke="#10b981" d="M 82,14 C 68,22 40,22 28,38" style="stroke-dasharray: 60.011; stroke-dashoffset: 39.0071;"></path>
+
+        <path class="journey-path-bg" id="pathSeg2" stroke="#cbd5e1" d="M 28,38 C 18,52 42,62 58,70"></path>
+        <path class="journey-path-fill" id="pathSeg2Fill" stroke="#3b82f6" d="M 28,38 C 18,52 42,62 58,70" style="stroke-dasharray: 49.8863; stroke-dashoffset: 49.8863;"></path>
+
+        <path class="journey-path-bg" id="pathSeg3" stroke="#cbd5e1" d="M 58,70 C 70,78 78,82 82,86"></path>
+        <path class="journey-path-fill" id="pathSeg3Fill" stroke="#8b5cf6" d="M 58,70 C 70,78 78,82 82,86" style="stroke-dasharray: 28.8797; stroke-dashoffset: 28.8797;"></path>
+
+        <!-- Traveling dot (animated JS) -->
+        <circle id="travelDot" r="1.6" fill="#fff" stroke="#8b5cf6" stroke-width="1.2" filter="url(#glowFilter)" style="opacity: 0;" cx="82" cy="86"></circle>
+      </svg>
+
+      <div class="stations">
+        <!-- Station 1: Start (top-right) -->
+        <div class="station start active" data-stage="start" style="top:6%;right:4%">
+          <div class="st-counter" data-counter="start">7/20</div>
+          <div class="st-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polygon points="10 8 16 12 10 16 10 8" fill="currentColor"></polygon>
+            </svg>
+          </div>
+          <div class="st-banner">
+            תחילת המסע
+            <div class="st-progress" data-progress="start">35%</div>
+          </div>
+          <div class="st-sub">הבסיס · לפני Angel</div>
+        </div>
+
+        <!-- Station 2: Angel (middle) -->
+        <div class="station angel" data-stage="angel" style="top:42%;right:54%">
+          <div class="st-counter" data-counter="angel">0/18</div>
+          <div class="st-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2 L14 8 L20 8 L15 12 L17 18 L12 14 L7 18 L9 12 L4 8 L10 8 Z"></path>
+            </svg>
+          </div>
+          <div class="st-banner">
+            Angel Round
+            <div class="st-progress" data-progress="angel">0%</div>
+          </div>
+          <div class="st-sub">שלמות מוצר, אבטחה, תשתיות</div>
+        </div>
+
+        <!-- Station 3: VC (bottom-right) -->
+        <div class="station vc" data-stage="vc" style="bottom:6%;right:4%">
+          <div class="st-counter" data-counter="vc">0/6</div>
+          <div class="st-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 20 L8 14 L13 19 L22 8"></path>
+              <polyline points="16 8 22 8 22 14"></polyline>
+            </svg>
+          </div>
+          <div class="st-banner">
+            VC Round
+            <div class="st-progress" data-progress="vc">0%</div>
+          </div>
+          <div class="st-sub">Scale, גלובלי, אינטליגנציה</div>
+        </div>
+      </div>
+
+      <!-- Floating export button -->
+      <button class="map-export-btn" id="btnExportMap" title="ייצא את המפה כתמונה">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+        ייצא כתמונה
+      </button>
+
+      <!-- Runway / timeline strip -->
+      <div class="runway-strip">
+        <div class="rw-track">
+          <div class="rw-seg rw-now"><span>Now · ~3 חודשים</span></div>
+          <div class="rw-seg rw-angel"><span>Angel · ~9 חודשים</span></div>
+          <div class="rw-seg rw-vc"><span>VC · 18+ חודשים</span></div>
+        </div>
+        <div class="rw-caption">לו״ז משוער · ניתן לעריכה בעתיד</div>
+      </div>
+    </div>
+
+    <!-- Detail panel -->
+    <aside class="journey-panel" id="journeyPanel">
+      <div class="jp-hdr">
+        <div class="jp-badge" id="jpBadge" style="background:#10b981"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8" fill="currentColor"></polygon></svg></div>
+        <div style="flex:1;min-width:0">
+          <h3 id="jpTitle">תחילת המסע</h3>
+          <div class="jp-sub" id="jpSub">הבסיס שנבנה לפני סבב Angel</div>
+        </div>
+        <button class="jp-focus-btn" id="jpFocusBtn" title="הראה הכל במטריצה">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>
+        </button>
+      </div>
+
+      <div class="jp-progress-wrap">
+        <div class="jp-progress-top">
+          <div class="jp-pct"><span id="jpPct">35</span><small>%</small></div>
+          <div class="jp-label"><span id="jpDoneN">7</span> מתוך <span id="jpTotalN">20</span> פריטים</div>
+        </div>
+        <div class="jp-bar"><div class="jp-bar-fill" id="jpBarFill" style="width: 35%; background: rgb(16, 185, 129);"></div></div>
+      </div>
+
+      <!-- Critical next step -->
+      <div class="jp-critical" id="jpCritical">
+      <div class="ico">🎯</div>
+      <div class="txt">
+        <div class="lbl">הצעד הבא הקריטי</div>
+        <div class="ttl">Lead Lists</div>
+      </div></div>
+
+      <!-- Exit criteria -->
+      <div class="jp-exit" id="jpExit">
+    <div class="jp-exit-hdr">
+      <span>תנאי יציאה לתחנה הבאה</span>
+      <span style="margin-right:auto;color:#b45309">2/4</span>
+    </div>
+    <ul class="jp-exit-list">
+      <li class="met"><span class="chk"></span><span>MVP מוצר חי ב-Production</span></li><li class="unmet"><span class="chk"></span><strong>לפחות 3 תרחישי הונאה מזוהים</strong></li><li class="met"><span class="chk"></span><span>5+ מוטבים פעילים (pilot)</span></li><li class="unmet"><span class="chk"></span><strong>הצעת ערך ו-pitch מוכנים</strong></li>
+    </ul></div>
+
+      <div class="jp-body">
+        <div class="jp-section done">
+          <h4>✓ מה כבר יש <span class="jp-count" id="jpDoneC">7</span></h4>
+          <ul class="jp-list done" id="jpDoneList"><li data-jp-item="i_1q1l34c18" style="cursor:pointer">
+        <strong>ניהול העדפות לקוח (Risk Score שונים)</strong>
+        <span class="jp-cat">🔔 ניהול הסלמה וה…</span>
+      </li><li data-jp-item="i_emn5dlf21" style="cursor:pointer">
+        <strong>Blacklisted: Scam</strong>
+        <span class="jp-cat">🧠 מודיעין - Inte…</span>
+      </li><li data-jp-item="i_dssiyc122" style="cursor:pointer">
+        <strong>Blacklisted: Phishing</strong>
+        <span class="jp-cat">🧠 מודיעין - Inte…</span>
+      </li><li data-jp-item="i_iiapdv823" style="cursor:pointer">
+        <strong>Bank Websites</strong>
+        <span class="jp-cat">🧠 מודיעין - Inte…</span>
+      </li><li data-jp-item="i_cun2wbi24" style="cursor:pointer">
+        <strong>Scam Websites</strong>
+        <span class="jp-cat">🧠 מודיעין - Inte…</span>
+      </li><li data-jp-item="i_pn0d12g26" style="cursor:pointer">
+        <strong>Blacklisted: Phone Numbers</strong>
+        <span class="jp-cat">🧠 מודיעין - Inte…</span>
+      </li><li data-jp-item="i_1r0n9fa28" style="cursor:pointer">
+        <strong>עברית + אנגלית US</strong>
+        <span class="jp-cat">🌍 תמיכה בשפות</span>
+      </li></ul>
+        </div>
+        <div class="jp-section todo">
+          <h4>⚠ מה חסר <span class="jp-count" id="jpTodoC">7</span></h4>
+          <ul class="jp-list todo" id="jpTodoList"><li data-jp-item="i_u2qd9n40" style="cursor:pointer">
+        <strong>רישום לקוח, מכשירים, מעקב ולוח בקרה</strong>
+        <span class="jp-cat">👥 ניהול לקוחות ו…</span>
+      </li><li data-jp-item="i_f1cgivw8" style="cursor:pointer">
+        <strong>Remote Access + Sensitive Website</strong>
+        <span class="jp-cat">⚠ ️ זיהוי סכנה מ…</span>
+      </li><li data-jp-item="i_p94zkld9" style="cursor:pointer">
+        <strong>סריקת SMS</strong>
+        <span class="jp-cat">⚠ ️ זיהוי סכנה מ…</span>
+      </li><li data-jp-item="i_fd0sfyi10" style="cursor:pointer">
+        <strong>סריקת Email</strong>
+        <span class="jp-cat">⚠ ️ זיהוי סכנה מ…</span>
+      </li><li data-jp-item="i_a7ms0iu12" style="cursor:pointer">
+        <strong>זיהוי מספר טלפון חד-פעמי / ידוע</strong>
+        <span class="jp-cat">⚠ ️ זיהוי סכנה מ…</span>
+      </li><li data-jp-item="i_t4jskjsz" style="cursor:pointer">
+        <strong>סריקות</strong>
+        <span class="jp-cat"> ללא קטגוריה</span>
+      </li><li data-jp-item="i_guwfhmjf" style="cursor:pointer">
+        <strong>ששששששששששששש</strong>
+        <span class="jp-cat"> ללא קטגוריה</span>
+      </li></ul>
+        </div>
+        <div class="jp-section next">
+          <h4>→ הצעדים הבאים <span class="jp-count" id="jpNextC">6</span></h4>
+          <ul class="jp-list next" id="jpNextList"><li data-jp-item="i_lf4lufg1" style="cursor:pointer">
+        <strong>פורטל לקוחות</strong>
+        <span class="jp-cat">👥 ניהול לקוחות ו…</span>
+      </li><li data-jp-item="i_ds05i2l5" style="cursor:pointer">
+        <strong>Tech Support Scam</strong>
+        <span class="jp-cat">🔍 אנליזה - זיהוי…</span>
+      </li><li data-jp-item="i_y0pbjeg6" style="cursor:pointer">
+        <strong>Investment Scam</strong>
+        <span class="jp-cat">🔍 אנליזה - זיהוי…</span>
+      </li><li data-jp-item="i_g22eknl19" style="cursor:pointer">
+        <strong>Protective Actions - התרעות, SMS</strong>
+        <span class="jp-cat">🔔 ניהול הסלמה וה…</span>
+      </li><li data-jp-item="i_9c9tndq25" style="cursor:pointer">
+        <strong>Lead Lists</strong>
+        <span class="jp-cat">🧠 מודיעין - Inte…</span>
+      </li><li data-jp-item="i_3agltii31" style="cursor:pointer">
+        <strong>Android - בסיסי</strong>
+        <span class="jp-cat">📱 אפליקציה</span>
+      </li></ul>
+        </div>
+      </div>
+
+      <!-- Next station preview -->
+      <div class="jp-next-preview" id="jpNextPreview" style="display: flex;">
+      <div class="arr" style="background:#3b82f6">↓</div>
+      <div class="txt">
+        <div class="lbl">התחנה הבאה</div>
+        <div class="nm">Angel Round</div>
+        <div class="cnt">18 פריטים מחכים · לחצו לצפייה</div>
+      </div></div>
+
+      <div class="jp-hint">💡 לחצו על תחנה במפה · על פריט לעריכה · על ↗ כדי לקפוץ למטריצה</div>
+    </aside>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 2: MATRIX — Customers & Analysis ===================== -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="txt">
+      <div class="slide-num">01 · Product Roadmap</div>
+      <h2>ניהול לקוחות ואנליזה</h2>
+      <div class="slide-desc">מה צריך לפתח בכל שלב גיוס · לחצו על תא כדי להוסיף, על פריט כדי לערוך</div>
+    </div>
+  </div>
+  <div class="matrix" data-matrix="" data-matrix-id="m1" data-cats="👥 ניהול לקוחות ומוטבים,🔍 אנליזה - זיהוי תרחישי הונאה,⚠️ זיהוי סכנה מיידית וסריקות,🌐 Tracked URLs &amp; Domains"><div class="matrix-header">
+    <div></div>
+    <div class="col-title now-col">לפני Angel <span class="col-count">8</span></div>
+    <div class="col-title angel-col">בשלב Angel <span class="col-count">3</span></div>
+    <div class="col-title vc-col">בשלב VC <span class="col-count">1</span></div>
+  </div><div class="category-block " data-cat-block="👥 ניהול לקוחות ומוטבים">
+      <div class="category-title">
+        <span class="cat-icon">👥</span>
+        <span>ניהול לקוחות ומוטבים</span>
+        <span class="cat-count">5 פריטים</span>
+        <button class="cat-add" data-add-cat="👥 ניהול לקוחות ומוטבים" title="הוסף פריט בקטגוריה זו">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+      </div><div class="matrix-row " data-item-row="i_u2qd9n40">
+          <div class="row-label">
+            <span class="rl-text">רישום לקוח, מכשירים, מעקב ולוח בקרה</span>
+            
+          </div>
+          <div class="cell active-now" data-cell-stage="now" data-item-cell="i_u2qd9n40">
+                <div class="mini-item" draggable="true" data-item="i_u2qd9n40">
+    <span class="status-dot block" data-status-toggle="i_u2qd9n40" title="חסום — לחץ לשינוי"></span>
+    <span class="m-title">רישום לקוח, מכשירים, מעקב ולוח בקרה</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_u2qd9n40|angel" data-add-cell="👥 ניהול לקוחות ומוטבים|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_u2qd9n40|vc" data-add-cell="👥 ניהול לקוחות ומוטבים|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_lf4lufg1">
+          <div class="row-label">
+            <span class="rl-text">פורטל לקוחות</span>
+            
+          </div>
+          <div class="cell active-now" data-cell-stage="now" data-item-cell="i_lf4lufg1">
+                <div class="mini-item" draggable="true" data-item="i_lf4lufg1">
+    <span class="status-dot prog" data-status-toggle="i_lf4lufg1" title="בביצוע — לחץ לשינוי"></span>
+    <span class="m-title">פורטל לקוחות</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_lf4lufg1|angel" data-add-cell="👥 ניהול לקוחות ומוטבים|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_lf4lufg1|vc" data-add-cell="👥 ניהול לקוחות ומוטבים|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_k3bid0c2">
+          <div class="row-label">
+            <span class="rl-text">שדרוג פורטל לקוחות</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_k3bid0c2|now" data-add-cell="👥 ניהול לקוחות ומוטבים|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-angel" data-cell-stage="angel" data-item-cell="i_k3bid0c2">
+                <div class="mini-item" draggable="true" data-item="i_k3bid0c2">
+    <span class="status-dot todo" data-status-toggle="i_k3bid0c2" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">שדרוג פורטל לקוחות</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_k3bid0c2|vc" data-add-cell="👥 ניהול לקוחות ומוטבים|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_fqa6u0m3">
+          <div class="row-label">
+            <span class="rl-text">Keycloak + Identity Providers</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_fqa6u0m3|now" data-add-cell="👥 ניהול לקוחות ומוטבים|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-angel" data-cell-stage="angel" data-item-cell="i_fqa6u0m3">
+                <div class="mini-item" draggable="true" data-item="i_fqa6u0m3">
+    <span class="status-dot todo" data-status-toggle="i_fqa6u0m3" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">Keycloak + Identity Providers</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_fqa6u0m3|vc" data-add-cell="👥 ניהול לקוחות ומוטבים|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_7hy83qc4">
+          <div class="row-label">
+            <span class="rl-text">תשתיות חיוב לקוחות</span>
+            <span class="rl-gap">❓ לא מסווג</span>
+          </div>
+          <div class="cell gap-cell" data-cell-stage="now" data-item-cell="i_7hy83qc4">
+                <div class="mini-item" draggable="true" data-item="i_7hy83qc4">
+    <span class="status-dot todo" data-status-toggle="i_7hy83qc4" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">תשתיות חיוב לקוחות</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">L</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_7hy83qc4|angel" data-add-cell="👥 ניהול לקוחות ומוטבים|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_7hy83qc4|vc" data-add-cell="👥 ניהול לקוחות ומוטבים|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div></div><div class="category-block " data-cat-block="🔍 אנליזה - זיהוי תרחישי הונאה">
+      <div class="category-title">
+        <span class="cat-icon">🔍</span>
+        <span>אנליזה - זיהוי תרחישי הונאה</span>
+        <span class="cat-count">3 פריטים</span>
+        <button class="cat-add" data-add-cat="🔍 אנליזה - זיהוי תרחישי הונאה" title="הוסף פריט בקטגוריה זו">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+      </div><div class="matrix-row " data-item-row="i_ds05i2l5">
+          <div class="row-label">
+            <span class="rl-text">Tech Support Scam</span>
+            
+          </div>
+          <div class="cell active-now" data-cell-stage="now" data-item-cell="i_ds05i2l5">
+                <div class="mini-item" draggable="true" data-item="i_ds05i2l5">
+    <span class="status-dot prog" data-status-toggle="i_ds05i2l5" title="בביצוע — לחץ לשינוי"></span>
+    <span class="m-title">Tech Support Scam</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_ds05i2l5|angel" data-add-cell="🔍 אנליזה - זיהוי תרחישי הונאה|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_ds05i2l5|vc" data-add-cell="🔍 אנליזה - זיהוי תרחישי הונאה|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_y0pbjeg6">
+          <div class="row-label">
+            <span class="rl-text">Investment Scam</span>
+            
+          </div>
+          <div class="cell active-now" data-cell-stage="now" data-item-cell="i_y0pbjeg6">
+                <div class="mini-item" draggable="true" data-item="i_y0pbjeg6">
+    <span class="status-dot prog" data-status-toggle="i_y0pbjeg6" title="בביצוע — לחץ לשינוי"></span>
+    <span class="m-title">Investment Scam</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_y0pbjeg6|angel" data-add-cell="🔍 אנליזה - זיהוי תרחישי הונאה|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_y0pbjeg6|vc" data-add-cell="🔍 אנליזה - זיהוי תרחישי הונאה|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_id88q8n7">
+          <div class="row-label">
+            <span class="rl-text">תרחישי הונאה נוספים</span>
+            <span class="rl-gap">❓ לא מסווג</span>
+          </div>
+          <div class="cell gap-cell" data-cell-stage="now" data-item-cell="i_id88q8n7">
+                <div class="mini-item" draggable="true" data-item="i_id88q8n7">
+    <span class="status-dot todo" data-status-toggle="i_id88q8n7" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">תרחישי הונאה נוספים</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_id88q8n7|angel" data-add-cell="🔍 אנליזה - זיהוי תרחישי הונאה|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_id88q8n7|vc" data-add-cell="🔍 אנליזה - זיהוי תרחישי הונאה|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div></div><div class="category-block " data-cat-block="⚠️ זיהוי סכנה מיידית וסריקות">
+      <div class="category-title">
+        <span class="cat-icon">⚠</span>
+        <span>️ זיהוי סכנה מיידית וסריקות</span>
+        <span class="cat-count">7 פריטים</span>
+        <button class="cat-add" data-add-cat="⚠️ זיהוי סכנה מיידית וסריקות" title="הוסף פריט בקטגוריה זו">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+      </div><div class="matrix-row " data-item-row="i_f1cgivw8">
+          <div class="row-label">
+            <span class="rl-text">Remote Access + Sensitive Website</span>
+            
+          </div>
+          <div class="cell active-now" data-cell-stage="now" data-item-cell="i_f1cgivw8">
+                <div class="mini-item" draggable="true" data-item="i_f1cgivw8">
+    <span class="status-dot block" data-status-toggle="i_f1cgivw8" title="חסום — לחץ לשינוי"></span>
+    <span class="m-title">Remote Access + Sensitive Website</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">S</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_f1cgivw8|angel" data-add-cell="⚠️ זיהוי סכנה מיידית וסריקות|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_f1cgivw8|vc" data-add-cell="⚠️ זיהוי סכנה מיידית וסריקות|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_p94zkld9">
+          <div class="row-label">
+            <span class="rl-text">סריקת SMS</span>
+            
+          </div>
+          <div class="cell active-now" data-cell-stage="now" data-item-cell="i_p94zkld9">
+                <div class="mini-item" draggable="true" data-item="i_p94zkld9">
+    <span class="status-dot todo" data-status-toggle="i_p94zkld9" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">סריקת SMS</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_p94zkld9|angel" data-add-cell="⚠️ זיהוי סכנה מיידית וסריקות|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_p94zkld9|vc" data-add-cell="⚠️ זיהוי סכנה מיידית וסריקות|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_fd0sfyi10">
+          <div class="row-label">
+            <span class="rl-text">סריקת Email</span>
+            
+          </div>
+          <div class="cell active-now" data-cell-stage="now" data-item-cell="i_fd0sfyi10">
+                <div class="mini-item" draggable="true" data-item="i_fd0sfyi10">
+    <span class="status-dot todo" data-status-toggle="i_fd0sfyi10" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">סריקת Email</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_fd0sfyi10|angel" data-add-cell="⚠️ זיהוי סכנה מיידית וסריקות|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_fd0sfyi10|vc" data-add-cell="⚠️ זיהוי סכנה מיידית וסריקות|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_mnhvfd811">
+          <div class="row-label">
+            <span class="rl-text">סריקת WhatsApp</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_mnhvfd811|now" data-add-cell="⚠️ זיהוי סכנה מיידית וסריקות|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-angel" data-cell-stage="angel" data-item-cell="i_mnhvfd811">
+                <div class="mini-item" draggable="true" data-item="i_mnhvfd811">
+    <span class="status-dot todo" data-status-toggle="i_mnhvfd811" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">סריקת WhatsApp</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">L</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_mnhvfd811|vc" data-add-cell="⚠️ זיהוי סכנה מיידית וסריקות|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_a7ms0iu12">
+          <div class="row-label">
+            <span class="rl-text">זיהוי מספר טלפון חד-פעמי / ידוע</span>
+            
+          </div>
+          <div class="cell active-now" data-cell-stage="now" data-item-cell="i_a7ms0iu12">
+                <div class="mini-item" draggable="true" data-item="i_a7ms0iu12">
+    <span class="status-dot todo" data-status-toggle="i_a7ms0iu12" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">זיהוי מספר טלפון חד-פעמי / ידוע</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    <span class="mm">S</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_a7ms0iu12|angel" data-add-cell="⚠️ זיהוי סכנה מיידית וסריקות|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_a7ms0iu12|vc" data-add-cell="⚠️ זיהוי סכנה מיידית וסריקות|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_qefd35n13">
+          <div class="row-label">
+            <span class="rl-text">זיהוי קול סינתטי</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_qefd35n13|now" data-add-cell="⚠️ זיהוי סכנה מיידית וסריקות|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_qefd35n13|angel" data-add-cell="⚠️ זיהוי סכנה מיידית וסריקות|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-vc" data-cell-stage="vc" data-item-cell="i_qefd35n13">
+                <div class="mini-item" draggable="true" data-item="i_qefd35n13">
+    <span class="status-dot todo" data-status-toggle="i_qefd35n13" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">זיהוי קול סינתטי</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    <span class="mm">XL</span>
+    
+    
+  </div>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_dxuk6gd14">
+          <div class="row-label">
+            <span class="rl-text">מצבי סכנה מיידית נוספים</span>
+            <span class="rl-gap">❓ לא מסווג</span>
+          </div>
+          <div class="cell gap-cell" data-cell-stage="now" data-item-cell="i_dxuk6gd14">
+                <div class="mini-item" draggable="true" data-item="i_dxuk6gd14">
+    <span class="status-dot todo" data-status-toggle="i_dxuk6gd14" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">מצבי סכנה מיידית נוספים</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-low">נמוכה</span>
+    
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_dxuk6gd14|angel" data-add-cell="⚠️ זיהוי סכנה מיידית וסריקות|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_dxuk6gd14|vc" data-add-cell="⚠️ זיהוי סכנה מיידית וסריקות|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div></div><div class="category-block " data-cat-block="🌐 Tracked URLs &amp; Domains">
+      <div class="category-title">
+        <span class="cat-icon">🌐</span>
+        <span>Tracked URLs &amp; Domains</span>
+        <span class="cat-count">3 פריטים</span>
+        <button class="cat-add" data-add-cat="🌐 Tracked URLs &amp; Domains" title="הוסף פריט בקטגוריה זו">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+      </div><div class="matrix-row " data-item-row="i_5lkejc315">
+          <div class="row-label">
+            <span class="rl-text">השלמת טיפול ב-TrackUrlAlert</span>
+            <span class="rl-gap">❓ לא מסווג</span>
+          </div>
+          <div class="cell gap-cell" data-cell-stage="now" data-item-cell="i_5lkejc315">
+                <div class="mini-item" draggable="true" data-item="i_5lkejc315">
+    <span class="status-dot prog" data-status-toggle="i_5lkejc315" title="בביצוע — לחץ לשינוי"></span>
+    <span class="m-title">השלמת טיפול ב-TrackUrlAlert</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    <span class="mm">S</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_5lkejc315|angel" data-add-cell="🌐 Tracked URLs &amp; Domains|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_5lkejc315|vc" data-add-cell="🌐 Tracked URLs &amp; Domains|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_mm7jtxw16">
+          <div class="row-label">
+            <span class="rl-text">ניהול Tracked URLs</span>
+            <span class="rl-gap">❓ לא מסווג</span>
+          </div>
+          <div class="cell gap-cell" data-cell-stage="now" data-item-cell="i_mm7jtxw16">
+                <div class="mini-item" draggable="true" data-item="i_mm7jtxw16">
+    <span class="status-dot todo" data-status-toggle="i_mm7jtxw16" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">ניהול Tracked URLs</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_mm7jtxw16|angel" data-add-cell="🌐 Tracked URLs &amp; Domains|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_mm7jtxw16|vc" data-add-cell="🌐 Tracked URLs &amp; Domains|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_l59osq217">
+          <div class="row-label">
+            <span class="rl-text">הפצת דומיין מסוכן בין לקוחות</span>
+            <span class="rl-gap">❓ לא מסווג</span>
+          </div>
+          <div class="cell gap-cell" data-cell-stage="now" data-item-cell="i_l59osq217">
+                <div class="mini-item" draggable="true" data-item="i_l59osq217">
+    <span class="status-dot todo" data-status-toggle="i_l59osq217" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">הפצת דומיין מסוכן בין לקוחות</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">L</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_l59osq217|angel" data-add-cell="🌐 Tracked URLs &amp; Domains|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_l59osq217|vc" data-add-cell="🌐 Tracked URLs &amp; Domains|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div></div></div>
+</div>
+
+<!-- ===================== SLIDE 3: MATRIX — Escalation, Intel, Lang, App ===================== -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="txt">
+      <div class="slide-num">02 · Product Roadmap</div>
+      <h2>הסלמה, מודיעין ואפליקציה</h2>
+      <div class="slide-desc">מה צריך לפתח בכל שלב גיוס (המשך)</div>
+    </div>
+  </div>
+  <div class="matrix" data-matrix="" data-matrix-id="m2" data-cats="🔔 ניהול הסלמה והתראות,🧠 מודיעין - Intelligence,🌍 תמיכה בשפות,📱 אפליקציה"><div class="matrix-header">
+    <div></div>
+    <div class="col-title now-col">לפני Angel <span class="col-count">10</span></div>
+    <div class="col-title angel-col">בשלב Angel <span class="col-count">4</span></div>
+    <div class="col-title vc-col">בשלב VC <span class="col-count">2</span></div>
+  </div><div class="category-block " data-cat-block="🔔 ניהול הסלמה והתראות">
+      <div class="category-title">
+        <span class="cat-icon">🔔</span>
+        <span>ניהול הסלמה והתראות</span>
+        <span class="cat-count">3 פריטים</span>
+        <button class="cat-add" data-add-cat="🔔 ניהול הסלמה והתראות" title="הוסף פריט בקטגוריה זו">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+      </div><div class="matrix-row " data-item-row="i_1q1l34c18">
+          <div class="row-label">
+            <span class="rl-text">ניהול העדפות לקוח (Risk Score שונים)</span>
+            
+          </div>
+          <div class="cell active-now" data-cell-stage="now" data-item-cell="i_1q1l34c18">
+                <div class="mini-item" draggable="true" data-item="i_1q1l34c18">
+    <span class="status-dot done" data-status-toggle="i_1q1l34c18" title="הושלם — לחץ לשינוי"></span>
+    <span class="m-title">ניהול העדפות לקוח (Risk Score שונים)</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    <span class="mm">S</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_1q1l34c18|angel" data-add-cell="🔔 ניהול הסלמה והתראות|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_1q1l34c18|vc" data-add-cell="🔔 ניהול הסלמה והתראות|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_g22eknl19">
+          <div class="row-label">
+            <span class="rl-text">Protective Actions - התרעות, SMS</span>
+            
+          </div>
+          <div class="cell active-now" data-cell-stage="now" data-item-cell="i_g22eknl19">
+                <div class="mini-item" draggable="true" data-item="i_g22eknl19">
+    <span class="status-dot prog" data-status-toggle="i_g22eknl19" title="בביצוע — לחץ לשינוי"></span>
+    <span class="m-title">Protective Actions - התרעות, SMS</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_g22eknl19|angel" data-add-cell="🔔 ניהול הסלמה והתראות|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_g22eknl19|vc" data-add-cell="🔔 ניהול הסלמה והתראות|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_vs7p0yn20">
+          <div class="row-label">
+            <span class="rl-text">Protective Actions - שדרוג</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_vs7p0yn20|now" data-add-cell="🔔 ניהול הסלמה והתראות|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-angel" data-cell-stage="angel" data-item-cell="i_vs7p0yn20">
+                <div class="mini-item" draggable="true" data-item="i_vs7p0yn20">
+    <span class="status-dot todo" data-status-toggle="i_vs7p0yn20" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">Protective Actions - שדרוג</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_vs7p0yn20|vc" data-add-cell="🔔 ניהול הסלמה והתראות|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div></div><div class="category-block " data-cat-block="🧠 מודיעין - Intelligence">
+      <div class="category-title">
+        <span class="cat-icon">🧠</span>
+        <span>מודיעין - Intelligence</span>
+        <span class="cat-count">7 פריטים</span>
+        <button class="cat-add" data-add-cat="🧠 מודיעין - Intelligence" title="הוסף פריט בקטגוריה זו">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+      </div><div class="matrix-row " data-item-row="i_emn5dlf21">
+          <div class="row-label">
+            <span class="rl-text">Blacklisted: Scam</span>
+            
+          </div>
+          <div class="cell active-now" data-cell-stage="now" data-item-cell="i_emn5dlf21">
+                <div class="mini-item" draggable="true" data-item="i_emn5dlf21">
+    <span class="status-dot done" data-status-toggle="i_emn5dlf21" title="הושלם — לחץ לשינוי"></span>
+    <span class="m-title">Blacklisted: Scam</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">S</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_emn5dlf21|angel" data-add-cell="🧠 מודיעין - Intelligence|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_emn5dlf21|vc" data-add-cell="🧠 מודיעין - Intelligence|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_dssiyc122">
+          <div class="row-label">
+            <span class="rl-text">Blacklisted: Phishing</span>
+            
+          </div>
+          <div class="cell active-now" data-cell-stage="now" data-item-cell="i_dssiyc122">
+                <div class="mini-item" draggable="true" data-item="i_dssiyc122">
+    <span class="status-dot done" data-status-toggle="i_dssiyc122" title="הושלם — לחץ לשינוי"></span>
+    <span class="m-title">Blacklisted: Phishing</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">S</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_dssiyc122|angel" data-add-cell="🧠 מודיעין - Intelligence|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_dssiyc122|vc" data-add-cell="🧠 מודיעין - Intelligence|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_iiapdv823">
+          <div class="row-label">
+            <span class="rl-text">Bank Websites</span>
+            
+          </div>
+          <div class="cell active-now" data-cell-stage="now" data-item-cell="i_iiapdv823">
+                <div class="mini-item" draggable="true" data-item="i_iiapdv823">
+    <span class="status-dot done" data-status-toggle="i_iiapdv823" title="הושלם — לחץ לשינוי"></span>
+    <span class="m-title">Bank Websites</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    <span class="mm">S</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_iiapdv823|angel" data-add-cell="🧠 מודיעין - Intelligence|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_iiapdv823|vc" data-add-cell="🧠 מודיעין - Intelligence|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_cun2wbi24">
+          <div class="row-label">
+            <span class="rl-text">Scam Websites</span>
+            
+          </div>
+          <div class="cell active-now" data-cell-stage="now" data-item-cell="i_cun2wbi24">
+                <div class="mini-item" draggable="true" data-item="i_cun2wbi24">
+    <span class="status-dot done" data-status-toggle="i_cun2wbi24" title="הושלם — לחץ לשינוי"></span>
+    <span class="m-title">Scam Websites</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    <span class="mm">S</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_cun2wbi24|angel" data-add-cell="🧠 מודיעין - Intelligence|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_cun2wbi24|vc" data-add-cell="🧠 מודיעין - Intelligence|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_9c9tndq25">
+          <div class="row-label">
+            <span class="rl-text">Lead Lists</span>
+            
+          </div>
+          <div class="cell active-now" data-cell-stage="now" data-item-cell="i_9c9tndq25">
+                <div class="mini-item" draggable="true" data-item="i_9c9tndq25">
+    <span class="status-dot prog" data-status-toggle="i_9c9tndq25" title="בביצוע — לחץ לשינוי"></span>
+    <span class="m-title">Lead Lists</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_9c9tndq25|angel" data-add-cell="🧠 מודיעין - Intelligence|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_9c9tndq25|vc" data-add-cell="🧠 מודיעין - Intelligence|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_pn0d12g26">
+          <div class="row-label">
+            <span class="rl-text">Blacklisted: Phone Numbers</span>
+            
+          </div>
+          <div class="cell active-now" data-cell-stage="now" data-item-cell="i_pn0d12g26">
+                <div class="mini-item" draggable="true" data-item="i_pn0d12g26">
+    <span class="status-dot done" data-status-toggle="i_pn0d12g26" title="הושלם — לחץ לשינוי"></span>
+    <span class="m-title">Blacklisted: Phone Numbers</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    <span class="mm">S</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_pn0d12g26|angel" data-add-cell="🧠 מודיעין - Intelligence|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_pn0d12g26|vc" data-add-cell="🧠 מודיעין - Intelligence|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_hsfpykz27">
+          <div class="row-label">
+            <span class="rl-text">Data Collaboration Manager</span>
+            <span class="rl-gap">❓ לא מסווג</span>
+          </div>
+          <div class="cell gap-cell" data-cell-stage="now" data-item-cell="i_hsfpykz27">
+                <div class="mini-item" draggable="true" data-item="i_hsfpykz27">
+    <span class="status-dot todo" data-status-toggle="i_hsfpykz27" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">Data Collaboration Manager</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    <span class="mm">L</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_hsfpykz27|angel" data-add-cell="🧠 מודיעין - Intelligence|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_hsfpykz27|vc" data-add-cell="🧠 מודיעין - Intelligence|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div></div><div class="category-block " data-cat-block="🌍 תמיכה בשפות">
+      <div class="category-title">
+        <span class="cat-icon">🌍</span>
+        <span>תמיכה בשפות</span>
+        <span class="cat-count">3 פריטים</span>
+        <button class="cat-add" data-add-cat="🌍 תמיכה בשפות" title="הוסף פריט בקטגוריה זו">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+      </div><div class="matrix-row " data-item-row="i_1r0n9fa28">
+          <div class="row-label">
+            <span class="rl-text">עברית + אנגלית US</span>
+            
+          </div>
+          <div class="cell active-now" data-cell-stage="now" data-item-cell="i_1r0n9fa28">
+                <div class="mini-item" draggable="true" data-item="i_1r0n9fa28">
+    <span class="status-dot done" data-status-toggle="i_1r0n9fa28" title="הושלם — לחץ לשינוי"></span>
+    <span class="m-title">עברית + אנגלית US</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">S</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_1r0n9fa28|angel" data-add-cell="🌍 תמיכה בשפות|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_1r0n9fa28|vc" data-add-cell="🌍 תמיכה בשפות|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_z65iozo29">
+          <div class="row-label">
+            <span class="rl-text">רוסית, אנגלית UK, צרפתית, גרמנית</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_z65iozo29|now" data-add-cell="🌍 תמיכה בשפות|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-angel" data-cell-stage="angel" data-item-cell="i_z65iozo29">
+                <div class="mini-item" draggable="true" data-item="i_z65iozo29">
+    <span class="status-dot todo" data-status-toggle="i_z65iozo29" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">רוסית, אנגלית UK, צרפתית, גרמנית</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_z65iozo29|vc" data-add-cell="🌍 תמיכה בשפות|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_mb0qfz530">
+          <div class="row-label">
+            <span class="rl-text">ספרדית, ערבית + נוספות</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_mb0qfz530|now" data-add-cell="🌍 תמיכה בשפות|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_mb0qfz530|angel" data-add-cell="🌍 תמיכה בשפות|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-vc" data-cell-stage="vc" data-item-cell="i_mb0qfz530">
+                <div class="mini-item" draggable="true" data-item="i_mb0qfz530">
+    <span class="status-dot todo" data-status-toggle="i_mb0qfz530" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">ספרדית, ערבית + נוספות</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-low">נמוכה</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div>
+        </div></div><div class="category-block " data-cat-block="📱 אפליקציה">
+      <div class="category-title">
+        <span class="cat-icon">📱</span>
+        <span>אפליקציה</span>
+        <span class="cat-count">4 פריטים</span>
+        <button class="cat-add" data-add-cat="📱 אפליקציה" title="הוסף פריט בקטגוריה זו">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+      </div><div class="matrix-row " data-item-row="i_3agltii31">
+          <div class="row-label">
+            <span class="rl-text">Android - בסיסי</span>
+            
+          </div>
+          <div class="cell active-now" data-cell-stage="now" data-item-cell="i_3agltii31">
+                <div class="mini-item" draggable="true" data-item="i_3agltii31">
+    <span class="status-dot prog" data-status-toggle="i_3agltii31" title="בביצוע — לחץ לשינוי"></span>
+    <span class="m-title">Android - בסיסי</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_3agltii31|angel" data-add-cell="📱 אפליקציה|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_3agltii31|vc" data-add-cell="📱 אפליקציה|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_xeyqo0f32">
+          <div class="row-label">
+            <span class="rl-text">Android - מושלם</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_xeyqo0f32|now" data-add-cell="📱 אפליקציה|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-angel" data-cell-stage="angel" data-item-cell="i_xeyqo0f32">
+                <div class="mini-item" draggable="true" data-item="i_xeyqo0f32">
+    <span class="status-dot todo" data-status-toggle="i_xeyqo0f32" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">Android - מושלם</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">L</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_xeyqo0f32|vc" data-add-cell="📱 אפליקציה|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_dmyx9xj33">
+          <div class="row-label">
+            <span class="rl-text">iOS</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_dmyx9xj33|now" data-add-cell="📱 אפליקציה|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-angel" data-cell-stage="angel" data-item-cell="i_dmyx9xj33">
+                <div class="mini-item" draggable="true" data-item="i_dmyx9xj33">
+    <span class="status-dot todo" data-status-toggle="i_dmyx9xj33" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">iOS</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">L</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_dmyx9xj33|vc" data-add-cell="📱 אפליקציה|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_gwn12al34">
+          <div class="row-label">
+            <span class="rl-text">Browser Extension</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_gwn12al34|now" data-add-cell="📱 אפליקציה|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_gwn12al34|angel" data-add-cell="📱 אפליקציה|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-vc" data-cell-stage="vc" data-item-cell="i_gwn12al34">
+                <div class="mini-item" draggable="true" data-item="i_gwn12al34">
+    <span class="status-dot todo" data-status-toggle="i_gwn12al34" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">Browser Extension</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    <span class="mm">L</span>
+    
+    
+  </div>
+              </div>
+        </div></div></div>
+</div>
+
+<!-- ===================== SLIDE 4: MATRIX — Infra & Compliance ===================== -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="txt">
+      <div class="slide-num">03 · Infrastructure</div>
+      <h2>תשתיות, אבטחת מידע ומשפטיות</h2>
+      <div class="slide-desc"><span class="type-badge type-compliance">תהליכים</span> תהליכים ארוכים, לא פיצ'רים — דורשים יועצים חיצוניים ותקציב נפרד</div>
+    </div>
+  </div>
+  <div class="matrix" data-matrix="" data-matrix-id="m3" data-cats="🏗️ תשתיות Production,🔐 אבטחת מידע,⚖️ משפטיות Legal"><div class="matrix-header">
+    <div></div>
+    <div class="col-title now-col">לפני Angel <span class="col-count">0</span></div>
+    <div class="col-title angel-col">בשלב Angel <span class="col-count">10</span></div>
+    <div class="col-title vc-col">בשלב VC <span class="col-count">1</span></div>
+  </div><div class="category-block " data-cat-block="🏗️ תשתיות Production">
+      <div class="category-title">
+        <span class="cat-icon">🏗</span>
+        <span>️ תשתיות Production</span>
+        <span class="cat-count">5 פריטים</span>
+        <button class="cat-add" data-add-cat="🏗️ תשתיות Production" title="הוסף פריט בקטגוריה זו">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+      </div><div class="matrix-row " data-item-row="i_yqzh0xm35">
+          <div class="row-label">
+            <span class="rl-text">Pipeline: Dev → Automation → Production</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_yqzh0xm35|now" data-add-cell="🏗️ תשתיות Production|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-angel" data-cell-stage="angel" data-item-cell="i_yqzh0xm35">
+                <div class="mini-item" draggable="true" data-item="i_yqzh0xm35">
+    <span class="status-dot todo" data-status-toggle="i_yqzh0xm35" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">Pipeline: Dev → Automation → Production</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_yqzh0xm35|vc" data-add-cell="🏗️ תשתיות Production|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_4v9l2rc36">
+          <div class="row-label">
+            <span class="rl-text">מערך QA</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_4v9l2rc36|now" data-add-cell="🏗️ תשתיות Production|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-angel" data-cell-stage="angel" data-item-cell="i_4v9l2rc36">
+                <div class="mini-item" draggable="true" data-item="i_4v9l2rc36">
+    <span class="status-dot todo" data-status-toggle="i_4v9l2rc36" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">מערך QA</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_4v9l2rc36|vc" data-add-cell="🏗️ תשתיות Production|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_nf8qign37">
+          <div class="row-label">
+            <span class="rl-text">Cloud, Backup, Recovery, Scalability</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_nf8qign37|now" data-add-cell="🏗️ תשתיות Production|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-angel" data-cell-stage="angel" data-item-cell="i_nf8qign37">
+                <div class="mini-item" draggable="true" data-item="i_nf8qign37">
+    <span class="status-dot todo" data-status-toggle="i_nf8qign37" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">Cloud, Backup, Recovery, Scalability</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">L</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_nf8qign37|vc" data-add-cell="🏗️ תשתיות Production|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_wjtgkay38">
+          <div class="row-label">
+            <span class="rl-text">Automation</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_wjtgkay38|now" data-add-cell="🏗️ תשתיות Production|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-angel" data-cell-stage="angel" data-item-cell="i_wjtgkay38">
+                <div class="mini-item" draggable="true" data-item="i_wjtgkay38">
+    <span class="status-dot todo" data-status-toggle="i_wjtgkay38" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">Automation</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_wjtgkay38|vc" data-add-cell="🏗️ תשתיות Production|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_2bexrm339">
+          <div class="row-label">
+            <span class="rl-text">בדיקות עומס - Load Tests</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_2bexrm339|now" data-add-cell="🏗️ תשתיות Production|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_2bexrm339|angel" data-add-cell="🏗️ תשתיות Production|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-vc" data-cell-stage="vc" data-item-cell="i_2bexrm339">
+                <div class="mini-item" draggable="true" data-item="i_2bexrm339">
+    <span class="status-dot todo" data-status-toggle="i_2bexrm339" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">בדיקות עומס - Load Tests</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div>
+        </div></div><div class="category-block " data-cat-block="🔐 אבטחת מידע">
+      <div class="category-title">
+        <span class="cat-icon">🔐</span>
+        <span>אבטחת מידע</span>
+        <span class="cat-count">5 פריטים</span>
+        <button class="cat-add" data-add-cat="🔐 אבטחת מידע" title="הוסף פריט בקטגוריה זו">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+      </div><div class="matrix-row " data-item-row="i_o0a51gj40">
+          <div class="row-label">
+            <span class="rl-text">ISO-27001</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_o0a51gj40|now" data-add-cell="🔐 אבטחת מידע|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-angel" data-cell-stage="angel" data-item-cell="i_o0a51gj40">
+                <div class="mini-item" draggable="true" data-item="i_o0a51gj40">
+    <span class="status-dot todo" data-status-toggle="i_o0a51gj40" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">ISO-27001</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">XL</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_o0a51gj40|vc" data-add-cell="🔐 אבטחת מידע|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_ndpicxc41">
+          <div class="row-label">
+            <span class="rl-text">SOC 2 Type I</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_ndpicxc41|now" data-add-cell="🔐 אבטחת מידע|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-angel" data-cell-stage="angel" data-item-cell="i_ndpicxc41">
+                <div class="mini-item" draggable="true" data-item="i_ndpicxc41">
+    <span class="status-dot todo" data-status-toggle="i_ndpicxc41" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">SOC 2 Type I</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">XL</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_ndpicxc41|vc" data-add-cell="🔐 אבטחת מידע|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_qb64r7042">
+          <div class="row-label">
+            <span class="rl-text">CCPA</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_qb64r7042|now" data-add-cell="🔐 אבטחת מידע|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-angel" data-cell-stage="angel" data-item-cell="i_qb64r7042">
+                <div class="mini-item" draggable="true" data-item="i_qb64r7042">
+    <span class="status-dot todo" data-status-toggle="i_qb64r7042" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">CCPA</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_qb64r7042|vc" data-add-cell="🔐 אבטחת מידע|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_atf8hii43">
+          <div class="row-label">
+            <span class="rl-text">GDPR</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_atf8hii43|now" data-add-cell="🔐 אבטחת מידע|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-angel" data-cell-stage="angel" data-item-cell="i_atf8hii43">
+                <div class="mini-item" draggable="true" data-item="i_atf8hii43">
+    <span class="status-dot todo" data-status-toggle="i_atf8hii43" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">GDPR</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_atf8hii43|vc" data-add-cell="🔐 אבטחת מידע|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_rj9kpsc44">
+          <div class="row-label">
+            <span class="rl-text">Penetration Tests</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_rj9kpsc44|now" data-add-cell="🔐 אבטחת מידע|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-angel" data-cell-stage="angel" data-item-cell="i_rj9kpsc44">
+                <div class="mini-item" draggable="true" data-item="i_rj9kpsc44">
+    <span class="status-dot todo" data-status-toggle="i_rj9kpsc44" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">Penetration Tests</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_rj9kpsc44|vc" data-add-cell="🔐 אבטחת מידע|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div></div><div class="category-block " data-cat-block="⚖️ משפטיות Legal">
+      <div class="category-title">
+        <span class="cat-icon">⚖</span>
+        <span>️ משפטיות Legal</span>
+        <span class="cat-count">2 פריטים</span>
+        <button class="cat-add" data-add-cat="⚖️ משפטיות Legal" title="הוסף פריט בקטגוריה זו">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+      </div><div class="matrix-row " data-item-row="i_k8pfot145">
+          <div class="row-label">
+            <span class="rl-text">תשתית משפטית</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_k8pfot145|now" data-add-cell="⚖️ משפטיות Legal|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-angel" data-cell-stage="angel" data-item-cell="i_k8pfot145">
+                <div class="mini-item" draggable="true" data-item="i_k8pfot145">
+    <span class="status-dot todo" data-status-toggle="i_k8pfot145" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">תשתית משפטית</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_k8pfot145|vc" data-add-cell="⚖️ משפטיות Legal|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_6syajtd46">
+          <div class="row-label">
+            <span class="rl-text">ביטוח</span>
+            <span class="rl-gap">❓ לא מסווג</span>
+          </div>
+          <div class="cell gap-cell" data-cell-stage="now" data-item-cell="i_6syajtd46">
+                <div class="mini-item" draggable="true" data-item="i_6syajtd46">
+    <span class="status-dot todo" data-status-toggle="i_6syajtd46" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">ביטוח</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_6syajtd46|angel" data-add-cell="⚖️ משפטיות Legal|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_6syajtd46|vc" data-add-cell="⚖️ משפטיות Legal|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div></div></div>
+</div>
+
+<!-- ===================== SLIDE 5: MATRIX — GTM & Trust ===================== -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="txt">
+      <div class="slide-num">04 · Go-to-Market</div>
+      <h2>Go-to-Market, Trust ופיתוח עסקי</h2>
+      <div class="slide-desc"><span class="type-badge type-ops">תפעול</span> <span class="type-badge type-hire">גיוס</span> ערבוב של פעילויות, תוכן ותפקידים</div>
+    </div>
+  </div>
+  <div class="matrix" data-matrix="" data-matrix-id="m4" data-cats="🤝 בניית Trust,📈 פיתוח עסקי"><div class="matrix-header">
+    <div></div>
+    <div class="col-title now-col">לפני Angel <span class="col-count">0</span></div>
+    <div class="col-title angel-col">בשלב Angel <span class="col-count">1</span></div>
+    <div class="col-title vc-col">בשלב VC <span class="col-count">2</span></div>
+  </div><div class="category-block " data-cat-block="🤝 בניית Trust">
+      <div class="category-title">
+        <span class="cat-icon">🤝</span>
+        <span>בניית Trust</span>
+        <span class="cat-count">5 פריטים</span>
+        <button class="cat-add" data-add-cat="🤝 בניית Trust" title="הוסף פריט בקטגוריה זו">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+      </div><div class="matrix-row " data-item-row="i_lcam8sf47">
+          <div class="row-label">
+            <span class="rl-text">יח״צ - PR</span>
+            <span class="rl-gap">❓ לא מסווג</span>
+          </div>
+          <div class="cell gap-cell" data-cell-stage="now" data-item-cell="i_lcam8sf47">
+                <div class="mini-item" draggable="true" data-item="i_lcam8sf47">
+    <span class="status-dot todo" data-status-toggle="i_lcam8sf47" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">יח״צ - PR</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_lcam8sf47|angel" data-add-cell="🤝 בניית Trust|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_lcam8sf47|vc" data-add-cell="🤝 בניית Trust|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_hfok18x48">
+          <div class="row-label">
+            <span class="rl-text">שירות לקוחות - AI + היברידי</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_hfok18x48|now" data-add-cell="🤝 בניית Trust|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-angel" data-cell-stage="angel" data-item-cell="i_hfok18x48">
+                <div class="mini-item" draggable="true" data-item="i_hfok18x48">
+    <span class="status-dot todo" data-status-toggle="i_hfok18x48" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">שירות לקוחות - AI + היברידי</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    <span class="mm">L</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_hfok18x48|vc" data-add-cell="🤝 בניית Trust|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_x8ccpk249">
+          <div class="row-label">
+            <span class="rl-text">Education Center: Articles, Blog, Movies, TV</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_x8ccpk249|now" data-add-cell="🤝 בניית Trust|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_x8ccpk249|angel" data-add-cell="🤝 בניית Trust|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-vc" data-cell-stage="vc" data-item-cell="i_x8ccpk249">
+                <div class="mini-item" draggable="true" data-item="i_x8ccpk249">
+    <span class="status-dot todo" data-status-toggle="i_x8ccpk249" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">Education Center: Articles, Blog, Movies, TV</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-low">נמוכה</span>
+    <span class="mm">XL</span>
+    
+    
+  </div>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_k31jnue50">
+          <div class="row-label">
+            <span class="rl-text">Community Services</span>
+            
+          </div>
+          <div class="cell empty" data-move-cell="i_k31jnue50|now" data-add-cell="🤝 בניית Trust|now">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_k31jnue50|angel" data-add-cell="🤝 בניית Trust|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell active-vc" data-cell-stage="vc" data-item-cell="i_k31jnue50">
+                <div class="mini-item" draggable="true" data-item="i_k31jnue50">
+    <span class="status-dot todo" data-status-toggle="i_k31jnue50" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">Community Services</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-low">נמוכה</span>
+    <span class="mm">L</span>
+    
+    
+  </div>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_m52masp51">
+          <div class="row-label">
+            <span class="rl-text">Legal Advice (ייעוץ משפטי התנדבותי)</span>
+            <span class="rl-gap">❓ לא מסווג</span>
+          </div>
+          <div class="cell gap-cell" data-cell-stage="now" data-item-cell="i_m52masp51">
+                <div class="mini-item" draggable="true" data-item="i_m52masp51">
+    <span class="status-dot todo" data-status-toggle="i_m52masp51" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">Legal Advice (ייעוץ משפטי התנדבותי)</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-low">נמוכה</span>
+    <span class="mm">M</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_m52masp51|angel" data-add-cell="🤝 בניית Trust|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_m52masp51|vc" data-add-cell="🤝 בניית Trust|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div></div><div class="category-block " data-cat-block="📈 פיתוח עסקי">
+      <div class="category-title">
+        <span class="cat-icon">📈</span>
+        <span>פיתוח עסקי</span>
+        <span class="cat-count">3 פריטים</span>
+        <button class="cat-add" data-add-cat="📈 פיתוח עסקי" title="הוסף פריט בקטגוריה זו">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+      </div><div class="matrix-row " data-item-row="i_ipryslx52">
+          <div class="row-label">
+            <span class="rl-text">שיווק ופרסום</span>
+            <span class="rl-gap">❓ לא מסווג</span>
+          </div>
+          <div class="cell gap-cell" data-cell-stage="now" data-item-cell="i_ipryslx52">
+                <div class="mini-item" draggable="true" data-item="i_ipryslx52">
+    <span class="status-dot todo" data-status-toggle="i_ipryslx52" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">שיווק ופרסום</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    <span class="mm">L</span>
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_ipryslx52|angel" data-add-cell="📈 פיתוח עסקי|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_ipryslx52|vc" data-add-cell="📈 פיתוח עסקי|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_ghzec9753">
+          <div class="row-label">
+            <span class="rl-text">B2B Manager</span>
+            <span class="rl-gap">❓ לא מסווג</span>
+          </div>
+          <div class="cell gap-cell" data-cell-stage="now" data-item-cell="i_ghzec9753">
+                <div class="mini-item" draggable="true" data-item="i_ghzec9753">
+    <span class="status-dot todo" data-status-toggle="i_ghzec9753" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">B2B Manager</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-high">גבוהה</span>
+    
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_ghzec9753|angel" data-add-cell="📈 פיתוח עסקי|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_ghzec9753|vc" data-add-cell="📈 פיתוח עסקי|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div><div class="matrix-row " data-item-row="i_uw7gzpe54">
+          <div class="row-label">
+            <span class="rl-text">NPO Manager</span>
+            <span class="rl-gap">❓ לא מסווג</span>
+          </div>
+          <div class="cell gap-cell" data-cell-stage="now" data-item-cell="i_uw7gzpe54">
+                <div class="mini-item" draggable="true" data-item="i_uw7gzpe54">
+    <span class="status-dot todo" data-status-toggle="i_uw7gzpe54" title="לא התחיל — לחץ לשינוי"></span>
+    <span class="m-title">NPO Manager</span>
+  </div>
+  <div class="mini-meta">
+    <span class="mm prio-med">בינונית</span>
+    
+    
+    
+  </div>
+              </div><div class="cell empty" data-move-cell="i_uw7gzpe54|angel" data-add-cell="📈 פיתוח עסקי|angel">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div><div class="cell empty" data-move-cell="i_uw7gzpe54|vc" data-add-cell="📈 פיתוח עסקי|vc">
+                <span class="add-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> הוסף / גרור לכאן</span>
+              </div>
+        </div></div></div>
+</div>
+
+<!-- ===================== SLIDE 6: GAP ANALYSIS (static) ===================== -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="txt">
+      <div class="slide-num">05 · Gap Analysis</div>
+      <h2>ניתוח פערים</h2>
+      <div class="slide-desc">דברים שצריך להחליט עליהם לפני שזו תכנית עבודה</div>
+    </div>
+  </div>
+  <div class="cards-grid">
+    <div class="card red"><h3>🔴 פריטים לא מסווגים</h3><ul>
+      <li><strong>תשתיות חיוב לקוחות</strong> — קריטי. בלי זה אין הכנסות. Now או Angel?</li>
+      <li><strong>השלמת TrackUrlAlert</strong> — כנראה Now? כבר בפיתוח</li>
+      <li><strong>ניהול Tracked URLs</strong> — קשור ל-TrackUrlAlert</li>
+      <li><strong>הפצת דומיין מסוכן בין לקוחות</strong> — Network Effect חזק!</li>
+      <li><strong>Data Collaboration Manager</strong> — לא מוגדר</li>
+      <li><strong>שיווק, B2B, NPO</strong> — תפקידים? תקציב? מתי?</li>
+    </ul></div>
+    <div class="card orange"><h3>🟠 ערבוב קטגוריות</h3><ul>
+      <li><strong>ISO + SOC2 + GDPR</strong> = תהליכים של חודשים עם יועצים, לא פיצ'רים</li>
+      <li><strong>B2B Manager / NPO Manager</strong> = תפקידים, לא בניית פיצ'ר</li>
+      <li><strong>Education Center / Community</strong> = יצירת תוכן מתמשכת</li>
+      <li><strong>"Android בסיסי" מול "מושלם"</strong> — מה ההבדל?</li>
+    </ul></div>
+    <div class="card blue"><h3>🔵 תלויות נסתרות</h3><ul>
+      <li><strong>Keycloak</strong> (Angel) מול <strong>Auth CURVE קיים</strong> — שילוב או החלפה?</li>
+      <li><strong>Protective Actions</strong> תלוי ב<strong>העדפות לקוח</strong></li>
+      <li><strong>iOS</strong> רק ב-VC — בישראל זה 40% מהשוק</li>
+      <li><strong>Load Tests</strong> רק ב-VC — אבל Angel מדבר על "מאות אלפי משתמשים"</li>
+    </ul></div>
+    <div class="card purple"><h3>🟣 חסר בתמונה</h3><ul>
+      <li><strong>מודל עסקי ותמחור</strong> — Subscription? Freemium? B2B?</li>
+      <li><strong>Hiring Plan</strong> — כמה מפתחים? מתי? איזה roles?</li>
+      <li><strong>Runway</strong> — כמה חודשים עד VC? כמה כסף נצרך?</li>
+      <li><strong>KPIs</strong> — מה מגדיר הצלחה בכל שלב?</li>
+      <li><strong>איך מגיעים ללקוחות ראשונים?</strong></li>
+    </ul></div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 7: 4 TRACKS (live counts) ===================== -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="txt">
+      <div class="slide-num">06 · Execution Model</div>
+      <h2>4 מסלולים מקבילים</h2>
+      <div class="slide-desc">במקום טבלה אחת — 4 tracks שרצים במקביל, כל אחד עם ציר זמן ותקציב משלו · התקדמות מתעדכנת בזמן אמת</div>
+    </div>
+  </div>
+  <div class="tracks-grid" id="tracksGrid"><div class="track track-product">
+      <h3>🛠️ Product</h3>
+      <div class="t-sub">פיצ'רים טכניים — CTO/Dev Lead</div>
+      <div class="track-progress"><div class="seg done"></div><div class="seg prog"></div><div class="seg prog"></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div></div>
+      <ul>
+        <li><span class="status-dot block"></span>רישום לקוח, מכשירים, מעקב ולוח בקרה</li><li><span class="status-dot prog"></span>פורטל לקוחות</li><li><span class="status-dot todo"></span>שדרוג פורטל לקוחות</li><li><span class="status-dot todo"></span>Keycloak + Identity Providers</li><li><span class="status-dot todo"></span>תשתיות חיוב לקוחות</li>
+        <li style="color:var(--gray);font-style:italic">+ 37 נוספים</li>
+        
+      </ul>
+      <div class="t-count" style="margin-top:12px">
+        <span>סה״כ: <strong>42</strong></span>
+        <span>· הושלמו: <strong style="color:var(--now)">7</strong></span>
+        <span>· בביצוע: <strong style="color:var(--angel)">7</strong></span>
+        <span>· חסום: <strong style="color:#ef4444">2</strong></span>
+      </div>
+    </div><div class="track track-compliance">
+      <h3>🔐 Compliance</h3>
+      <div class="t-sub">ISO, SOC2, GDPR, Legal — CEO/COO</div>
+      <div class="track-progress"><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div></div>
+      <ul>
+        <li><span class="status-dot todo"></span>ISO-27001</li><li><span class="status-dot todo"></span>SOC 2 Type I</li><li><span class="status-dot todo"></span>CCPA</li><li><span class="status-dot todo"></span>GDPR</li><li><span class="status-dot todo"></span>Penetration Tests</li>
+        <li style="color:var(--gray);font-style:italic">+ 2 נוספים</li>
+        
+      </ul>
+      <div class="t-count" style="margin-top:12px">
+        <span>סה״כ: <strong>7</strong></span>
+        <span>· הושלמו: <strong style="color:var(--now)">0</strong></span>
+        <span>· בביצוע: <strong style="color:var(--angel)">0</strong></span>
+        
+      </div>
+    </div><div class="track track-gtm">
+      <h3>📣 Go-to-Market</h3>
+      <div class="t-sub">שיווק, PR, Education — CEO/BD</div>
+      <div class="track-progress"><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div></div>
+      <ul>
+        <li><span class="status-dot todo"></span>יח״צ - PR</li><li><span class="status-dot todo"></span>שירות לקוחות - AI + היברידי</li><li><span class="status-dot todo"></span>Education Center: Articles, Blog, Movies, TV</li><li><span class="status-dot todo"></span>Community Services</li><li><span class="status-dot todo"></span>Legal Advice (ייעוץ משפטי התנדבותי)</li>
+        <li style="color:var(--gray);font-style:italic">+ 1 נוספים</li>
+        
+      </ul>
+      <div class="t-count" style="margin-top:12px">
+        <span>סה״כ: <strong>6</strong></span>
+        <span>· הושלמו: <strong style="color:var(--now)">0</strong></span>
+        <span>· בביצוע: <strong style="color:var(--angel)">0</strong></span>
+        
+      </div>
+    </div><div class="track track-hiring">
+      <h3>👤 Hiring</h3>
+      <div class="t-sub">תפקידים וגיוס — CEO</div>
+      <div class="track-progress"><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div><div class="seg "></div></div>
+      <ul>
+        <li><span class="status-dot todo"></span>B2B Manager</li><li><span class="status-dot todo"></span>NPO Manager</li>
+        
+        
+      </ul>
+      <div class="t-count" style="margin-top:12px">
+        <span>סה״כ: <strong>2</strong></span>
+        <span>· הושלמו: <strong style="color:var(--now)">0</strong></span>
+        <span>· בביצוע: <strong style="color:var(--angel)">0</strong></span>
+        
+      </div>
+    </div></div>
+</div>
+
+<!-- ===================== SLIDE 8: ANGEL SUMMARY ===================== -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="txt">
+      <div class="slide-num">07 · Why Angel?</div>
+      <h2>בשביל מה צריך Angel?</h2>
+      <div class="slide-desc">4 יעדים מרכזיים שהגיוס מאפשר</div>
+    </div>
+  </div>
+  <div class="summary-cards">
+    <div class="summary-card"><div class="icon">🚀</div><h4>השלמת פיתוח מהירה</h4><p>לוח זמנים קצר ביותר אפשרי כדי לזכות בראשוניות בשוק. Android מושלם, WhatsApp, הסלמה משודרגת, שפות נוספות.</p></div>
+    <div class="summary-card"><div class="icon">🔐</div><h4>אבטחת מידע ותקנים</h4><p>היערכות לרמת ביטחון מידע ועמידה בתקנים ורגולציה ברמות הגבוהות ביותר. ISO-27001, SOC 2, GDPR, CCPA, Pentest.</p></div>
+    <div class="summary-card"><div class="icon">☁️</div><h4>תשתיות Production</h4><p>הפעלה חלקה תוך גידול מהיר לסדרי גודל של מאות אלפי משתמשים בתוך חודשים ספורים. Pipeline, QA, Cloud, Automation.</p></div>
+    <div class="summary-card"><div class="icon">⚖️</div><h4>תשתית משפטית וביטוחית</h4><p>הגנה משפטית וביטוחית שמאפשרת פעילות מסחרית ללא סיכון. תנאי שימוש, פרטיות, רגולציה.</p></div>
+  </div>
+</div>
+
+<!-- ===================== MODAL ===================== -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="bubble">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+      </div>
+      <h3 id="modalTitle">פריט חדש</h3>
+      <button class="iconbtn" id="modalClose">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>כותרת</label>
+        <input id="fTitle" placeholder="למשל: סריקת WhatsApp" type="text">
+      </div>
+      <div class="field">
+        <label>תיאור / הערות</label>
+        <textarea id="fDesc" placeholder="פרטים, שאלות פתוחות, הגדרת &quot;מוכן&quot;…"></textarea>
+      </div>
+
+      <div class="field">
+        <label>שלב גיוס</label>
+        <div class="seg-group" id="sgStage">
+          <button class="seg-btn" data-seg="stage" data-val="now">● לפני Angel</button>
+          <button class="seg-btn" data-seg="stage" data-val="angel">● Angel</button>
+          <button class="seg-btn" data-seg="stage" data-val="vc">● VC</button>
+          <button class="seg-btn" data-seg="stage" data-val="gap">● לא מסווג</button>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>סטטוס</label>
+          <div class="seg-group" id="sgStatus">
+            <button class="seg-btn" data-seg="status" data-val="todo">לא התחיל</button>
+            <button class="seg-btn" data-seg="status" data-val="prog">בביצוע</button>
+            <button class="seg-btn" data-seg="status" data-val="done">הושלם</button>
+            <button class="seg-btn" data-seg="status" data-val="block">חסום</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>עדיפות</label>
+          <div class="seg-group" id="sgPrio">
+            <button class="seg-btn" data-seg="priority" data-val="low">נמוכה</button>
+            <button class="seg-btn" data-seg="priority" data-val="med">בינונית</button>
+            <button class="seg-btn" data-seg="priority" data-val="high">גבוהה</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-row-3">
+        <div class="field">
+          <label>Track</label>
+          <select id="fTrackSel">
+            <option value="product">🛠️ Product</option>
+            <option value="compliance">🔐 Compliance</option>
+            <option value="gtm">📣 Go-to-Market</option>
+            <option value="hiring">👤 Hiring</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>מאמץ</label>
+          <select id="fEffortSel">
+            <option value="">—</option>
+            <option value="XS">XS · ימים</option>
+            <option value="S">S · שבוע</option>
+            <option value="M">M · 2-4 שב׳</option>
+            <option value="L">L · 1-2 חו׳</option>
+            <option value="XL">XL · 3+ חו׳</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>תאריך יעד</label>
+          <input id="fDue" type="date">
+        </div>
+      </div>
+
+      <div class="field-row-3">
+        <div class="field">
+          <label>בעלות (מי אחראי)</label>
+          <input id="fOwner" placeholder="שם או ראשי תיבות" type="text">
+        </div>
+        <div class="field">
+          <label>JIRA Item Number</label>
+          <input id="fJira" placeholder="למשל: ASPS-123" type="text">
+        </div>
+        <div class="field">
+          <label>קטגוריה</label>
+          <select id="fCategory"></select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="delete-btn" id="modalDelete" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"></path></svg>
+        מחק
+      </button>
+      <button class="cancel-btn" id="modalCancel">ביטול</button>
+      <button class="save-btn" id="modalSave">שמירה</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== CATEGORY MODAL ===================== -->
+<div class="modal-bg" id="modalCatBg">
+  <div class="modal modal-compact">
+    <div class="modal-hdr">
+      <div class="bubble bubble-cat">📁</div>
+      <h3 id="modalCatTitle">קטגוריה חדשה</h3>
+      <button class="iconbtn" id="modalCatClose">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row" style="grid-template-columns:120px 1fr">
+        <div class="field">
+          <label>אייקון</label>
+          <input id="fCatIcon" placeholder="🎯" type="text" maxlength="4" style="text-align:center;font-size:1.4rem">
+        </div>
+        <div class="field">
+          <label>שם הקטגוריה</label>
+          <input id="fCatName" placeholder="למשל: ניהול הסכמות" type="text">
+        </div>
+      </div>
+      <div class="field">
+        <label>שייך לשקף</label>
+        <select id="fCatMatrix"></select>
+      </div>
+      <div id="catModalHint" style="font-size:.78rem;color:#94a3b8;background:#f8fafc;padding:10px 12px;border-radius:8px">
+        💡 הקטגוריה תופיע בשקף שתבחרו, ותהיה זמינה לבחירה כשמוסיפים פריטים חדשים.
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="delete-btn" id="modalCatDelete" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"></path></svg>
+        מחק
+      </button>
+      <button class="cancel-btn" id="modalCatCancel">ביטול</button>
+      <button class="save-btn" id="modalCatSave">הוסף</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE MODAL ===================== -->
+<div class="modal-bg" id="modalSlideBg">
+  <div class="modal modal-compact">
+    <div class="modal-hdr">
+      <div class="bubble" style="background:linear-gradient(135deg,#f59e0b,#d97706)">📊</div>
+      <h3 id="modalSlideTitle">שקף חדש</h3>
+      <button class="iconbtn" id="modalSlideClose">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>מספר/קטגוריית-על</label>
+        <input id="fSlideNum" placeholder="למשל: 05 · Custom Track" type="text">
+      </div>
+      <div class="field">
+        <label>כותרת השקף</label>
+        <input id="fSlideTitle" placeholder="למשל: ניהול נתונים" type="text">
+      </div>
+      <div class="field">
+        <label>תיאור</label>
+        <textarea id="fSlideDesc" placeholder="תיאור קצר על השקף"></textarea>
+      </div>
+      <div id="slideModalHint" style="font-size:.78rem;color:#94a3b8;background:#fffbeb;padding:10px 12px;border-radius:8px;border:1px solid #fcd34d">
+        💡 שקפים חדשים נוצרים ריקים. אחרי יצירה, ניתן להוסיף קטגוריות אליהם דרך כפתור "+ הוסף קטגוריה לשקף זה" שמופיע בתחתית כל שקף.
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="delete-btn" id="modalSlideDelete" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"></path></svg>
+        מחק
+      </button>
+      <button class="cancel-btn" id="modalSlideCancel">ביטול</button>
+      <button class="save-btn" id="modalSlideSave">הוסף</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="fileImport" accept="application/json,.json" style="display:none">
+
+
+
+
+
+<span id="PING_IFRAME_FORM_DETECTION" style="display: none;"></span>
+</div>

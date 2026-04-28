@@ -4,6 +4,13 @@
     ViewData["Title"] = Model.Roadmap?.Name ?? "Edit Roadmap";
 }
 
+@* Layout doesn't expose a Styles section, so we inline the SPA's CSS + Heebo font here. *@
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="~/css/roadmap-spa.css" asp-append-version="true">
+
+
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
     <div class="alert alert-danger m-3">
@@ -82,16 +89,8 @@
 <!-- Anti-forgery token for AJAX POSTs -->
 @Html.AntiForgeryToken()
 
-<!-- ============================================================ -->
-<!-- SPA mount point — Phase 4 will populate this with the editor   -->
-<!-- ============================================================ -->
-<div id="roadmap-spa-root">
-    <div class="alert alert-info m-3">
-        <i class="fas fa-info-circle me-2"></i>
-        עורך ה-SPA יותקן ב-Phase 4. הנתונים נטענו ב-state.
-        <pre class="mt-2 small" style="max-height:200px;overflow:auto">@Model.Roadmap.Data.Substring(0, Math.Min(500, Model.Roadmap.Data.Length))...</pre>
-    </div>
-</div>
+@* SPA body — extracted from docs/roadmap-presentation-editable.html. *@
+<partial name="_RoadmapSpaBody" />
 
 @section Scripts {
 <script>
@@ -204,4 +203,8 @@
     });
 })();
 </script>
+
+@* The SPA bundle reads window.RoadmapAdmin.initial, hydrates state from it,
+   and registers window.RoadmapAdmin.getCurrentData for the manual save button. *@
+<script src="~/js/roadmap-spa.js" asp-append-version="true"></script>
 }
