@@ -163,6 +163,9 @@ public class CQRSGateway : IDisposable
             "GetAllWebsiteCategoriesQuery" => await HandleGetAllWebsiteCategoriesQuery(messageJson, scope),
             "GetWebsiteCategoryByNameQuery" => await HandleGetWebsiteCategoryByNameQuery(messageJson, scope),
             "GetParentCategoriesQuery" => await HandleGetParentCategoriesQuery(messageJson, scope),
+            // Roadmap Queries
+            "GetRoadmapByIdQuery" => await HandleGetRoadmapByIdQuery(messageJson, scope),
+            "ListRoadmapsQuery" => await HandleListRoadmapsQuery(messageJson, scope),
             _ => CreateErrorResponse($"Unknown query type: {queryType}")
         };
     }
@@ -194,6 +197,11 @@ public class CQRSGateway : IDisposable
             // Website Category Commands (SCRUM-822)
             "CreateWebsiteCategoryCommand" => await HandleCreateWebsiteCategoryCommand(messageJson, scope),
             "UpdateWebsiteCategoryCommand" => await HandleUpdateWebsiteCategoryCommand(messageJson, scope),
+            // Roadmap Commands
+            "CreateRoadmapCommand" => await HandleCreateRoadmapCommand(messageJson, scope),
+            "SaveRoadmapCommand" => await HandleSaveRoadmapCommand(messageJson, scope),
+            "UpdateRoadmapMetadataCommand" => await HandleUpdateRoadmapMetadataCommand(messageJson, scope),
+            "ArchiveRoadmapCommand" => await HandleArchiveRoadmapCommand(messageJson, scope),
             _ => CreateErrorResponse($"Unknown command type: {commandType}")
         };
     }
@@ -808,6 +816,86 @@ public class CQRSGateway : IDisposable
         if (command == null) return CreateErrorResponse("Invalid UpdateWebsiteCategoryCommand format");
 
         var handler = scope.ServiceProvider.GetRequiredService<WebsiteCategoryCommandHandlers>();
+        var result = await handler.HandleAsync(command);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    // =========================================================================
+    // Roadmap dispatch handlers
+    // =========================================================================
+    private async Task<string> HandleGetRoadmapByIdQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetRoadmapByIdQuery>(messageJson);
+        if (query == null) return CreateErrorResponse("Invalid GetRoadmapByIdQuery format");
+        var handler = scope.ServiceProvider.GetRequiredService<RoadmapQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleListRoadmapsQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<ListRoadmapsQuery>(messageJson) ?? new ListRoadmapsQuery();
+        var handler = scope.ServiceProvider.GetRequiredService<RoadmapQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleCreateRoadmapCommand(string messageJson, IServiceScope scope)
+    {
+        var command = JsonConvert.DeserializeObject<CreateRoadmapCommand>(messageJson);
+        if (command == null) return CreateErrorResponse("Invalid CreateRoadmapCommand format");
+        var handler = scope.ServiceProvider.GetRequiredService<RoadmapCommandHandlers>();
+        var result = await handler.HandleAsync(command);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleSaveRoadmapCommand(string messageJson, IServiceScope scope)
+    {
+        var command = JsonConvert.DeserializeObject<SaveRoadmapCommand>(messageJson);
+        if (command == null) return CreateErrorResponse("Invalid SaveRoadmapCommand format");
+        var handler = scope.ServiceProvider.GetRequiredService<RoadmapCommandHandlers>();
+        var result = await handler.HandleAsync(command);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleUpdateRoadmapMetadataCommand(string messageJson, IServiceScope scope)
+    {
+        var command = JsonConvert.DeserializeObject<UpdateRoadmapMetadataCommand>(messageJson);
+        if (command == null) return CreateErrorResponse("Invalid UpdateRoadmapMetadataCommand format");
+        var handler = scope.ServiceProvider.GetRequiredService<RoadmapCommandHandlers>();
+        var result = await handler.HandleAsync(command);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleArchiveRoadmapCommand(string messageJson, IServiceScope scope)
+    {
+        var command = JsonConvert.DeserializeObject<ArchiveRoadmapCommand>(messageJson);
+        if (command == null) return CreateErrorResponse("Invalid ArchiveRoadmapCommand format");
+        var handler = scope.ServiceProvider.GetRequiredService<RoadmapCommandHandlers>();
         var result = await handler.HandleAsync(command);
         return JsonConvert.SerializeObject(result, new JsonSerializerSettings
         {
