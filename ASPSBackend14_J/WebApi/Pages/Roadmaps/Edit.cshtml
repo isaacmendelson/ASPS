@@ -1,0 +1,207 @@
+@page "{id:int?}"
+@model WebApi.Pages.Roadmaps.EditModel
+@{
+    ViewData["Title"] = Model.Roadmap?.Name ?? "Edit Roadmap";
+}
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger m-3">
+        @Model.ErrorMessage
+        <a asp-page="Index" class="alert-link">חזרה לרשימה</a>
+    </div>
+    return;
+}
+
+@if (Model.Roadmap == null)
+{
+    <div class="alert alert-warning m-3">Roadmap לא נטען. <a asp-page="Index">חזרה לרשימה</a></div>
+    return;
+}
+
+<!-- Header bar (above the SPA) -->
+<div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom flex-wrap gap-2">
+    <div>
+        <a asp-page="Index" class="btn btn-sm btn-outline-secondary me-2">
+            <i class="fas fa-arrow-right"></i> חזרה
+        </a>
+        <span class="h4 mb-0">@Model.Roadmap.Name</span>
+        @if (!string.IsNullOrEmpty(Model.Roadmap.Description))
+        {
+            <small class="text-muted ms-2">@Model.Roadmap.Description</small>
+        }
+        <span class="badge bg-light text-dark ms-2" id="versionBadge">v@(Model.Roadmap.Version)</span>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+        <small class="text-muted" id="lastUpdatedLabel">
+            <i class="fas fa-clock me-1"></i>
+            עודכן:
+            <span id="lastUpdatedAt">
+                @(Model.Roadmap.LastUpdatedAt?.ToString("yyyy-MM-dd HH:mm") ?? Model.Roadmap.DateCreated.ToString("yyyy-MM-dd"))
+            </span>
+            @if (!string.IsNullOrEmpty(Model.Roadmap.LastUpdatedBy))
+            {
+                <span class="text-muted">·</span>
+                <span id="lastUpdatedBy">@Model.Roadmap.LastUpdatedBy</span>
+            }
+        </small>
+        <span id="saveIndicator" class="badge bg-success" style="display:none">
+            <i class="fas fa-check"></i> נשמר
+        </span>
+        <span id="savingIndicator" class="badge bg-info" style="display:none">
+            <i class="fas fa-spinner fa-spin"></i> שומר...
+        </span>
+        <span id="dirtyIndicator" class="badge bg-warning text-dark" style="display:none">
+            <i class="fas fa-pencil"></i> שינויים לא שמורים
+        </span>
+        <span id="conflictIndicator" class="badge bg-danger" style="display:none">
+            <i class="fas fa-exclamation-triangle"></i> קונפליקט גרסאות
+        </span>
+        <button type="button" class="btn btn-sm btn-primary" id="manualSaveBtn">
+            <i class="fas fa-save"></i> שמור
+        </button>
+    </div>
+</div>
+
+<!-- Initial roadmap data passed from server to the SPA frontend. -->
+<script id="initial-roadmap-data" type="application/json">
+    @Html.Raw(System.Text.Json.JsonSerializer.Serialize(new
+    {
+        id = Model.Roadmap.Id,
+        name = Model.Roadmap.Name,
+        description = Model.Roadmap.Description,
+        version = Model.Roadmap.Version,
+        data = Model.Roadmap.Data,
+        lastUpdatedAt = Model.Roadmap.LastUpdatedAt,
+        lastUpdatedBy = Model.Roadmap.LastUpdatedBy,
+        dateCreated = Model.Roadmap.DateCreated,
+        createdBy = Model.Roadmap.CreatedBy,
+    }))
+</script>
+
+<!-- Anti-forgery token for AJAX POSTs -->
+@Html.AntiForgeryToken()
+
+<!-- ============================================================ -->
+<!-- SPA mount point — Phase 4 will populate this with the editor   -->
+<!-- ============================================================ -->
+<div id="roadmap-spa-root">
+    <div class="alert alert-info m-3">
+        <i class="fas fa-info-circle me-2"></i>
+        עורך ה-SPA יותקן ב-Phase 4. הנתונים נטענו ב-state.
+        <pre class="mt-2 small" style="max-height:200px;overflow:auto">@Model.Roadmap.Data.Substring(0, Math.Min(500, Model.Roadmap.Data.Length))...</pre>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+// ============================================================================
+// Phase 3 skeleton — wires up:
+//   - the initial state from <script id="initial-roadmap-data">
+//   - manual "save" button (POST handler=Save)
+//   - antiforgery token plumbing
+// Phase 4 will replace #roadmap-spa-root with the full editor and call
+//   window.RoadmapAdmin.markDirty() / .save() etc.
+// ============================================================================
+(function () {
+    const initialEl = document.getElementById('initial-roadmap-data');
+    const initial = initialEl ? JSON.parse(initialEl.textContent) : null;
+    if (!initial) { console.warn('No initial roadmap data'); return; }
+
+    let currentVersion = initial.version || 1;
+    let dirty = false;
+
+    const saveUrl = window.location.pathname + '?handler=Save';
+    const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+    const antiForgery = tokenInput ? tokenInput.value : '';
+
+    function setIndicator(which) {
+        ['save','saving','dirty','conflict'].forEach(k => {
+            const el = document.getElementById(k + 'Indicator');
+            if (el) el.style.display = (k === which) ? 'inline-block' : 'none';
+        });
+    }
+    function updateLastUpdated(at, by) {
+        if (at) {
+            const d = new Date(at);
+            const txt = d.getFullYear() + '-' +
+                String(d.getMonth()+1).padStart(2,'0') + '-' +
+                String(d.getDate()).padStart(2,'0') + ' ' +
+                String(d.getHours()).padStart(2,'0') + ':' +
+                String(d.getMinutes()).padStart(2,'0');
+            document.getElementById('lastUpdatedAt').textContent = txt;
+        }
+        if (by) {
+            const elBy = document.getElementById('lastUpdatedBy');
+            if (elBy) elBy.textContent = by;
+        }
+        const vEl = document.getElementById('versionBadge');
+        if (vEl) vEl.textContent = 'v' + currentVersion;
+    }
+
+    async function saveData(payloadData) {
+        setIndicator('saving');
+        try {
+            const res = await fetch(saveUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': antiForgery,
+                },
+                body: JSON.stringify({
+                    id: initial.id,
+                    expectedVersion: currentVersion,
+                    data: typeof payloadData === 'string' ? payloadData : JSON.stringify(payloadData),
+                }),
+            });
+            const result = await res.json();
+            if (!result.success) {
+                if (result.concurrencyConflict) {
+                    setIndicator('conflict');
+                    if (confirm('מישהו אחר עדכן את ה-roadmap בינתיים. לטעון את הגרסה החדשה? (השינויים שלך יאבדו)')) {
+                        window.location.reload();
+                    }
+                } else {
+                    setIndicator('dirty');
+                    alert('שמירה נכשלה: ' + (result.message || 'unknown'));
+                }
+                return false;
+            }
+            currentVersion = result.newVersion || (currentVersion + 1);
+            updateLastUpdated(result.lastUpdatedAt, result.lastUpdatedBy);
+            setIndicator('save');
+            dirty = false;
+            return true;
+        } catch (err) {
+            setIndicator('dirty');
+            alert('שגיאה ברשת: ' + err.message);
+            return false;
+        }
+    }
+
+    // Public API for the SPA (Phase 4)
+    window.RoadmapAdmin = {
+        initial: initial,
+        getVersion: () => currentVersion,
+        save: saveData,
+        markDirty: () => { dirty = true; setIndicator('dirty'); },
+    };
+
+    // Manual save button
+    document.getElementById('manualSaveBtn')?.addEventListener('click', () => {
+        // Phase 4 will provide the current data via window.RoadmapAdmin.getCurrentData()
+        const getter = window.RoadmapAdmin.getCurrentData;
+        if (typeof getter !== 'function') {
+            alert('עורך עדיין לא נטען (Phase 4 חסר)');
+            return;
+        }
+        saveData(getter());
+    });
+
+    // Warn before leaving with unsaved changes
+    window.addEventListener('beforeunload', (e) => {
+        if (dirty) { e.preventDefault(); e.returnValue = ''; }
+    });
+})();
+</script>
+}

@@ -1,0 +1,132 @@
+@page
+@model WebApi.Pages.Roadmaps.IndexModel
+@{
+    ViewData["Title"] = "Roadmaps";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-road me-2"></i>Roadmaps</h1>
+    <div class="btn-toolbar mb-2 mb-md-0 d-flex gap-2">
+        <div class="form-check form-switch align-self-center me-2">
+            <input class="form-check-input" type="checkbox" id="includeArchivedSwitch"
+                   onchange="window.location='?IncludeArchived=' + this.checked"
+                   @(Model.IncludeArchived ? "checked" : "")>
+            <label class="form-check-label small" for="includeArchivedSwitch">כולל בארכיון</label>
+        </div>
+        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createRoadmapModal">
+            <i class="fas fa-plus"></i> Roadmap חדש
+        </button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success">@Model.SuccessMessage</div>
+}
+
+@if (Model.Roadmaps == null || !Model.Roadmaps.Any())
+{
+    <div class="alert alert-info">
+        אין roadmaps להצגה.
+        <a href="#" data-bs-toggle="modal" data-bs-target="#createRoadmapModal" class="alert-link">צרו את הראשון</a>.
+    </div>
+}
+else
+{
+    <div class="mb-3">
+        <span class="badge bg-primary">@Model.Roadmaps.Count(r => !r.IsArchived) פעילים</span>
+        @if (Model.IncludeArchived)
+        {
+            <span class="badge bg-secondary">@Model.Roadmaps.Count(r => r.IsArchived) בארכיון</span>
+        }
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th style="width:30%">שם</th>
+                    <th>תיאור</th>
+                    <th style="width:140px">עודכן לאחרונה</th>
+                    <th style="width:140px">עודכן ע"י</th>
+                    <th style="width:60px;text-align:center">גרסה</th>
+                    <th style="width:170px"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model.Roadmaps)
+                {
+                    <tr class="@(r.IsArchived ? "text-muted opacity-50" : "")">
+                        <td>
+                            <a asp-page="Edit" asp-route-id="@r.Id" class="text-decoration-none">
+                                <strong>@r.Name</strong>
+                                @if (r.IsArchived)
+                                {
+                                    <span class="badge bg-secondary ms-1">בארכיון</span>
+                                }
+                            </a>
+                        </td>
+                        <td><small class="text-muted">@(r.Description ?? "-")</small></td>
+                        <td>
+                            <small>
+                                @(r.LastUpdatedAt?.ToString("yyyy-MM-dd HH:mm") ?? r.DateCreated.ToString("yyyy-MM-dd"))
+                            </small>
+                        </td>
+                        <td><small>@(r.LastUpdatedBy ?? "-")</small></td>
+                        <td class="text-center"><span class="badge bg-light text-dark">v@(r.Version)</span></td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a asp-page="Edit" asp-route-id="@r.Id" class="btn btn-outline-primary" title="ערוך">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                @if (!r.IsArchived)
+                                {
+                                    <form method="post" asp-page-handler="Archive" asp-route-id="@r.Id" class="d-inline"
+                                          onsubmit="return confirm('להעביר לארכיון את \'@r.Name\'?');">
+                                        <button type="submit" class="btn btn-outline-danger" title="ארכיון">
+                                            <i class="fas fa-archive"></i>
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<!-- Create Modal -->
+<div class="modal fade" id="createRoadmapModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="post" asp-page-handler="Create">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Roadmap חדש</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label asp-for="Input.Name" class="form-label">שם <span class="text-danger">*</span></label>
+                        <input asp-for="Input.Name" class="form-control" placeholder="למשל: ASPS Master Roadmap" required>
+                        <span asp-validation-for="Input.Name" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Input.Description" class="form-label">תיאור (אופציונלי)</label>
+                        <textarea asp-for="Input.Description" class="form-control" rows="2" placeholder="תיאור קצר על ה-roadmap"></textarea>
+                        <span asp-validation-for="Input.Description" class="text-danger small"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ביטול</button>
+                    <button type="submit" class="btn btn-primary">צור ופתח</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
