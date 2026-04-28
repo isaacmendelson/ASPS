@@ -45,6 +45,7 @@ public class AppDbContext : DbContext
     public DbSet<BlacklistedPhoneNumber> BlacklistedPhoneNumbers { get; set; }
     public DbSet<BankWebsite> BankWebsites { get; set; }
     public DbSet<WebsiteCategory> WebsiteCategories { get; set; }
+    public DbSet<Roadmap> Roadmaps { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -534,6 +535,50 @@ public class AppDbContext : DbContext
 
         // BankWebsite configuration (INT AUTO_INCREMENT key)
         // JIRA: ASPS-297
+        // Roadmap configuration (JSON-blob design — see Common/Entities/Roadmap.cs)
+        modelBuilder.Entity<Roadmap>(entity =>
+        {
+            entity.ToTable("Roadmaps");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id)
+                .HasColumnName("Key")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.Description)
+                .HasMaxLength(500);
+
+            entity.Property(e => e.Data)
+                .IsRequired()
+                .HasColumnType("longtext");
+
+            entity.Property(e => e.Version)
+                .IsRequired()
+                .HasDefaultValue(1)
+                .IsConcurrencyToken();
+
+            entity.Property(e => e.DateCreated)
+                .IsRequired();
+
+            entity.Property(e => e.LastUpdatedAt);
+
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(255);
+
+            entity.Property(e => e.LastUpdatedBy)
+                .HasMaxLength(255);
+
+            entity.Property(e => e.IsArchived)
+                .IsRequired()
+                .HasDefaultValue(false);
+
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.IsArchived);
+        });
+
         modelBuilder.Entity<BankWebsite>(entity =>
         {
             entity.ToTable("BankWebsites");
