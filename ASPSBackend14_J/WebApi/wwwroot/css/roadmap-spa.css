@@ -317,7 +317,7 @@
   .rm-spa .slide-toggle svg, .rm-spa .slide-action svg{width:16px;height:16px;transition:transform .25s}
   .rm-spa .slide.slide-collapsed .slide-toggle svg{transform:rotate(-90deg)}
   .rm-spa .slide.slide-collapsed .slide-body{display:none}
-  .rm-spa .slide.slide-collapsed{min-height:auto;padding-bottom:40px}
+  .rm-spa .slide.slide-collapsed{padding:10px 80px 8px;min-height:auto}
   .rm-spa .slide.slide-collapsed .slide-header{margin-bottom:0}
   .rm-spa .slide-action.disabled{opacity:.25;cursor:not-allowed;pointer-events:none}
   .rm-spa .slide-action.delete:hover{background:#fee2e2;color:#dc2626}

@@ -338,6 +338,19 @@ function toggleSlideCollapse(slideId){
   const slideEl = document.querySelector(`[data-slide-id="${slideId}"]`);
   if(slideEl) slideEl.classList.toggle('slide-collapsed', s.collapsed);
 }
+/* Bulk toggle: if every slide is currently collapsed, expand all; else collapse all. */
+function toggleAllSlidesCollapsed(){
+  if(!Array.isArray(state.slides) || state.slides.length===0){ toast('אין שקפים'); return; }
+  const allCollapsed = state.slides.every(s=>!!s.collapsed);
+  const target = !allCollapsed;
+  state.slides.forEach(s=>{ s.collapsed = target; });
+  save();
+  // Toggle CSS class on each rendered slide for smoothness (no full re-render)
+  document.querySelectorAll('[data-slide-id]').forEach(el=>{
+    el.classList.toggle('slide-collapsed', target);
+  });
+  toast(target ? 'כל השקפים כווצו' : 'כל השקפים נפתחו');
+}
 function moveSlide(slideId, beforeSlideId, insertAbove){
   const s = state.slides.find(x=>x.id===slideId);
   if(!s) return;
@@ -1734,6 +1747,7 @@ function init(){
   $('#modalCatDelete').addEventListener('click', deleteCat);
 
   // slide modal
+  $('#btnToggleAllSlides')?.addEventListener('click', toggleAllSlidesCollapsed);
   $('#btnAddSlide').addEventListener('click', ()=>openSlideModal(null));
   $('#modalSlideClose').addEventListener('click', closeSlideModal);
   $('#modalSlideCancel').addEventListener('click', closeSlideModal);

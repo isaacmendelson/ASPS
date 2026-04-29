@@ -317,7 +317,7 @@
   .slide-toggle svg, .slide-action svg{width:16px;height:16px;transition:transform .25s}
   .slide.slide-collapsed .slide-toggle svg{transform:rotate(-90deg)}
   .slide.slide-collapsed .slide-body{display:none}
-  .slide.slide-collapsed{min-height:auto;padding-bottom:40px}
+  .slide.slide-collapsed{padding:10px 80px 8px;min-height:auto}
   .slide.slide-collapsed .slide-header{margin-bottom:0}
   .slide-action.disabled{opacity:.25;cursor:not-allowed;pointer-events:none}
   .slide-action.delete:hover{background:#fee2e2;color:#dc2626}
@@ -905,6 +905,10 @@
   </button>
   <button class="tb-btn" id="btnReset" title="איפוס לברירת מחדל" fdprocessedid="huih75">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+  </button>
+  <button class="tb-btn" id="btnToggleAllSlides" title="כווץ/פתח את כל השקפים">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline><polyline points="6 4 12 10 18 4" style="opacity:.55"></polyline></svg>
+    הכל
   </button>
   <div class="tb-sep"></div>
   <button class="tb-btn" id="btnAddSlide" title="שקף חדש">
@@ -3133,6 +3137,19 @@ function toggleSlideCollapse(slideId){
   const slideEl = document.querySelector(`[data-slide-id="${slideId}"]`);
   if(slideEl) slideEl.classList.toggle('slide-collapsed', s.collapsed);
 }
+/* Bulk toggle: if every slide is currently collapsed, expand all; else collapse all. */
+function toggleAllSlidesCollapsed(){
+  if(!Array.isArray(state.slides) || state.slides.length===0){ toast('אין שקפים'); return; }
+  const allCollapsed = state.slides.every(s=>!!s.collapsed);
+  const target = !allCollapsed;
+  state.slides.forEach(s=>{ s.collapsed = target; });
+  save();
+  // Toggle CSS class on each rendered slide for smoothness (no full re-render)
+  document.querySelectorAll('[data-slide-id]').forEach(el=>{
+    el.classList.toggle('slide-collapsed', target);
+  });
+  toast(target ? 'כל השקפים כווצו' : 'כל השקפים נפתחו');
+}
 function moveSlide(slideId, beforeSlideId, insertAbove){
   const s = state.slides.find(x=>x.id===slideId);
   if(!s) return;
@@ -4494,6 +4511,7 @@ function init(){
   $('#modalCatDelete').addEventListener('click', deleteCat);
 
   // slide modal
+  $('#btnToggleAllSlides')?.addEventListener('click', toggleAllSlidesCollapsed);
   $('#btnAddSlide').addEventListener('click', ()=>openSlideModal(null));
   $('#modalSlideClose').addEventListener('click', closeSlideModal);
   $('#modalSlideCancel').addEventListener('click', closeSlideModal);
