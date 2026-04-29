@@ -10,6 +10,33 @@
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="~/css/roadmap-spa.css" asp-append-version="true">
 
+@* SPA was designed to live in its own page; admin chrome (topbar 64px / sidebar 260px,
+   z-index:50) overlaps the SPA toolbar (default top:16px z-index:50) and would also
+   sit on top of the SPA modals (z-index:100). Bump everything above the chrome here. *@
+<style>
+    .rm-spa .toolbar { top: 80px !important; z-index: 1060 !important; }
+    /* Modal MUST be above admin chrome AND any matrix-header sticky positioning. */
+    .rm-spa .modal-bg { z-index: 1100 !important; }
+    .rm-spa .modal-bg.open { display: flex !important; }
+    /* Bootstrap's base CSS sets `.modal { display: none }`. The SPA's `.modal` rule
+       doesn't declare a display, so Bootstrap wins and the white box stays hidden
+       even when modal-bg.open is flex. Force it visible inside the SPA. */
+    .rm-spa #modalBg .modal,
+    .rm-spa #modalCatBg .modal,
+    .rm-spa #modalSlideBg .modal { display: block !important; }
+    .rm-spa .modal-bg.open .modal {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+    /* Sticky matrix headers in the SPA were anchored under the SPA toolbar; nudge them
+       so they don't end up under the admin topbar (which is sticky at 0..64px). */
+    .rm-spa .matrix-header { top: 130px; z-index: 19; }
+    /* Make sure the slide content area can hold the SPA's full-bleed slides without
+       fighting the .main-content padding the layout already gives us. */
+    .rm-spa .slide { padding-left: 24px; padding-right: 24px; }
+</style>
+
 
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {

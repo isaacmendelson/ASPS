@@ -122,7 +122,7 @@
     position:absolute;bottom:30px;left:50%;transform:translateX(-50%);
     font-size:.85rem;opacity:.5;animation:bounce 2s infinite;
   }
-  .rm-spa @keyframes bounce{0%, 100%{transform:translate(-50%,0)}50%{transform:translate(-50%,8px)}}
+  @keyframes bounce{0%, 100%{transform:translate(-50%,0)}50%{transform:translate(-50%,8px)}}
 
   .rm-spa /* ===== SLIDE HEADERS ===== */
   .slide-header{margin-bottom:32px;display:flex;align-items:flex-end;gap:20px}
@@ -429,10 +429,16 @@
   }
   .rm-spa .modal-bg.open{display:flex}
   .rm-spa .modal{
+    display:block;
+    /* Reset Bootstrap's `.modal { position:fixed;top:0;left:0;width:100%;height:100% }` so
+       the SPA's flex parent (.modal-bg.open) can actually center this box. */
+    position:relative;top:auto;left:auto;height:auto;
     background:#fff;border-radius:18px;width:min(620px,100%);max-height:calc(100vh - 40px);
-    overflow:auto;box-shadow:var(--shadow-lg);animation:pop .2s ease-out;
+    overflow:auto;box-shadow:var(--shadow-lg);
+    opacity:1;transform:none;
+    /* animation removed for admin-mode compatibility (Bootstrap conflict caused stuck opacity:0) */
   }
-  .rm-spa @keyframes pop{from{opacity:0;transform:scale(.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+  @keyframes pop{from{opacity:0;transform:scale(.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
   .rm-spa .modal-hdr{
     padding:20px 24px;border-bottom:1px solid #e2e8f0;
     display:flex;align-items:center;gap:12px;position:sticky;top:0;background:#fff;z-index:1;
@@ -854,7 +860,7 @@
     background:#f8fafc;border-radius:8px;border:1px dashed #e2e8f0;
   }
 
-  .rm-spa @media (max-width:1100px){
+  @media (max-width:1100px){
     .rm-spa .journey-wrap{grid-template-columns:1fr}
     .rm-spa .journey-panel{position:static;max-height:none}
   }
@@ -864,12 +870,12 @@
   .rm-spa .matrix-row.hidden{display:none}
   .rm-spa .category-block.hidden{display:none}
 
-  .rm-spa @media print{
+  @media print{
     .rm-spa .slide{page-break-after:always;padding:40px}
     .rm-spa .toolbar{display:none}
   }
 
-  .rm-spa @media (max-width:900px){
+  @media (max-width:900px){
     .rm-spa .slide{padding:100px 20px 60px}
     .rm-spa .matrix-header, .rm-spa .matrix-row{grid-template-columns:1fr;gap:6px}
     .rm-spa .matrix-header > div:first-child{display:none}
