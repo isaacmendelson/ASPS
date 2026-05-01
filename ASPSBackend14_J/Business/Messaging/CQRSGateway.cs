@@ -166,6 +166,19 @@ public class CQRSGateway : IDisposable
             // Roadmap Queries
             "GetRoadmapByIdQuery" => await HandleGetRoadmapByIdQuery(messageJson, scope),
             "ListRoadmapsQuery" => await HandleListRoadmapsQuery(messageJson, scope),
+            // User Queries
+            "GetAllUsersQuery" => await HandleGetAllUsersQuery(messageJson, scope),
+            "GetUserDetailsQuery" => await HandleGetUserDetailsQuery(messageJson, scope),
+            "GetUserDevicesQuery" => await HandleGetUserDevicesQuery(messageJson, scope),
+            "GetUserAccountsQuery" => await HandleGetUserAccountsQuery(messageJson, scope),
+            // Bank Website Queries (ASPS-297)
+            "GetAllBankWebsitesQuery" => await HandleGetAllBankWebsitesQuery(messageJson, scope),
+            "GetBankWebsiteByIdQuery" => await HandleGetBankWebsiteByIdQuery(messageJson, scope),
+            "CheckDomainIsBankQuery" => await HandleCheckDomainIsBankQuery(messageJson, scope),
+            // Blacklisted Phone Number Queries (ASPS-282)
+            "GetAllBlacklistedPhoneNumbersQuery" => await HandleGetAllBlacklistedPhoneNumbersQuery(messageJson, scope),
+            "GetBlacklistedPhoneNumberByIdQuery" => await HandleGetBlacklistedPhoneNumberByIdQuery(messageJson, scope),
+            "CheckPhoneNumberBlacklistedQuery" => await HandleCheckPhoneNumberBlacklistedQuery(messageJson, scope),
             _ => CreateErrorResponse($"Unknown query type: {queryType}")
         };
     }
@@ -202,6 +215,12 @@ public class CQRSGateway : IDisposable
             "SaveRoadmapCommand" => await HandleSaveRoadmapCommand(messageJson, scope),
             "UpdateRoadmapMetadataCommand" => await HandleUpdateRoadmapMetadataCommand(messageJson, scope),
             "ArchiveRoadmapCommand" => await HandleArchiveRoadmapCommand(messageJson, scope),
+            // User Commands
+            "CreateUserCommand" => await HandleCreateUserCommand(messageJson, scope),
+            "UpdateUserCommand" => await HandleUpdateUserCommand(messageJson, scope),
+            // User Device Commands
+            "UpdateUserDeviceCommand" => await HandleUpdateUserDeviceCommand(messageJson, scope),
+            "DeleteUserDeviceCommand" => await HandleDeleteUserDeviceCommand(messageJson, scope),
             _ => CreateErrorResponse($"Unknown command type: {commandType}")
         };
     }
@@ -896,6 +915,200 @@ public class CQRSGateway : IDisposable
         var command = JsonConvert.DeserializeObject<ArchiveRoadmapCommand>(messageJson);
         if (command == null) return CreateErrorResponse("Invalid ArchiveRoadmapCommand format");
         var handler = scope.ServiceProvider.GetRequiredService<RoadmapCommandHandlers>();
+        var result = await handler.HandleAsync(command);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    // =========================================================================
+    // User Query Handlers
+    // =========================================================================
+    private async Task<string> HandleGetAllUsersQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetAllUsersQuery>(messageJson) ?? new GetAllUsersQuery();
+        var handler = scope.ServiceProvider.GetRequiredService<UserQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleGetUserDetailsQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetUserDetailsQuery>(messageJson);
+        if (query == null) return CreateErrorResponse("Invalid GetUserDetailsQuery format");
+        var handler = scope.ServiceProvider.GetRequiredService<UserQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleGetUserDevicesQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetUserDevicesQuery>(messageJson);
+        if (query == null) return CreateErrorResponse("Invalid GetUserDevicesQuery format");
+        var handler = scope.ServiceProvider.GetRequiredService<UserQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleGetUserAccountsQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetUserAccountsQuery>(messageJson);
+        if (query == null) return CreateErrorResponse("Invalid GetUserAccountsQuery format");
+        var handler = scope.ServiceProvider.GetRequiredService<UserQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    // =========================================================================
+    // Bank Website Query Handlers (ASPS-297)
+    // =========================================================================
+    private async Task<string> HandleGetAllBankWebsitesQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetAllBankWebsitesQuery>(messageJson) ?? new GetAllBankWebsitesQuery();
+        var handler = scope.ServiceProvider.GetRequiredService<BankWebsiteQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleGetBankWebsiteByIdQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetBankWebsiteByIdQuery>(messageJson);
+        if (query == null) return CreateErrorResponse("Invalid GetBankWebsiteByIdQuery format");
+        var handler = scope.ServiceProvider.GetRequiredService<BankWebsiteQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleCheckDomainIsBankQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<CheckDomainIsBankQuery>(messageJson);
+        if (query == null) return CreateErrorResponse("Invalid CheckDomainIsBankQuery format");
+        var handler = scope.ServiceProvider.GetRequiredService<BankWebsiteQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    // =========================================================================
+    // Blacklisted Phone Number Query Handlers (ASPS-282)
+    // =========================================================================
+    private async Task<string> HandleGetAllBlacklistedPhoneNumbersQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetAllBlacklistedPhoneNumbersQuery>(messageJson) ?? new GetAllBlacklistedPhoneNumbersQuery();
+        var handler = scope.ServiceProvider.GetRequiredService<BlacklistedPhoneNumberQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleGetBlacklistedPhoneNumberByIdQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetBlacklistedPhoneNumberByIdQuery>(messageJson);
+        if (query == null) return CreateErrorResponse("Invalid GetBlacklistedPhoneNumberByIdQuery format");
+        var handler = scope.ServiceProvider.GetRequiredService<BlacklistedPhoneNumberQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleCheckPhoneNumberBlacklistedQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<CheckPhoneNumberBlacklistedQuery>(messageJson);
+        if (query == null) return CreateErrorResponse("Invalid CheckPhoneNumberBlacklistedQuery format");
+        var handler = scope.ServiceProvider.GetRequiredService<BlacklistedPhoneNumberQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    // =========================================================================
+    // User Command Handlers
+    // =========================================================================
+    private async Task<string> HandleCreateUserCommand(string messageJson, IServiceScope scope)
+    {
+        var command = JsonConvert.DeserializeObject<CreateUserCommand>(messageJson);
+        if (command == null) return CreateErrorResponse("Invalid CreateUserCommand format");
+        var handler = scope.ServiceProvider.GetRequiredService<UserCommandHandlers>();
+        var result = await handler.HandleAsync(command);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleUpdateUserCommand(string messageJson, IServiceScope scope)
+    {
+        var command = JsonConvert.DeserializeObject<UpdateUserCommand>(messageJson);
+        if (command == null) return CreateErrorResponse("Invalid UpdateUserCommand format");
+        var handler = scope.ServiceProvider.GetRequiredService<UserCommandHandlers>();
+        var result = await handler.HandleAsync(command);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    // =========================================================================
+    // User Device Command Handlers
+    // =========================================================================
+    private async Task<string> HandleUpdateUserDeviceCommand(string messageJson, IServiceScope scope)
+    {
+        var command = JsonConvert.DeserializeObject<UpdateUserDeviceCommand>(messageJson);
+        if (command == null) return CreateErrorResponse("Invalid UpdateUserDeviceCommand format");
+        var handler = scope.ServiceProvider.GetRequiredService<UserDeviceCommandHandlers>();
+        var result = await handler.HandleAsync(command);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleDeleteUserDeviceCommand(string messageJson, IServiceScope scope)
+    {
+        var command = JsonConvert.DeserializeObject<DeleteUserDeviceCommand>(messageJson);
+        if (command == null) return CreateErrorResponse("Invalid DeleteUserDeviceCommand format");
+        var handler = scope.ServiceProvider.GetRequiredService<UserDeviceCommandHandlers>();
         var result = await handler.HandleAsync(command);
         return JsonConvert.SerializeObject(result, new JsonSerializerSettings
         {
