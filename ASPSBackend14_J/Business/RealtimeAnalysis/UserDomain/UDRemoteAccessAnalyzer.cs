@@ -66,7 +66,7 @@ public class UDRemoteAccessAnalyzer : ISpecificAnalyzer
         }
 
         // Check for active session
-        if (remoteAlert.SessionStatus > 0)
+        if (remoteAlert.SessionStatus > (int)SessionStatus.Unknown)
         {
             flags.Add(new AlertFlag
             {
@@ -96,7 +96,7 @@ public class UDRemoteAccessAnalyzer : ISpecificAnalyzer
                 score.Value = 20;
             }
 
-            if (remoteAlert.SessionStatus == 1)
+            if (remoteAlert.SessionStatus == (int)SessionStatus.Open)
             {
                 score.Value = 30;
             }

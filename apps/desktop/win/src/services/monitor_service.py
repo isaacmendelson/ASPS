@@ -7,7 +7,7 @@ import asyncio
 import logging
 from typing import Dict, Any
 
-from config import MONITOR_INTERVAL, DEBUG_MODE, ConnectionStatus, REMOTE_ACCESS_BROWSER_TABS_MODE, BROWSER_TABS_URL_FILTER
+from config import MONITOR_INTERVAL, DEBUG_MODE, ConnectionStatus, SessionStatus, REMOTE_ACCESS_BROWSER_TABS_MODE, BROWSER_TABS_URL_FILTER
 from zmq_client import get_local_ip
 
 logger = logging.getLogger(__name__)
@@ -206,7 +206,7 @@ class MonitorService:
             'late_detection': late_detection
         })
 
-        # Send alert if authenticated (session_status='0' since no active session yet)
+        # Send alert if authenticated (no active session yet → SessionStatus.UNKNOWN)
         if self.auth_manager.is_valid():
             if DEBUG_MODE:
                 print(f"[MONITOR] Sending app open alert for {app_name}...")
@@ -218,7 +218,7 @@ class MonitorService:
                 running_processes=status.process_count,
                 connection_url="",
                 connection_status=str(status.connection_status),
-                session_status=str(0),
+                session_status=str(SessionStatus.UNKNOWN),
                 direction=status.direction or "unknown",
                 confidence=status.confidence or "low",
                 remote_country=status.remote_country or "",
@@ -244,7 +244,7 @@ class MonitorService:
             'confidence': status.confidence
         })
 
-        # Send alert if authenticated with connection_status='2' (CLOSED)
+        # Send alert if authenticated (app closed → ConnectionStatus.CLOSED, SessionStatus.CLOSED)
         if self.auth_manager.is_valid():
             if DEBUG_MODE:
                 print(f"[MONITOR] Sending app close alert for {app_name}...")
@@ -256,7 +256,7 @@ class MonitorService:
                 running_processes=0,
                 connection_url="",
                 connection_status=str(ConnectionStatus.CLOSED),
-                session_status=str(0),
+                session_status=str(SessionStatus.CLOSED),
                 direction=status.direction or "unknown",
                 confidence=status.confidence or "low",
                 remote_country=status.remote_country or "",
@@ -402,7 +402,7 @@ class MonitorService:
                 running_processes=status.process_count,
                 connection_url=status.remote_ip or "",
                 connection_status=str(status.connection_status),
-                session_status=str(1),
+                session_status=str(SessionStatus.OPEN),
                 direction=status.direction or "unknown",
                 confidence=status.confidence or "low",
                 remote_country=status.remote_country or "",
@@ -463,7 +463,7 @@ class MonitorService:
             'confidence': status.confidence
         })
 
-        # Send alert if authenticated with session_status='0' (ended)
+        # Send alert if authenticated (session ended → SessionStatus.CLOSED)
         if self.auth_manager.is_valid():
             if DEBUG_MODE:
                 print(f"[MONITOR] Sending session end alert for {app_name}...")
@@ -475,7 +475,7 @@ class MonitorService:
                 running_processes=status.process_count,
                 connection_url=status.remote_ip or "",
                 connection_status=str(status.connection_status),
-                session_status=str(0),
+                session_status=str(SessionStatus.CLOSED),
                 direction=status.direction or "unknown",
                 confidence=status.confidence or "low",
                 remote_country=status.remote_country or "",

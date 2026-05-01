@@ -184,6 +184,12 @@ class ConnectionStatus:
     OPEN = 1
     CLOSED = 2
 
+# Session Status (mirrors backend Common.Enums.SessionStatus)
+class SessionStatus:
+    UNKNOWN = 0
+    OPEN = 1
+    CLOSED = 2
+
 # Risk Types
 class RiskType:
     NONE = 0
