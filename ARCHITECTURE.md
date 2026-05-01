@@ -19,6 +19,9 @@
 11. [Message Reference](#11-message-reference)
 12. [Configuration Reference](#12-configuration-reference)
 13. [Running the System](#13-running-the-system)
+14. [WebApi Admin UI Pages](#14-webapi-admin-ui-pages)
+15. [Roadmap Module](#15-roadmap-module)
+16. [Mobile Agents — Specification (to-be-built)](#16-mobile-agents--specification-to-be-built)
 
 ---
 
@@ -102,7 +105,7 @@ User visits URL → Extension captures it → Desktop App forwards to Backend
 │                     │                          │                 │
 │  ┌──────────────────▼──────────┐  ┌───────────▼───────────┐    │
 │  │ RealTimeAlertListener       │  │ NotificationPublisher │    │
-│  │ ZMQ REP on port 50001       │  │ ZMQ PUB on port 50002 │    │
+│  │ ZMQ ROUTER on port 50001    │  │ ZMQ PUB on port 50002 │    │
 │  │ • token validation          │  │ • per-device topics    │    │
 │  │ • device registration       │  │ • analysis results     │    │
 │  │ • alert routing             │  │                        │    │
@@ -236,24 +239,43 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 ### 3.6 Protective Actions
 
-| Value | Name | Behavior |
-|-------|------|----------|
-| 0 | NONE | No action taken |
-| 1 | NOTIFY | Silent notification |
-| 2 | WARN_BANNER | Yellow banner at top of page |
-| 3 | WARN_MODAL | Modal dialog overlay |
-| 4 | BLOCK | Full page block |
+The Backend emits one or more `ProtectiveAction` items per analysis result, each with a `type` (from the enum below) and an `ActionLevel` (`Device` / `User` / `Protector`). The Extension and Desktop App map them to UI / OS-level effects.
 
-### 3.7 Risk Types
+Source: [`Common/Enums/Enumerations.cs` → `ProtectiveActionType`](ASPSBackend14_J/Common/Enums/Enumerations.cs).
 
-| Value | Name |
-|-------|------|
-| 0 | SAFE |
-| 1 | PHISHING |
-| 2 | CLOAKING |
-| 3 | IMPERSONATION |
-| 4 | FAKE_DOMAIN |
-| 5 | UNKNOWN |
+| Value | Name | Where it fires | Effect |
+|-------|------|---------------|--------|
+| 0 | None | — | No action |
+| 1 | DisplayNotification | Backend / Extension | Banner or popup in the browser tab |
+| 2 | EmailNotification | Backend | Email sent to user / protector |
+| 3 | SoundAlert | Desktop | OS-level alert sound |
+| 4 | BlockUrl | Extension | Replace page with block screen |
+| 5 | UserDisplayNotification | Extension | Inline notification in current tab |
+| 6 | QuarantineDevice | Backend | Mark device as quarantined (admin review) |
+| 7 | BlockRemoteAccess | Desktop | Terminate active remote-access session |
+| 8 | EnableUrlTracking | Backend | Switch URL into long-duration tracking mode |
+| 9 | SetTrackMode | Backend | Adjust the tracking sensitivity for a flow |
+
+### 3.7 Risk Model
+
+The system **does not use a closed `RiskType` enum**. Risk is modelled as:
+
+- `risk_score` — float in `0..100` (numeric severity)
+- `risk_level` — string label, derived from score: `"LOW"` / `"MEDIUM"` / `"HIGH"`
+- `is_scam` — boolean (final verdict)
+- `confidence` — float in `0..1` (how sure the analyzer is)
+- An open-ended array of risk **categories** returned by analyzers (e.g. `"phishing"`, `"impersonation"`, `"new-domain"`, `"urgency-language"`).
+
+Source: [`Common/Models/RiskAssessment.cs`](ASPSBackend14_J/Common/Models/RiskAssessment.cs) and the Python analyzer's `risk_assessment` block (see §7.4).
+
+Score → typical action mapping (configurable, see §5.5):
+
+| Score | Default action |
+|-------|---------------|
+| 0–29 | None / DisplayNotification |
+| 30–49 | DisplayNotification (banner) |
+| 50–69 | UserDisplayNotification (modal-style) |
+| 70–100 | BlockUrl |
 
 ---
 
@@ -369,12 +391,14 @@ The Backend is the **brain** of the system. It handles authentication, alert pro
 | Service | Port | Protocol | Purpose |
 |---------|------|----------|---------|
 | NetMQMessageProcessor | 5555 | ZMQ | Legacy CQRS processor |
-| RealTimeAlertListener | 50001 | ZMQ REP | Receives alerts from Desktop |
+| RealTimeAlertListener | 50001 | ZMQ ROUTER (REQ-compatible) | Receives alerts from Desktop |
 | NotificationPublisher | 50002 | ZMQ PUB | Pushes results to Desktop |
 | CQRSGateway | 5556 | ZMQ | WebApi ↔ Backend bridge |
 | ASView | — | In-memory | Read model (CQRS) |
 | TokenStore | — | In-memory | Token issuance & validation |
 | UDAnalysisManagers | — | Per-user | Analysis orchestration |
+
+> **Why ROUTER, not REP?** A `RepSocket` only handles one in-flight request per peer; with hundreds of devices, requests queue up serially. A `RouterSocket` is fully concurrent — each peer's identity frame is preserved so we can hold the request, do background analysis, and respond out of order. `RouterSocket` is wire-compatible with `RequestSocket` clients (which is what the Desktop App still uses), so this change required **zero client work**. See [`RealTimeAlertListener.cs`](ASPSBackend14_J/Business/Messaging/RealTimeAlertListener.cs).
 
 ### 5.3 Alert Listener (`RealTimeAlertListener.cs`)
 
@@ -450,12 +474,21 @@ Step 7: Fire events:
 
 | Table | Purpose | Key Columns |
 |-------|---------|-------------|
-| `Users` | User accounts | Key, Email, FirstName, LastName |
-| `UserDevices` | Registered devices | DeviceUid, UserKey, DeviceType, MAC |
+| `Users` | User accounts | Key, Email, FirstName, LastName, KeycloakUserId |
+| `UserDevices` | Registered devices | DeviceUid, UserKey, DeviceType, OperatingSystem, MAC |
 | `DeviceAlerts` | Incoming alerts | AlertType, Url, DeviceUid, Token, Priority |
 | `AnalysisResults` | Analysis output | DeviceAlertKey, JsonValue, Severity, HasError |
-| `KnownPhishingWebsites` | Phishing DB | Url, Domain, Source (506K+ records) |
+| `AlertFlags` | Per-alert review/triage flags | AlertKey, Type, Notes |
+| `KnownPhishingWebsites` | Phishing DB | Url, Domain, Source (~500K records) |
 | `SafeDomains` | Whitelisted domains | Domain |
+| `TrackedDomains` | Long-duration URL tracking | Domain, IsActive, Source |
+| `SensitiveSites` | Sensitive-category sites (banking/crypto/etc.) | Domain, IsActive |
+| `BankWebsites` | Legitimate bank domains (ASPS-297) | Domain, BankName, Country, IsActive |
+| `BlacklistedPhoneNumbers` | Known scam phone numbers (ASPS-282) | PhoneNumber, Source, Notes |
+| `WebsiteCategories` | Hierarchical taxonomy (SCRUM-820/822) | Name, ParentId, Source |
+| `Simulations` | Test scenarios for the dashboard | Name, Steps (JSON) |
+| `DeviceTokens` | Active device tokens | DeviceUid, Token, ExpiresAt |
+| `Roadmaps` | Product roadmap data (admin-only) | Name, Data (JSON), Version, LastUpdatedBy |
 
 ---
 
@@ -719,7 +752,7 @@ This is the complete journey of a URL scan from the moment a user visits a websi
 | Link | Protocol | Port(s) | Encryption | Format |
 |------|----------|---------|------------|--------|
 | Extension ↔ Desktop | WebSocket | 8080–8484 | None (localhost) | JSON |
-| Desktop → Backend | ZMQ REQ/REP | 50001 | CURVE | JSON |
+| Desktop → Backend | ZMQ REQ → ROUTER | 50001 | CURVE | JSON |
 | Backend → Desktop | ZMQ PUB/SUB | 50002 | CURVE | JSON |
 | WebApi → Backend | ZMQ REQ/REP | 5556 | None (localhost) | CQRS JSON |
 | Backend → Python | Subprocess | — | — | JSON (stdout) |
@@ -737,10 +770,10 @@ This is the complete journey of a URL scan from the moment a user visits a websi
 ### 9.3 ZeroMQ (Desktop ↔ Backend)
 
 - **Library:** `pyzmq` (Python), `NetMQ` (.NET)
-- **REQ/REP (port 50001):** Desktop sends alert, Backend responds immediately
-- **PUB/SUB (port 50002):** Backend publishes results, Desktop subscribes by device ID
+- **Port 50001 (alerts):** Desktop uses `RequestSocket` → Backend uses `RouterSocket`. The Backend ACKs immediately ("alert accepted, analysis in progress") and dispatches the heavy work to a background task — so a single Desktop App can send the next alert without waiting. Multi-device concurrency is handled by Router's identity frames.
+- **Port 50002 (results):** Backend `PublisherSocket` → Desktop `SubscriberSocket`. Each Desktop subscribes only to its own topic, so devices don't see each other's traffic.
 - **Topic format:** `device:{deviceUid}` (e.g., `device:PC-eeb83c93e3ccac4b`)
-- **CURVE encryption:** All ZMQ traffic encrypted with CurveZMQ (NaCl-based)
+- **CURVE encryption:** All ZMQ traffic on 50001/50002 is encrypted end-to-end with CurveZMQ (NaCl-based). The localhost CQRS channel on 5556 is **not** CURVE-encrypted (same-host trust boundary).
 
 ---
 
@@ -1007,4 +1040,217 @@ python main.py
 
 ---
 
-*Last updated: 2026-02-13*
+## 14. WebApi Admin UI Pages
+
+The WebApi project (§6) hosts a Razor-based admin dashboard at `http://localhost:5001`. All pages live under `WebApi/Pages/` and are protected by `AuthorizeFolder("/", "AdminPolicy")` (requires `Admin` role from Keycloak). Public pages: `/Login`, `/Logout`, `/DeviceLogin`, `/AccessDenied`.
+
+| Page | Path | Purpose |
+|------|------|---------|
+| Dashboard | `/` | Live stats (users / devices / alerts) via SignalR |
+| Users | `/Users` | List, view, manage user accounts |
+| Devices | `/Devices` | Registered devices (per user, per OS) |
+| DeviceAlerts | `/DeviceAlerts` | Recent alerts feed (paged, filter by user/type) |
+| AnalysisResults | `/AnalysisResults` | Browse stored analysis JSON, drill-down per alert |
+| KnownPhishingWebsites | `/KnownPhishingWebsites` | View / search the ~500K phishing-DB rows |
+| BankWebsites | `/BankWebsites` | CRUD for legitimate-bank whitelist (JIRA: ASPS-297) |
+| BlacklistedPhoneNumbers | `/BlacklistedPhoneNumbers` | CRUD for scam phone numbers (JIRA: ASPS-282) |
+| WebsiteCategories | `/WebsiteCategories` | Hierarchical category tree (banking / crypto / healthcare …) (JIRA: SCRUM-820/822) |
+| TrackedDomains | `/TrackedDomains` | Long-duration tracking domains; tied to TrackUrlAlert |
+| Simulations | `/Simulations` | Author and run simulated alert scenarios for QA |
+| Roadmaps | `/Roadmaps` | Product roadmap editor (see §15) |
+| SystemConfigurations | `/SystemConfigurations` | Runtime knobs (toggle features, tune thresholds) |
+| DebugClaims | `/DebugClaims` | Show current user's claims (debug-only) |
+| Downloads | `/Downloads` | Bundle / desktop-installer downloads |
+
+All admin pages share a single layout (`Pages/Shared/_Layout.cshtml`) with sidebar navigation grouped into sections: **Operations**, **Blacklists**, **Planning**, **Testing**, **System**.
+
+Every page communicates with the Backend via `ICQRSClient.SendQueryAsync<T>()` / `SendCommandAsync<T>()`, which transports JSON over NetMQ to the Backend's `CQRSGateway` on port 5556. **The WebApi never touches MySQL directly**.
+
+---
+
+## 15. Roadmap Module
+
+**Location:** `ASPSBackend14_J/WebApi/Pages/Roadmaps/` and supporting types in `Common/Entities/Roadmap.cs`, `Business/{Queries,Commands,Handlers}/Roadmap*.cs`.
+
+### 15.1 Purpose
+
+A multi-project roadmap editor used internally by the team. Each roadmap stores its full state (slides, categories, items, drag order, JIRA links) as a **JSON blob** in a single MySQL row. The blob format is identical to the standalone HTML viewer at `docs/roadmap-presentation-editable.html`, so the same SPA code works in both places.
+
+### 15.2 Storage — `Roadmaps` table
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `Key` | INT PK | Auto-increment id |
+| `Name` | VARCHAR(100) | Display name |
+| `Description` | VARCHAR(500) NULL | Short description |
+| `Data` | LONGTEXT | JSON: `{ items, categories, slides, exportedAt }` |
+| `Version` | INT | Optimistic-concurrency token (incremented on each save) |
+| `DateCreated` | DATETIME | Set once on insert |
+| `LastUpdatedAt` | DATETIME NULL | Updated on every save |
+| `CreatedBy` / `LastUpdatedBy` | VARCHAR(255) NULL | `User.Identity.Name` (Keycloak `preferred_username`) |
+| `IsArchived` | BOOL | Soft delete |
+
+EF migration: `Business/Migrations/20260428192432_AddRoadmapsTable.cs`.
+
+### 15.3 CQRS surface
+
+**Queries** (`Business/Queries/RoadmapQueries.cs`):
+- `GetRoadmapByIdQuery` → `GetRoadmapByIdQueryResult` (full data blob + metadata)
+- `ListRoadmapsQuery` → `ListRoadmapsQueryResult` (id/name/version/lastUpdated for index page)
+
+**Commands** (`Business/Commands/RoadmapCommands.cs`):
+- `CreateRoadmapCommand` → returns new id
+- `SaveRoadmapCommand` → optimistic-concurrency check on `ExpectedVersion`; returns `ConcurrencyConflict=true` + new server version on stale write
+- `UpdateRoadmapMetadataCommand` → name/description without touching the blob
+- `ArchiveRoadmapCommand` → sets `IsArchived=true`
+
+**Handlers** wired in [`CQRSGateway.cs`](ASPSBackend14_J/Business/Messaging/CQRSGateway.cs) and registered in `Program.cs`.
+
+### 15.4 Razor pages
+
+- **`/Roadmaps`** — list, create, archive
+- **`/Roadmaps/Edit/{id}`** — the SPA editor; injects `window.RoadmapAdmin = { initial, save, markDirty, getCurrentData }` and the SPA bundle (`/css/roadmap-spa.css`, `/js/roadmap-spa.js`) reads/writes through it
+- **`/Roadmaps/Edit/{id}?handler=Viewer`** — generates a self-contained `roadmap-{name}-{date}.html` (CSS+JS+JSON inlined; Heebo font via Google CDN) so non-admins can view offline
+
+### 15.5 Save flow
+
+```
+User edit (drag/click/type) in SPA
+   → state mutated → save() called → debounced 800ms
+   → fetch POST /Roadmaps/Edit/{id}?handler=Save  body: {Id, ExpectedVersion, Data}
+   → OnPostSaveAsync → SaveRoadmapCommand → RoadmapRepository.UpdateAsync
+       (compare-and-swap on Version; bump on success)
+   → JsonResult { success, newVersion, lastUpdatedAt, lastUpdatedBy, concurrencyConflict }
+   → SPA shows "✓ נשמר" badge, updates header timestamp
+```
+
+Concurrency conflict UX: alert with "GitHub-has-newer / your local is older" prompt, offering reload.
+
+---
+
+## 16. Mobile Agents — Specification (to-be-built)
+
+There is **no Android or iOS code in the repo today**. The Backend, however, is already mobile-aware: `DeviceType.MobilePhone = 2`, `OperatingSystemType.Android = 4`, `OperatingSystemType.IOS = 5` ([`Common/Enums/Enumerations.cs`](ASPSBackend14_J/Common/Enums/Enumerations.cs)). Tokens, alerts, notifications, and CURVE auth all work the same regardless of OS.
+
+This section is the **target spec** for the mobile agents — their role mirrors the existing Desktop App: bridge between on-device monitoring and the Backend.
+
+### 16.1 Scope
+
+Each mobile agent (Android + iOS) must:
+
+1. Generate a stable device id (Android: SSAID + hardware fingerprint; iOS: `identifierForVendor` + Keychain-stored UUID).
+2. Authenticate against the Backend (`RegisterDevice` / `RequestToken`) over CURVE-encrypted ZMQ — same protocol as Desktop §10.
+3. Monitor user activity, send `UrlAlert` / `RemoteAccessAlert` / `TrackUrlAlert` / SMS-scan / Email-scan / Phone-scan signals.
+4. Subscribe to `device:{deviceUid}` PUB topic and execute the returned `ProtectiveAction` items in the OS-appropriate way.
+
+### 16.2 Stack choices
+
+| Concern | Android | iOS |
+|---------|---------|-----|
+| Language | Kotlin (Compose for UI) | Swift (SwiftUI) |
+| ZMQ | `jeromq` (pure-Java NetMQ) | `SwiftyZeroMQ` or vendored `libzmq` |
+| CURVE crypto | `libsodium-jni` | `Sodium-iOS` (libsodium) |
+| URL hooks | Custom IME ✗ — use **Accessibility Service** to read URL bar of system browsers; intercept `VIEW` intents to flag links before app opens | **Network Extension** (Content Filter Provider) — requires `NEFilterControlProvider` + `NEFilterDataProvider`. Apple-only path; needs MDM or sideload for full filtering. App-extension fallback: Share Extension to manually scan a link |
+| SMS scan | `BroadcastReceiver` on `SMS_RECEIVED_ACTION` (with `READ_SMS` perm) | Not allowed — iOS does **not** expose SMS to apps. Use Message Filter Extension (`ILMessageFilterExtension`) for **on-device** spam classification only |
+| Email scan | Background sync via OAuth (Gmail / Outlook APIs) | Same — both via the user's mail-provider OAuth, not OS hooks |
+| Phone-call scan | `CallScreeningService` (API 24+) for incoming-call number lookup against `BlacklistedPhoneNumbers` | `Call Directory Extension` — submit blocklist to OS before calls arrive |
+| Remote-access detect | `AccessibilityService` flags packages like `com.anydesk`, `com.teamviewer.teamviewer.market.mobile`; combined with `UsageStatsManager` | iOS prevents this — **no API**. Best we can do: detect installation via `LSApplicationWorkspace` (private) — not App-Store-safe. Document as *not supported on iOS* |
+| Background lifecycle | `Foreground Service` (notification) keeps ZMQ socket alive; `JobScheduler` for retries | `BGTaskScheduler` (iOS 13+); ZMQ socket only alive while app is foreground (push-triggered re-connect) |
+| Notifications | `Notification Channel` per severity | `UNUserNotificationCenter`, `UNNotificationCategory` per severity |
+
+### 16.3 Permissions
+
+**Android (`AndroidManifest.xml`):**
+- `INTERNET`, `ACCESS_NETWORK_STATE`
+- `RECEIVE_SMS`, `READ_SMS` (only if SMS scan is enabled)
+- `BIND_ACCESSIBILITY_SERVICE` (URL + remote-access detection)
+- `BIND_CALL_REDIRECTION_SERVICE` (call screening)
+- `FOREGROUND_SERVICE`
+- `READ_PHONE_STATE` (optional — for call-state)
+- `POST_NOTIFICATIONS` (Android 13+)
+
+**iOS (`Info.plist`):**
+- `NSUserTrackingUsageDescription` (where applicable)
+- Network Extension entitlements (requires Apple approval)
+- `com.apple.developer.networking.networkextension` (`content-filter-provider`, `app-proxy-provider`)
+- `com.apple.developer.usernotifications.communication`
+
+### 16.4 Project layout (proposed)
+
+```
+apps/
+  android/
+    app/
+      src/main/java/io/asps/agent/
+        MainActivity.kt
+        services/
+          ZmqClient.kt              ← jeromq + curve handshake
+          MonitoringService.kt      ← foreground service hub
+          AccessibilityHook.kt      ← URL extraction
+          SmsObserver.kt
+          CallScreeningService.kt
+        ui/                         ← Compose screens (auth, settings, history)
+        data/
+          TokenStore.kt             ← EncryptedSharedPreferences
+          LocalCache.kt             ← Room
+      build.gradle.kts
+    settings.gradle.kts
+
+  ios/
+    AspsAgent/
+      AspsAgent.xcodeproj
+      Sources/
+        ZmqClient.swift
+        Networking/
+          AlertSender.swift
+          NotificationListener.swift
+        Extensions/
+          ContentFilter/            ← NEFilterDataProvider
+          MessageFilter/            ← ILMessageFilterExtension
+          CallDirectory/            ← CXCallDirectoryProvider
+        UI/                         ← SwiftUI screens
+        Storage/
+          KeychainTokenStore.swift
+          CoreDataCache.xcdatamodeld
+```
+
+### 16.5 Wire-protocol parity with Desktop
+
+Mobile agents **must use the exact same JSON payloads** as §11. The only field that changes is `DeviceInfo`:
+
+```json
+{
+  "DeviceInfo": {
+    "DeviceUid": "ANDROID-7c9f...",
+    "DeviceType": 2,            ← MobilePhone
+    "OperatingSystem": 4,       ← Android (or 5 for iOS)
+    "MAC": "<best-effort, may be empty on Android 11+>",
+    "AppVersion": "1.0.0"
+  }
+}
+```
+
+Token, CURVE handshake, alert types, notification topic format — **identical to Desktop**.
+
+### 16.6 Build & sprint plan (rough)
+
+| Sprint | Android | iOS |
+|--------|---------|-----|
+| 1 | Project scaffold, Compose login screen, ZMQ-CURVE client, RegisterDevice/RequestToken flow | Project scaffold, SwiftUI login, ZMQ-CURVE client, RegisterDevice/RequestToken flow |
+| 2 | Foreground service + notification listener (port 50002) | App-extension scaffold (Content Filter, Message Filter, Call Directory) |
+| 3 | Accessibility service for URL extraction → `UrlAlert` | Content Filter Provider sending `UrlAlert` |
+| 4 | SMS observer + on-device classifier | Message Filter Extension + classifier |
+| 5 | Call screening service + Blacklisted-Phone lookup | Call Directory Extension; submit blocklist |
+| 6 | Remote-access app detection | (Skipped — not supported on iOS, document instead) |
+| 7 | Hardening, battery profiling, beta release | App Store / TestFlight beta |
+
+### 16.7 Open questions
+
+- **iOS distribution:** App-Store policy is hostile to URL-filter apps that aren't built on `Network Extension` with explicit user-installed VPN profile. Decide: Network Extension app vs. enterprise-MDM-only build vs. partner with a MAM provider.
+- **SMS scanning on iOS:** No on-device read access. Either accept "no SMS scanning on iOS", or build a separate user-driven flow ("paste a suspicious SMS to check").
+- **Battery on Android:** Foreground service + `AccessibilityService` is power-hungry. Need a measured budget; might gate features behind a "balanced / aggressive" toggle.
+- **Push channel:** ZMQ SUB over a long-lived connection drains battery. Consider FCM/APNs as a wake-up signal that triggers a short-lived ZMQ poll, instead of always-on SUB.
+
+---
+
+*Last updated: 2026-04-29 — drift fixes (ROUTER socket, ProtectiveAction enum, RiskType model, expanded DB schema), added §14 (WebApi UI Pages catalog), §15 (Roadmap module), §16 (Mobile agents target spec).*

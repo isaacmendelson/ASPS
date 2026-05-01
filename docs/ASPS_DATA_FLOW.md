@@ -20,16 +20,17 @@ ASPS (Anti-Scam Protection System) is a real-time fraud detection system that mo
 │                           USER'S DEVICE                                  │
 │  ┌─────────────────┐    WebSocket    ┌─────────────────────────────┐   │
 │  │ Chrome Extension │◄──────────────►│    Desktop Agent (Python)    │   │
-│  │                  │    Port 8765   │                               │   │
-│  │  - background.js │                │  - extension_handler.py       │   │
+│  │                  │ Ports 8080-8484│                               │   │
+│  │  - background.js │ (first free)   │  - extension_handler.py       │   │
 │  │  - ScanService   │                │  - scan_service.py            │   │
 │  │  - popup.js      │                │  - notification_handler.py    │   │
 │  └─────────────────┘                 │  - zmq_client.py              │   │
 │                                      └──────────────┬────────────────┘   │
 └──────────────────────────────────────────────────────┼───────────────────┘
                                                        │
-                                          ZMQ (Port 50001 REQ/REP)
-                                          ZMQ (Port 50002 PUB/SUB)
+                                  ZMQ Port 50001 (Desktop REQ → Backend ROUTER)
+                                  ZMQ Port 50002 (PUB/SUB, per-device topic)
+                                  Both encrypted with CurveZMQ
                                                        │
 ┌──────────────────────────────────────────────────────┼───────────────────┐
 │                         BACKEND SERVER (.NET)        │                   │
@@ -313,17 +314,27 @@ foreach (var analyzer in _analyzers)
 ### Step 10: External Python Analyzer (ML)
 **Location:** `Analyzers/basic-url-analyzer/`
 
-For URL analysis, the backend calls an external Python service:
+For URL analysis, the backend invokes the Python analyzer **as a subprocess** (not HTTP):
 
-```
-Backend → HTTP POST → Python Analyzer → Response
+```csharp
+// Business/RealtimeAnalysis/UserDomain/UDUrlAnalyzer.cs
+var psi = new ProcessStartInfo {
+    FileName = pythonExePath,
+    Arguments = $"\"{scriptPath}\" \"{url}\" --json",
+    UseShellExecute = false,
+    RedirectStandardOutput = true,
+    CreateNoWindow = true
+};
+// Parse JSON from stdout; 30s timeout.
 ```
 
 The Python analyzer performs:
-- **URL Inspector** (10 checks on URL string alone)
-- **Category Classification** (58 categories)
-- **ML Risk Scoring** (phishing probability)
-- **Reputation Lookup**
+- **WHOIS lookup** (domain age, registrar, country, privacy)
+- **Content scrape** (patterns, trackers, forms, urgency language)
+- **ML Risk Scoring** (phishing probability via scikit-learn)
+- **Risk Assessor** (weighted aggregation → final `risk_score` + `risk_level`)
+
+The subprocess returns a JSON object on stdout that the Backend parses and stores as the `AnalysisResults.JsonValue` blob. See `ARCHITECTURE.md §7` for the full output schema.
 
 ---
 
@@ -512,15 +523,22 @@ Triggered when remote access app is detected.
 
 # 5. Protective Actions
 
-The system can trigger various protective actions based on risk level:
+Each `AnalysisResult` carries an array of `ProtectiveAction` items with `{ ActionType, ActionLevel }`. The Extension and Desktop Agent pick which ones to execute based on `ActionLevel` (`Device` / `User` / `Protector`).
 
-| Action | Level | Description |
-|--------|-------|-------------|
-| LogEvent | 0 | Log for monitoring |
-| Notify | 1 | Show notification to user |
-| Warn | 2 | Display warning popup |
-| Block | 3 | Block the URL |
-| ForceClose | 4 | Force close the tab |
+Source: `Common/Enums/Enumerations.cs → ProtectiveActionType`
+
+| Value | Name | Typical handler |
+|-------|------|-----------------|
+| 0 | None | — |
+| 1 | DisplayNotification | Extension banner / Desktop toast |
+| 2 | EmailNotification | Backend (SMTP) — sent to user / protector |
+| 3 | SoundAlert | Desktop — OS-level sound |
+| 4 | BlockUrl | Extension — replaces page with block screen |
+| 5 | UserDisplayNotification | Extension — modal-style overlay in current tab |
+| 6 | QuarantineDevice | Backend — flags device for admin review |
+| 7 | BlockRemoteAccess | Desktop — terminates the active remote-access session |
+| 8 | EnableUrlTracking | Backend — switches the URL into long-duration tracking |
+| 9 | SetTrackMode | Backend — adjusts the tracking sensitivity for the flow |
 
 ---
 
@@ -559,5 +577,234 @@ When immediate danger is detected:
 
 ---
 
+# 8. WebApi (Admin) Data Flow
+
+The WebApi project **never touches MySQL directly**. Every read and write travels over NetMQ to the Backend's `CQRSGateway` (port 5556).
+
+```
+┌──────────────────┐                    ┌────────────────────┐
+│  Admin browser   │                    │  Backend (.NET)    │
+│  (Razor / SPA)   │                    │                    │
+│                  │  HTTP / SignalR    │  ┌──────────────┐  │
+│  • Razor Pages   │ ◄────────────────► │  │ CQRSGateway  │  │
+│  • SignalR hub   │                    │  │ (port 5556)  │  │
+└────────┬─────────┘                    │  └──────┬───────┘  │
+         │                              │         │          │
+         │ ICQRSClient.SendQueryAsync   │         ▼          │
+         │ ICQRSClient.SendCommandAsync │  ┌──────────────┐  │
+         │                              │  │  Handlers    │  │
+         │  NetMQ REQ                   │  │  + Repos     │  │
+         └──────────────────────────────►  └──────┬───────┘  │
+                                          │         │        │
+                                          │         ▼        │
+                                          │  ┌──────────┐    │
+                                          │  │  MySQL   │    │
+                                          │  └──────────┘    │
+                                          └────────────────────┘
+```
+
+## Step W1 — Admin lists roadmaps
+
+```
+Admin opens /Roadmaps
+   ↓ Razor IndexModel.OnGetAsync
+   ↓ ICQRSClient.SendQueryAsync<ListRoadmapsQueryResult>(new ListRoadmapsQuery { IncludeArchived = false })
+   ↓ NetMQ REQ to backend:5556 (JSON, TypeNameHandling.None)
+   ↓ CQRSGateway.ProcessQueryAsync routes by QueryType
+   ↓ RoadmapQueryHandlers.HandleAsync(ListRoadmapsQuery)
+   ↓ IRoadmapRepository.ListAsync → SELECT * FROM Roadmaps WHERE IsArchived = 0 ORDER BY LastUpdatedAt DESC
+   ↓ Result back over NetMQ
+   ← Razor renders the list
+```
+
+## Step W2 — Real-time admin notifications
+
+`/notificationshub` is a SignalR hub. When the Backend publishes an analysis result (Step 13 above), the WebApi's notification subscriber forwards it to admin browsers:
+
+```
+Backend ZMQ PUB (50002, topic "device:*")
+   ↓ WebApi NotificationSubscriber (BackgroundService)
+   ↓ IHubContext<NotificationsHub>.Clients.All.SendAsync("alert", ...)
+   ↓ Admin dashboard updates live (counts / charts / feed)
+```
+
+---
+
+# 9. Roadmap Module Data Flow
+
+The Roadmap editor is a single-page app embedded in the admin Razor page. It uses the same JSON shape as the standalone HTML viewer in `docs/roadmap-presentation-editable.html`, so the SPA bundle works in both places.
+
+## Step R1 — Edit page hydrates from DB
+
+```
+Admin opens /Roadmaps/Edit/3
+   ↓ EditModel.OnGetAsync
+   ↓ ICQRSClient.SendQueryAsync<GetRoadmapByIdQueryResult>(new GetRoadmapByIdQuery { Id = 3 })
+   ↓ Backend → RoadmapRepository.GetByIdAsync(3) → returns row { Data, Version, ... }
+   ← Razor inlines the data into the page:
+       <script id="initial-roadmap-data" type="application/json">{...}</script>
+       <script>window.RoadmapAdmin = { initial, save, markDirty, getCurrentData }</script>
+   ↓ /js/roadmap-spa.js loads, reads window.RoadmapAdmin.initial.data,
+     parses the JSON blob into state, renders the SPA into <div class="rm-spa">
+```
+
+## Step R2 — User edits → debounced save
+
+```
+User drags an item / toggles a status / types in modal
+   ↓ SPA mutates `state` and calls save()
+   ↓ save() debounces 800ms, then:
+   ↓ POST /Roadmaps/Edit/3?handler=Save
+       Body: { Id: 3, ExpectedVersion: 5, Data: "<json string>" }
+       Headers: RequestVerificationToken (from antiforgery)
+   ↓ EditModel.OnPostSaveAsync
+   ↓ ICQRSClient.SendCommandAsync<SaveRoadmapCommandResult>(SaveRoadmapCommand { ... UpdatedBy: User.Identity.Name })
+   ↓ RoadmapRepository.UpdateAsync — compare-and-swap on Version (optimistic concurrency)
+       └─ if Version mismatch → return null → SaveRoadmapCommandResult { ConcurrencyConflict = true, NewVersion = serverVersion }
+       └─ else            → bump Version, set LastUpdatedAt + LastUpdatedBy → return new Version
+   ← Response: { success, newVersion, lastUpdatedAt, lastUpdatedBy, concurrencyConflict }
+   ↓ SPA updates the "✓ נשמר" badge, header timestamp, version chip
+       └─ on conflict → modal: "שינויים מרוחקים — לטעון מחדש?" → reload
+```
+
+## Step R3 — Export Viewer (offline HTML)
+
+```
+Admin clicks "ייצוא Viewer"
+   ↓ GET /Roadmaps/Edit/3?handler=Viewer
+   ↓ EditModel.OnGetViewerAsync
+       1. Re-fetches the latest roadmap data (CQRS GetRoadmapByIdQuery)
+       2. Reads /css/roadmap-spa.css and /js/roadmap-spa.js from disk
+       3. Reads Pages/Roadmaps/_RoadmapSpaBody.cshtml as plain HTML (strips Razor comment header)
+       4. Builds a self-contained HTML file:
+          - Heebo font from Google CDN
+          - <style> ... inlined CSS ... </style>
+          - SPA body
+          - <script> window.RoadmapAdmin = { initial: <embedded JSON>, save: noop, ... } </script>
+          - <script> ... inlined SPA JS ... </script>
+   ← Response: text/html, attachment, filename "roadmap-{Name}-{date}.html"
+```
+
+The exported file is fully offline-viewable. `save()` becomes a no-op (one-time alert "this is the offline viewer").
+
+---
+
+# 10. Mobile Agent Data Flow (target spec)
+
+Android and iOS agents do not exist yet, but the Backend is mobile-aware. When they're built, their data flow will be **identical to Desktop** for URL alerts, with extra mobile-specific signals on top.
+
+```
+┌────────────────────────────────────────────────────┐
+│               USER'S MOBILE DEVICE                 │
+│                                                    │
+│  ┌───────────────┐   ┌──────────────────────────┐  │
+│  │ Android       │   │  Mobile Agent            │  │
+│  │ Accessibility │──►│  • ZMQ-CURVE client      │  │
+│  │ Service       │   │    (port 50001 REQ)      │  │
+│  │ (URL hooks)   │   │  • ZMQ SUB listener      │  │
+│  ├───────────────┤   │    (port 50002, topic    │  │
+│  │ SMS BroadcastR│──►│    "device:{deviceUid}") │  │
+│  ├───────────────┤   │                          │  │
+│  │ CallScreening │──►│  Sends:                  │  │
+│  ├───────────────┤   │   - UrlAlert             │  │
+│  │ App-Detect    │──►│   - SmsAlert (Android)   │  │
+│  │ (RemoteAccess)│   │   - PhoneAlert           │  │
+│  └───────────────┘   │   - RemoteAccessAlert    │  │
+│                      │                          │  │
+│  ┌───────────────┐   │   Receives:              │  │
+│  │ iOS:          │   │   - AnalysisResult       │  │
+│  │ Network Ext.  │──►│     (with ProtectiveAct.)│  │
+│  │ Message Filt. │──►│                          │  │
+│  │ Call Directory│──►│                          │  │
+│  └───────────────┘   └──────────────────────────┘  │
+└────────────────────────┬───────────────────────────┘
+                         │
+                         │  Same wire-protocol as Desktop:
+                         │   - ZMQ REQ → Backend ROUTER (50001, CURVE)
+                         │   - ZMQ SUB ← Backend PUB     (50002, CURVE)
+                         │
+                         │  DeviceInfo.OperatingSystem = 4 (Android) | 5 (iOS)
+                         │  DeviceInfo.DeviceType      = 2 (MobilePhone)
+                         ▼
+                  ┌──────────────────┐
+                  │   ASPS Backend   │
+                  │  (unchanged —    │
+                  │   mobile-agnostic)│
+                  └──────────────────┘
+```
+
+## Step M1 — URL alert from mobile (illustrative)
+
+```
+User taps a link in WhatsApp on Android
+   ↓ Android opens link in Chrome
+   ↓ Accessibility service reads URL bar text
+   ↓ Mobile Agent builds UrlAlert (same JSON as Desktop §3.2 step 5),
+     sets DeviceInfo.OperatingSystem = 4 (Android)
+   ↓ ZMQ REQ → Backend ROUTER:50001 (CURVE-encrypted)
+   ↓ Backend processes identically to Desktop alert (§3.3)
+   ← Backend ZMQ PUB → topic "device:ANDROID-7c9f..."
+   ↓ Mobile Agent receives AnalysisResult
+   ↓ Executes ProtectiveActions:
+     • DisplayNotification → Android NotificationChannel
+     • BlockUrl            → Accessibility-injected overlay or in-app warning
+     • SoundAlert          → System notification sound
+```
+
+## Step M2 — SMS scan (Android only)
+
+```
+Incoming SMS
+   ↓ BroadcastReceiver fires (READ_SMS permission)
+   ↓ Mobile Agent builds SmsAlert (new alert type — to be added):
+     {
+       AlertType: "SmsAlert",
+       DeviceInfo: { OperatingSystem: 4, DeviceType: 2, ... },
+       Token: "...",
+       SenderId: "+972..." or "BANK-ALERT",
+       Body: "<full text>",
+       Timestamp: "..."
+     }
+   ↓ ZMQ REQ → Backend (CURVE) → analysis pipeline
+   ← AnalysisResult: ProtectiveActions
+     • UserDisplayNotification → Android shows scam-warning overlay above the SMS app
+     • Email/SMS to protector  → if user has linked one
+```
+
+## Step M3 — Call screening
+
+**Android (real-time):**
+```
+Incoming call
+   ↓ CallScreeningService receives the call attempt
+   ↓ Local lookup against cached BlacklistedPhoneNumbers (synced periodically)
+   ↓ If match: respondToCall(REJECT_CALL) and notify Backend (PhoneAlert)
+   ↓ Else: pass-through, optionally raise PhoneAlert for analysis
+```
+
+**iOS (pre-call only):**
+```
+On app install / periodic refresh
+   ↓ Mobile Agent fetches BlacklistedPhoneNumbers from Backend
+   ↓ Passes to Call Directory Extension via host app
+   ↓ iOS prompts user: "Allow ASPS to identify and block calls?"
+   ↓ All future calls from blocked numbers → silenced + labelled "Suspected Scam"
+```
+
+iOS cannot raise a real-time alert per call (no API), so the analysis path is replaced by **periodic blocklist sync**.
+
+## Step M4 — New alert types (to be added to Backend)
+
+| Alert | Source | Backend changes needed |
+|-------|--------|------------------------|
+| `SmsAlert` | Android only | New entity/handler; reuse existing analysis pipeline + ML model on text |
+| `EmailAlert` | Both (via OAuth, Gmail/Outlook APIs — not OS hooks) | New entity/handler; ML on subject + body + headers |
+| `PhoneAlert` | Android (real-time), iOS (post-hoc) | Lookup against BlacklistedPhoneNumbers (already exists, JIRA: ASPS-282) |
+| `AppInstallAlert` | Android only (PackageInstaller observer) | New — flags installation of remote-access apps |
+
+Until these alert types are implemented, mobile agents that need them should fall back to `UrlAlert` with metadata (e.g., synthetic URL `sms://+972...`).
+
+---
+
 *Document generated for NotebookLLM presentation*
-*Last updated: April 2026*
+*Last updated: 2026-04-29 — drift fixes (port 8765 → 8080-8484, HTTP → subprocess, Protective Actions enum), added §8 (WebApi data flow), §9 (Roadmap module flow), §10 (Mobile agent target flow).*
