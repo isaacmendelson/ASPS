@@ -32,6 +32,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
     private List<TrackUrlAnalysisResultView> _trackUrlAnalysisResults = new();
     private List<KnownPhishingWebsite> _knownPhishingWebsites = new();
     private List<SafeDomain> _safeDomains = new();
+    private List<IImmediateDangerView> _immediateDangers = new();
     private List<string> _riskyDomains = new();
     private List<UserDeviceUrlSurfData> _riskyUrlSurfings = new();
     
@@ -137,7 +138,15 @@ public class ASView : IDomainEventHandler, IBackgroundTask
 
     private void HandleImmediateDangerAdded(ImmediateDangerAdded evt)
     {
-        // Create view of the new ImmediateDanger
+        
+        var evtAdded = evt.ImmediateDanger as ImmediateDangerByRemoteAccessDto;
+        if (evtAdded is null)
+        {
+            return;
+        }
+        //var existing = this._immediateDangers.FirstOrDefault(i => i.Id == evt.ImmediateDanger.Id);
+        this._immediateDangers.Add(evtAdded);
+         _logger.LogInformation($"ASView added immediate danger: {evt.ImmediateDanger.GetType().Name} for DeviceUid={evt.DeviceUid}"); 
     }
 
     private void HandleDeviceAlertReceived(DeviceAlertReceived alertEvent)
@@ -512,6 +521,8 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                 var deviceAlertRepository = scope.ServiceProvider.GetRequiredService<IDeviceAlertRepository>();
                 var analysisResultRepository = scope.ServiceProvider.GetRequiredService<IAnalysisResultRepository>();
 
+                var immediateDangerRepository = scope.ServiceProvider.GetRequiredService<IImmediateDangerRepository>();
+
                 _logger.LogInformation("Fetching users from repository...");
                 var users = await userRepository.GetAllAsync();
                 _logger.LogInformation($"Users fetched: {users.Count()} records");
@@ -622,6 +633,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                         .ToList()
                         );
 
+                    this._immediateDangers = immediateDangerRepository.GetAllOpenAsync().Result.OfType<ImmediateDangerByRemoteAccess>().Select(i => new ImmediateDangerByRemoteAccessDto(i)).ToList<IImmediateDangerView>();
                 }
             }
 

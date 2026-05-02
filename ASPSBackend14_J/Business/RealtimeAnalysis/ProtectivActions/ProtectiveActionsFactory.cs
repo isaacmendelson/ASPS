@@ -17,6 +17,33 @@ namespace Business.RealtimeAnalysis.ProtectivActions
     public class ProtectiveActionsFactory : IProtectiveActionsFactory
     {
 
+        public IProtectiveAction[] CreateProtectiveActions(ImmediateDangerDto immediateDangerDto)
+        {
+            List<IProtectiveAction> protectiveActions = new List<IProtectiveAction>();
+
+            switch (immediateDangerDto)
+            {
+                case ImmediateDangerByRemoteAccessDto immediateDangerByRemoteAccessDto:
+
+                    // ProtectiveActions for the reporting device:
+                    var msg = $"DANGER! DO NOT PROCEED. Yourr sensitive data is accessible by remote control!\nCLose any remote access application running on this device.\nLogout from any website you are logged in.";
+                    if (immediateDangerByRemoteAccessDto.DeviceKey is not null)
+                    {
+                        var pa1 = new ProtectiveAction(immediateDangerByRemoteAccessDto.DeviceKey, ProtectiveActionType.DisplayNotification, AnalysisLevel.User, msg, immediateDangerByRemoteAccessDto.DeviceAlertKey?.Value);
+                        protectiveActions.Add(pa1);
+                        var pa2 = new ProtectiveAction(immediateDangerByRemoteAccessDto.DeviceKey, ProtectiveActionType.SoundAlert, AnalysisLevel.User, msg, immediateDangerByRemoteAccessDto.DeviceAlertKey?.Value);
+                        protectiveActions.Add(pa2);
+                        var pa3 = new ProtectiveAction(immediateDangerByRemoteAccessDto.DeviceKey, ProtectiveActionType.BlockRemoteAccess, AnalysisLevel.User, msg, immediateDangerByRemoteAccessDto.DeviceAlertKey?.Value);
+                        protectiveActions.Add(pa3);
+                    }
+
+
+                    break;
+            }
+
+            return protectiveActions.ToArray();
+        }
+
         public IProtectiveAction[] CreateProtectiveActions(AnalysisResult analysisResult, AnalyzerResult analyzerResult, string alertId, DeviceInfo deviceInfo, float trackUrlThreshold)
         {
             List<IProtectiveAction> protectiveActions = new List<IProtectiveAction>();

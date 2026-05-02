@@ -15,13 +15,14 @@ namespace Common.Entities
 
         public ImmediateDanger() { }
 
-        public ImmediateDanger(DateTime timestamp, string deviceUid, string userKeyField, string? deviceKeyField, string? deviceAlertKeyField,
+        public ImmediateDanger(DateTime timestamp, string deviceUid, string userKeyField, Key? deviceKey, string? deviceAlertKeyField,
             UserDevice? device, DeviceAlert? deviceAlert, DateTime? endTime, User user, Key? scamInProgressKey = null, ProtectiveAction[]? protectiveActions = null)
         {
             Timestamp = timestamp;
             DeviceUid = deviceUid;
             UserKeyField = userKeyField;
-            DeviceKeyField = deviceKeyField;
+            // Store only the GUID value (column is varchar(36)); Type is implicit ("UserDevice")
+            DeviceKeyField = deviceKey?.Value;
             DeviceAlertKeyField = deviceAlertKeyField;
             this.ProtectiveActionsJson = JsonConvert.SerializeObject(protectiveActions ?? []);
             ScamInProgressKeyField = scamInProgressKey?.Value;
@@ -55,9 +56,28 @@ namespace Common.Entities
             }
         }
 
+
+        [NotMapped]
+        public Key? DeviceKey
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(this.DeviceKeyField))
+                {
+                    return null;
+                }
+                return new Key(nameof(UserDevice), this.DeviceKeyField);
+            }
+        }
+
+
         [NotMapped]
         [ForeignKey(nameof(DeviceKeyField))]
         public UserDevice? Device { get; set; }
+
+        //[NotMapped]
+        //[ForeignKey(nameof(DeviceAlertKeyField))]
+        //public Key? DeviceAlertKey { get; set; }
 
         [NotMapped]
         [ForeignKey(nameof(DeviceAlertKeyField))]

@@ -141,7 +141,7 @@ public class ImmediateDangerPersistanceActor : IDomainEventHandler
                 Timestamp = dto.Timestamp,
                 DeviceUid = dto.DeviceUid,
                 UserKeyField = dto.UserKey,
-                DeviceKeyField = dto.DeviceKey,
+                DeviceKeyField = dto.DeviceKey?.Value,
                 DeviceAlertKeyField = dto.DeviceAlertKey?.Value,
                 ScamInProgressKeyField = dto.ScamInProgressKey?.Value,
                 ProtectiveActionsJson = protectiveActionsJson,

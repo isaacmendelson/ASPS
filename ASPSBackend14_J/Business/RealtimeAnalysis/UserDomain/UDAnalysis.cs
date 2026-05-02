@@ -151,7 +151,8 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
                 {
                     analyzerResult.ProtectiveActions?.AddRange(protectiveActions.ToList());
                 }
-            }            analysisResults[analyzer.GetType().Name] = new Tuple<string, AnalyzerResult>(deviceAlert.AlertId, analyzerResult);
+            }
+            analysisResults[analyzer.GetType().Name] = new Tuple<string, AnalyzerResult>(deviceAlert.AlertId, analyzerResult);
             
             FireAnalyzerResultReceivedEvent(activeAlert, analyzer.GetType().Name, analyzerResult);
         }
@@ -398,6 +399,11 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
 
     private void HandleImmediateDangerAdded(ImmediateDangerAdded immediateDangerAdded)
     {
+        var protectiveActions = this._protectiveActionsFactory.CreateProtectiveActions(immediateDangerAdded.ImmediateDanger);
+
+        var immediateDangerEvent = new ImmediateDangerEvent(this._udUser.Key, immediateDangerAdded.DeviceUid, immediateDangerAdded.ImmediateDanger, protectiveActions);
+        this._domainEventPublisher.Register(immediateDangerEvent);
+        this._domainEventPublisher.RaiseAll();
 
     }
 

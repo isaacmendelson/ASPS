@@ -24,17 +24,34 @@ public class NotificationPublisherActor : IDomainEventHandler
 
     public async Task Handle(IDomainEvent evt)
     {
-        if (evt is AnalysisResultReceived analysisEvent)
+        switch (evt)
         {
-            HandleAnalysisResultReceived(analysisEvent);
-        }
+            case AnalysisResultReceived analysisEvent:
+                HandleAnalysisResultReceived(analysisEvent);
+                break;
+            case ImmediateDangerEvent immediateDangerEvent:
+                this.HandleImmediateDangerEvent(immediateDangerEvent);
+                break;
+            default:
+                _logger.LogWarning($"[NotificationPublisherActor] Received unhandled event type: {evt.GetType().Name}");
+                break;
+            }
     }
 
     public Type[] GetHandleableEvents()
     {
-        return new[] { typeof(AnalysisResultReceived) };
+        return new[] { typeof(AnalysisResultReceived), typeof(ImmediateDangerEvent) };
     }
 
+    private void HandleImmediateDangerEvent(ImmediateDangerEvent immediateDangerEvent)
+    {
+        // Publish notification
+        _notificationPublisher.PublishImmediateDangerEvent(
+            immediateDangerEvent.DeviceUid,
+            immediateDangerEvent.UserKey.Value,
+            immediateDangerEvent
+        );
+    }
     private void HandleAnalysisResultReceived(AnalysisResultReceived analysisEvent)
     {
         try

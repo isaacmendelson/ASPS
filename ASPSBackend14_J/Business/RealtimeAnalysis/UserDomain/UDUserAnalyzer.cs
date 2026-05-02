@@ -524,7 +524,7 @@ namespace Business.RealtimeAnalysis.UserDomain
                     {
                         // Create new immediate danger instance and add to the list
                         var immediateDanger = new ImmediateDangerByRemoteAccessDto(new Key (nameof(ImmediateDangerByRemoteAccess), new Guid().ToString()), remoteAccessApp, sUrl, deviceUid, this.UDUser.Key.Value,
-                            this.UDUser.UserDevices.FirstOrDefault(i => i.DeviceUid == deviceUid)?.Key.Value, alertKey,null, []);
+                            this.UDUser.UserDevices.FirstOrDefault(i => i.DeviceUid == deviceUid)?.Key, alertKey,null, []);
                         this._immediateDangers.Add(immediateDanger);
 
                         //Publish event ImmediateDanderDetected

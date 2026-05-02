@@ -12,9 +12,9 @@ namespace Common.Entities
     {
         public ImmediateDangerByRemoteAccess() : base() { }
 
-        public ImmediateDangerByRemoteAccess(RemoteAccessApp? remoteAccessApp, string sensitiveUrl, DateTime timestamp, string deviceUid, string userKeyField, string? deviceKeyField, string? deviceAlertKeyField,
+        public ImmediateDangerByRemoteAccess(RemoteAccessApp? remoteAccessApp, string sensitiveUrl, DateTime timestamp, string deviceUid, string userKeyField, Key? deviceKey, string? deviceAlertKeyField,
             ProtectiveAction[] protectiveActions, UserDevice? device, DeviceAlert? deviceAlert, DateTime? endTime, User user)
-            :base(timestamp, deviceUid, userKeyField, deviceKeyField, deviceAlertKeyField, device, deviceAlert, endTime, user, null, protectiveActions)
+            :base(timestamp, deviceUid, userKeyField, deviceKey, deviceAlertKeyField, device, deviceAlert, endTime, user, null, protectiveActions)
         {
             this.RemoteAccessApp = remoteAccessApp;
             this.SensitiveUrl = sensitiveUrl;

@@ -316,6 +316,26 @@ public class ImmediateDangerRepository : Repository<ImmediateDanger>, IImmediate
 {
     public ImmediateDangerRepository(AppDbContext context) : base(context) { }
 
+    public async Task<IEnumerable<ImmediateDanger>> GetAllOpenAsync()
+    {
+        
+        return await _dbSet
+            .AsNoTracking()
+            .Where(d => d.EndTime == null)
+            .OrderByDescending(d => d.Timestamp)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<ImmediateDanger>> GetLatestAsync(TimeSpan timespan)
+    {
+
+        return await _dbSet
+            .AsNoTracking()
+            .Where(d => d.Timestamp > DateTime.UtcNow.Subtract(timespan))
+            .OrderByDescending(d => d.Timestamp)
+            .ToListAsync();
+    }
+
     public async Task<IEnumerable<ImmediateDanger>> GetByUserKeyAsync(Key userKey)
     {
         var userKeyField = Entity.GetDbKey(userKey);

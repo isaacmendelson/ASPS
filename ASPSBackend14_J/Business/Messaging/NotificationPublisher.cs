@@ -1,10 +1,11 @@
-using NetMQ;
-using NetMQ.Sockets;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
+using Business.DomainEvents;
 using Business.RealtimeAnalysis.UserDomain;
 using Business.Services;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using NetMQ;
+using NetMQ.Sockets;
+using Newtonsoft.Json;
 
 namespace Business.Messaging;
 
@@ -48,6 +49,66 @@ public class NotificationPublisher : IDisposable
     /// Publish analysis result notification to subscribers
     /// Topic format: "device:{deviceUid}" or "user:{userKey}"
     /// </summary>
+    /// 
+    public virtual void PublishImmediateDangerEvent(string? deviceUid, string? userKeyField, ImmediateDangerEvent? immediateDangerEvent)
+    {
+        if (!_isRunning || immediateDangerEvent == null)
+        {
+            _logger.LogWarning("NotificationPublisher is not running or notification is null, skipping");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(deviceUid) && string.IsNullOrEmpty(userKeyField))
+        {
+            _logger.LogWarning("Both deviceUid and userKeyField are null/empty, skipping notification");
+            return;
+        }
+
+        try
+        {
+            // Create notification message
+            var notification = new
+            {
+                Type = "AnalysisResult",
+                Timestamp = DateTime.UtcNow,
+                DeviceUid = deviceUid ?? string.Empty,
+                Data = immediateDangerEvent
+            };
+
+            // Use Newtonsoft.Json with TypeNameHandling to properly serialize polymorphic types
+            var jsonSettings = new JsonSerializerSettings
+            {
+                TypeNameHandling = TypeNameHandling.None,
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                NullValueHandling = NullValueHandling.Ignore,
+                Formatting = Formatting.None
+            };
+
+            var json = JsonConvert.SerializeObject(notification, jsonSettings);
+
+            lock (_sendLock)
+            {
+                if (!string.IsNullOrEmpty(deviceUid))
+                {
+                    var deviceTopic = $"device:{deviceUid}";
+                    _publisherSocket.SendMoreFrame(deviceTopic).SendFrame(json);
+                    _logger.LogDebug($"Published notification to topic '{deviceTopic}'", deviceTopic);
+                }
+
+                if (!string.IsNullOrEmpty(userKeyField))
+                {
+                    var userTopic = $"user:{userKeyField}";
+                    _publisherSocket.SendMoreFrame(userTopic).SendFrame(json);
+                    _logger.LogDebug("Published notification to topic '{UserTopic}'", userTopic);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error publishing notification");
+        }
+    }
+
     public virtual void PublishAnalysisResult(string? deviceUid, string? userKeyField, AnalysisResultNotification? analysisResultNotification)
     {
         if (!_isRunning || analysisResultNotification == null)

@@ -49,6 +49,8 @@ public interface IImmediateDangerRepository : IRepository<ImmediateDanger>
 {
     Task<IEnumerable<ImmediateDanger>> GetByUserKeyAsync(Key userKey);
     Task<IEnumerable<ImmediateDanger>> GetOpenByUserKeyAsync(Key userKey);
+    Task<IEnumerable<ImmediateDanger>> GetLatestAsync(TimeSpan timespan);
+    Task<IEnumerable<ImmediateDanger>> GetAllOpenAsync();
 }
 
 public interface IAlertFlagRepository

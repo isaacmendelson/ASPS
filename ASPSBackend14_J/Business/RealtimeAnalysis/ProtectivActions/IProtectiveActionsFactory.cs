@@ -14,5 +14,7 @@ namespace Business.RealtimeAnalysis.ProtectivActions
     {
         //IProtectiveAction[] CreateProtectiveActions(AnalysisResult analysisResult);
         IProtectiveAction[] CreateProtectiveActions(AnalysisResult analysisResult, AnalyzerResult analyzerResult, string alertId, DeviceInfo deviceInfo, float trackUrlThreshold);
+
+        IProtectiveAction[] CreateProtectiveActions(ImmediateDangerDto immediateDangerDto);
     }
 }
