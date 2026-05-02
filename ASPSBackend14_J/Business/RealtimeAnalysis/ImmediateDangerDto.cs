@@ -8,15 +8,12 @@ using System.Threading.Tasks;
 
 namespace Business.RealtimeAnalysis
 {
-    public class ImmediateDangerDto
+    public abstract class ImmediateDangerDto
     {
-        public ImmediateDangerDto(RemoteAccessApp? remoteAccessApp, string? sensitiveUrl, string deviceUid, string userKey, string? deviceKey, Key? deviceAlertKey = null
-            //, Key? scamInProgressKey, ProtectiveAction[] protectiveActions
-            )
+        public ImmediateDangerDto(string deviceUid, string userKey, string? deviceKey, Key? deviceAlertKey = null
+            , Key? scamInProgressKey = null, ProtectiveAction[]? protectiveActions = null)
         {
             Timestamp = DateTime.UtcNow;
-            RemoteAccessApp = remoteAccessApp;
-            SensitiveUrl = sensitiveUrl;
             DeviceUid = deviceUid;
             UserKey = userKey;
             DeviceKey = deviceKey;
@@ -27,8 +24,6 @@ namespace Business.RealtimeAnalysis
         }
 
         public DateTime Timestamp { get; set; }
-        public RemoteAccessApp? RemoteAccessApp { get; set; }
-        public string?  SensitiveUrl { get; set; }
         public string DeviceUid { get; set; }
         public string UserKey { get; set; }
         public string? DeviceKey { get; set; }
