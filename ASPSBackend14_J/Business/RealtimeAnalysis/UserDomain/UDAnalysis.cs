@@ -1,8 +1,8 @@
 #nullable enable
 
 using Business.DomainEvents;
-using Business.RealtimeAnalysis;
 using Business.RealtimeAnalysis.Indicators;
+using Business.RealtimeAnalysis.ProtectivActions;
 using Business.Views;
 using Common.Entities;
 using Common.Enums;
@@ -385,7 +385,7 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
 
     public Type[] GetHandleableEvents()
     {
-        return [typeof(SystemConfigurationChanged)];
+        return [typeof(SystemConfigurationChanged), typeof(ImmediateDangerDetected)];
     }
 
     private void LoadConfiguration(IConfiguration configuration)

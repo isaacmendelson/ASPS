@@ -1,6 +1,7 @@
 ﻿using Business.RealtimeAnalysis.Indicators;
 using Business.RealtimeAnalysis.UserDomain;
 using Common.Enums;
+using Common.Interfaces;
 using Common.Models;
 using NetTopologySuite.Utilities;
 using System;
@@ -11,7 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 using static System.Collections.Specialized.BitVector32;
 
-namespace Business.RealtimeAnalysis
+namespace Business.RealtimeAnalysis.ProtectivActions
 {
     public class ProtectiveActionsFactory : IProtectiveActionsFactory
     {

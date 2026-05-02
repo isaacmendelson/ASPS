@@ -2,6 +2,7 @@
 using Business.RealtimeAnalysis.Indicators;
 using Business.RealtimeAnalysis.UserDomain;
 using Common.Entities;
+using Common.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;

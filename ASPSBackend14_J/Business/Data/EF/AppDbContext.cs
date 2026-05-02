@@ -46,6 +46,7 @@ public class AppDbContext : DbContext
     public DbSet<BankWebsite> BankWebsites { get; set; }
     public DbSet<WebsiteCategory> WebsiteCategories { get; set; }
     public DbSet<Roadmap> Roadmaps { get; set; }
+    public DbSet<ImmediateDanger> ImmediateDangers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -295,6 +296,76 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Duration);
             entity.Property(e => e.ScamInProgressKey).HasMaxLength(255);
             entity.Property(e => e.Timezone).HasMaxLength(100);
+        });
+
+        // ImmediateDanger configuration (TPH)
+        modelBuilder.Entity<ImmediateDanger>(entity =>
+        {
+            entity.ToTable("ImmediateDangers");
+
+            entity.HasDiscriminator<string>("Discriminator")
+                .HasValue<ImmediateDangerByRemoteAccess>("RemoteAccess");
+
+            entity.HasKey(e => e.KeyField);
+            entity.Property(e => e.KeyField)
+                .HasColumnName("Key")
+                .HasColumnType("varchar(36)");
+
+            entity.Property(e => e.UserKeyField)
+                .HasColumnName("UserKey")
+                .HasColumnType("varchar(36)")
+                .IsRequired();
+
+            entity.Property(e => e.DeviceKeyField)
+                .HasColumnName("DeviceKey")
+                .HasColumnType("varchar(36)")
+                .IsRequired(false);
+
+            entity.Property(e => e.DeviceAlertKeyField)
+                .HasColumnName("DeviceAlertKey")
+                .HasColumnType("varchar(36)")
+                .IsRequired(false);
+
+            entity.Property(e => e.DeviceUid).HasMaxLength(255).IsRequired();
+
+            // Persist ProtectiveAction[] as JSON in a TEXT column
+            var jsonOptions = new System.Text.Json.JsonSerializerOptions { WriteIndented = false };
+            entity.Property(e => e.ProtectiveActions)
+                .HasColumnType("TEXT")
+                .HasConversion(
+                    v => System.Text.Json.JsonSerializer.Serialize(v ?? Array.Empty<ProtectiveAction>(), jsonOptions),
+                    v => string.IsNullOrEmpty(v)
+                        ? Array.Empty<ProtectiveAction>()
+                        : System.Text.Json.JsonSerializer.Deserialize<ProtectiveAction[]>(v, jsonOptions) ?? Array.Empty<ProtectiveAction>(),
+                    new Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<ProtectiveAction[]>(
+                        (a, b) => System.Linq.Enumerable.SequenceEqual(a ?? Array.Empty<ProtectiveAction>(), b ?? Array.Empty<ProtectiveAction>()),
+                        v => v == null ? 0 : v.Aggregate(0, (h, p) => HashCode.Combine(h, p.GetHashCode())),
+                        v => v == null ? Array.Empty<ProtectiveAction>() : v.ToArray()));
+
+            // FK to User (required)
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserKeyField)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Ignore computed/navigation properties not persisted
+            entity.Ignore(e => e.Tag);
+            entity.Ignore(e => e.TypeName);
+            entity.Ignore(e => e.Typename);
+            entity.Ignore(e => e.Key);
+            entity.Ignore(e => e.Device);
+            entity.Ignore(e => e.DeviceAlert);
+
+            entity.HasIndex(e => e.UserKeyField);
+            entity.HasIndex(e => e.DeviceUid);
+            entity.HasIndex(e => e.Timestamp);
+            entity.HasIndex(e => e.DeviceAlertKeyField);
+        });
+
+        // ImmediateDangerByRemoteAccess specific configuration
+        modelBuilder.Entity<ImmediateDangerByRemoteAccess>(entity =>
+        {
+            entity.Property(e => e.SensitiveUrl).HasColumnType("TEXT");
         });
 
         // AlertFlag configuration (this entity doesn't inherit from Entity - uses int Key)

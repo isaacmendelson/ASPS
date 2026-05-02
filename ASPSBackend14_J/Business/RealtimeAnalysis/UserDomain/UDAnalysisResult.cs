@@ -2,6 +2,7 @@
 
 using Business.RealtimeAnalysis.Indicators;
 using Common.Enums;
+using Common.Interfaces;
 using Microsoft.Extensions.Configuration;
 using System.Runtime.Serialization;
 

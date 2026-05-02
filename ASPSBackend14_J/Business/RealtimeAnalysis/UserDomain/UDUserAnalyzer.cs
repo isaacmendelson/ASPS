@@ -41,8 +41,10 @@ namespace Business.RealtimeAnalysis.UserDomain
         //private KeyValuePair<string, IProtectiveAction>[] _protectiveActions = Array.Empty<KeyValuePair<string, IProtectiveAction>>();
 
         private List<RemoteAccessStatusObject> _remoteAccessStatus = new();
-        private List<ImmediateDanger> _immediateDangers = new();
+        private List<ImmediateDangerDto> _immediateDangers = new();
         //private List<BrowserTab> _browserTabs = new();
+        private readonly List<IDomainEventHandler> _eventHandlers = new();
+        private readonly DomainEventPublisher _domainEventPublisher;
 
         public UDUserAnalyzer(
             UDUser udUser,
@@ -58,13 +60,22 @@ namespace Business.RealtimeAnalysis.UserDomain
             this._logger = loggerFactory.CreateLogger<UDUserAnalyzer>();
             this._alertDeletionDays = alertDeletionDays;
             this._alertExpiryDays = alertExpiryDays;
+            _domainEventPublisher = new DomainEventPublisher(_eventHandlers);
         }
         public string Name => nameof(UDUserAnalyzer);
         //public ExternalAnalyzer[] ExternalAnalyzers { get; }
 
         public UDUser UDUser { get; private set; }
 
-        
+
+        public void RegisterEventHandler(IDomainEventHandler handler)
+        {
+            _eventHandlers.Add(handler);
+            _logger.LogInformation($"Registered event handler: {handler.GetType().Name}");
+
+
+        }
+
 
         public async Task AnalyzeAsync(DeviceAlert alert)
         {
@@ -461,6 +472,10 @@ namespace Business.RealtimeAnalysis.UserDomain
         {
             bool res = false;
             var remoteAccessStatus = this.GetRemoteAccessStatus();
+            if (remoteAccessStatus is not null && !_remoteAccessStatus.Any(i => i.Timestamp >= remoteAccessStatus.Timestamp))
+            {
+                this._remoteAccessStatus.Add(remoteAccessStatus);
+            }
             if (!this._remoteAccessStatus.Any(i => i.isRemoteAccessSessionActive && i.RemoteAccessDirection == RemoteAccessDirection.In))
             {
                 //return false;
@@ -496,18 +511,23 @@ namespace Business.RealtimeAnalysis.UserDomain
                     {
                         this._immediateDangers = new();
                     }
-                    if (!this._immediateDangers.Any(i => i.RemoteAccessApp == remoteAccessApp && i.DeviceUid == deviceUid && i.SensitiveUrl?.ToLower() == sUrl))
+                    if (alertKey is not null && !this._immediateDangers.Any(i => i.DeviceAlertKey == alertKey && i.EndTime == null && i.RemoteAccessApp == remoteAccessApp && i.DeviceUid == deviceUid && i.SensitiveUrl?.ToLower() == sUrl))
                     {
                         // Create new immediate danger instance and add to the list
-                        var immeidateDanger = new ImmediateDanger(remoteAccessApp, sUrl, deviceUid, this.UDUser.Key.Value, 
+                        var immediateDanger = new ImmediateDangerDto(remoteAccessApp, sUrl, deviceUid, this.UDUser.Key.Value,
                             this.UDUser.UserDevices.FirstOrDefault(i => i.DeviceUid == deviceUid)?.Key.Value, alertKey);
-                        if (this._immediateDangers.Any(i => i.EndTime == null && i.DeviceUid == immeidateDanger.DeviceUid && i.RemoteAccessApp == immeidateDanger.RemoteAccessApp))
-                        {
-                            this._immediateDangers.Add(immeidateDanger);
-                        }
+                        this._immediateDangers.Add(immediateDanger);
+
+                        //Publish event ImmediateDanderDetected
+                        var domainEvent = new ImmediateDangerDetected(immediateDanger);
+                        this._domainEventPublisher.Register(domainEvent);
+
+
                     }
+                    
                 }
             }
+            this._domainEventPublisher.RaiseAll();
             return res;
         }
 
@@ -524,12 +544,12 @@ namespace Business.RealtimeAnalysis.UserDomain
                 return false;
             }
 
-            string[] sensitiveWebsiteCategories = "crypto_exchange,bank".Split(',');
+            string[] sensitiveWebsiteCategories = "crypto_exchange,bank,banking".Split(',');
             List<UrlAnalysisResultView> urlAnalysisResultViews = this._asView.GetUrlAnalysisResultsByUserKey(this.UDUser.Key)
                 .OrderByDescending(I => I.Timestamp)
                 .ToList();
             var view = urlAnalysisResultViews.FirstOrDefault(i => i.AnalysisResult is UrlAnalysisResult uv && uv.Domain.ToLower() == domain.ToLower());
-            if (sensitiveWebsiteCategories.Contains(view?.AnalysisResult?.website_category?.Category.Name.ToLower()))
+            if (sensitiveWebsiteCategories.Contains(view?.AnalysisResult?.website_category?.category?.ToLower()))
             {
                 return true;
             }

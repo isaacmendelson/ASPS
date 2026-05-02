@@ -2,6 +2,7 @@
 
 using Business.RealtimeAnalysis.Indicators;
 using Common.Enums;
+using Common.Interfaces;
 
 namespace Business.RealtimeAnalysis.UserDomain;
 

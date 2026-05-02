@@ -2,6 +2,7 @@ using Business.RealtimeAnalysis.Indicators;
 using Business.Views;
 using Common.Entities;
 using Common.Enums;
+using Common.Interfaces;
 using Common.Models;
 using Common.Models.Alerts;
 using Interface.Repositories;

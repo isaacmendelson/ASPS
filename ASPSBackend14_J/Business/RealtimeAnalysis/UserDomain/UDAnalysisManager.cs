@@ -1,5 +1,6 @@
 using Business.DomainEvents;
 using Business.RealtimeAnalysis.Indicators;
+using Business.RealtimeAnalysis.ProtectivActions;
 using Business.Views;
 using Common.Entities;
 using Common.Interfaces;

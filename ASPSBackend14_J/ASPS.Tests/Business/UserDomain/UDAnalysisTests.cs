@@ -1,6 +1,7 @@
 using Business.DomainEvents;
 using Business.RealtimeAnalysis;
 using Business.RealtimeAnalysis.Indicators;
+using Business.RealtimeAnalysis.ProtectivActions;
 using Business.RealtimeAnalysis.UserDomain;
 using Business.Views;
 using Common.Entities;

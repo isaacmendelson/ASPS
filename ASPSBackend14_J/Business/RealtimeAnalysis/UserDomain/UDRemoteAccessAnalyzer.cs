@@ -3,6 +3,7 @@
 using Business.RealtimeAnalysis.Indicators;
 using Common.Entities;
 using Common.Enums;
+using Common.Interfaces;
 using Common.Models;
 using Common.Models.Alerts;
 using Microsoft.Extensions.Configuration;

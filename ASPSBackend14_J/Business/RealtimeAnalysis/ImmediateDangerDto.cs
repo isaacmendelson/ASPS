@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace Business.RealtimeAnalysis
 {
-    public class ImmediateDanger
+    public class ImmediateDangerDto
     {
-        public ImmediateDanger(RemoteAccessApp? remoteAccessApp, string? sensitiveUrl, string deviceUid, string? userKey, string? deviceKey, Key? deviceAlertKey = null
+        public ImmediateDangerDto(RemoteAccessApp? remoteAccessApp, string? sensitiveUrl, string deviceUid, string userKey, string? deviceKey, Key? deviceAlertKey = null
             //, Key? scamInProgressKey, ProtectiveAction[] protectiveActions
             )
         {
@@ -30,7 +30,7 @@ namespace Business.RealtimeAnalysis
         public RemoteAccessApp? RemoteAccessApp { get; set; }
         public string?  SensitiveUrl { get; set; }
         public string DeviceUid { get; set; }
-        public string? UserKey { get; set; }
+        public string UserKey { get; set; }
         public string? DeviceKey { get; set; }
         public Key? DeviceAlertKey { get; set; }
 

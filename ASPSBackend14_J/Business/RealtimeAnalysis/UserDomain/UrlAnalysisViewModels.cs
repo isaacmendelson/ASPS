@@ -75,7 +75,7 @@ public class AnalyzerResultVm
     }
     public AnalyzerResultVm(
         //AnalysisResult analysisResult, 
-        Indicator[] indicators, ProtectiveAction[] protectiveActions, string analyzerName, string deviceUid, DateTime timestamp, Severity severity)
+        Indicator[] indicators, IProtectiveAction[] protectiveActions, string analyzerName, string deviceUid, DateTime timestamp, Severity severity)
     {
         //AnalysisResult = analysisResult;
         //switch (analysisResult)

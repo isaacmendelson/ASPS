@@ -180,6 +180,31 @@ public class AnalyzerResultReceived : DomainEvent
     }
 }
 
+public class ImmediateDangerDetected : DomainEvent
+{
+    protected ImmediateDangerDetected() { }
+
+    public ImmediateDangerDetected(ImmediateDangerDto immediateDanger)
+    {
+        UserId = immediateDanger.UserKey;
+        DeviceUid = immediateDanger.DeviceUid;
+        Timestamp = immediateDanger.Timestamp;
+        ImmediateDanger = immediateDanger;
+    }
+
+    public ImmediateDangerDetected(string userKeyValue, string deviceUid, DateTime timestamp, ImmediateDangerDto immediateDanger)
+    {
+        UserId = userKeyValue;
+        DeviceUid = deviceUid;
+        Timestamp = timestamp;
+        ImmediateDanger = immediateDanger;
+    }
+    public string? DeviceUid { get; private set; }
+
+    public ImmediateDangerDto ImmediateDanger { get; private set; }
+
+}
+
 public class UserAdded : DomainEvent
 {
     public User User { get; set; }

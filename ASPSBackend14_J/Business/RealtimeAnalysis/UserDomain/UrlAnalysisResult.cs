@@ -65,8 +65,10 @@ namespace Business.RealtimeAnalysis.UserDomain
         [DataMember]
         public RiskAssessment? risk_assessment { get; set; }
 
+        // Wire-format from Python analyzer (category as string, snake_case).
+        // The domain-shaped WebsiteCategoryResult lives at WebsiteCategory above.
         [DataMember]
-        public WebsiteCategoryResult? website_category { get; set; }
+        public WebsiteCategoryResultVm? website_category { get; set; }
 
         [DataMember]
         public Reputation? Reputation { get; set; }
