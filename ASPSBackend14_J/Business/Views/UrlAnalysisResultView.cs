@@ -18,7 +18,9 @@ namespace Business.Views
             var json = analysisResultContainer.JsonValue ?? string.Empty;
             var jObject = Newtonsoft.Json.Linq.JObject.Parse(json);
             var analyzerResults = jObject["AnalyzerResults"] ?? jObject["analyzerResults"];
-            if (analyzerResults is null)
+            // JToken with JSON-null value is not C# null but ?? doesn't catch it.
+            // Fall through to the legacy "AnalysisResult" key in that case.
+            if (analyzerResults is null || analyzerResults.Type == Newtonsoft.Json.Linq.JTokenType.Null)
             {
                 analyzerResults = jObject["AnalysisResult"];
             }

@@ -346,6 +346,11 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                 case nameof(UrlAlert):
                     var vm1 = analysisEvent.AnalyzerResults
                         .FirstOrDefault(i => i.Value.Item1 is UrlAnalysisResult).Value?.Item1 as UrlAnalysisResult;
+                    if (vm1 == null)
+                    {
+                        _logger.LogWarning("UrlAnalysisResult missing in AnalyzerResults — skipping cache add (DeviceUid={DeviceUid})", analysisEvent.DeviceUid);
+                        return;
+                    }
                     discriminator = nameof(UrlAnalysisResult);
                     jsonValue = System.Text.Json.JsonSerializer.Serialize(new
                     {
@@ -360,6 +365,11 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                 case nameof(RemoteAccessAlert):
                     var vm2 = analysisEvent.AnalyzerResults
                         .FirstOrDefault(i => i.Value.Item1 is RemoteAccessAnalysisResult).Value?.Item1 as RemoteAccessAnalysisResult;
+                    if (vm2 == null)
+                    {
+                        _logger.LogWarning("RemoteAccessAnalysisResult missing in AnalyzerResults — skipping cache add (DeviceUid={DeviceUid})", analysisEvent.DeviceUid);
+                        return;
+                    }
                     discriminator = nameof(RemoteAccessAnalysisResult);
                     jsonValue = System.Text.Json.JsonSerializer.Serialize(new
                     {

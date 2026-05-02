@@ -254,13 +254,9 @@ namespace Business.RealtimeAnalysis.UserDomain
             {
                 var browserTabsOfUser = this.UDUser.BrowserTabs;
                 var browserTabsOfDevice = (raResult.Item1 as RemoteAccessAnalysisResult)?.BrowserTabs;
-                if (browserTabsOfUser is not null && browserTabsOfDevice is not null)
+                if (browserTabsOfUser is not null && browserTabsOfDevice?.Length > 0)
                 {
                     browserTabsOfUser[analysisEvent.DeviceUid] = browserTabsOfDevice;
-                }
-
-                if (browserTabsOfDevice is not null && browserTabsOfDevice.Length > 0)
-                {
                     this.UDUser.SetBrowserTabs(analysisEvent.DeviceUid, browserTabsOfDevice);
                 }
             }
@@ -471,6 +467,10 @@ namespace Business.RealtimeAnalysis.UserDomain
             }
             var remoteAccessObjectsWithActiveSession = this._remoteAccessStatus.OrderByDescending(i => i.Timestamp).Where(i => i.isRemoteAccessSessionActive && i.RemoteAccessDirection == RemoteAccessDirection.In);
             //remoteAccessObjectsWithActiveSession = this._remoteAccessStatus.OrderByDescending(i => i.Timestamp).Where(i => i.isRemoteAccessSessionActive);
+            if (!remoteAccessObjectsWithActiveSession.Any() )
+            {
+                return false;
+            }
                 
             var activeDeviceUids = remoteAccessObjectsWithActiveSession.Select(i => i.DeviceUid).ToHashSet();
             var urlAnalysisResultViews = this._asView.GetUrlAnalysisResultsByUserKey(this.UDUser.Key)
@@ -517,9 +517,15 @@ namespace Business.RealtimeAnalysis.UserDomain
             {
                 return false;
             }
+
             var domain = KnownPhishingWebsite.GetDomainFromUrl(url).ToLower();
+            if (url.IndexOf("localhost") >=7 && url.IndexOf("localhost") <= 9)
+            {
+                return false;
+            }
+
             string[] sensitiveWebsiteCategories = "crypto_exchange,bank".Split(',');
-            var urlAnalysisResultViews = this._asView.GetUrlAnalysisResultsByUserKey(this.UDUser.Key)
+            List<UrlAnalysisResultView> urlAnalysisResultViews = this._asView.GetUrlAnalysisResultsByUserKey(this.UDUser.Key)
                 .OrderByDescending(I => I.Timestamp)
                 .ToList();
             var view = urlAnalysisResultViews.FirstOrDefault(i => i.AnalysisResult is UrlAnalysisResult uv && uv.Domain.ToLower() == domain.ToLower());

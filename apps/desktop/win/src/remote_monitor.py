@@ -1150,10 +1150,13 @@ class RemoteAccessMonitor:
         }
 
         confidence = calculate_confidence(signals)
+        # Session is "active" only on strong signals — a live network connection or
+        # an explicit "session started" log entry. CPU usage is too noisy (the app
+        # consumes CPU on launch and idle GUI activity), so it stays a confidence
+        # booster only and does not flip has_active_session by itself.
         has_active_session = any([
             signals['active_connection'],
-            signals['log_session_active'],
-            signals['cpu_active']
+            signals['log_session_active']
         ])
 
         final_remote_ip = remote_ip or log_remote_ip

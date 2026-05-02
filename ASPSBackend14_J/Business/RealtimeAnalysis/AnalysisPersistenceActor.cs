@@ -71,17 +71,20 @@ public class AnalysisPersistenceActor : IDomainEventHandler
             switch (analysisEvent.AlertType)
             {
                 case nameof(UrlAlert):
-                    if (analysisEvent.AnalyzerResults.Any())
+                    if (!analysisEvent.AnalyzerResults.Any())
+                    {
+                        _logger.LogWarning("UrlAlert AnalyzerResults is empty — skipping persistence (DeviceAlertKey={DeviceAlertKey})", analysisEvent.DeviceAlertKeyField);
+                        return;
+                    }
                     {
                         var res1 = analysisEvent.AnalyzerResults.FirstOrDefault(i => i.Value.Item1 is UrlAnalysisResult);
-                        var urlAnalysisResultVm = res1.Value.Item1 as UrlAnalysisResult;
-                        isFromCache = urlAnalysisResultVm?.IsFromCache ?? false;
-                        // SECURITY FIX ASPS-70: Added null check for FirstOrDefault result
                         if (res1.Value.Item1 == null)
                         {
-                            _logger.LogWarning("UrlAnalysisResult not found in analyzer results");
-                            break;
+                            _logger.LogWarning("UrlAnalysisResult not found in analyzer results — skipping persistence");
+                            return;
                         }
+                        var urlAnalysisResultVm = res1.Value.Item1 as UrlAnalysisResult;
+                        isFromCache = urlAnalysisResultVm?.IsFromCache ?? false;
                         var vm1 = res1.Value.Item1 as UrlAnalysisResult;
                         var vm11 = new UrlAnalyzerResultVm(vm1,
                             res1.Value.Item2.Cast<Indicator>().ToArray(),
@@ -94,13 +97,8 @@ public class AnalysisPersistenceActor : IDomainEventHandler
                         });
                     }
                     var urlAlertEntity = await _deviceAlertRepository.GetByKeyAsync(new Key(nameof(UrlAlert), analysisEvent.DeviceAlertKeyField)) as UrlAlertEntity;
-                    var x = await _deviceAlertRepository.GetAllAsync();   //.GetByKeyAsync(new Key(nameof(UrlAlert), analysisEvent.DeviceAlertKeyField));
-                    var x1 = x.FirstOrDefault(i => i.AlertId == analysisEvent.DeviceAlertKeyField);
-                    // Get first result safely
-                    var firstUrlResult = analysisEvent.AnalyzerResults.Any() 
-                        ? analysisEvent.AnalyzerResults.FirstOrDefault().Value.Item1 
-                        : null;
-                    
+                    var firstUrlResult = analysisEvent.AnalyzerResults.FirstOrDefault().Value.Item1;
+
                     analysisResultContainer = new UrlAnalysisResultContainer(
                         urlAlertEntity?.Url ?? "",
                         guid,
