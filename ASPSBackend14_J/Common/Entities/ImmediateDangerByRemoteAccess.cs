@@ -10,12 +10,11 @@ namespace Common.Entities
 {
     public class ImmediateDangerByRemoteAccess : ImmediateDanger
     {
-        // Required for EF Core materialization
-        protected ImmediateDangerByRemoteAccess() : base() { }
+        public ImmediateDangerByRemoteAccess() : base() { }
 
         public ImmediateDangerByRemoteAccess(RemoteAccessApp? remoteAccessApp, string sensitiveUrl, DateTime timestamp, string deviceUid, string userKeyField, string? deviceKeyField, string? deviceAlertKeyField,
             ProtectiveAction[] protectiveActions, UserDevice? device, DeviceAlert? deviceAlert, DateTime? endTime, User user)
-            :base(timestamp, deviceUid, userKeyField, deviceKeyField, deviceAlertKeyField, protectiveActions, device, deviceAlert, endTime, user)
+            :base(timestamp, deviceUid, userKeyField, deviceKeyField, deviceAlertKeyField, device, deviceAlert, endTime, user, null, protectiveActions)
         {
             this.RemoteAccessApp = remoteAccessApp;
             this.SensitiveUrl = sensitiveUrl;

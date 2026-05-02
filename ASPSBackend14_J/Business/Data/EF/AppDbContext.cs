@@ -326,21 +326,15 @@ public class AppDbContext : DbContext
                 .HasColumnType("varchar(36)")
                 .IsRequired(false);
 
+            entity.Property(e => e.ScamInProgressKeyField)
+                .HasColumnName("ScamInProgressKey")
+                .HasColumnType("varchar(36)")
+                .IsRequired(false);
+
             entity.Property(e => e.DeviceUid).HasMaxLength(255).IsRequired();
 
-            // Persist ProtectiveAction[] as JSON in a TEXT column
-            var jsonOptions = new System.Text.Json.JsonSerializerOptions { WriteIndented = false };
-            entity.Property(e => e.ProtectiveActions)
-                .HasColumnType("TEXT")
-                .HasConversion(
-                    v => System.Text.Json.JsonSerializer.Serialize(v ?? Array.Empty<ProtectiveAction>(), jsonOptions),
-                    v => string.IsNullOrEmpty(v)
-                        ? Array.Empty<ProtectiveAction>()
-                        : System.Text.Json.JsonSerializer.Deserialize<ProtectiveAction[]>(v, jsonOptions) ?? Array.Empty<ProtectiveAction>(),
-                    new Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<ProtectiveAction[]>(
-                        (a, b) => System.Linq.Enumerable.SequenceEqual(a ?? Array.Empty<ProtectiveAction>(), b ?? Array.Empty<ProtectiveAction>()),
-                        v => v == null ? 0 : v.Aggregate(0, (h, p) => HashCode.Combine(h, p.GetHashCode())),
-                        v => v == null ? Array.Empty<ProtectiveAction>() : v.ToArray()));
+            // ProtectiveActions is [NotMapped] — backed by ProtectiveActionsJson string column
+            entity.Property(e => e.ProtectiveActionsJson).HasColumnType("TEXT");
 
             // FK to User (required)
             entity.HasOne(e => e.User)
@@ -360,6 +354,7 @@ public class AppDbContext : DbContext
             entity.HasIndex(e => e.DeviceUid);
             entity.HasIndex(e => e.Timestamp);
             entity.HasIndex(e => e.DeviceAlertKeyField);
+            entity.HasIndex(e => e.ScamInProgressKeyField);
         });
 
         // ImmediateDangerByRemoteAccess specific configuration

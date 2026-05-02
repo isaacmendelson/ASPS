@@ -311,3 +311,28 @@ public class AlertFlagRepository : IAlertFlagRepository
         }
     }
 }
+
+public class ImmediateDangerRepository : Repository<ImmediateDanger>, IImmediateDangerRepository
+{
+    public ImmediateDangerRepository(AppDbContext context) : base(context) { }
+
+    public async Task<IEnumerable<ImmediateDanger>> GetByUserKeyAsync(Key userKey)
+    {
+        var userKeyField = Entity.GetDbKey(userKey);
+        return await _dbSet
+            .AsNoTracking()
+            .Where(d => d.UserKeyField == userKeyField && !d.IsDeleted)
+            .OrderByDescending(d => d.Timestamp)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<ImmediateDanger>> GetOpenByUserKeyAsync(Key userKey)
+    {
+        var userKeyField = Entity.GetDbKey(userKey);
+        return await _dbSet
+            .AsNoTracking()
+            .Where(d => d.UserKeyField == userKeyField && d.EndTime == null && !d.IsDeleted)
+            .OrderByDescending(d => d.Timestamp)
+            .ToListAsync();
+    }
+}

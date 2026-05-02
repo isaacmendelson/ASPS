@@ -52,15 +52,21 @@ namespace Business.RealtimeAnalysis.UserDomain
             ASView asView,
             int alertExpiryDays,
             int alertDeletionDays,
-            ILoggerFactory loggerFactory
-            ) 
+            ILoggerFactory loggerFactory,
+            IEnumerable<IDomainEventHandler>? eventHandlers = null
+            )
         {
             this.UDUser = udUser;
             this._asView = asView;
             this._logger = loggerFactory.CreateLogger<UDUserAnalyzer>();
             this._alertDeletionDays = alertDeletionDays;
             this._alertExpiryDays = alertExpiryDays;
+            if (eventHandlers != null)
+            {
+                _eventHandlers.AddRange(eventHandlers);
+            }
             _domainEventPublisher = new DomainEventPublisher(_eventHandlers);
+            _logger.LogInformation($"UDUserAnalyzer created for user {udUser.Key.Value} with {_eventHandlers.Count} event handlers");
         }
         public string Name => nameof(UDUserAnalyzer);
         //public ExternalAnalyzer[] ExternalAnalyzers { get; }
@@ -71,9 +77,8 @@ namespace Business.RealtimeAnalysis.UserDomain
         public void RegisterEventHandler(IDomainEventHandler handler)
         {
             _eventHandlers.Add(handler);
+            _domainEventPublisher.Subscribe(handler);
             _logger.LogInformation($"Registered event handler: {handler.GetType().Name}");
-
-
         }
 
 
@@ -511,7 +516,7 @@ namespace Business.RealtimeAnalysis.UserDomain
                     {
                         this._immediateDangers = new();
                     }
-                    if (alertKey is not null && !this._immediateDangers.Any(i => i.DeviceAlertKey == alertKey && i.EndTime == null && i.RemoteAccessApp == remoteAccessApp && i.DeviceUid == deviceUid && i.SensitiveUrl?.ToLower() == sUrl))
+                    if (alertKey is not null && !this._immediateDangers.OfType<ImmediateDangerByRemoteAccessDto>().Any(i => i.DeviceAlertKey == alertKey && i.EndTime == null && i.RemoteAccessApp == remoteAccessApp && i.DeviceUid == deviceUid && i.SensitiveUrl?.ToLower() == sUrl))
                     {
                         // Create new immediate danger instance and add to the list
                         var immediateDanger = new ImmediateDangerByRemoteAccessDto(remoteAccessApp, sUrl, deviceUid, this.UDUser.Key.Value,

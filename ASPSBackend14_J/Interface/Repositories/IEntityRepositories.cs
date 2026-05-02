@@ -45,6 +45,12 @@ public interface IAnalysisResultRepository : IRepository<AnalysisResultContainer
     Task<AnalysisResultContainer?> GetLatestAsync(Key userKey);
 }
 
+public interface IImmediateDangerRepository : IRepository<ImmediateDanger>
+{
+    Task<IEnumerable<ImmediateDanger>> GetByUserKeyAsync(Key userKey);
+    Task<IEnumerable<ImmediateDanger>> GetOpenByUserKeyAsync(Key userKey);
+}
+
 public interface IAlertFlagRepository
 {
     Task<AlertFlag> AddAsync(AlertFlag flag);

@@ -75,7 +75,7 @@ namespace Business.DomainEvents
 
                 if (this.handlers.TryGetValue(e.GetType(), out List<IDomainEventHandler> handlersList))
                 {
-                    foreach (var handler in handlersList)
+                    foreach (var handler in handlersList.Where(i => i.GetHandleableEvents().ToList().Contains(e.GetType())))
                     {
                         try
                         {

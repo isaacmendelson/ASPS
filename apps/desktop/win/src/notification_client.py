@@ -169,7 +169,7 @@ class NotificationClient:
             notification = json.loads(message_json)
 
             print("\n" + "=" * 70)
-            print("NOTIFICATION NOTIFICATION RECEIVED")
+            print("NOTIFICATION NOTIFICATION RECEIVED " + time.strftime("%Y-%m-%d %H:%M:%S"))
             print("=" * 70)
             print(f"Topic: Topic: {topic}")
             print(f"Timestamp: Timestamp: {notification.get('Timestamp', 'N/A')}")

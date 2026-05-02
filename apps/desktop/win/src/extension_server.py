@@ -66,10 +66,10 @@ class ExtensionServer:
                         continue  # Do not pass to regular callback
 
                     # Print ALL other messages - full visibility
-                    print("\n" + "=" * 70)
-                    print(f"<<< RECEIVED FROM EXTENSION [{msg_type}]")
-                    print("=" * 70)
-                    print(json.dumps(data, indent=2, ensure_ascii=False))
+                    # print("\n" + "=" * 70)
+                    # print(f"<<< RECEIVED FROM EXTENSION [{msg_type}]")
+                    # print("=" * 70)
+                    # print(json.dumps(data, indent=2, ensure_ascii=False))
                     print("=" * 70)
 
                     logger.debug(f"Received from extension: {msg_type}")
@@ -83,11 +83,11 @@ class ExtensionServer:
 
                             # Print ALL responses - full visibility
                             response_type = response.get('type', 'response')
-                            print("\n" + "=" * 70)
-                            print(f">>> SENT TO EXTENSION [{response_type}]")
-                            print("=" * 70)
-                            print(json.dumps(response, indent=2, ensure_ascii=False))
-                            print("=" * 70 + "\n")
+                            # print("\n" + "=" * 70)
+                            # print(f">>> SENT TO EXTENSION [{response_type}]")
+                            # print("=" * 70)
+                            # print(json.dumps(response, indent=2, ensure_ascii=False))
+                            # print("=" * 70 + "\n")
 
                             logger.debug(f"Sent to extension: {response_type}")
                             

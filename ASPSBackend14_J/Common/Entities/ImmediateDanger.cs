@@ -1,5 +1,6 @@
 ﻿using Common.Enums;
 using Common.Models;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -12,17 +13,18 @@ namespace Common.Entities
     public abstract class ImmediateDanger : Entity
     {
 
-        protected ImmediateDanger() { }
+        public ImmediateDanger() { }
 
-        public ImmediateDanger(DateTime timestamp, string deviceUid, string userKeyField, string? deviceKeyField, string? deviceAlertKeyField, 
-            ProtectiveAction[] protectiveActions, UserDevice? device, DeviceAlert? deviceAlert, DateTime? endTime, User user)
+        public ImmediateDanger(DateTime timestamp, string deviceUid, string userKeyField, string? deviceKeyField, string? deviceAlertKeyField,
+            UserDevice? device, DeviceAlert? deviceAlert, DateTime? endTime, User user, Key? scamInProgressKey = null, ProtectiveAction[]? protectiveActions = null)
         {
             Timestamp = timestamp;
             DeviceUid = deviceUid;
             UserKeyField = userKeyField;
             DeviceKeyField = deviceKeyField;
             DeviceAlertKeyField = deviceAlertKeyField;
-            ProtectiveActions = protectiveActions;
+            this.ProtectiveActionsJson = JsonConvert.SerializeObject(protectiveActions ?? []);
+            ScamInProgressKeyField = scamInProgressKey?.Value;
             Device = device;
             DeviceAlert = deviceAlert;
             EndTime = endTime;
@@ -42,8 +44,16 @@ namespace Common.Entities
         public string UserKeyField { get; set; }
         public string? DeviceKeyField { get; set; }
         public string? DeviceAlertKeyField { get; set; }
+        public string? ProtectiveActionsJson { get; set; }
+        
 
-        public ProtectiveAction[] ProtectiveActions { get; set; } = Array.Empty<ProtectiveAction>();
+        [NotMapped]
+        public ProtectiveAction[] ProtectiveActions { 
+            get
+            {
+                return JsonConvert.DeserializeObject<ProtectiveAction[]>(ProtectiveActionsJson ?? "[]") ?? Array.Empty<ProtectiveAction>();
+            }
+        }
 
         [NotMapped]
         [ForeignKey(nameof(DeviceKeyField))]
@@ -58,6 +68,13 @@ namespace Common.Entities
         [ForeignKey(nameof(UserKeyField))]
         public User User { get; set; }
 
+        
+
+        public string? ScamInProgressKeyField { get; set; }
+
+        // In-memory navigation only — Key is a value object, persisted via ScamInProgressKeyField above
+        [NotMapped]
+        public Key? ScamInProgressKey { get; set; }
         public bool IsClosed()
         {
 

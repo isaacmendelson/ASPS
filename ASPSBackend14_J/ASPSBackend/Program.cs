@@ -141,6 +141,7 @@ class Program
                 services.AddScoped<IBankWebsiteRepository, BankWebsiteRepository>(); // ASPS-297
                 services.AddScoped<IWebsiteCategoryRepository, WebsiteCategoryRepository>(); // SCRUM-820
                 services.AddScoped<IRoadmapRepository, RoadmapRepository>();
+                services.AddScoped<IImmediateDangerRepository, ImmediateDangerRepository>();
 
                 // Add Handlers
                 services.AddScoped<UserCommandHandlers>();
@@ -175,6 +176,7 @@ class Program
                 // Add Event Handlers for Analysis Results
                 services.AddSingleton<IDomainEventHandler, AlertPersistenceActor>();
                 services.AddSingleton<IDomainEventHandler, AnalysisPersistenceActor>();
+                services.AddSingleton<IDomainEventHandler, ImmediateDangerPersistanceActor>();
                 services.AddSingleton<IDomainEventHandler, NotificationPublisherActor>();
 
                 services.AddSingleton<IDomainEventsContext, DomainEventsContext>();

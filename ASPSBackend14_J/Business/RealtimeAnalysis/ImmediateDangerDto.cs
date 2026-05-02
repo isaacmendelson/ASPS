@@ -18,8 +18,8 @@ namespace Business.RealtimeAnalysis
             UserKey = userKey;
             DeviceKey = deviceKey;
             DeviceAlertKey = deviceAlertKey;
-            //ScamInProgressKey = scamInProgressKey;
-            //ProtectiveActions = protectiveActions;
+            ScamInProgressKey = scamInProgressKey;
+            ProtectiveActions = protectiveActions ?? [];
 
         }
 
@@ -28,8 +28,8 @@ namespace Business.RealtimeAnalysis
         public string UserKey { get; set; }
         public string? DeviceKey { get; set; }
         public Key? DeviceAlertKey { get; set; }
-
-        //public ProtectiveAction[] ProtectiveActions { get; set; } = Array.Empty<ProtectiveAction>();
+        public Key? ScamInProgressKey { get; set; }
+        public ProtectiveAction[] ProtectiveActions { get; set; } = Array.Empty<ProtectiveAction>();
 
         public DateTime? EndTime { get; set; }
 

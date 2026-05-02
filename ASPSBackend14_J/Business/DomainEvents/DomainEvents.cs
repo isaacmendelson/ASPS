@@ -182,22 +182,24 @@ public class AnalyzerResultReceived : DomainEvent
 
 public class ImmediateDangerDetected : DomainEvent
 {
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     protected ImmediateDangerDetected() { }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
-    public ImmediateDangerDetected(ImmediateDangerDto immediateDanger)
+    public ImmediateDangerDetected(ImmediateDangerDto dto)
     {
-        UserId = immediateDanger.UserKey;
-        DeviceUid = immediateDanger.DeviceUid;
-        Timestamp = immediateDanger.Timestamp;
-        ImmediateDanger = immediateDanger;
+        UserId = dto.UserKey;
+        DeviceUid = dto.DeviceUid;
+        Timestamp = dto.Timestamp;
+        ImmediateDanger = dto;
     }
 
-    public ImmediateDangerDetected(string userKeyValue, string deviceUid, DateTime timestamp, ImmediateDangerDto immediateDanger)
+    public ImmediateDangerDetected(string userKeyValue, string deviceUid, DateTime timestamp, ImmediateDangerDto dto)
     {
         UserId = userKeyValue;
         DeviceUid = deviceUid;
         Timestamp = timestamp;
-        ImmediateDanger = immediateDanger;
+        ImmediateDanger = dto;
     }
     public string? DeviceUid { get; private set; }
 
