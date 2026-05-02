@@ -10,7 +10,7 @@ namespace Business.RealtimeAnalysis
 {
     public abstract class ImmediateDangerDto
     {
-        public ImmediateDangerDto(string deviceUid, string userKey, string? deviceKey, Key? deviceAlertKey = null
+        public ImmediateDangerDto(Key key, string deviceUid, string userKey, string? deviceKey, Key? deviceAlertKey = null
             , Key? scamInProgressKey = null, ProtectiveAction[]? protectiveActions = null)
         {
             Timestamp = DateTime.UtcNow;
@@ -23,6 +23,7 @@ namespace Business.RealtimeAnalysis
 
         }
 
+        public Key Key { get; set; }
         public DateTime Timestamp { get; set; }
         public string DeviceUid { get; set; }
         public string UserKey { get; set; }

@@ -129,7 +129,15 @@ public class ASView : IDomainEventHandler, IBackgroundTask
             case SystemConfigurationChanged sysConfigChanged:
                 HandleSystemConfigurationChanged(sysConfigChanged);
                 break;
+            case ImmediateDangerAdded immediateDangerAdded:
+                HandleImmediateDangerAdded(immediateDangerAdded);
+                break;
         }
+    }
+
+    private void HandleImmediateDangerAdded(ImmediateDangerAdded evt)
+    {
+        // Create view of the new ImmediateDanger
     }
 
     private void HandleDeviceAlertReceived(DeviceAlertReceived alertEvent)
@@ -485,7 +493,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
     /// </summary>
     public Type[] GetHandleableEvents()
     {
-        return new[] { typeof(AnalysisResultReceived), typeof(DeviceAlertReceived), typeof(UserAdded), typeof(UserUpdated), typeof(UserDeleted), typeof(SystemConfigurationChanged) };
+        return new[] { typeof(AnalysisResultReceived), typeof(DeviceAlertReceived), typeof(UserAdded), typeof(UserUpdated), typeof(UserDeleted), typeof(SystemConfigurationChanged), typeof(ImmediateDangerAdded) };
     }
 
     private async Task LoadDataAsync()

@@ -475,6 +475,10 @@ namespace Business.RealtimeAnalysis.UserDomain
 
         private bool DetectImmediateDanger(Key? alertKey)
         {
+            if (alertKey is null)
+            {
+                return false;
+            }
             bool res = false;
             var remoteAccessStatus = this.GetRemoteAccessStatus();
             if (remoteAccessStatus is not null && !_remoteAccessStatus.Any(i => i.Timestamp >= remoteAccessStatus.Timestamp))
@@ -519,7 +523,7 @@ namespace Business.RealtimeAnalysis.UserDomain
                     if (alertKey is not null && !this._immediateDangers.OfType<ImmediateDangerByRemoteAccessDto>().Any(i => i.DeviceAlertKey == alertKey && i.EndTime == null && i.RemoteAccessApp == remoteAccessApp && i.DeviceUid == deviceUid && i.SensitiveUrl?.ToLower() == sUrl))
                     {
                         // Create new immediate danger instance and add to the list
-                        var immediateDanger = new ImmediateDangerByRemoteAccessDto(remoteAccessApp, sUrl, deviceUid, this.UDUser.Key.Value,
+                        var immediateDanger = new ImmediateDangerByRemoteAccessDto(new Key (nameof(ImmediateDangerByRemoteAccess), new Guid().ToString()), remoteAccessApp, sUrl, deviceUid, this.UDUser.Key.Value,
                             this.UDUser.UserDevices.FirstOrDefault(i => i.DeviceUid == deviceUid)?.Key.Value, alertKey,null, []);
                         this._immediateDangers.Add(immediateDanger);
 

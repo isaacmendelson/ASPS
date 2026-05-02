@@ -11,9 +11,9 @@ namespace Business.RealtimeAnalysis
 {
     internal class ImmediateDangerByRemoteAccessDto : ImmediateDangerDto
     {
-        public ImmediateDangerByRemoteAccessDto(RemoteAccessApp? remoteAccessApp, string? sensitiveUrl, string deviceUid, string userKey, string? deviceKey, Key? deviceAlertKey,
+        public ImmediateDangerByRemoteAccessDto(Key key, RemoteAccessApp? remoteAccessApp, string? sensitiveUrl, string deviceUid, string userKey, string? deviceKey, Key? deviceAlertKey,
             Key? scamInProgressKey, ProtectiveAction[] protectiveActions
-            ) : base(deviceUid, userKey, deviceKey, deviceAlertKey)
+            ) : base(key, deviceUid, userKey, deviceKey, deviceAlertKey)
         {
             this.RemoteAccessApp = remoteAccessApp;
                 this.SensitiveUrl = sensitiveUrl;

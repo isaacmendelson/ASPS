@@ -375,17 +375,40 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
 
     public Task Handle(IDomainEvent evt)
     {
-        if (evt is SystemConfigurationChanged sysConfigChanged)
+
+        switch(evt)
         {
-            this._configuration = sysConfigChanged.NewConfiguration;
-            this.LoadConfiguration(sysConfigChanged.NewConfiguration);
+            case SystemConfigurationChanged sysConfigChanged:
+                this.HandleSystemConfigurationChanged(sysConfigChanged);
+                break;
+            case ImmediateDangerDetected immediateDangerDetected:
+                this.HandleImmediateDangerDetected(immediateDangerDetected);
+                break;
+            case ImmediateDangerAdded immediateDangerAdded:
+                this.HandleImmediateDangerAdded(immediateDangerAdded);
+                break;
         }
         return Task.CompletedTask;
     }
 
     public Type[] GetHandleableEvents()
     {
-        return [typeof(SystemConfigurationChanged), typeof(ImmediateDangerDetected)];
+        return [typeof(SystemConfigurationChanged), typeof(ImmediateDangerDetected), typeof(ImmediateDangerAdded)];
+    }
+
+    private void HandleImmediateDangerAdded(ImmediateDangerAdded immediateDangerAdded)
+    {
+
+    }
+
+    private void HandleImmediateDangerDetected(ImmediateDangerDetected immediateDangerDetected)
+    {
+
+    }
+    private void HandleSystemConfigurationChanged(SystemConfigurationChanged sysConfigChanged)
+    {
+        this._configuration = sysConfigChanged.NewConfiguration;
+        this.LoadConfiguration(sysConfigChanged.NewConfiguration);
     }
 
     private void LoadConfiguration(IConfiguration configuration)
