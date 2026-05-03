@@ -161,3 +161,6 @@ appsettings.*.local.json
 curve-server-keys.json
 curve-server-public-key.txt
 *.curve-keys.json
+
+# Local-only inbox for imported memory/insights from other projects
+_inbox/
