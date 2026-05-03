@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Common.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,5 +10,6 @@ namespace Common.Interfaces
     public interface IImmediateDangerView
     {
         DateTime Timestamp { get; set; }
+        Key Key { get; set; }
     }
 }

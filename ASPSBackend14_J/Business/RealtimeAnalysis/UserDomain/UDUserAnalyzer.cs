@@ -475,7 +475,7 @@ namespace Business.RealtimeAnalysis.UserDomain
 
         private bool DetectImmediateDanger(Key? alertKey)
         {
-            if (alertKey is null)
+            if (alertKey == null)
             {
                 return false;
             }
@@ -491,53 +491,76 @@ namespace Business.RealtimeAnalysis.UserDomain
             }
             var remoteAccessObjectsWithActiveSession = this._remoteAccessStatus.OrderByDescending(i => i.Timestamp).Where(i => i.isRemoteAccessSessionActive && i.RemoteAccessDirection == RemoteAccessDirection.In);
             //remoteAccessObjectsWithActiveSession = this._remoteAccessStatus.OrderByDescending(i => i.Timestamp).Where(i => i.isRemoteAccessSessionActive);
-            if (!remoteAccessObjectsWithActiveSession.Any() )
+            if (!remoteAccessObjectsWithActiveSession.Any())
             {
-                return false;
-            }
+                foreach (var item in this._immediateDangers.Where(i => i.EndTime != null))
+                {
+                    var evt = new ImmediateDangerEnded(item.Key, this.UDUser.Key);
+                    this._domainEventPublisher.Register(evt);
+                }
                 
-            var activeDeviceUids = remoteAccessObjectsWithActiveSession.Select(i => i.DeviceUid).ToHashSet();
-            var urlAnalysisResultViews = this._asView.GetUrlAnalysisResultsByUserKey(this.UDUser.Key)
-                .OrderByDescending(I => I.Timestamp)
-                .ToList();
-            var userDervices = this.UDUser.UserDevices.Select(i => i.DeviceUid);
-            foreach (var deviceUid in userDervices)
+                foreach (var item in this._immediateDangers.Where(i => i.EndTime == null))
+                {
+                    item.EndTime = DateTime.UtcNow;
+                    var evt = new ImmediateDangerEnded(item.Key, this.UDUser.Key);
+                    this._domainEventPublisher.Register(evt);
+                }
+            }
+
+            else
             {
-                if ((activeDeviceUids?.Count == 0 || !activeDeviceUids.Contains(deviceUid)) && this._immediateDangers.Any() && this._immediateDangers.Any(i => i.EndTime == null && i.DeviceUid == deviceUid))
+                var activeDeviceUids = remoteAccessObjectsWithActiveSession.Select(i => i.DeviceUid).ToHashSet();
+                var urlAnalysisResultViews = this._asView.GetUrlAnalysisResultsByUserKey(this.UDUser.Key)
+                    .OrderByDescending(I => I.Timestamp)
+                    .ToList();
+                var userDervices = this.UDUser.UserDevices.Select(i => i.DeviceUid);
+                foreach (var deviceUid in userDervices)
                 {
-                    foreach (var item in this._immediateDangers.Where(i => i.DeviceUid == deviceUid && i.EndTime == null))
+                    if (activeDeviceUids?.Count == 0 || !(activeDeviceUids?.Contains(deviceUid) == true))
                     {
-                        item.EndTime = DateTime.UtcNow;
+                        foreach (var item in this._immediateDangers.Where(i => i.DeviceUid == deviceUid && i.EndTime == null))
+                        {
+                            item.EndTime = DateTime.UtcNow;
+                            var evt = new ImmediateDangerEnded(item.Key, this.UDUser.Key);
+                            this._domainEventPublisher.Register(evt);
+                        }
+                    }
+                    else if (this.HasSensitiveBrowserPages(deviceUid))
+                    {
+                        res = true;
+                        var remoteAccessApp = remoteAccessObjectsWithActiveSession.OrderByDescending(i => i.Timestamp).FirstOrDefault(i => i.DeviceUid == deviceUid)?.RemoteAccessApp;
+                        _logger.LogWarning($"Immediate danger detected for user {this.UDUser.Key} on device {deviceUid} with active remote access session and sensitive website open.");
+                        var sUrl = this.UDUser.BrowserTabs?[deviceUid]?.FirstOrDefault(i => this.IsSensitiveWebsite(i.Url))?.Url;
+                        if (this._immediateDangers is null)
+                        {
+                            this._immediateDangers = new();
+                        }
+                        //if (alertKey is not null && !this._immediateDangers.OfType<ImmediateDangerByRemoteAccessDto>().Any(i => i.DeviceAlertKey == alertKey && i.EndTime == null && i.RemoteAccessApp == remoteAccessApp && i.DeviceUid == deviceUid && i.SensitiveUrl?.ToLower() == sUrl))
+                        if (alertKey is not null && !this._immediateDangers.OfType<ImmediateDangerByRemoteAccessDto>().Any(i => i.EndTime == null && i.RemoteAccessApp == remoteAccessApp && i.DeviceUid == deviceUid && i.SensitiveUrl?.ToLower() == sUrl))
+                        {
+                            // Create new immediate danger instance and add to the list
+                            var immediateDanger = new ImmediateDangerByRemoteAccessDto(new Key(nameof(ImmediateDangerByRemoteAccess), new Guid().ToString()), remoteAccessApp, sUrl, deviceUid, this.UDUser.Key.Value,
+                                this.UDUser.UserDevices.FirstOrDefault(i => i.DeviceUid == deviceUid)?.Key, alertKey, null, []);
+                            this._immediateDangers.Add(immediateDanger);
+
+                            //Publish event ImmediateDanderDetected
+                            var domainEvent = new ImmediateDangerDetected(immediateDanger);
+                            this._domainEventPublisher.Register(domainEvent);
+
+
+                        }
+
                     }
                 }
-                else if (this.UDUser.BrowserTabs is not null && this.UDUser.BrowserTabs.ContainsKey(deviceUid) && this.UDUser.BrowserTabs[deviceUid].Select(i => i.Url).Any(i => this.IsSensitiveWebsite(i)))
-                {
-                    res = true;
-                    var remoteAccessApp = remoteAccessObjectsWithActiveSession.OrderByDescending(i => i.Timestamp).FirstOrDefault(i => i.DeviceUid == deviceUid)?.RemoteAccessApp;
-                    _logger.LogWarning($"Immediate danger detected for user {this.UDUser.Key} on device {deviceUid} with active remote access session and sensitive website open.");
-                    var sUrl = this.UDUser.BrowserTabs[deviceUid].FirstOrDefault(i => this.IsSensitiveWebsite(i.Url))?.Url;
-                    if (this._immediateDangers is null)
-                    {
-                        this._immediateDangers = new();
-                    }
-                    if (alertKey is not null && !this._immediateDangers.OfType<ImmediateDangerByRemoteAccessDto>().Any(i => i.DeviceAlertKey == alertKey && i.EndTime == null && i.RemoteAccessApp == remoteAccessApp && i.DeviceUid == deviceUid && i.SensitiveUrl?.ToLower() == sUrl))
-                    {
-                        // Create new immediate danger instance and add to the list
-                        var immediateDanger = new ImmediateDangerByRemoteAccessDto(new Key (nameof(ImmediateDangerByRemoteAccess), new Guid().ToString()), remoteAccessApp, sUrl, deviceUid, this.UDUser.Key.Value,
-                            this.UDUser.UserDevices.FirstOrDefault(i => i.DeviceUid == deviceUid)?.Key, alertKey,null, []);
-                        this._immediateDangers.Add(immediateDanger);
 
-                        //Publish event ImmediateDanderDetected
-                        var domainEvent = new ImmediateDangerDetected(immediateDanger);
-                        this._domainEventPublisher.Register(domainEvent);
-
-
-                    }
-                    
-                }
             }
             this._domainEventPublisher.RaiseAll();
             return res;
+        }
+
+        private bool HasSensitiveBrowserPages(string deviceUid)
+        {
+            return this.UDUser.BrowserTabs?[deviceUid]?.Select(i => i.Url).Any(i => this.IsSensitiveWebsite(i)) ?? false;
         }
 
         private bool IsSensitiveWebsite(string url)

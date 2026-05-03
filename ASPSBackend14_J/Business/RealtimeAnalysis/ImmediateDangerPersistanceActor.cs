@@ -33,16 +33,38 @@ public class ImmediateDangerPersistanceActor : IDomainEventHandler
         _logger = logger;
     }
 
-    public Type[] GetHandleableEvents() => new[] { typeof(ImmediateDangerDetected) };
+    public Type[] GetHandleableEvents() => new[] { typeof(ImmediateDangerDetected), typeof(ImmediateDangerEnded) };
 
     public async Task Handle(IDomainEvent evt)
     {
-        if (evt is ImmediateDangerDetected dangerEvent)
+       
+        switch(evt)
         {
-            await HandleImmediateDangerDetectedAsync(dangerEvent);
+            case ImmediateDangerDetected a:
+                await HandleImmediateDangerDetectedAsync(a);
+                break;
+            case ImmediateDangerEnded e:
+                await HandleImmediateDangerEndedAsync(e);
+                break;
         }
     }
 
+    private async Task HandleImmediateDangerEndedAsync(ImmediateDangerEnded evt)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var repository = scope.ServiceProvider.GetRequiredService<IImmediateDangerRepository>();
+
+
+        var rec = await repository.GetByKeyAsync(evt.ImmediateDangerKey);
+        if (rec != null)
+        {
+            rec.EndTime = DateTime.UtcNow;
+            await repository.UpdateAsync(rec);
+            _logger.LogInformation(
+                "[ImmediateDangerPersistanceActor] Updated ImmediateDanger with end time: Key={Key}, User={UserKey}, Device={DeviceUid}",
+                rec.KeyField, rec.UserKeyField, rec.DeviceUid);
+        }
+    }
     private async Task HandleImmediateDangerDetectedAsync(ImmediateDangerDetected evt)
     {
         try

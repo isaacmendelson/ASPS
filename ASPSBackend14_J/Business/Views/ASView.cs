@@ -133,9 +133,27 @@ public class ASView : IDomainEventHandler, IBackgroundTask
             case ImmediateDangerAdded immediateDangerAdded:
                 HandleImmediateDangerAdded(immediateDangerAdded);
                 break;
+            case ImmediateDangerEnded e:
+                this.HandleImmediateDangerEndedAsync(e);
+                break;
         }
     }
 
+    private async Task HandleImmediateDangerEndedAsync(ImmediateDangerEnded evt)
+    {
+        Task.Run(() =>
+        {
+            lock (_lock)
+            {
+                var existing = this._immediateDangers.FirstOrDefault(i => i.Key.Value == evt.ImmediateDangerKey.Value);
+                if (existing != null)
+                {
+                    this._immediateDangers.Remove(existing);
+                    _logger.LogInformation($"ASView removed immediate danger with Id={evt.ImmediateDangerKey.Value} for UserKey={evt.UserKey.Value}");
+                }
+            }
+        });
+    }
     private void HandleImmediateDangerAdded(ImmediateDangerAdded evt)
     {
         

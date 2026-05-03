@@ -651,6 +651,32 @@ class LogWatcher:
         else:
             self._pos = 0
 
+    def read_tail_lines(self, max_lines: int = 500, max_bytes: int = 1_000_000) -> List[str]:
+        """
+        Read up to `max_lines` lines from the END of the file (bounded by
+        `max_bytes`). Used at attach-time to backfill SessionTracker from the
+        recent past — solves "session already active before agent restart".
+        Does NOT modify self._pos (the tail loop still starts from EOF).
+        """
+        if not self.path.exists():
+            return []
+        try:
+            size = self.path.stat().st_size
+            start = max(0, size - max_bytes)
+            with open(self.path, "rb") as f:
+                f.seek(start)
+                tail_bytes = f.read()
+            text = tail_bytes.decode("utf-8", errors="replace")
+            # If we cut mid-line, drop the partial first line
+            lines = text.splitlines()
+            if start > 0 and lines:
+                lines = lines[1:]
+            lines = [ln for ln in lines if ln.strip()]
+            return lines[-max_lines:] if max_lines > 0 else lines
+        except (IOError, PermissionError, OSError) as e:
+            logger.debug(f"LogWatcher read_tail_lines failed for {self.path}: {e}")
+            return []
+
     def tail(self, from_start: bool = False):
         """Generator: yields new lines from the log file."""
         if not from_start:
@@ -1191,11 +1217,28 @@ class RemoteAccessMonitor:
         tracker = self._session_trackers.get(app_name)
         if not tracker:
             return
-        
+
+        # Bootstrap: replay recent history through the tracker so a session
+        # that was already active before the agent started gets picked up.
+        # `read_tail_lines` does not move the tail position — the live tail
+        # below still starts from EOF.
+        try:
+            backfill_lines = watcher.read_tail_lines(max_lines=500)
+            for line in backfill_lines:
+                event = self._log_parser.parse_line(line)
+                if event:
+                    tracker.on_event(event)
+            if DEBUG_MODE and backfill_lines:
+                cur = tracker.get_current_session()
+                dir_after = cur.direction if cur else "none"
+                print(f"[REMOTE-MONITOR] {app_name}: backfilled {len(backfill_lines)} lines from {watcher.path.name} → direction={dir_after}")
+        except Exception as e:
+            logger.debug(f"Backfill failed for {app_name} ({watcher.path.name}): {e}")
+
         for line in watcher.tail(from_start=False):
             if not self._running:
                 break
-            
+
             event = self._log_parser.parse_line(line)
             if event:
                 change_type = tracker.on_event(event)
@@ -1337,6 +1380,33 @@ class RemoteAccessMonitor:
                 continue
         return SessionDirection.UNKNOWN
 
+    def _infer_anydesk_direction_from_history(self, max_age_minutes: int = 30) -> str:
+        """
+        Read connection_trace.txt for the most recent AnyDesk session within
+        the last `max_age_minutes` and return its direction.
+
+        Caveat: AnyDesk writes to connection_trace.txt at session END, not
+        START. So during an in-progress session the file holds no entry yet.
+        However, when log parsing missed the start (agent restarted mid-session)
+        and the session subsequently ended, this gives us the direction
+        retroactively for the next alert. Filtered by age to avoid using
+        ancient entries that have nothing to do with the current connection.
+        """
+        if not hasattr(self, "_history_reader"):
+            self._history_reader = HistoryReader()
+        cutoff = datetime.now() - timedelta(minutes=max_age_minutes)
+        try:
+            entries = self._history_reader.read_anydesk_connection_trace(
+                limit=10, since=cutoff
+            )
+        except Exception as e:
+            logger.debug(f"AnyDesk history fallback failed: {e}")
+            return SessionDirection.UNKNOWN
+        if not entries:
+            return SessionDirection.UNKNOWN
+        # entries is chronological; last is most recent
+        return entries[-1].get("direction") or SessionDirection.UNKNOWN
+
     def _get_system_listen_port_connections(self, listen_ports: List[int]) -> List[dict]:
         """
         System-wide search for ESTABLISHED connections whose LOCAL port is in
@@ -1468,6 +1538,16 @@ class RemoteAccessMonitor:
                 log_direction = self._infer_direction_from_processes(
                     processes, listen_ports_cfg
                 )
+
+        # AnyDesk-specific fallback: outgoing AnyDesk traffic goes to relay on
+        # port 443, not 7070, so topology inference returns UNKNOWN. Read the
+        # most recent entry from connection_trace.txt — written when a session
+        # ends, but if the entry is from the last few minutes it's a strong
+        # hint about an in-progress (or just-closed) session direction.
+        if (log_direction == SessionDirection.UNKNOWN
+                and app_name == 'anydesk'
+                and suspicious_conn > 0):
+            log_direction = self._infer_anydesk_direction_from_history()
 
         # Check Windows service if configured
         service_running = False
