@@ -120,6 +120,11 @@ namespace Business.RealtimeAnalysis
                         LoggedUser = r.LoggedUser,
                         ConnectionId = r.ConnectionId,
                         Software = r.Software,
+                        // Wire fields (direction / confidence / geo)
+                        Direction = r.Direction,
+                        Confidence = r.Confidence,
+                        RemoteCountry = r.RemoteCountry,
+                        RemoteCountryCode = r.RemoteCountryCode,
                         Status = r.Status,
                         UserKey = userDevice.UserKey,
                         DeviceUid = vm.DeviceInfo.DeviceUid,

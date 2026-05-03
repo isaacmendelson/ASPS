@@ -172,9 +172,29 @@
                                 {
                                     var raLabel = !string.IsNullOrEmpty(raAlert.Software) ? raAlert.Software : raAlert.RemoteAccessApp.ToString();
                                     <small>@raLabel — @raAlert.SessionStatus</small>
+                                    @if (!string.IsNullOrEmpty(raAlert.Direction))
+                                    {
+                                        var dirCls = raAlert.Direction.ToLowerInvariant() switch
+                                        {
+                                            "incoming" => "danger",
+                                            "outgoing" => "warning",
+                                            _ => "secondary"
+                                        };
+                                        var dirIc = raAlert.Direction.ToLowerInvariant() switch
+                                        {
+                                            "incoming" => "fa-arrow-down",
+                                            "outgoing" => "fa-arrow-up",
+                                            _ => "fa-question"
+                                        };
+                                        <span class="badge bg-@dirCls ms-1"><i class="fas @dirIc"></i> @raAlert.Direction</span>
+                                    }
                                     @if (!string.IsNullOrEmpty(raAlert.RemoteId))
                                     {
                                         <br /><small class="text-muted">ID: <code>@raAlert.RemoteId</code></small>
+                                    }
+                                    @if (!string.IsNullOrEmpty(raAlert.RemoteCountryCode))
+                                    {
+                                        <small class="text-muted ms-1">[@raAlert.RemoteCountryCode]</small>
                                     }
                                 }
                             </td>

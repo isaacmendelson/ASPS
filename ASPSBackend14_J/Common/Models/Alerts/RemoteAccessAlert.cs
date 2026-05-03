@@ -52,4 +52,10 @@ public class RemoteAccessAlert : DeviceAlert
     public string? LoggedUser { get; set; }     // Local user logged on at session time (TV)
     public string? ConnectionId { get; set; }   // GUID of the session record (TV)
     public string? Software { get; set; }       // 'AnyDesk' / 'TeamViewer' / 'VNC' / 'ChromeRD'
+
+    // Wire fields from desktop agent — string forms sent verbatim
+    public string? Direction { get; set; }          // 'incoming' / 'outgoing' / 'unknown'
+    public string? Confidence { get; set; }         // 'low' / 'medium' / 'high'
+    public string? RemoteCountry { get; set; }
+    public string? RemoteCountryCode { get; set; }
 }

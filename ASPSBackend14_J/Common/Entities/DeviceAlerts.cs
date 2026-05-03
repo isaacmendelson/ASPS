@@ -224,6 +224,12 @@ public class RemoteAccessAlertEntity : DeviceAlertEntity
     public string? ConnectionId { get; set; }   // GUID of the session record (TV)
     public string? Software { get; set; }       // 'AnyDesk' / 'TeamViewer' / 'VNC' / 'ChromeRD'
 
+    // Wire fields from desktop agent (string forms)
+    public string? Direction { get; set; }
+    public string? Confidence { get; set; }
+    public string? RemoteCountry { get; set; }
+    public string? RemoteCountryCode { get; set; }
+
     [NotMapped]
     public override string TypeName => "RemoteAccessAlert";
 }

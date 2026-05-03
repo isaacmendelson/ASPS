@@ -231,6 +231,57 @@
                                 <dt class="col-sm-4">Connection ID:</dt>
                                 <dd class="col-sm-8"><small><code>@raAlert.ConnectionId</code></small></dd>
                             }
+
+                            @if (!string.IsNullOrEmpty(raAlert.Direction))
+                            {
+                                <dt class="col-sm-4">Direction:</dt>
+                                <dd class="col-sm-8">
+                                    @{
+                                        var dirClass = raAlert.Direction.ToLowerInvariant() switch
+                                        {
+                                            "incoming" => "danger",
+                                            "outgoing" => "warning",
+                                            _ => "secondary"
+                                        };
+                                        var dirIcon = raAlert.Direction.ToLowerInvariant() switch
+                                        {
+                                            "incoming" => "fa-arrow-down",
+                                            "outgoing" => "fa-arrow-up",
+                                            _ => "fa-question"
+                                        };
+                                    }
+                                    <span class="badge bg-@dirClass"><i class="fas @dirIcon"></i> @raAlert.Direction</span>
+                                </dd>
+                            }
+
+                            @if (!string.IsNullOrEmpty(raAlert.Confidence))
+                            {
+                                <dt class="col-sm-4">Confidence:</dt>
+                                <dd class="col-sm-8">
+                                    @{
+                                        var confClass = raAlert.Confidence.ToLowerInvariant() switch
+                                        {
+                                            "high" => "success",
+                                            "medium" => "info",
+                                            "low" => "secondary",
+                                            _ => "secondary"
+                                        };
+                                    }
+                                    <span class="badge bg-@confClass">@raAlert.Confidence</span>
+                                </dd>
+                            }
+
+                            @if (!string.IsNullOrEmpty(raAlert.RemoteCountry) || !string.IsNullOrEmpty(raAlert.RemoteCountryCode))
+                            {
+                                <dt class="col-sm-4">Remote Country:</dt>
+                                <dd class="col-sm-8">
+                                    @raAlert.RemoteCountry
+                                    @if (!string.IsNullOrEmpty(raAlert.RemoteCountryCode))
+                                    {
+                                        <code>(@raAlert.RemoteCountryCode)</code>
+                                    }
+                                </dd>
+                            }
                         </dl>
                     }
                     else

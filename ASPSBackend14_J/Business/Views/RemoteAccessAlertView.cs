@@ -28,6 +28,10 @@ namespace Business.Views
             this.LoggedUser = entity.LoggedUser;
             this.ConnectionId = entity.ConnectionId;
             this.Software = entity.Software;
+            this.Direction = entity.Direction;
+            this.Confidence = entity.Confidence;
+            this.RemoteCountry = entity.RemoteCountry;
+            this.RemoteCountryCode = entity.RemoteCountryCode;
         }
 
         public RemoteAccessAlertView(
@@ -60,6 +64,12 @@ namespace Business.Views
         public string? LoggedUser { get; set; }
         public string? ConnectionId { get; set; }
         public string? Software { get; set; }
+
+        // Wire fields from desktop agent
+        public string? Direction { get; set; }
+        public string? Confidence { get; set; }
+        public string? RemoteCountry { get; set; }
+        public string? RemoteCountryCode { get; set; }
 
         public BrowserTab[]? BrowserTabs { get; set; }
 
