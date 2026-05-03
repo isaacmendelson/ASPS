@@ -23,6 +23,11 @@ namespace Business.Views
             this.ConnectionStatus = entity.ConnectionStatus;
             this.ConnectionsCount = entity.ConnectionsCount;
             this.SessionStatus = (int)entity.SessionStatus;
+            this.RemoteId = entity.RemoteId;
+            this.RemoteName = entity.RemoteName;
+            this.LoggedUser = entity.LoggedUser;
+            this.ConnectionId = entity.ConnectionId;
+            this.Software = entity.Software;
         }
 
         public RemoteAccessAlertView(
@@ -48,6 +53,13 @@ namespace Business.Views
         public ConnectionStatus ConnectionStatus { get; set; }
         public int ConnectionsCount { get; set; }
         public int SessionStatus { get; set; }
+
+        // Session identity / forensics
+        public string? RemoteId { get; set; }
+        public string? RemoteName { get; set; }
+        public string? LoggedUser { get; set; }
+        public string? ConnectionId { get; set; }
+        public string? Software { get; set; }
 
         public BrowserTab[]? BrowserTabs { get; set; }
 

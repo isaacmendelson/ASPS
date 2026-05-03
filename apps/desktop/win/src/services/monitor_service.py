@@ -229,7 +229,12 @@ class MonitorService:
                 remote_version=getattr(status, 'remote_version', '') or "",
                 connection_type=getattr(status, 'connection_type', '') or "",
                 file_transfer_active=getattr(status, 'file_transfer_active', False),
-                file_transfers=getattr(status, 'file_transfers', 0)
+                file_transfers=getattr(status, 'file_transfers', 0),
+                remote_id=getattr(status, 'remote_id', '') or "",
+                remote_name=getattr(status, 'remote_name', '') or "",
+                logged_user=getattr(status, 'logged_user', '') or "",
+                connection_id=getattr(status, 'connection_id', '') or "",
+                software=getattr(status, 'software', '') or "",
             )
 
     async def _handle_app_close(self, app_name: str, status):
@@ -267,7 +272,12 @@ class MonitorService:
                 remote_version=getattr(status, 'remote_version', '') or "",
                 connection_type=getattr(status, 'connection_type', '') or "",
                 file_transfer_active=getattr(status, 'file_transfer_active', False),
-                file_transfers=getattr(status, 'file_transfers', 0)
+                file_transfers=getattr(status, 'file_transfers', 0),
+                remote_id=getattr(status, 'remote_id', '') or "",
+                remote_name=getattr(status, 'remote_name', '') or "",
+                logged_user=getattr(status, 'logged_user', '') or "",
+                connection_id=getattr(status, 'connection_id', '') or "",
+                software=getattr(status, 'software', '') or "",
             )
 
         # Clear alert state
@@ -305,6 +315,11 @@ class MonitorService:
         connection_type: str = "",
         file_transfer_active: bool = False,
         file_transfers: int = 0,
+        remote_id: str = "",
+        remote_name: str = "",
+        logged_user: str = "",
+        connection_id: str = "",
+        software: str = "",
         retry: bool = True
     ):
         """Send remote access alert with automatic retry on auth errors"""
@@ -330,7 +345,12 @@ class MonitorService:
             remote_version=remote_version,
             connection_type=connection_type,
             file_transfer_active=file_transfer_active,
-            file_transfers=file_transfers
+            file_transfers=file_transfers,
+            remote_id=remote_id,
+            remote_name=remote_name,
+            logged_user=logged_user,
+            connection_id=connection_id,
+            software=software,
         )
 
         if response:
@@ -363,6 +383,11 @@ class MonitorService:
                         connection_type=connection_type,
                         file_transfer_active=file_transfer_active,
                         file_transfers=file_transfers,
+                        remote_id=remote_id,
+                        remote_name=remote_name,
+                        logged_user=logged_user,
+                        connection_id=connection_id,
+                        software=software,
                         retry=False
                     )
                 else:
@@ -413,7 +438,12 @@ class MonitorService:
                 remote_version=getattr(status, 'remote_version', '') or "",
                 connection_type=getattr(status, 'connection_type', '') or "",
                 file_transfer_active=getattr(status, 'file_transfer_active', False),
-                file_transfers=getattr(status, 'file_transfers', 0)
+                file_transfers=getattr(status, 'file_transfers', 0),
+                remote_id=getattr(status, 'remote_id', '') or "",
+                remote_name=getattr(status, 'remote_name', '') or "",
+                logged_user=getattr(status, 'logged_user', '') or "",
+                connection_id=getattr(status, 'connection_id', '') or "",
+                software=getattr(status, 'software', '') or "",
             )
 
         # Show notification with direction-aware message
@@ -486,7 +516,12 @@ class MonitorService:
                 remote_version=getattr(status, 'remote_version', '') or "",
                 connection_type=getattr(status, 'connection_type', '') or "",
                 file_transfer_active=getattr(status, 'file_transfer_active', False),
-                file_transfers=getattr(status, 'file_transfers', 0)
+                file_transfers=getattr(status, 'file_transfers', 0),
+                remote_id=getattr(status, 'remote_id', '') or "",
+                remote_name=getattr(status, 'remote_name', '') or "",
+                logged_user=getattr(status, 'logged_user', '') or "",
+                connection_id=getattr(status, 'connection_id', '') or "",
+                software=getattr(status, 'software', '') or "",
             )
 
         # Clear alert state

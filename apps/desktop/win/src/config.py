@@ -161,6 +161,52 @@ REMOTE_APPS = {
         'process_names': ['screenconnect.clientservice.exe', 'screenconnect.windowsclient.exe'],
         'service_names': ['ScreenConnect Client'],
     },
+    'remotepc': {
+        # RemotePC by IDrive — common process names + service
+        'id': RemoteAccessApp.REMOTEPC,
+        'process_names': [
+            'remotepc.exe',
+            'remotepcservice.exe',
+            'remotepcdesktop.exe',
+            'remotepcagent.exe',
+            'rpcservice.exe',
+            'rpcsuite.exe',
+        ],
+        'service_names': ['RemotePCService', 'RemotePC'],
+    },
+    'splashtop': {
+        # Splashtop Streamer (host) + client + agent
+        'id': RemoteAccessApp.SPLASHTOP,
+        'process_names': [
+            'srserver.exe',         # main streamer
+            'srstreamer.exe',       # alt streamer name
+            'srmanager.exe',
+            'srclient.exe',
+            'splashtop.exe',
+            'splashtopstreamer.exe',
+            'stservice.exe',
+        ],
+        'listen_ports': [6783, 6784, 6785],
+        'service_names': ['SSUService', 'Splashtop Streamer Remote Service'],
+    },
+    'rdp': {
+        # Microsoft Remote Desktop (built-in Windows).
+        # Note: the SERVER side is svchost hosting TermService — not detectable
+        # by process name alone. We pick up:
+        #   - mstsc.exe → outgoing RDP client (this user connecting OUT)
+        #   - TermService running + listen on 3389 → server is enabled (incoming possible)
+        # Limitation: an active incoming session without a named host process
+        # may show is_running=False until session-helper processes appear
+        # (RdpSa.exe, rdpclip.exe).
+        'id': RemoteAccessApp.RDP,
+        'process_names': [
+            'mstsc.exe',            # RDP client (outgoing)
+            'rdpclip.exe',           # clipboard helper inside RDP session
+            'rdpsa.exe',             # RDP shadow / assistance
+        ],
+        'listen_ports': [3389],
+        'service_names': ['TermService', 'UmRdpService', 'SessionEnv'],
+    },
 }
 
 # Priority Levels

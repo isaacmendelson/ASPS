@@ -170,7 +170,12 @@
                                 }
                                 else if (alert is Common.Entities.RemoteAccessAlertEntity raAlert)
                                 {
-                                    <small>@raAlert.RemoteAccessApp — @raAlert.SessionStatus</small>
+                                    var raLabel = !string.IsNullOrEmpty(raAlert.Software) ? raAlert.Software : raAlert.RemoteAccessApp.ToString();
+                                    <small>@raLabel — @raAlert.SessionStatus</small>
+                                    @if (!string.IsNullOrEmpty(raAlert.RemoteId))
+                                    {
+                                        <br /><small class="text-muted">ID: <code>@raAlert.RemoteId</code></small>
+                                    }
                                 }
                             </td>
                             <td>

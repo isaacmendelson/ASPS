@@ -216,7 +216,14 @@ public class RemoteAccessAlertEntity : DeviceAlertEntity
     public string? ConnectionType { get; set; }
     public bool FileTransferActive { get; set; }
     public int FileTransfers { get; set; }
-    
+
+    // Session identity / forensics
+    public string? RemoteId { get; set; }       // AnyDesk numeric ID / TV Partner ID
+    public string? RemoteName { get; set; }     // Display name / hostname (TV)
+    public string? LoggedUser { get; set; }     // Local user logged on at session time (TV)
+    public string? ConnectionId { get; set; }   // GUID of the session record (TV)
+    public string? Software { get; set; }       // 'AnyDesk' / 'TeamViewer' / 'VNC' / 'ChromeRD'
+
     [NotMapped]
     public override string TypeName => "RemoteAccessAlert";
 }

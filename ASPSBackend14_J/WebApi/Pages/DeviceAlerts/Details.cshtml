@@ -201,6 +201,36 @@
                                 }
                                 <span class="badge bg-@sessionStatusClass">@sessionStatusText</span>
                             </dd>
+
+                            @if (!string.IsNullOrEmpty(raAlert.Software))
+                            {
+                                <dt class="col-sm-4">Software:</dt>
+                                <dd class="col-sm-8">@raAlert.Software</dd>
+                            }
+
+                            @if (!string.IsNullOrEmpty(raAlert.RemoteId))
+                            {
+                                <dt class="col-sm-4">Remote ID:</dt>
+                                <dd class="col-sm-8"><code>@raAlert.RemoteId</code></dd>
+                            }
+
+                            @if (!string.IsNullOrEmpty(raAlert.RemoteName))
+                            {
+                                <dt class="col-sm-4">Remote Name:</dt>
+                                <dd class="col-sm-8">@raAlert.RemoteName</dd>
+                            }
+
+                            @if (!string.IsNullOrEmpty(raAlert.LoggedUser))
+                            {
+                                <dt class="col-sm-4">Logged User:</dt>
+                                <dd class="col-sm-8">@raAlert.LoggedUser</dd>
+                            }
+
+                            @if (!string.IsNullOrEmpty(raAlert.ConnectionId))
+                            {
+                                <dt class="col-sm-4">Connection ID:</dt>
+                                <dd class="col-sm-8"><small><code>@raAlert.ConnectionId</code></small></dd>
+                            }
                         </dl>
                     }
                     else

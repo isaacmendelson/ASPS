@@ -43,7 +43,10 @@ public enum RemoteAccessApp
     RemotePC = 4,
     LogMeIn = 5,
     Splashtop = 6,
-    VNC = 7
+    VNC = 7,
+    RDP = 8,
+    QuickAssist = 9,
+    ConnectWise = 10
 }
 
 public enum RemoteAccessDirection

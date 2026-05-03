@@ -2,6 +2,7 @@ using Business.RealtimeAnalysis;
 using Business.RealtimeAnalysis.Indicators;
 using Business.RealtimeAnalysis.UserDomain;
 using Common.Enums;
+using Common.Interfaces;
 using Common.Models;
 using Microsoft.Extensions.Configuration;
 using Moq;

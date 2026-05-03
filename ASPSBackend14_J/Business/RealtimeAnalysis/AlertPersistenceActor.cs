@@ -114,6 +114,12 @@ namespace Business.RealtimeAnalysis
                         ConnectionType = r.ConnectionType,
                         FileTransferActive = r.FileTransferActive,
                         FileTransfers = r.FileTransfers,
+                        // Session identity / forensics (Phase G)
+                        RemoteId = r.RemoteId,
+                        RemoteName = r.RemoteName,
+                        LoggedUser = r.LoggedUser,
+                        ConnectionId = r.ConnectionId,
+                        Software = r.Software,
                         Status = r.Status,
                         UserKey = userDevice.UserKey,
                         DeviceUid = vm.DeviceInfo.DeviceUid,

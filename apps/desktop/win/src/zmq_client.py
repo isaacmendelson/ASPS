@@ -374,7 +374,13 @@ class ZMQClient:
         remote_version: str = "",         # Remote app version
         connection_type: str = "",        # 'direct' or 'relay'
         file_transfer_active: bool = False,
-        file_transfers: int = 0
+        file_transfers: int = 0,
+        # Session identity / forensics (Phase F)
+        remote_id: str = "",              # AnyDesk numeric ID / TV Partner ID
+        remote_name: str = "",            # Display name / hostname (TV)
+        logged_user: str = "",            # Local user logged on (TV forensics)
+        connection_id: str = "",          # GUID of session record (TV forensics)
+        software: str = "",               # 'AnyDesk' / 'TeamViewer' / 'VNC' / 'ChromeRD'
     ) -> Optional[Dict[str, Any]]:
         """
         Send a RemoteAccessAlert with enhanced detection data.
@@ -441,7 +447,13 @@ class ZMQClient:
             "RemoteVersion": remote_version,
             "ConnectionType": connection_type,
             "FileTransferActive": file_transfer_active,
-            "FileTransfers": file_transfers
+            "FileTransfers": file_transfers,
+            # Session identity / forensics
+            "RemoteId": remote_id,
+            "RemoteName": remote_name,
+            "LoggedUser": logged_user,
+            "ConnectionId": connection_id,
+            "Software": software,
         }
 
         # Include browser tabs if provided (nullable — omit field entirely when None)
