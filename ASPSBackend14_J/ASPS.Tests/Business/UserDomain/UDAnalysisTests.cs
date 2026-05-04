@@ -59,7 +59,7 @@ public class UDAnalysisTests
 
         // Assert
         Assert.NotNull(analysis);
-        Assert.NotNull(analysis._udUser);
+        Assert.NotNull(analysis.UDUser);
         Assert.Empty(analysis.ActiveDeviceAlerts);
         Assert.Empty(analysis.ExpiredDeviceAlerts);
     }
@@ -247,7 +247,8 @@ public class UDAnalysisTests
             _testASView,
             30,
             90,
-            _mockLoggerFactory.Object
+            _mockLoggerFactory.Object,
+            _mockProtectiveActionsFactory.Object
         );
 
         return new UDAnalysis(

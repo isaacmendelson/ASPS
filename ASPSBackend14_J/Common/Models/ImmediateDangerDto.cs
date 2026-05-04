@@ -18,7 +18,7 @@ namespace Common.Models
         public ImmediateDangerDto(Key key, string deviceUid, string userKey, Key? deviceKey, Key? deviceAlertKey = null
             , Key? scamInProgressKey = null, ProtectiveAction[]? protectiveActions = null)
         {
-            Key = Key;
+            Key = key;
             Timestamp = DateTime.UtcNow;
             DeviceUid = deviceUid;
             UserKey = userKey;

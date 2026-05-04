@@ -64,6 +64,11 @@ public class ImmediateDangerPersistanceActor : IDomainEventHandler
                 "[ImmediateDangerPersistanceActor] Updated ImmediateDanger with end time: Key={Key}, User={UserKey}, Device={DeviceUid}",
                 rec.KeyField, rec.UserKeyField, rec.DeviceUid);
         }
+
+        // Notify downstream handlers (per-user UDAnalysisManager + UDAnalysis,
+        // singleton handlers) that an ImmediateDanger was closed — they need
+        // to drop it from in-memory state.
+        PublishImmediateDangerEnded(evt);
     }
     private async Task HandleImmediateDangerDetectedAsync(ImmediateDangerDetected evt)
     {
@@ -102,33 +107,60 @@ public class ImmediateDangerPersistanceActor : IDomainEventHandler
 
     private void PublishImmediateDangerAdded(ImmediateDangerDto dto)
     {
+        var handlers = BuildPerUserHandlers(dto.UserKey, eventName: "ImmediateDangerAdded");
+
+        // Per-event publisher because the per-user manager+analysis varies between events
+        var publisher = new DomainEventPublisher(handlers);
+        var evtAdded = new ImmediateDangerAdded(dto);
+        publisher.Register(evtAdded);
+        publisher.RaiseAll();
+    }
+
+    private void PublishImmediateDangerEnded(ImmediateDangerEnded evt)
+    {
+        var userKeyValue = evt.UserKey?.Value ?? string.Empty;
+        var handlers = BuildPerUserHandlers(userKeyValue, eventName: "ImmediateDangerEnded");
+
+        var publisher = new DomainEventPublisher(handlers);
+        publisher.Register(evt);
+        publisher.RaiseAll();
+    }
+
+    /// <summary>
+    /// Build a handler list for per-user immediate-danger event publishing:
+    /// cached singleton handlers (excluding self) + the user's UDAnalysisManager
+    /// + the user's UDAnalysis. UDAnalysisManager and UDAnalysis are not in DI —
+    /// they live inside UserDomainManagerService._userManagers.
+    /// </summary>
+    private List<IDomainEventHandler> BuildPerUserHandlers(string userKeyValue, string eventName)
+    {
         var handlers = new List<IDomainEventHandler>(GetCachedSingletonHandlers());
 
-        // Add the per-user UDAnalysis so per-user in-memory state can react.
-        // UDAnalysis instances are not in DI — they live inside UserDomainManagerService._userManagers.
         try
         {
             var managerService = _serviceProvider.GetService<UserDomainManagerService>();
-            if (managerService != null && !string.IsNullOrEmpty(dto.UserKey))
+            if (managerService != null && !string.IsNullOrEmpty(userKeyValue))
             {
-                var userKey = new Key("User", dto.UserKey);
+                var userKey = new Key("User", userKeyValue);
                 var manager = managerService.GetOrCreateManagerForUser(userKey);
-                if (manager?.Analysis != null)
+                if (manager != null)
                 {
-                    handlers.Add(manager.Analysis);
+                    handlers.Add(manager);
+                    if (manager.Analysis != null)
+                    {
+                        handlers.Add(manager.Analysis);
+                    }
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to attach UDAnalysis handler for user {UserKey} — ImmediateDangerAdded will still flow to global handlers", dto.UserKey);
+            _logger.LogWarning(ex,
+                "Failed to attach per-user handlers for user {UserKey} on {Event} — event will still flow to singleton handlers",
+                userKeyValue, eventName);
         }
 
-        // Per-event publisher because the per-user UDAnalysis varies between events
-        var publisher = new DomainEventPublisher(handlers);
-        var evtAdded = new ImmediateDangerAdded(dto);
-        publisher.Register(evtAdded);
-        publisher.RaiseAll();
+        return handlers;
     }
 
     private List<IDomainEventHandler> GetCachedSingletonHandlers()
@@ -159,7 +191,7 @@ public class ImmediateDangerPersistanceActor : IDomainEventHandler
         {
             ImmediateDangerByRemoteAccessDto rd => new ImmediateDangerByRemoteAccess
             {
-                KeyField = keyField,
+                KeyField = dto.Key.Value,
                 Timestamp = dto.Timestamp,
                 DeviceUid = dto.DeviceUid,
                 UserKeyField = dto.UserKey,

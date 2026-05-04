@@ -10,14 +10,17 @@ namespace Business.DomainEvents
 {
     public class ImmediateDangerEvent : DomainEvent
     {
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         protected ImmediateDangerEvent() { }
-        
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+
         public ImmediateDangerEvent(Key userKeyField, string deviceUid, object immediateDanger, IProtectiveAction[] protectiveActions)
         {
             UserKey = userKeyField;
             DeviceUid = deviceUid;
             ImmediateDanger = immediateDanger;
             ProtectiveActions = protectiveActions;
+            this.Timestamp = DateTime.UtcNow;
         }
 
         public Key UserKey { get; set; }

@@ -29,7 +29,7 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
     private readonly UDUserAnalyzer  _userAnalyzer;
     private bool _isRunning;
 
-    public UDUser _udUser { get; private set; }
+    public UDUser UDUser { get; private set; }
     private List<ActiveDeviceAlert> _activeDeviceAlerts = new();
     private List<ActiveDeviceAlert> _expiredDeviceAlerts = new();
     private IIndicatorFactory _indicatorFactory;
@@ -57,7 +57,7 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
         ProtectiveActionsFactory protectiveActionsFactory,
         IConfiguration configuration)
     {
-        _udUser = udUser;
+        UDUser = udUser;
         _userAnalyzer = userAnalyzer;
         _aSView = aSView;
         _analyzers = analyzers;
@@ -88,10 +88,10 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
     public void RegisterEventHandler(IDomainEventHandler handler)
     {
         _eventHandlers.Add(handler);
-        _logger.LogInformation($"Registered event handler: {handler.GetType().Name}, user={this._udUser.Key.Value}");
+        _logger.LogInformation($"Registered event handler: {handler.GetType().Name}, user={this.UDUser.Key.Value}");
         
         _domainEventPublisher.Subscribe(handler);
-        _logger.LogInformation($"Subscribed event handler to DomainEventPublisher: {handler.GetType().Name}, user={this._udUser.Key.Value}");
+        _logger.LogInformation($"Subscribed event handler to DomainEventPublisher: {handler.GetType().Name}, user={this.UDUser.Key.Value}");
     }
 
     //public async Task AnalyzeAsync(AnalysisResult analysisResult, string deviceUid, Key deviceAlertEntityKey)
@@ -219,7 +219,7 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
                     break;
         }
 
-        var analysisResult = new UDAnalysisResult(AnalysisLevel.Device, DetermineOverallSeverity(analysisResults), udAnalysisResults, DateTime.UtcNow, this._udUser, _configuration);
+        var analysisResult = new UDAnalysisResult(AnalysisLevel.Device, DetermineOverallSeverity(analysisResults), udAnalysisResults, DateTime.UtcNow, this.UDUser, _configuration);
 
         // Update the AnalysisResult field in the ActiveDeviceAlert
         activeAlert.AnalysisResult = analysisResult;
@@ -240,7 +240,7 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
     {
         var analysisEvent = new AnalyzerResultReceived
         {
-            UserKeyField = _udUser.Key.Value,
+            UserKeyField = UDUser.Key.Value,
             DeviceAlertKeyField = activeAlert.DeviceAlertEntityKey, 
             DeviceUid = activeAlert.DeviceUid,
             AnalyzerName = analyzerName,
@@ -276,7 +276,7 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
     {
         var analysisEvent = new AnalysisResultReceived
         {
-            UserKeyField = _udUser.Key.Value,
+            UserKeyField = UDUser.Key.Value,
             DeviceAlertKeyField = activeAlert.DeviceAlertEntityKey,  // Use entity key from DB
             DeviceUid = activeAlert.DeviceUid,
             AnalyzerResults = result.AnalyzerResults,
@@ -365,13 +365,13 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
     public void Start()
     {
         _isRunning = true;
-        _logger.LogInformation($"UDAnalysis started for user: {this._udUser.Key}");
+        _logger.LogInformation($"UDAnalysis started for user: {this.UDUser.Key}");
     }
 
     public void Stop()
     {
         _isRunning = false;
-        _logger.LogInformation($"UDAnalysis stopped for user: {_udUser.Key}");
+        _logger.LogInformation($"UDAnalysis stopped for user: {UDUser.Key}");
     }
 
     public Task Handle(IDomainEvent evt)
@@ -388,28 +388,54 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
             case ImmediateDangerAdded immediateDangerAdded:
                 this.HandleImmediateDangerAdded(immediateDangerAdded);
                 break;
+            case ImmediateDangerEnded immediateDangerEnded:
+                this.HandleImmediateDangerEnded(immediateDangerEnded);
+                break;
         }
         return Task.CompletedTask;
     }
 
     public Type[] GetHandleableEvents()
     {
-        return [typeof(SystemConfigurationChanged), typeof(ImmediateDangerDetected), typeof(ImmediateDangerAdded)];
+        return [
+            typeof(SystemConfigurationChanged),
+            typeof(ImmediateDangerDetected),
+            typeof(ImmediateDangerAdded),
+            typeof(ImmediateDangerEnded)
+        ];
     }
 
-    private void HandleImmediateDangerAdded(ImmediateDangerAdded immediateDangerAdded)
+    private void HandleImmediateDangerDetected(ImmediateDangerDetected evt)
     {
-        var protectiveActions = this._protectiveActionsFactory.CreateProtectiveActions(immediateDangerAdded.ImmediateDanger);
-
-        var immediateDangerEvent = new ImmediateDangerEvent(this._udUser.Key, immediateDangerAdded.DeviceUid, immediateDangerAdded.ImmediateDanger, protectiveActions);
-        this._domainEventPublisher.Register(immediateDangerEvent);
-        this._domainEventPublisher.RaiseAll();
-
+        _logger.LogInformation(
+            "[UDAnalysis] ImmediateDangerDetected: User={UserKey}, Device={DeviceUid}",
+            UDUser.Key.Value, evt.DeviceUid);
     }
 
-    private void HandleImmediateDangerDetected(ImmediateDangerDetected immediateDangerDetected)
+    private void HandleImmediateDangerAdded(ImmediateDangerAdded evt)
     {
+        _logger.LogInformation(
+            "[UDAnalysis] ImmediateDangerAdded: User={UserKey}, Device={DeviceUid}",
+            UDUser.Key.Value, evt.DeviceUid);
 
+        // Build the user-facing ImmediateDangerEvent (with protective actions
+        // resolved per-user) and raise it through this analysis's publisher
+        // so downstream handlers (NotificationPublisherActor, ASView, ...) react.
+        var protectiveActions = _protectiveActionsFactory.CreateProtectiveActions(evt.ImmediateDanger);
+        var immediateDangerEvent = new ImmediateDangerEvent(
+            UDUser.Key,
+            evt.DeviceUid ?? string.Empty,
+            evt.ImmediateDanger,
+            protectiveActions);
+        _domainEventPublisher.Register(immediateDangerEvent);
+        _domainEventPublisher.RaiseAll();
+    }
+
+    private void HandleImmediateDangerEnded(ImmediateDangerEnded evt)
+    {
+        _logger.LogInformation(
+            "[UDAnalysis] ImmediateDangerEnded: User={UserKey}, Key={Key}",
+            UDUser.Key.Value, evt.ImmediateDangerKey?.Value);
     }
     private void HandleSystemConfigurationChanged(SystemConfigurationChanged sysConfigChanged)
     {

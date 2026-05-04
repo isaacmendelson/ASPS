@@ -26,7 +26,7 @@ namespace Business.RealtimeAnalysis.ProtectivActions
                 case ImmediateDangerByRemoteAccessDto immediateDangerByRemoteAccessDto:
 
                     // ProtectiveActions for the reporting device:
-                    var msg = $"DANGER! DO NOT PROCEED. Yourr sensitive data is accessible by remote control!\nCLose any remote access application running on this device.\nLogout from any website you are logged in.";
+                    var msg = $"DANGER! DO NOT PROCEED! Your sensitive data online is accessible by remote pary using remote control!\nClose any remote access application running on this device.\nLogout from any website you are logged to.";
                     if (immediateDangerByRemoteAccessDto.DeviceKey is not null)
                     {
                         var pa1 = new ProtectiveAction(immediateDangerByRemoteAccessDto.DeviceKey, ProtectiveActionType.DisplayNotification, AnalysisLevel.User, msg, immediateDangerByRemoteAccessDto.DeviceAlertKey?.Value);

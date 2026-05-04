@@ -10,11 +10,14 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
+using Business.RealtimeAnalysis.ProtectivActions;
 
 namespace ASPS.Tests.Business.RealtimeAnalysis;
 
 public class UDUserAnalyzerTests
 {
+    private  Mock<ProtectiveActionsFactory> _mockProtectiveActionsFactory;
+
     private UDUserAnalyzer CreateSut()
     {
         // Use NullLoggerFactory instead of mocking extension methods
@@ -26,7 +29,7 @@ public class UDUserAnalyzerTests
         var serviceProvider = services.BuildServiceProvider();
         var mockConfiguration = new Mock<IConfiguration>();
         var asView = new ASView(serviceProvider, mockASViewLogger.Object, mockConfiguration.Object);
-
+        this._mockProtectiveActionsFactory = new Mock<ProtectiveActionsFactory>();
         var testKey = new Key("test", "user", "123");
         var testUser = new UDUser(
             key: testKey,
@@ -43,7 +46,8 @@ public class UDUserAnalyzerTests
             asView,
             alertExpiryDays: 30,
             alertDeletionDays: 90,
-            loggerFactory
+            loggerFactory,
+            this._mockProtectiveActionsFactory.Object
         );
     }
 

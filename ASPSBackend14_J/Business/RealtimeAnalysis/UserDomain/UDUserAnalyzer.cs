@@ -1,5 +1,6 @@
 ﻿using Business.DomainEvents;
 using Business.RealtimeAnalysis.Indicators;
+using Business.RealtimeAnalysis.ProtectivActions;
 using Business.Views;
 using Common.Entities;
 using Common.Enums;
@@ -40,11 +41,13 @@ namespace Business.RealtimeAnalysis.UserDomain
         private KeyValuePair<string, Indicator>[] _activeIndicatorMap = Array.Empty<KeyValuePair<string, Indicator>>();
         //private KeyValuePair<string, IProtectiveAction>[] _protectiveActions = Array.Empty<KeyValuePair<string, IProtectiveAction>>();
 
-        private List<RemoteAccessStatusObject> _remoteAccessStatus = new();
+        private List<KeyValuePair<string,RemoteAccessStatusObject>> _remoteAccessStatus = new();
         private List<ImmediateDangerDto> _immediateDangers = new();
         //private List<BrowserTab> _browserTabs = new();
         private readonly List<IDomainEventHandler> _eventHandlers = new();
         private readonly DomainEventPublisher _domainEventPublisher;
+
+        private IProtectiveActionsFactory _protectiveActionsFactory;
 
         public UDUserAnalyzer(
             UDUser udUser,
@@ -53,6 +56,7 @@ namespace Business.RealtimeAnalysis.UserDomain
             int alertExpiryDays,
             int alertDeletionDays,
             ILoggerFactory loggerFactory,
+            ProtectiveActionsFactory protectiveActionsFactory,
             IEnumerable<IDomainEventHandler>? eventHandlers = null
             )
         {
@@ -66,6 +70,8 @@ namespace Business.RealtimeAnalysis.UserDomain
                 _eventHandlers.AddRange(eventHandlers);
             }
             _domainEventPublisher = new DomainEventPublisher(_eventHandlers);
+            _protectiveActionsFactory = protectiveActionsFactory;
+
             _logger.LogInformation($"UDUserAnalyzer created for user {udUser.Key.Value} with {_eventHandlers.Count} event handlers");
         }
         public string Name => nameof(UDUserAnalyzer);
@@ -93,8 +99,8 @@ namespace Business.RealtimeAnalysis.UserDomain
                     // 1. Update RemoteAccessStatus for user
                     // 2. Update BrowserTabs for User (if provided)
 
-                    this._remoteAccessStatus.Add(new RemoteAccessStatusObject(r.Timestamp, r.DeviceInfo.DeviceUid, r.RemoteAccessDirection, r.RemoteAccessApp, 
-                        r.ConnectionStatus == ConnectionStatus.Open, r.SessionStatus == (int)SessionStatus.Open));
+                    this._remoteAccessStatus.Add(new KeyValuePair<string, RemoteAccessStatusObject>(r.DeviceInfo.DeviceUid, new RemoteAccessStatusObject(r.Timestamp, r.DeviceInfo.DeviceUid, r.RemoteAccessDirection, r.RemoteAccessApp, 
+                        r.ConnectionStatus == ConnectionStatus.Open, r.SessionStatus == (int)SessionStatus.Open)));
 
                     if (r.BrowserTabs is not null)  // && r.BrowserTabs.Length > 0)
                     {
@@ -158,9 +164,12 @@ namespace Business.RealtimeAnalysis.UserDomain
 
         public Type[] GetHandleableEvents()
         {
-            return new[] { 
-                typeof(AnalysisResultAdded) ,
-                typeof(AnalysisResultReceived) ,
+            return new[] {
+                typeof(AnalysisResultAdded),
+                typeof(AnalysisResultReceived),
+                typeof(ImmediateDangerDetected),
+                typeof(ImmediateDangerAdded),
+                typeof(ImmediateDangerEnded)
             };
         }
 
@@ -180,12 +189,57 @@ namespace Business.RealtimeAnalysis.UserDomain
                     // Handle the analysis result received event
                     await this.HandleAnalysisResultAddedAsync(analysisEvent);
                     break;
+                case ImmediateDangerDetected immediateDangerDetected:
+                    this.HandleImmediateDangerDetected(immediateDangerDetected);
+                    break;
+                case ImmediateDangerAdded immediateDangerAdded:
+                    this.HandleImmediateDangerAdded(immediateDangerAdded);
+                    break;
+                case ImmediateDangerEnded immediateDangerEnded:
+                    this.HandleImmediateDangerEnded(immediateDangerEnded);
+                    break;
             }
 
             var isImmediateDanger = this.DetectImmediateDanger(key);
         }
 
-        public async Task HandleAnalysisResultAddedAsync(AnalysisResultAdded analysisEvent)
+        public void HandleImmediateDangerAdded(ImmediateDangerAdded immediateDangerAdded)
+        {
+            var protectiveActions = this._protectiveActionsFactory.CreateProtectiveActions(immediateDangerAdded.ImmediateDanger);
+
+            var immediateDangerEvent = new ImmediateDangerEvent(this.UDUser.Key, immediateDangerAdded.DeviceUid, immediateDangerAdded.ImmediateDanger, protectiveActions);
+            this._domainEventPublisher.Register(immediateDangerEvent);
+            this._domainEventPublisher.RaiseAll();
+
+        }
+
+        public void HandleImmediateDangerDetected(ImmediateDangerDetected immediateDangerDetected)
+        {
+
+        }
+
+        public void HandleImmediateDangerEnded(ImmediateDangerEnded immediateDangerEnded)
+        {
+            // Reflect the persisted EndTime in the in-memory list so subsequent
+            // DetectImmediateDanger passes don't republish ImmediateDangerEnded
+            // for the same record.
+            var keyValue = immediateDangerEnded.ImmediateDangerKey?.Value;
+            if (string.IsNullOrEmpty(keyValue))
+            {
+                _logger.LogWarning("ImmediateDangerEnded received without ImmediateDangerKey — skipping local update");
+                return;
+            }
+
+            var match = this._immediateDangers.FirstOrDefault(i => i.Key?.Value == keyValue);
+            if (match != null && match.EndTime == null)
+            {
+                match.EndTime = DateTime.UtcNow;
+                _logger.LogInformation(
+                    "[UDUserAnalyzer] ImmediateDangerEnded acknowledged: Key={Key}, User={UserKey}",
+                    keyValue, this.UDUser.Key.Value);
+            }
+        }
+        private async Task HandleAnalysisResultAddedAsync(AnalysisResultAdded analysisEvent)
         {
             if (analysisEvent.AnalyzerResults.TryGetValue(nameof(UDRemoteAccessAnalyzer), out var raResult))
             {
@@ -258,13 +312,13 @@ namespace Business.RealtimeAnalysis.UserDomain
                     //}
                     break;
                 case TrackUrlAnalysisResult t:
-                    HandleTrackUrlAnalysisResultReceived(t, remoteAccessStatus);
+                    HandleTrackUrlAnalysisResultReceived(t, remoteAccessStatus?? Enumerable.Empty<KeyValuePair<string, RemoteAccessStatusObject>>());
                     break;
             }
 
         }
 
-        public async Task HandleAnalysisResultReceivedAsync(AnalysisResultReceived analysisEvent)
+        private async Task HandleAnalysisResultReceivedAsync(AnalysisResultReceived analysisEvent)
         {
             if (analysisEvent.AnalyzerResults.TryGetValue(nameof(UDRemoteAccessAnalyzer), out var raResult))
             {
@@ -341,29 +395,49 @@ namespace Business.RealtimeAnalysis.UserDomain
             
         }
 
-
-        private RemoteAccessStatusObject? GetRemoteAccessStatus()
+        private IEnumerable<KeyValuePair<string, RemoteAccessStatusObject>>? GetRemoteAccessStatus()
         {
             if (this._remoteAccessAnalysisResults.Count ==0)
             {
                 return null;
             }
-            
-            var deviceInfo = this._remoteAccessAnalysisResults.FirstOrDefault()?.Alert.DeviceInfo;
-            var anaylisisResult = this._remoteAccessAnalysisResults.FirstOrDefault()?.AnalysisResult;
-            if (anaylisisResult is null)
+            List<KeyValuePair<string, RemoteAccessStatusObject>> res = new();
+
+
+            foreach(var d in this.UDUser.UserDevices)
             {
-                return null;
+                var latestRemoteAccessResultForDevice = this._remoteAccessAnalysisResults.OrderByDescending(i => i.Timestamp).FirstOrDefault(i => i.Alert.DeviceInfo.DeviceUid == d.DeviceUid);
+                var deviceInfo = latestRemoteAccessResultForDevice?.Alert?.DeviceInfo;
+                var anaylisisResult = latestRemoteAccessResultForDevice?.AnalysisResult;
+                var timestamp = latestRemoteAccessResultForDevice?.Timestamp ?? DateTime.UtcNow;
+                if (anaylisisResult is null || deviceInfo is null)
+                {
+                    continue;
+                }
+
+                var isRemoteAccessAppActive = anaylisisResult.RunningProcesses > 0;
+                var isRemoteAccessSessionActive = anaylisisResult.SessionStatus > 0;
+                var remoteAccessDirection = anaylisisResult.RemoteAccessDirection;
+                var connectionStatus = anaylisisResult.ConnectionStatus;
+                var statusForDevice = new RemoteAccessStatusObject(timestamp, deviceInfo.DeviceUid, remoteAccessDirection, anaylisisResult.RemoteAccessApp, isRemoteAccessAppActive, isRemoteAccessSessionActive);
+                res.Add( new KeyValuePair<string, RemoteAccessStatusObject>(d.DeviceUid, statusForDevice));
             }
-            
-            var isRemoteAccessAppActive = anaylisisResult.RunningProcesses > 0;
-            var isRemoteAccessSessionActive = anaylisisResult.SessionStatus > 0;
-            var remoteAccessDirection = anaylisisResult.RemoteAccessDirection;
-            var connectionStatus = anaylisisResult.ConnectionStatus;
-            return new RemoteAccessStatusObject(DateTime.UtcNow, deviceInfo.DeviceUid, remoteAccessDirection,  anaylisisResult.RemoteAccessApp,isRemoteAccessAppActive, isRemoteAccessSessionActive);
+            //var deviceInfo = this._remoteAccessAnalysisResults.FirstOrDefault()?.Alert.DeviceInfo;
+            //var anaylisisResult = this._remoteAccessAnalysisResults.FirstOrDefault()?.AnalysisResult;
+            //if (anaylisisResult is null || deviceInfo is null)
+            //{
+            //    return null;
+            //}
+
+            //var isRemoteAccessAppActive = anaylisisResult.RunningProcesses > 0;
+            //var isRemoteAccessSessionActive = anaylisisResult.SessionStatus > 0;
+            //var remoteAccessDirection = anaylisisResult.RemoteAccessDirection;
+            //var connectionStatus = anaylisisResult.ConnectionStatus;
+            //return new RemoteAccessStatusObject(anaylisisResult.analyzed_at, deviceInfo.DeviceUid, remoteAccessDirection,  anaylisisResult.RemoteAccessApp,isRemoteAccessAppActive, isRemoteAccessSessionActive);
+            return res;
         }
 
-        private void HandleTrackUrlAnalysisResultReceived(TrackUrlAnalysisResult trackUrlResult, RemoteAccessStatusObject remoteAccessStatus)
+        private void HandleTrackUrlAnalysisResultReceived(TrackUrlAnalysisResult trackUrlResult, IEnumerable<KeyValuePair<string, RemoteAccessStatusObject>> remoteAccessStatus)
         {
             _logger.LogInformation($"Handling TrackUrlAnalysisResult: URL={trackUrlResult.Url}, Duration={trackUrlResult.Duration}s, IsSafe={trackUrlResult.IsSafeDomain}");
 
@@ -373,14 +447,26 @@ namespace Business.RealtimeAnalysis.UserDomain
                 _logger.LogWarning($"Scam-in-progress detected for user {this.UDUser.Key}: {trackUrlResult.ScamInProgressKey}");
             }
 
-            // Check for high-risk scenarios when remote access is active
-            if (remoteAccessStatus.IsRemoteAccessAppActive && remoteAccessStatus.isRemoteAccessSessionActive)
+            //// Check for high-risk scenarios when remote access is active
+            //if (remoteAccessStatus.IsRemoteAccessAppActive && remoteAccessStatus.isRemoteAccessSessionActive)
+            //{
+            //    if (!trackUrlResult.IsSafeDomain && trackUrlResult.Duration > 300)
+            //    {
+            //        _logger.LogWarning($"High-risk: User {this.UDUser.Key} spending extended time on non-safe domain {trackUrlResult.Domain} while remote access is active");
+            //    }
+            //}
+        }
+
+
+        private void CleanupExpiredImmediateDangers()
+        {
+            // Remove expired _immediateDangers from active list
+            this._immediateDangers = this._immediateDangers.OrderByDescending(i => i.Timestamp).ToList();
+            foreach (var item in this._immediateDangers.Where(i => i.EndTime != null).OrderByDescending(i => i.Timestamp))
             {
-                if (!trackUrlResult.IsSafeDomain && trackUrlResult.Duration > 300)
-                {
-                    _logger.LogWarning($"High-risk: User {this.UDUser.Key} spending extended time on non-safe domain {trackUrlResult.Domain} while remote access is active");
-                }
+                this._immediateDangers.Remove(item);
             }
+
         }
 
         private void CleanupExpiredAlerts()
@@ -480,24 +566,26 @@ namespace Business.RealtimeAnalysis.UserDomain
                 return false;
             }
             bool res = false;
+            
+            this.GetLatestAnalysisResults();
+            
             var remoteAccessStatus = this.GetRemoteAccessStatus();
-            if (remoteAccessStatus is not null && !_remoteAccessStatus.Any(i => i.Timestamp >= remoteAccessStatus.Timestamp))
-            {
-                this._remoteAccessStatus.Add(remoteAccessStatus);
-            }
-            if (!this._remoteAccessStatus.Any(i => i.isRemoteAccessSessionActive && i.RemoteAccessDirection == RemoteAccessDirection.In))
+            this._remoteAccessStatus = this.GetRemoteAccessStatus()?.ToList() ?? new List<KeyValuePair<string, RemoteAccessStatusObject>>();
+            //if (remoteAccessStatus is not null && !_remoteAccessStatus.Any(i => i.Timestamp >= remoteAccessStatus.Timestamp))
+            //{
+            //    this._remoteAccessStatus.Add(remoteAccessStatus);
+            //}
+            if (!this._remoteAccessStatus.Any(i => i.Value.isRemoteAccessSessionActive && i.Value.RemoteAccessDirection == RemoteAccessDirection.In))
             {
                 //return false;
             }
-            var remoteAccessObjectsWithActiveSession = this._remoteAccessStatus.OrderByDescending(i => i.Timestamp).Where(i => i.isRemoteAccessSessionActive && i.RemoteAccessDirection == RemoteAccessDirection.In);
+
+
+            var remoteAccessObjectsWithActiveSession = this._remoteAccessStatus.OrderByDescending(i => i.Value.Timestamp).Where(i => i.Value.isRemoteAccessSessionActive && i.Value.RemoteAccessDirection == RemoteAccessDirection.In);
             //remoteAccessObjectsWithActiveSession = this._remoteAccessStatus.OrderByDescending(i => i.Timestamp).Where(i => i.isRemoteAccessSessionActive);
             if (!remoteAccessObjectsWithActiveSession.Any())
             {
-                foreach (var item in this._immediateDangers.Where(i => i.EndTime != null))
-                {
-                    var evt = new ImmediateDangerEnded(item.Key, this.UDUser.Key);
-                    this._domainEventPublisher.Register(evt);
-                }
+                //No remoteAccess Objects With ActiveSession found. Close all _immediateDangers by setting EndTime
                 
                 foreach (var item in this._immediateDangers.Where(i => i.EndTime == null))
                 {
@@ -509,7 +597,7 @@ namespace Business.RealtimeAnalysis.UserDomain
 
             else
             {
-                var activeDeviceUids = remoteAccessObjectsWithActiveSession.Select(i => i.DeviceUid).ToHashSet();
+                var activeDeviceUids = remoteAccessObjectsWithActiveSession.Select(i => i.Value.DeviceUid).ToHashSet();
                 var urlAnalysisResultViews = this._asView.GetUrlAnalysisResultsByUserKey(this.UDUser.Key)
                     .OrderByDescending(I => I.Timestamp)
                     .ToList();
@@ -528,9 +616,10 @@ namespace Business.RealtimeAnalysis.UserDomain
                     else if (this.HasSensitiveBrowserPages(deviceUid))
                     {
                         res = true;
-                        var remoteAccessApp = remoteAccessObjectsWithActiveSession.OrderByDescending(i => i.Timestamp).FirstOrDefault(i => i.DeviceUid == deviceUid)?.RemoteAccessApp;
+                        var remoteAccessApp = remoteAccessObjectsWithActiveSession.OrderByDescending(i => i.Value.Timestamp).FirstOrDefault(i => i.Key == deviceUid).Value.RemoteAccessApp;
                         _logger.LogWarning($"Immediate danger detected for user {this.UDUser.Key} on device {deviceUid} with active remote access session and sensitive website open.");
                         var sUrl = this.UDUser.BrowserTabs?[deviceUid]?.FirstOrDefault(i => this.IsSensitiveWebsite(i.Url))?.Url;
+                        var urls = this.UDUser.BrowserTabs?[deviceUid]?.Where(i => this.IsSensitiveWebsite(i.Url)).ToList();
                         if (this._immediateDangers is null)
                         {
                             this._immediateDangers = new();
@@ -539,21 +628,21 @@ namespace Business.RealtimeAnalysis.UserDomain
                         if (alertKey is not null && !this._immediateDangers.OfType<ImmediateDangerByRemoteAccessDto>().Any(i => i.EndTime == null && i.RemoteAccessApp == remoteAccessApp && i.DeviceUid == deviceUid && i.SensitiveUrl?.ToLower() == sUrl))
                         {
                             // Create new immediate danger instance and add to the list
-                            var immediateDanger = new ImmediateDangerByRemoteAccessDto(new Key(nameof(ImmediateDangerByRemoteAccess), new Guid().ToString()), remoteAccessApp, sUrl, deviceUid, this.UDUser.Key.Value,
+                            var immediateDanger = new ImmediateDangerByRemoteAccessDto(new Key(nameof(ImmediateDangerByRemoteAccess), Guid.NewGuid().ToString()), remoteAccessApp, sUrl, deviceUid, this.UDUser.Key.Value,
                                 this.UDUser.UserDevices.FirstOrDefault(i => i.DeviceUid == deviceUid)?.Key, alertKey, null, []);
                             this._immediateDangers.Add(immediateDanger);
-
-                            //Publish event ImmediateDanderDetected
-                            var domainEvent = new ImmediateDangerDetected(immediateDanger);
-                            this._domainEventPublisher.Register(domainEvent);
-
-
                         }
+                        //Publish event ImmediateDanderDetected
+                        var domainEvent = new ImmediateDangerDetected(this._immediateDangers.OrderByDescending(i => i.Timestamp).OfType<ImmediateDangerByRemoteAccessDto>()
+                            .First(i => i.EndTime == null && i.RemoteAccessApp == remoteAccessApp && i.DeviceUid == deviceUid && i.SensitiveUrl?.ToLower() == sUrl));
+                        this._domainEventPublisher.Register(domainEvent);
+
 
                     }
                 }
 
             }
+            this.CleanupExpiredImmediateDangers();
             this._domainEventPublisher.RaiseAll();
             return res;
         }

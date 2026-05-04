@@ -146,6 +146,24 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
             case AnalysisResultAdded analysisResultEvent:
                 await HandleAnalysisResultAdded(analysisResultEvent);
                 break;
+            case ImmediateDangerDetected immediateDangerDetected:
+                _logger.LogInformation(
+                    "[UDAnalysisManager] ImmediateDangerDetected: User={UserKey}, Device={DeviceUid}",
+                    _udUser.Key.Value, immediateDangerDetected.DeviceUid);
+                this._userAnalyzer.HandleImmediateDangerDetected(immediateDangerDetected);
+                break;
+            case ImmediateDangerAdded immediateDangerAdded:
+                _logger.LogInformation(
+                    "[UDAnalysisManager] ImmediateDangerAdded: User={UserKey}, Device={DeviceUid}",
+                    _udUser.Key.Value, immediateDangerAdded.DeviceUid);
+                this._userAnalyzer.HandleImmediateDangerAdded(immediateDangerAdded);
+                break;
+            case ImmediateDangerEnded immediateDangerEnded:
+                _logger.LogInformation(
+                    "[UDAnalysisManager] ImmediateDangerEnded: User={UserKey}, Key={Key}",
+                    _udUser.Key.Value, immediateDangerEnded.ImmediateDangerKey?.Value);
+                this._userAnalyzer.HandleImmediateDangerEnded(immediateDangerEnded);
+                break;
         }
     }
 
@@ -155,7 +173,10 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         {
             typeof(DeviceAlertReceived),
             typeof(AnalysisResultReceived),
-            typeof(AnalysisResultAdded)
+            typeof(AnalysisResultAdded),
+            typeof(ImmediateDangerDetected),
+            typeof(ImmediateDangerAdded),
+            typeof(ImmediateDangerEnded)
         };
     }
 
