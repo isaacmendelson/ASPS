@@ -859,12 +859,27 @@ class SessionTracker:
         if self.current and not self.current.connection_type:
             self.current.connection_type = event.get("conn_type", "")
 
-    def _session_stopped(self, event: dict) -> str:
-        if self.current:
-            self.current.end_time = event.get("timestamp") or datetime.now()
-            self.current.active = False
-            self.history.append(self.current)
-            self.current = None
+    def _session_stopped(self, event: dict) -> Optional[str]:
+        if not self.current:
+            return None
+
+        # Guard against stale stop events from a different log stream during
+        # backfill: if the stop's timestamp is OLDER than the current session's
+        # start, this stop belongs to a previous (already-finished) session and
+        # must not clobber the live one.
+        evt_ts = event.get("timestamp")
+        cur_start = self.current.start_time
+        if (
+            isinstance(evt_ts, datetime)
+            and isinstance(cur_start, datetime)
+            and evt_ts < cur_start
+        ):
+            return None
+
+        self.current.end_time = evt_ts or datetime.now()
+        self.current.active = False
+        self.history.append(self.current)
+        self.current = None
         return "session_ended"
 
     def _record_tv_session(self, event: dict) -> str:
@@ -1090,17 +1105,23 @@ class RemoteAccessMonitor:
         app_name = 'anydesk'
         self._session_trackers[app_name] = SessionTracker()
         self._log_watchers[app_name] = []
-        
+
         log_paths = [
             MonitorConfig.SVC_TRACE,
             MonitorConfig.UI_TRACE,
             MonitorConfig.CONN_TRACE,
         ]
-        
+
+        # Build watchers (no threads yet)
         for path in log_paths:
             watcher = LogWatcher(path, MonitorConfig.POLL_INTERVAL)
             self._log_watchers[app_name].append(watcher)
-            
+
+        # Unified backfill BEFORE starting tail threads (cross-file timestamp order)
+        self._backfill_app(app_name, self._log_watchers[app_name])
+
+        # Start live tail threads
+        for watcher in self._log_watchers[app_name]:
             t = threading.Thread(
                 target=self._watch_log,
                 args=(app_name, watcher),
@@ -1108,36 +1129,39 @@ class RemoteAccessMonitor:
             )
             self._watcher_threads.append(t)
             t.start()
-            
+
             if DEBUG_MODE:
-                print(f"[REMOTE-MONITOR] Watching: {path}")
+                print(f"[REMOTE-MONITOR] Watching: {watcher.path}")
 
     def _start_teamviewer_watchers(self):
         """Start watching TeamViewer log files."""
         app_name = 'teamviewer'
         self._session_trackers[app_name] = SessionTracker()
         self._log_watchers[app_name] = []
-        
+
         # TeamViewer log paths
         log_paths = [
             MonitorConfig.TV_CONNECTIONS_IN,
             MonitorConfig.TV_CONNECTIONS_OUT,
         ]
-        
+
         # Also check for TeamViewer logfile (version-specific)
         tv_logfile = Path(MonitorConfig.APPDATA) / "TeamViewer" / "TeamViewer15_Logfile.log"
         if tv_logfile.exists():
             log_paths.append(tv_logfile)
-        
+
         for path in log_paths:
             if not path.exists():
                 if DEBUG_MODE:
                     print(f"[REMOTE-MONITOR] TeamViewer log not found: {path}")
                 continue
-                
             watcher = LogWatcher(path, MonitorConfig.POLL_INTERVAL)
             self._log_watchers[app_name].append(watcher)
-            
+
+        # Unified backfill before starting threads
+        self._backfill_app(app_name, self._log_watchers[app_name])
+
+        for watcher in self._log_watchers[app_name]:
             t = threading.Thread(
                 target=self._watch_log,
                 args=(app_name, watcher),
@@ -1145,9 +1169,9 @@ class RemoteAccessMonitor:
             )
             self._watcher_threads.append(t)
             t.start()
-            
+
             if DEBUG_MODE:
-                print(f"[REMOTE-MONITOR] Watching TeamViewer: {path}")
+                print(f"[REMOTE-MONITOR] Watching TeamViewer: {watcher.path}")
 
     def _start_vnc_watchers(self):
         """Start watching VNC log files."""
@@ -1169,10 +1193,13 @@ class RemoteAccessMonitor:
         for path in vnc_log_paths:
             if not path.exists():
                 continue
-                
             watcher = LogWatcher(path, MonitorConfig.POLL_INTERVAL)
             self._log_watchers[app_name].append(watcher)
-            
+
+        # Unified backfill before starting threads
+        self._backfill_app(app_name, self._log_watchers[app_name])
+
+        for watcher in self._log_watchers[app_name]:
             t = threading.Thread(
                 target=self._watch_log,
                 args=(app_name, watcher),
@@ -1180,25 +1207,28 @@ class RemoteAccessMonitor:
             )
             self._watcher_threads.append(t)
             t.start()
-            
+
             if DEBUG_MODE:
-                print(f"[REMOTE-MONITOR] Watching VNC: {path}")
+                print(f"[REMOTE-MONITOR] Watching VNC: {watcher.path}")
 
     def _start_crd_watchers(self):
         """Start watching Chrome Remote Desktop log files."""
         app_name = 'chrome_remote_desktop'
         self._session_trackers[app_name] = SessionTracker()
         self._log_watchers[app_name] = []
-        
+
         # Chrome Remote Desktop log directory
         crd_log_dir = Path(MonitorConfig.APPDATA) / "Google" / "Chrome Remote Desktop" / "logs"
-        
+
         if crd_log_dir.exists():
-            # Watch all .log files in the directory
             for log_file in crd_log_dir.glob("*.log"):
                 watcher = LogWatcher(log_file, MonitorConfig.POLL_INTERVAL)
                 self._log_watchers[app_name].append(watcher)
-                
+
+            # Unified backfill before starting threads
+            self._backfill_app(app_name, self._log_watchers[app_name])
+
+            for watcher in self._log_watchers[app_name]:
                 t = threading.Thread(
                     target=self._watch_log,
                     args=(app_name, watcher),
@@ -1206,34 +1236,95 @@ class RemoteAccessMonitor:
                 )
                 self._watcher_threads.append(t)
                 t.start()
-                
+
                 if DEBUG_MODE:
-                    print(f"[REMOTE-MONITOR] Watching CRD: {log_file}")
+                    print(f"[REMOTE-MONITOR] Watching CRD: {watcher.path}")
         elif DEBUG_MODE:
             print(f"[REMOTE-MONITOR] Chrome Remote Desktop logs not found: {crd_log_dir}")
 
-    def _watch_log(self, app_name: str, watcher: LogWatcher):
-        """Thread: watch a single log file."""
+    def _backfill_app(self, app_name: str, watchers: List["LogWatcher"]) -> None:
+        """
+        One-shot bootstrap: read tail lines from ALL log files for an app,
+        parse them, sort all events by timestamp, and replay through the
+        single SessionTracker in chronological order.
+
+        Why a unified pass instead of per-watcher backfill: AnyDesk writes to
+        BOTH `ad.trace` (UI) and `ad_svc.trace` (service), and the order of
+        events across files matters. A `session_stopped` from one file MUST
+        be replayed before/after a `session_started` from the other based on
+        wall-clock time — otherwise an old stop event from one stream can
+        clobber the live session state from the other.
+
+        Self-diagnostic: under DEBUG_MODE prints per-file readability/size
+        and the resulting tracker direction.
+        """
         tracker = self._session_trackers.get(app_name)
         if not tracker:
             return
 
-        # Bootstrap: replay recent history through the tracker so a session
-        # that was already active before the agent started gets picked up.
-        # `read_tail_lines` does not move the tail position — the live tail
-        # below still starts from EOF.
-        try:
-            backfill_lines = watcher.read_tail_lines(max_lines=500)
-            for line in backfill_lines:
+        all_events: List[Tuple[datetime, dict, str]] = []
+        per_file_diag: List[str] = []
+
+        for watcher in watchers:
+            path = watcher.path
+            try:
+                exists = path.exists()
+                size = path.stat().st_size if exists else 0
+            except (OSError, PermissionError) as e:
+                per_file_diag.append(f"  ! {path.name}: stat-failed ({e})")
+                continue
+
+            if not exists:
+                per_file_diag.append(f"  - {path.name}: missing")
+                continue
+
+            try:
+                lines = watcher.read_tail_lines(max_lines=500)
+            except Exception as e:
+                per_file_diag.append(f"  ! {path.name}: read-failed ({e})")
+                continue
+
+            parsed = 0
+            for line in lines:
                 event = self._log_parser.parse_line(line)
-                if event:
-                    tracker.on_event(event)
-            if DEBUG_MODE and backfill_lines:
-                cur = tracker.get_current_session()
-                dir_after = cur.direction if cur else "none"
-                print(f"[REMOTE-MONITOR] {app_name}: backfilled {len(backfill_lines)} lines from {watcher.path.name} → direction={dir_after}")
-        except Exception as e:
-            logger.debug(f"Backfill failed for {app_name} ({watcher.path.name}): {e}")
+                if not event:
+                    continue
+                ts = event.get("timestamp")
+                # Default to "very old" so events without timestamp sort earliest
+                ts = ts if isinstance(ts, datetime) else datetime.min
+                all_events.append((ts, event, path.name))
+                parsed += 1
+
+            per_file_diag.append(
+                f"  + {path.name}: size={size}B, lines_read={len(lines)}, events={parsed}"
+            )
+
+        # Sort chronologically across all files
+        all_events.sort(key=lambda x: x[0])
+
+        # Replay through the tracker
+        for _, event, _src in all_events:
+            tracker.on_event(event)
+
+        if DEBUG_MODE:
+            cur = tracker.get_current_session()
+            dir_after = cur.direction if cur else "none"
+            active_after = cur.active if cur else False
+            start_after = cur.start_time.isoformat() if cur and cur.start_time else "—"
+            print(f"[REMOTE-MONITOR] {app_name}: backfill summary")
+            for line in per_file_diag:
+                print(line)
+            print(
+                f"  → events_replayed={len(all_events)}, "
+                f"current.direction={dir_after}, active={active_after}, start={start_after}"
+            )
+
+    def _watch_log(self, app_name: str, watcher: LogWatcher):
+        """Thread: watch a single log file. Backfill is done up-front in
+        `_backfill_app`; this thread only handles the live tail."""
+        tracker = self._session_trackers.get(app_name)
+        if not tracker:
+            return
 
         for line in watcher.tail(from_start=False):
             if not self._running:
@@ -1544,10 +1635,66 @@ class RemoteAccessMonitor:
         # most recent entry from connection_trace.txt — written when a session
         # ends, but if the entry is from the last few minutes it's a strong
         # hint about an in-progress (or just-closed) session direction.
+        anydesk_history_dir = SessionDirection.UNKNOWN
         if (log_direction == SessionDirection.UNKNOWN
                 and app_name == 'anydesk'
                 and suspicious_conn > 0):
-            log_direction = self._infer_anydesk_direction_from_history()
+            anydesk_history_dir = self._infer_anydesk_direction_from_history()
+            log_direction = anydesk_history_dir
+
+        # Diagnostic: AnyDesk active session but direction still UNKNOWN.
+        # Captures full state so we can debug WHY the direction wasn't resolved.
+        if (app_name == 'anydesk'
+                and suspicious_conn > 0
+                and log_direction == SessionDirection.UNKNOWN):
+            try:
+                tracker_state = "no-tracker"
+                if session_tracker is not None:
+                    cur = session_tracker.get_current_session()
+                    if cur is None:
+                        tracker_state = "no-current-session"
+                    else:
+                        tracker_state = (
+                            f"dir={cur.direction}, active={cur.active}, "
+                            f"start={cur.start_time}, remote_id={cur.remote_id!r}"
+                        )
+
+                file_states = []
+                for w in self._log_watchers.get(app_name, []):
+                    p = w.path
+                    try:
+                        if p.exists():
+                            st = p.stat()
+                            file_states.append(
+                                f"{p.name}(size={st.st_size},"
+                                f"mtime={datetime.fromtimestamp(st.st_mtime).isoformat()})"
+                            )
+                        else:
+                            file_states.append(f"{p.name}(missing)")
+                    except (OSError, PermissionError) as e:
+                        file_states.append(f"{p.name}(stat-failed:{e})")
+
+                listen_ports_cfg = app_config.get('listen_ports', [])
+                topology_dir = (
+                    self._infer_direction_from_processes(processes, listen_ports_cfg)
+                    if listen_ports_cfg else SessionDirection.UNKNOWN
+                )
+
+                logger.warning(
+                    "[REMOTE-MONITOR][DIAG] anydesk has active session but "
+                    "direction=UNKNOWN. tracker={tracker} | logs=[{files}] | "
+                    "topology_fallback={topo} | history_fallback={hist} | "
+                    "suspicious_conn={sc} remote_ip={ip}".format(
+                        tracker=tracker_state,
+                        files=", ".join(file_states),
+                        topo=topology_dir,
+                        hist=anydesk_history_dir,
+                        sc=suspicious_conn,
+                        ip=remote_ip,
+                    )
+                )
+            except Exception as diag_exc:
+                logger.debug(f"AnyDesk UNKNOWN-direction diagnostic failed: {diag_exc}")
 
         # Check Windows service if configured
         service_running = False

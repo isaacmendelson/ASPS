@@ -52,8 +52,8 @@ public enum RemoteAccessApp
 public enum RemoteAccessDirection
 {
     Unknown = 0,
-    In = 1,
-    Out = 2,
+    Incoming = 1,
+    Outgoing = 2,
 }
 
 public enum UserRole

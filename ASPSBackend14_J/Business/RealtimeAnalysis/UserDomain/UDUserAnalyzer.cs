@@ -575,13 +575,13 @@ namespace Business.RealtimeAnalysis.UserDomain
             //{
             //    this._remoteAccessStatus.Add(remoteAccessStatus);
             //}
-            if (!this._remoteAccessStatus.Any(i => i.Value.isRemoteAccessSessionActive && i.Value.RemoteAccessDirection == RemoteAccessDirection.In))
+            if (!this._remoteAccessStatus.Any(i => i.Value.isRemoteAccessSessionActive && i.Value.RemoteAccessDirection == RemoteAccessDirection.Incoming))
             {
                 //return false;
             }
 
 
-            var remoteAccessObjectsWithActiveSession = this._remoteAccessStatus.OrderByDescending(i => i.Value.Timestamp).Where(i => i.Value.isRemoteAccessSessionActive && i.Value.RemoteAccessDirection == RemoteAccessDirection.In);
+            var remoteAccessObjectsWithActiveSession = this._remoteAccessStatus.OrderByDescending(i => i.Value.Timestamp).Where(i => i.Value.isRemoteAccessSessionActive && i.Value.RemoteAccessDirection == RemoteAccessDirection.Incoming);
             //remoteAccessObjectsWithActiveSession = this._remoteAccessStatus.OrderByDescending(i => i.Timestamp).Where(i => i.isRemoteAccessSessionActive);
             if (!remoteAccessObjectsWithActiveSession.Any())
             {

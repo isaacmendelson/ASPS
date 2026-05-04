@@ -514,12 +514,11 @@ public class RealTimeAlertListener : IDisposable
             // DEV: Set SessionStatus Active for incoming RemoteAccessAlerts
            //if (alert is RemoteAccessAlert RemoteAccessAlertCheck)
            //{
-           //     //_logger.LogDebug("Setting SessionStatus Active for incoming RemoteAccessAlert");
-           //     //RemoteAccessAlertCheck.SessionStatus = (int)SessionStatus.Open;
-           //     RemoteAccessAlertCheck.RemoteAccessDirection = RemoteAccessDirection.In;
-           //     //RemoteAccessAlertCheck.ConnectionStatus = ConnectionStatus.Open;
-
-           //}
+                //_logger.LogDebug("Setting SessionStatus Active for incoming RemoteAccessAlert");
+                //RemoteAccessAlertCheck.SessionStatus = (int)SessionStatus.Open;
+                //RemoteAccessAlertCheck.Direction = RemoteAccessDirection.Incoming.ToString().ToLower();
+                //RemoteAccessAlertCheck.ConnectionStatus = ConnectionStatus.Open;
+            //}
 
             var deviceUid = alert.DeviceInfo.DeviceUid;
             var tokenValidation = _tokenStore.ValidateToken(deviceUid, alert.Token);

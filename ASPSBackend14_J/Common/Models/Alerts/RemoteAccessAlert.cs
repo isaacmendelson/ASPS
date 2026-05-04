@@ -1,11 +1,15 @@
 using Common.Enums;
+using Newtonsoft.Json;
 
 namespace Common.Models.Alerts;
 
 public class RemoteAccessAlert : DeviceAlert
 {
 
-    protected RemoteAccessAlert() { }
+    protected RemoteAccessAlert()
+    {
+        var x = this.Direction;
+    }
     public RemoteAccessAlert(RemoteAccessApp remoteAccessApp, int runningProcesses, string connectionUrl, ConnectionStatus connectionStatus, RemoteAccessDirection remoteAccessDirection,
         int connectionsCount, int sessionStatus, BrowserTab[]? browserTabs)
     {
@@ -16,7 +20,8 @@ public class RemoteAccessAlert : DeviceAlert
         ConnectionsCount = connectionsCount;
         SessionStatus = sessionStatus;
         BrowserTabs = browserTabs;
-        RemoteAccessDirection = remoteAccessDirection;
+        Direction = remoteAccessDirection.ToString().ToLower(); // Store the direction as a string for wire transmission
+
     }
 
     //protected RemoteAccessAlert() { }
@@ -29,7 +34,20 @@ public class RemoteAccessAlert : DeviceAlert
     //    ConnectionsCount = connectionsCount;
     //    SessionStatus = sessionStatus;
     //}
-    public RemoteAccessDirection RemoteAccessDirection { get; set; }
+    //public RemoteAccessDirection RemoteAccessDirection { get; set; }
+
+    public RemoteAccessDirection RemoteAccessDirection
+    {
+        get
+        {
+            return this.Direction switch
+            {
+                "incoming" => RemoteAccessDirection.Incoming,
+                "outgoing" => RemoteAccessDirection.Outgoing,
+                _ => RemoteAccessDirection.Unknown
+            };
+        }
+    }
     public RemoteAccessApp RemoteAccessApp { get; set; }
     public int RunningProcesses { get; set; }
     public string ConnectionUrl { get; set; } = string.Empty;
@@ -54,7 +72,31 @@ public class RemoteAccessAlert : DeviceAlert
     public string? Software { get; set; }       // 'AnyDesk' / 'TeamViewer' / 'VNC' / 'ChromeRD'
 
     // Wire fields from desktop agent — string forms sent verbatim
-    public string? Direction { get; set; }          // 'incoming' / 'outgoing' / 'unknown'
+    public string? Direction { get; set; }  // 'incoming' / 'outgoing' / 'unknown'
+    //public string? Direction { 
+    //    get
+    //    {
+    //         return this.Direction;
+    //    }
+    //    private set
+    //    {
+    //        this.Direction = value;
+
+    //        if (value is not null)
+    //        {
+    //            var direction = "Unknown";
+    //            direction = value switch
+    //            {
+    //                "incoming" => "In",
+    //                "outgoing" => "Out",
+    //                _ => direction
+    //            };
+
+    //            this.RemoteAccessDirection = (RemoteAccessDirection)Enum.Parse(RemoteAccessDirection.GetType(), direction);
+    //        }
+
+    //    }
+    //}          // 'incoming' / 'outgoing' / 'unknown'
     public string? Confidence { get; set; }         // 'low' / 'medium' / 'high'
     public string? RemoteCountry { get; set; }
     public string? RemoteCountryCode { get; set; }

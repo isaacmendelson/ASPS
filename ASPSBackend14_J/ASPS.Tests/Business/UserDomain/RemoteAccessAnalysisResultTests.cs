@@ -19,7 +19,7 @@ public class RemoteAccessAnalysisResultTests
         var status = ConnectionStatus.Open;
         var count = 5;
         var session = 1;
-        var direction = RemoteAccessDirection.In;
+        var direction = RemoteAccessDirection.Incoming;
         var tabs = new BrowserTab[] 
         { 
             new BrowserTab("Test", "Mozilla/5.0", "t1", "http://test.com", DateTime.UtcNow, true) 
