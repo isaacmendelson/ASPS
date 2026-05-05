@@ -414,21 +414,14 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
 
     private void HandleImmediateDangerAdded(ImmediateDangerAdded evt)
     {
+        // Note: UDUserAnalyzer.HandleImmediateDangerAdded raises the
+        // user-facing ImmediateDangerEvent (with protective actions). Do NOT
+        // raise it here too — both UDAnalysis and UDUserAnalyzer subscribe to
+        // ImmediateDangerAdded, and re-raising from both produces duplicate
+        // notifications via NotificationPublisherActor.
         _logger.LogInformation(
             "[UDAnalysis] ImmediateDangerAdded: User={UserKey}, Device={DeviceUid}",
             UDUser.Key.Value, evt.DeviceUid);
-
-        // Build the user-facing ImmediateDangerEvent (with protective actions
-        // resolved per-user) and raise it through this analysis's publisher
-        // so downstream handlers (NotificationPublisherActor, ASView, ...) react.
-        var protectiveActions = _protectiveActionsFactory.CreateProtectiveActions(evt.ImmediateDanger);
-        var immediateDangerEvent = new ImmediateDangerEvent(
-            UDUser.Key,
-            evt.DeviceUid ?? string.Empty,
-            evt.ImmediateDanger,
-            protectiveActions);
-        _domainEventPublisher.Register(immediateDangerEvent);
-        _domainEventPublisher.RaiseAll();
     }
 
     private void HandleImmediateDangerEnded(ImmediateDangerEnded evt)
