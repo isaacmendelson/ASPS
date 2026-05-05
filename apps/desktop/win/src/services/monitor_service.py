@@ -88,8 +88,17 @@ class MonitorService:
             print(f"[MONITOR] Error: {e}")
 
     async def _monitor_remote_access(self):
-        """Monitor for remote access applications using state change tracking"""
-        print("[MONITOR] Remote access monitor started")
+        """Monitor for remote access applications using state change tracking.
+
+        Uses an adaptive poll interval (driven by RemoteAccessMonitor):
+          - 1s   when a debounced close/session-end is ticking (so the alert
+                 fires within ~1s of the underlying state change)
+          - 5s   when any remote-access app is running or has an active session
+          - 30s  when idle (no remote apps detected)
+        """
+        print("[MONITOR] Remote access monitor started (adaptive interval)")
+
+        results: Dict[str, Any] = {}
 
         while self._running:
             try:
@@ -117,7 +126,17 @@ class MonitorService:
                 if DEBUG_MODE:
                     print(f"[MONITOR] Error: {e}")
 
-            await asyncio.sleep(MONITOR_INTERVAL)
+            # Adaptive sleep: shorter when something is happening, longer when idle.
+            # Falls back to MONITOR_INTERVAL if the monitor doesn't expose the helper.
+            try:
+                interval = self.remote_monitor.get_next_poll_interval(last_results=results)
+            except AttributeError:
+                interval = MONITOR_INTERVAL
+
+            if DEBUG_MODE:
+                logger.debug(f"[MONITOR] next poll in {interval:.1f}s")
+
+            await asyncio.sleep(interval)
 
     @staticmethod
     def _apply_browser_tabs_filter(tabs: list) -> list:

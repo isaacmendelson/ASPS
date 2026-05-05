@@ -943,12 +943,19 @@ class DetectionHistory:
 class DebouncedStateTracker:
     """Tracks state changes with debouncing for close events."""
 
-    def __init__(self, close_debounce_seconds: float = 3.0, session_end_debounce_seconds: float = 10.0):
+    def __init__(self, close_debounce_seconds: float = 1.0, session_end_debounce_seconds: float = 4.0):
         self._close_debounce = close_debounce_seconds
         self._session_end_debounce = session_end_debounce_seconds
         self._pending_closes: Dict[str, float] = {}
         self._pending_session_ends: Dict[str, float] = {}
         self._previous_state: Dict[str, RemoteAppStatus] = {}
+
+    @property
+    def has_pending_events(self) -> bool:
+        """True when there are debounced close/session-end events still ticking.
+        Used by the monitor loop to switch to fast-poll mode so the alert
+        fires within ~1s of the underlying state change."""
+        return bool(self._pending_closes) or bool(self._pending_session_ends)
 
     def process_state(self, app_name: str, current_status: RemoteAppStatus) -> Optional[StateChange]:
         """Process current state and return a StateChange if a transition occurred."""
@@ -1073,7 +1080,7 @@ class RemoteAccessMonitor:
     def __init__(self):
         self.system = sys.platform
         self._last_status: Dict[str, RemoteAppStatus] = {}
-        self._state_tracker = DebouncedStateTracker(close_debounce_seconds=3, session_end_debounce_seconds=10)
+        self._state_tracker = DebouncedStateTracker(close_debounce_seconds=1, session_end_debounce_seconds=4)
         self._history = DetectionHistory(max_events=100)
         
         # Enhanced tracking per app
@@ -1804,6 +1811,33 @@ class RemoteAccessMonitor:
             changes.append(event)
 
         return results, changes
+
+    def get_next_poll_interval(
+        self,
+        last_results: Optional[Dict[str, RemoteAppStatus]] = None,
+        idle_seconds: float = 30.0,
+        active_seconds: float = 5.0,
+        pending_seconds: float = 1.0,
+    ) -> float:
+        """
+        Adaptive poll interval based on current state.
+
+        Tiers (fastest wins):
+          - pending: a debounced close/session-end is ticking — poll fast so
+                     the alert fires within ~1s of the underlying change.
+          - active : at least one remote-access app is running OR has an
+                     active session.
+          - idle   : nothing of interest — back off to save CPU.
+        """
+        if self._state_tracker.has_pending_events:
+            return pending_seconds
+
+        if last_results:
+            for s in last_results.values():
+                if s.is_running or s.has_active_session:
+                    return active_seconds
+
+        return idle_seconds
 
     def get_active_sessions(self) -> List[RemoteAppStatus]:
         """Get list of apps with active sessions."""
