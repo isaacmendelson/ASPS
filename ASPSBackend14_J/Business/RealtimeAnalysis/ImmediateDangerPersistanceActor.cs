@@ -107,9 +107,12 @@ public class ImmediateDangerPersistanceActor : IDomainEventHandler
 
     private void PublishImmediateDangerAdded(ImmediateDangerDto dto)
     {
-        var handlers = BuildPerUserHandlers(dto.UserKey, eventName: "ImmediateDangerAdded");
+        // ImmediateDangerAdded is created here (no prior publisher raised it),
+        // so singletons (e.g. ASView) must receive it. Include per-user handlers
+        // (UDAnalysisManager + UDAnalysis) which live outside DI.
+        var handlers = BuildPerUserHandlers(dto.UserKey, includeSingletons: true,
+            eventName: "ImmediateDangerAdded");
 
-        // Per-event publisher because the per-user manager+analysis varies between events
         var publisher = new DomainEventPublisher(handlers);
         var evtAdded = new ImmediateDangerAdded(dto);
         publisher.Register(evtAdded);
@@ -118,8 +121,19 @@ public class ImmediateDangerPersistanceActor : IDomainEventHandler
 
     private void PublishImmediateDangerEnded(ImmediateDangerEnded evt)
     {
+        // ImmediateDangerEnded was already raised on UDUserAnalyzer's publisher,
+        // which delivered it to ALL singleton subscribers (NotificationPublisherActor,
+        // this actor, etc.). Re-delivering would publish a duplicate notification.
+        // Forward ONLY to the per-user handlers (UDAnalysisManager + UDAnalysis)
+        // that don't live in DI and therefore weren't reached by the original raise.
         var userKeyValue = evt.UserKey?.Value ?? string.Empty;
-        var handlers = BuildPerUserHandlers(userKeyValue, eventName: "ImmediateDangerEnded");
+        var handlers = BuildPerUserHandlers(userKeyValue, includeSingletons: false,
+            eventName: "ImmediateDangerEnded");
+
+        if (handlers.Count == 0)
+        {
+            return;
+        }
 
         var publisher = new DomainEventPublisher(handlers);
         publisher.Register(evt);
@@ -127,14 +141,19 @@ public class ImmediateDangerPersistanceActor : IDomainEventHandler
     }
 
     /// <summary>
-    /// Build a handler list for per-user immediate-danger event publishing:
-    /// cached singleton handlers (excluding self) + the user's UDAnalysisManager
-    /// + the user's UDAnalysis. UDAnalysisManager and UDAnalysis are not in DI —
-    /// they live inside UserDomainManagerService._userManagers.
+    /// Build a handler list for per-user immediate-danger event publishing.
+    /// When <paramref name="includeSingletons"/> is true: cached singleton
+    /// handlers (excluding self) + the user's UDAnalysisManager + UDAnalysis.
+    /// When false: only the user's UDAnalysisManager + UDAnalysis (use this
+    /// when the event has already been delivered to singletons elsewhere, to
+    /// avoid duplicate handling).
     /// </summary>
-    private List<IDomainEventHandler> BuildPerUserHandlers(string userKeyValue, string eventName)
+    private List<IDomainEventHandler> BuildPerUserHandlers(
+        string userKeyValue, bool includeSingletons, string eventName)
     {
-        var handlers = new List<IDomainEventHandler>(GetCachedSingletonHandlers());
+        var handlers = includeSingletons
+            ? new List<IDomainEventHandler>(GetCachedSingletonHandlers())
+            : new List<IDomainEventHandler>();
 
         try
         {
@@ -156,7 +175,7 @@ public class ImmediateDangerPersistanceActor : IDomainEventHandler
         catch (Exception ex)
         {
             _logger.LogWarning(ex,
-                "Failed to attach per-user handlers for user {UserKey} on {Event} — event will still flow to singleton handlers",
+                "Failed to attach per-user handlers for user {UserKey} on {Event}",
                 userKeyValue, eventName);
         }
 
