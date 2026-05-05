@@ -37,14 +37,29 @@ class NotificationHandler:
             print("[NOTIFICATION] WARNING: No running event loop when setting extension server")
 
     def handle(self, notification: Dict[str, Any]):
-        """Handle notification from backend"""
+        """Handle notification from backend.
+
+        Dispatches by the top-level `Type` field. Notifications without a
+        recognised type fall through to the legacy URL-analysis path."""
         print("\n" + "!" * 60)
         print("[NOTIFICATION] RECEIVED FROM SERVER!")
         print("!" * 60)
 
+        # Top-level dispatch by message type
+        msg_type = notification.get('Type')
+        if msg_type == 'ImmediateDangerEndedNotification':
+            self._handle_immediate_danger_ended(notification)
+            print("!" * 60 + "\n")
+            return
+        if msg_type == 'ImmediateDangerNotification':
+            self._handle_immediate_danger_started(notification)
+            print("!" * 60 + "\n")
+            return
+
         # Backend wraps data in 'Data' object
         data = notification.get('Data', {})
 
+        print(f"[NOTIFICATION] Type: {msg_type or 'N/A'}")
         print(f"[NOTIFICATION] Alert Type: {data.get('AlertType', 'N/A')}")
         print(f"[NOTIFICATION] Severity: {data.get('Severity', 'N/A')}")
 
@@ -111,7 +126,7 @@ class NotificationHandler:
                         'level': action.get('Level', '')
                     }
                     ext_protective_actions.append(ext_action)
-            
+
             result_message = {
                 'type': 'url_result',
                 'url': analysis['url'],
@@ -126,6 +141,94 @@ class NotificationHandler:
         except Exception as e:
             logger.error(f"Error broadcasting to extension: {e}")
             raise  # Re-raise so caller's retry loop can detect failure
+
+    @staticmethod
+    def _key_value(key_obj):
+        """Backend `Key` is serialized as {"Type": ..., "Value": ...}; reduce to the string."""
+        if isinstance(key_obj, dict):
+            return key_obj.get('Value') or key_obj.get('value') or ''
+        return key_obj if isinstance(key_obj, str) else ''
+
+    def _broadcast_typed(self, payload: Dict[str, Any]):
+        """Broadcast a typed message to the extension. Cross-thread safe.
+        Silently no-ops if no extension/loop is available — these notifications
+        are informational; missing the extension is not a failure."""
+        if not self.extension_server or not self._event_loop:
+            return
+        try:
+            future = asyncio.run_coroutine_threadsafe(
+                self.extension_server.broadcast(payload),
+                self._event_loop,
+            )
+            future.result(timeout=3)
+        except Exception as e:
+            logger.warning(f"Failed to broadcast {payload.get('type')!r} to extension: {e}")
+
+    def _handle_immediate_danger_started(self, notification: Dict[str, Any]):
+        """Handle ImmediateDangerNotification (session of immediate danger opened).
+
+        The backend payload (NotificationPublisher.PublishImmediateDangerEvent)
+        wraps an ImmediateDangerEvent in `Data`. We log the salient fields and
+        forward a typed message to the extension so it can show its UI
+        (e.g., black-screen / blocking modal)."""
+        data = notification.get('Data', {}) or {}
+        immediate_danger = data.get('ImmediateDanger') or {}
+
+        danger_key = self._key_value(immediate_danger.get('Key') or data.get('ImmediateDangerKey'))
+        user_key = self._key_value(data.get('UserKey') or immediate_danger.get('UserKey'))
+        device_uid = (
+            data.get('DeviceUid')
+            or immediate_danger.get('DeviceUid')
+            or notification.get('DeviceUid')
+            or ''
+        )
+        protective_actions = data.get('ProtectiveActions') or []
+        timestamp = notification.get('Timestamp') or data.get('Timestamp')
+
+        print(f"[NOTIFICATION] ImmediateDanger STARTED: key={danger_key}, "
+              f"user={user_key}, device={device_uid}, actions={len(protective_actions)}")
+        logger.info(
+            "ImmediateDanger started: key=%s user=%s device=%s",
+            danger_key, user_key, device_uid,
+        )
+
+        self._broadcast_typed({
+            'type': 'immediate_danger_started',
+            'dangerKey': danger_key,
+            'userKey': user_key,
+            'deviceUid': device_uid,
+            'timestamp': timestamp,
+            'protectiveActions': protective_actions,
+        })
+
+    def _handle_immediate_danger_ended(self, notification: Dict[str, Any]):
+        """Handle ImmediateDangerEndedNotification.
+
+        The backend payload (NotificationPublisher.PublishImmediateDangerEnded)
+        contains ImmediateDangerKey, UserKey, DeviceUid, EndTime. We log the
+        end and forward a typed message to the extension so it can drop any
+        immediate-danger UI (black-screen, blocking modal)."""
+        data = notification.get('Data', {}) or {}
+
+        danger_key = self._key_value(data.get('ImmediateDangerKey'))
+        user_key = self._key_value(data.get('UserKey'))
+        device_uid = data.get('DeviceUid') or notification.get('DeviceUid') or ''
+        end_time = data.get('EndTime') or notification.get('Timestamp')
+
+        print(f"[NOTIFICATION] ImmediateDanger ENDED: key={danger_key}, "
+              f"user={user_key}, device={device_uid}, end={end_time}")
+        logger.info(
+            "ImmediateDanger ended: key=%s user=%s device=%s end=%s",
+            danger_key, user_key, device_uid, end_time,
+        )
+
+        self._broadcast_typed({
+            'type': 'immediate_danger_ended',
+            'dangerKey': danger_key,
+            'userKey': user_key,
+            'deviceUid': device_uid,
+            'endTime': end_time,
+        })
 
     def _extract_analysis(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Extract analysis result from notification data"""
