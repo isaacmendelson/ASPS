@@ -50,6 +50,74 @@ public class NotificationPublisher : IDisposable
     /// Topic format: "device:{deviceUid}" or "user:{userKey}"
     /// </summary>
     /// 
+
+    public virtual void PublishImmediateDangerEnded(string? deviceUid, string? userKeyField, ImmediateDangerEnded? immediateDangerEnded)
+    {
+        if (!_isRunning || immediateDangerEnded == null)
+        {
+            _logger.LogWarning("NotificationPublisher is not running or notification is null, skipping");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(deviceUid) && string.IsNullOrEmpty(userKeyField))
+        {
+            _logger.LogWarning("Both deviceUid and userKeyField are null/empty, skipping notification");
+            return;
+        }
+
+        try
+        {
+
+            // Create notification message
+
+            var immediateDangerEndedNotification = new ImmediateDangerEndedNotification(immediateDangerEnded.ImmediateDangerKey, immediateDangerEnded.UserKey, immediateDangerEnded.DeviceUid, immediateDangerEnded.EndTime, []);
+
+            var notification = new
+            {
+                Type = "ImmediateDangerEndedNotification",
+                Timestamp = DateTime.UtcNow,
+                DeviceUid = deviceUid ?? string.Empty,
+                Data = immediateDangerEndedNotification
+            };
+
+            
+
+            // Use Newtonsoft.Json with TypeNameHandling to properly serialize polymorphic types
+            var jsonSettings = new JsonSerializerSettings
+            {
+                TypeNameHandling = TypeNameHandling.None,
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                NullValueHandling = NullValueHandling.Ignore,
+                Formatting = Formatting.None
+            };
+
+            var json = JsonConvert.SerializeObject(notification, jsonSettings);
+
+            lock (_sendLock)
+            {
+                if (!string.IsNullOrEmpty(deviceUid))
+                {
+                    var deviceTopic = $"device:{deviceUid}";
+                    _publisherSocket.SendMoreFrame(deviceTopic).SendFrame(json);
+                    _logger.LogDebug($"Published notification to topic '{deviceTopic}'", deviceTopic);
+                }
+
+                if (!string.IsNullOrEmpty(userKeyField))
+                {
+                    var userTopic = $"user:{userKeyField}";
+                    _publisherSocket.SendMoreFrame(userTopic).SendFrame(json);
+                    _logger.LogDebug("Published notification to topic '{UserTopic}'", userTopic);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error publishing notification");
+        }
+
+
+    }
+
     public virtual void PublishImmediateDangerEvent(string? deviceUid, string? userKeyField, ImmediateDangerEvent? immediateDangerEvent)
     {
         if (!_isRunning || immediateDangerEvent == null)
@@ -69,7 +137,7 @@ public class NotificationPublisher : IDisposable
             // Create notification message
             var notification = new
             {
-                Type = "AnalysisResult",
+                Type = "ImmediateDangerNotification",
                 Timestamp = DateTime.UtcNow,
                 DeviceUid = deviceUid ?? string.Empty,
                 Data = immediateDangerEvent

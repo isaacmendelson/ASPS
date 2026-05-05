@@ -238,6 +238,10 @@ namespace Business.RealtimeAnalysis.UserDomain
                     "[UDUserAnalyzer] ImmediateDangerEnded acknowledged: Key={Key}, User={UserKey}",
                     keyValue, this.UDUser.Key.Value);
             }
+
+            // Send notifications to devices
+
+
         }
         private async Task HandleAnalysisResultAddedAsync(AnalysisResultAdded analysisEvent)
         {
@@ -585,12 +589,12 @@ namespace Business.RealtimeAnalysis.UserDomain
             //remoteAccessObjectsWithActiveSession = this._remoteAccessStatus.OrderByDescending(i => i.Timestamp).Where(i => i.isRemoteAccessSessionActive);
             if (!remoteAccessObjectsWithActiveSession.Any())
             {
-                //No remoteAccess Objects With ActiveSession found. Close all _immediateDangers by setting EndTime
+                //No remoteAccess objects with active session found. Close all _immediateDangers by setting EndTime
                 
                 foreach (var item in this._immediateDangers.Where(i => i.EndTime == null))
                 {
                     item.EndTime = DateTime.UtcNow;
-                    var evt = new ImmediateDangerEnded(item.Key, this.UDUser.Key);
+                    var evt = new ImmediateDangerEnded(item.Key, this.UDUser.Key, item.DeviceUid, (DateTime)item.EndTime);
                     this._domainEventPublisher.Register(evt);
                 }
             }
@@ -609,7 +613,7 @@ namespace Business.RealtimeAnalysis.UserDomain
                         foreach (var item in this._immediateDangers.Where(i => i.DeviceUid == deviceUid && i.EndTime == null))
                         {
                             item.EndTime = DateTime.UtcNow;
-                            var evt = new ImmediateDangerEnded(item.Key, this.UDUser.Key);
+                            var evt = new ImmediateDangerEnded(item.Key, this.UDUser.Key, item.DeviceUid, (DateTime)item.EndTime);
                             this._domainEventPublisher.Register(evt);
                         }
                     }

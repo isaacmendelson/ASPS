@@ -1,4 +1,5 @@
-﻿using Common.Interfaces;
+﻿using Common.Entities;
+using Common.Interfaces;
 using Common.Models;
 using System;
 using System.Collections.Generic;
@@ -14,7 +15,7 @@ namespace Business.DomainEvents
         protected ImmediateDangerEvent() { }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
-        public ImmediateDangerEvent(Key userKeyField, string deviceUid, object immediateDanger, IProtectiveAction[] protectiveActions)
+        public ImmediateDangerEvent(Key userKeyField, string deviceUid, ImmediateDangerDto immediateDanger, IProtectiveAction[] protectiveActions)
         {
             UserKey = userKeyField;
             DeviceUid = deviceUid;
@@ -25,7 +26,7 @@ namespace Business.DomainEvents
 
         public Key UserKey { get; set; }
         public string DeviceUid { get; set; }
-        public object ImmediateDanger { get; set; }
+        public ImmediateDangerDto ImmediateDanger { get; set; }
         public IProtectiveAction[] ProtectiveActions { get; set; }
     }
 }

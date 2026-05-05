@@ -32,6 +32,9 @@ public class NotificationPublisherActor : IDomainEventHandler
             case ImmediateDangerEvent immediateDangerEvent:
                 this.HandleImmediateDangerEvent(immediateDangerEvent);
                 break;
+            case ImmediateDangerEnded immediateDangerEnded:
+                this.HandleImmediateDangerEnded(immediateDangerEnded);
+                break;
             default:
                 _logger.LogWarning($"[NotificationPublisherActor] Received unhandled event type: {evt.GetType().Name}");
                 break;
@@ -40,7 +43,17 @@ public class NotificationPublisherActor : IDomainEventHandler
 
     public Type[] GetHandleableEvents()
     {
-        return new[] { typeof(AnalysisResultReceived), typeof(ImmediateDangerEvent) };
+        return new[] { typeof(AnalysisResultReceived), typeof(ImmediateDangerEvent), typeof(ImmediateDangerEnded) };
+    }
+
+    private void HandleImmediateDangerEnded(ImmediateDangerEnded immediateDangerEnded)
+    {
+        // Publish notification
+        _notificationPublisher.PublishImmediateDangerEnded(
+            immediateDangerEnded.DeviceUid,
+            immediateDangerEnded.UserKey.Value,
+            immediateDangerEnded
+        );
     }
 
     private void HandleImmediateDangerEvent(ImmediateDangerEvent immediateDangerEvent)
