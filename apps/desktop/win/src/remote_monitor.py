@@ -962,11 +962,29 @@ class DebouncedStateTracker:
         prev = self._previous_state.get(app_name)
         now = datetime.now()
 
-        # App just closed - schedule pending close
+        # While DangerMode is active (we're inside an ImmediateDanger event),
+        # bypass debouncing entirely — every transition is reported immediately.
+        # Imported lazily to avoid pulling services.* into module init.
+        try:
+            from services.danger_mode import danger_mode
+            danger_active = danger_mode.active
+        except Exception:
+            danger_active = False
+
+        # App just closed
         if prev and prev.is_running and not current_status.is_running:
-            self._pending_closes[app_name] = time.time()
             self._pending_session_ends.pop(app_name, None)
             self._previous_state[app_name] = current_status
+            if danger_active:
+                # Bypass debounce — emit the close immediately
+                return StateChange(
+                    app_name=app_name,
+                    change_type='closed',
+                    timestamp=now,
+                    status=prev,
+                )
+            # Normal: schedule a pending close (debounced)
+            self._pending_closes[app_name] = time.time()
             return None
 
         # App running but was in pending_closes - cancel pending close
@@ -998,10 +1016,19 @@ class DebouncedStateTracker:
                     timestamp=now,
                     status=current_status
                 )
-            # Session just ended - schedule pending session end
+            # Session just ended
             if not current_status.has_active_session and prev.has_active_session:
-                self._pending_session_ends[app_name] = time.time()
                 self._previous_state[app_name] = current_status
+                if danger_active:
+                    # Bypass debounce — emit the session_ended immediately
+                    return StateChange(
+                        app_name=app_name,
+                        change_type='session_ended',
+                        timestamp=now,
+                        status=current_status,
+                    )
+                # Normal: schedule pending session end
+                self._pending_session_ends[app_name] = time.time()
                 return None
 
         self._previous_state[app_name] = current_status

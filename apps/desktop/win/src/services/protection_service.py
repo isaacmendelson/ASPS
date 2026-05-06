@@ -160,61 +160,125 @@ class ProtectionService:
         fallback_message: Optional[str] = None,
     ) -> bool:
         """
-        Run only DisplayNotification / UserDisplayNotification entries from a
-        ProtectiveAction list using a custom toast title and buttons. Used by
-        the ImmediateDanger flow (and any future event-driven flow) where the
-        toast styling is dictated by the event, not by the URL-analysis path.
+        Render DisplayNotification / UserDisplayNotification entries from a
+        ProtectiveAction list as a CENTERED, always-on-top alert window.
+
+        Routing by risk_level:
+          - 'none'  → CLEARED alert (green, with Close button). Used for
+                      ImmediateDangerEnded — transforms the active locked
+                      alert in place.
+          - other   → LOCKED alert (red/yellow). No close button. Always
+                      on top. Draggable. Persists until cleared by a
+                      subsequent risk_level='none' call.
+
+        Falls back to the Windows toast (`tray.show_notification`) only when
+        the centered-alert subsystem is unavailable.
 
         Args:
             actions: list of action dicts from notification Data.ProtectiveActions
-            title: toast title (the per-action Message goes into the body)
-            risk_level: 'critical'/'high'/'medium'/'low'/'none' (drives icon+sound)
-            action_buttons: list of (label, launch) tuples for toast buttons
-            fallback_message: shown as a single toast when there are no
-                DisplayNotification actions in `actions`. None = silent.
+            title: alert title (the per-action Message goes into the body)
+            risk_level: 'critical'/'high'/'medium'/'low'/'none'
+            action_buttons: forwarded to the Windows-toast fallback only.
+            fallback_message: shown when there are no DisplayNotification
+                actions in `actions`. None = silent.
 
         Returns:
-            True iff at least one toast was shown.
+            True iff at least one alert was shown.
         """
         display_types = (
             ProtectiveActionType.DisplayNotification,
             ProtectiveActionType.UserDisplayNotification,
         )
-        display_actions = [
-            a for a in (actions or [])
-            if a.get('ActionType') in display_types
-        ]
+
+        # Tolerate ActionType arriving as int OR enum-name string (e.g. "DisplayNotification")
+        def _action_type(a: Dict):
+            v = a.get('ActionType')
+            if isinstance(v, str):
+                # Match by name, case-insensitive
+                for t in ProtectiveActionType:
+                    if t.name.lower() == v.strip().lower():
+                        return t
+                try:
+                    return int(v)
+                except (TypeError, ValueError):
+                    return None
+            return v
+
+        # Tolerate Message arriving with different casings or alternate keys
+        def _message(a: Dict) -> Optional[str]:
+            for k in ('Message', 'message', 'Msg', 'msg', 'Text', 'text'):
+                val = a.get(k)
+                if val:
+                    return val
+            return None
+
+        # Diagnostic: log the raw incoming payload so we can verify what the
+        # backend is sending when something looks wrong.
+        if actions:
+            try:
+                logger.info(
+                    "ProtectiveActions received (%d): %s",
+                    len(actions),
+                    [{'ActionType': a.get('ActionType'),
+                      'Message': _message(a),
+                      'Subject': a.get('Subject'),
+                      'Level': a.get('Level')} for a in actions],
+                )
+            except Exception:
+                pass
+
+        display_actions = [a for a in (actions or []) if _action_type(a) in display_types]
 
         if not display_actions and not fallback_message:
+            logger.info("show_display_notification_actions: nothing to show "
+                        "(no DisplayNotification actions, no fallback)")
             return False
 
-        # Mark tray as having an alert (red icon) for non-cleared toasts
+        # Mark tray as having an alert (red icon) for non-cleared events
         if risk_level in ('critical', 'high', 'medium'):
             self.tray.set_alert(True)
 
+        # Build the list of (title, message) pairs to render
+        pairs = []
         if display_actions:
-            shown = False
             for action in display_actions:
-                message = action.get('Message') or fallback_message
-                if not message:
-                    continue
+                msg = _message(action) or fallback_message
+                if msg:
+                    pairs.append((title, msg))
+        if not pairs and fallback_message:
+            pairs.append((title, fallback_message))
+
+        if not pairs:
+            return False
+
+        # Route by risk_level:
+        #   'none'  → CLEARED alert (green, with Close button) — used by
+        #             ImmediateDangerEnded. Transforms the existing locked
+        #             window in place.
+        #   other   → LOCKED alert (red/yellow, NO close button, always-on-top,
+        #             draggable). Used by ImmediateDanger started/ongoing.
+        shown = False
+        for pair_title, pair_msg in pairs:
+            if risk_level == "none":
+                ok = self.tray.transform_alert_to_cleared(
+                    title=pair_title, message=pair_msg,
+                )
+            else:
+                ok = self.tray.show_locked_alert(
+                    title=pair_title, message=pair_msg,
+                    risk_level=risk_level,
+                )
+
+            if not ok:
+                # Fallback to Windows toast when UI subsystem unavailable
                 self.tray.show_notification(
-                    title=title,
-                    message=message,
+                    title=pair_title,
+                    message=pair_msg,
                     risk_level=risk_level,
                     action_buttons=action_buttons,
                 )
-                shown = True
-            return shown
-
-        # No DisplayNotification actions in payload — show fallback once
-        self.tray.show_notification(
-            title=title,
-            message=fallback_message,
-            risk_level=risk_level,
-            action_buttons=action_buttons,
-        )
-        return True
+            shown = True
+        return shown
 
     def get_cache_action(
         self,

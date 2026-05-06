@@ -9,6 +9,7 @@ from typing import Dict, Any, Optional
 
 from services.scan_service import ScanService
 from services.browser_tabs_policy import policy as browser_tabs_policy, parse_valid_until
+from services.danger_mode import danger_mode
 
 logger = logging.getLogger(__name__)
 
@@ -198,6 +199,10 @@ class NotificationHandler:
             danger_key, user_key, device_uid,
         )
 
+        # Switch the agent into DangerMode: 2s remote-access polling +
+        # debounce bypass so any state change is reported instantly.
+        danger_mode.activate()
+
         # Fire toast(s) for DisplayNotification protective actions.
         # No fallback — Phase 1 only acts when backend explicitly sent a DisplayNotification.
         if self.protection_service:
@@ -261,6 +266,9 @@ class NotificationHandler:
             "ImmediateDanger ended: key=%s user=%s device=%s end=%s",
             danger_key, user_key, device_uid, end_time,
         )
+
+        # Leave DangerMode: revert to adaptive polling + normal debounce.
+        danger_mode.deactivate()
 
         # Always show a "cleared" toast. If the payload includes a
         # DisplayNotification ProtectiveAction, use its Message; otherwise

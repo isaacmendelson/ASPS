@@ -29,6 +29,7 @@ except ImportError:
 from ui.colors import ICON_COLORS
 from tray_popup import TrayPopup
 from notification_manager import NotificationManager
+from ui import centered_toast
 
 logger = logging.getLogger(__name__)
 
@@ -302,6 +303,57 @@ class TrayIcon:
                 self._root.after(0, lambda: self._popup.set_protection_status(
                     "Remote control detected", "red"
                 ))
+
+    def show_centered_alert(
+        self,
+        title: str,
+        message: str,
+        risk_level: str = "critical",
+        auto_dismiss_seconds: int = 15,
+        on_view_details: Optional[Callable] = None,
+    ) -> bool:
+        """Backwards-compatible wrapper. Routes by risk_level: 'none' →
+        cleared (green + Close button); other levels → locked (no close)."""
+        if on_view_details is None:
+            on_view_details = self.toggle_popup
+        return centered_toast.show(
+            root=self._root, title=title, message=message,
+            risk_level=risk_level,
+            auto_dismiss_seconds=auto_dismiss_seconds,
+            on_view_details=on_view_details,
+        )
+
+    def show_locked_alert(
+        self,
+        title: str,
+        message: str,
+        risk_level: str = "critical",
+        on_view_details: Optional[Callable] = None,
+    ) -> bool:
+        """Show or update the singleton LOCKED alert (red, no close button,
+        always-on-top, draggable). Used for active ImmediateDanger."""
+        if on_view_details is None:
+            on_view_details = self.toggle_popup
+        return centered_toast.show_locked(
+            root=self._root, title=title, message=message,
+            risk_level=risk_level, on_view_details=on_view_details,
+        )
+
+    def transform_alert_to_cleared(
+        self,
+        title: str,
+        message: str,
+        on_view_details: Optional[Callable] = None,
+    ) -> bool:
+        """Transform the active locked alert into a CLEARED (green) alert
+        with a Close button. If no alert is active, shows a fresh one."""
+        if on_view_details is None:
+            on_view_details = self.toggle_popup
+        return centered_toast.transform_to_cleared(
+            root=self._root, title=title, message=message,
+            auto_dismiss_seconds=0,  # require explicit Close
+            on_view_details=on_view_details,
+        )
 
     def show_notification(self, title: str, message: str, risk_level: str = "medium", action_buttons=None):
         """

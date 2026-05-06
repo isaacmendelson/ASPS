@@ -9,6 +9,7 @@ from typing import Dict, Any
 
 from config import MONITOR_INTERVAL, DEBUG_MODE, ConnectionStatus, SessionStatus, BROWSER_TABS_URL_FILTER
 from services.browser_tabs_policy import policy as browser_tabs_policy
+from services.danger_mode import danger_mode
 from zmq_client import get_local_ip
 
 logger = logging.getLogger(__name__)
@@ -96,6 +97,10 @@ class MonitorService:
                  fires within ~1s of the underlying state change)
           - 5s   when any remote-access app is running or has an active session
           - 30s  when idle (no remote apps detected)
+
+        Override: while DangerMode is active (between ImmediateDangerNotification
+        and ImmediateDangerEndedNotification), polls every 2s regardless of
+        adaptive recommendation.
         """
         print("[MONITOR] Remote access monitor started (adaptive interval)")
 
@@ -129,13 +134,18 @@ class MonitorService:
 
             # Adaptive sleep: shorter when something is happening, longer when idle.
             # Falls back to MONITOR_INTERVAL if the monitor doesn't expose the helper.
-            try:
-                interval = self.remote_monitor.get_next_poll_interval(last_results=results)
-            except AttributeError:
-                interval = MONITOR_INTERVAL
+            # DangerMode override: fixed fast cadence while ImmediateDanger is active.
+            if danger_mode.active:
+                interval = danger_mode.POLL_INTERVAL_SECONDS
+            else:
+                try:
+                    interval = self.remote_monitor.get_next_poll_interval(last_results=results)
+                except AttributeError:
+                    interval = MONITOR_INTERVAL
 
             if DEBUG_MODE:
-                logger.debug(f"[MONITOR] next poll in {interval:.1f}s")
+                logger.debug(f"[MONITOR] next poll in {interval:.1f}s "
+                             f"{'(danger)' if danger_mode.active else ''}")
 
             await asyncio.sleep(interval)
 
