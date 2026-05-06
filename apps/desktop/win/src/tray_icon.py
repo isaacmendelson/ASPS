@@ -333,7 +333,7 @@ class TrayIcon:
         """Show or update the singleton LOCKED alert (red, no close button,
         always-on-top, draggable). Used for active ImmediateDanger."""
         if on_view_details is None:
-            on_view_details = self.toggle_popup
+            on_view_details = self._open_webapi_dashboard
         return centered_toast.show_locked(
             root=self._root, title=title, message=message,
             risk_level=risk_level, on_view_details=on_view_details,
@@ -348,12 +348,28 @@ class TrayIcon:
         """Transform the active locked alert into a CLEARED (green) alert
         with a Close button. If no alert is active, shows a fresh one."""
         if on_view_details is None:
-            on_view_details = self.toggle_popup
+            on_view_details = self._open_webapi_dashboard
         return centered_toast.transform_to_cleared(
             root=self._root, title=title, message=message,
             auto_dismiss_seconds=0,  # require explicit Close
             on_view_details=on_view_details,
         )
+
+    @staticmethod
+    def _open_webapi_dashboard():
+        """Open the WebApi dashboard in the user's default browser.
+        Used as the default 'View Details' action from the centered alert
+        (avoids the focus-loss conflict between the alert's lift loop and
+        the tray popup's auto-close-on-FocusOut binding)."""
+        import webbrowser
+        try:
+            from config import WEBAPI_URL
+        except Exception:
+            WEBAPI_URL = "http://localhost:5001"
+        try:
+            webbrowser.open(WEBAPI_URL)
+        except Exception as e:
+            logger.error(f"Failed to open WebApi dashboard: {e}")
 
     def show_notification(self, title: str, message: str, risk_level: str = "medium", action_buttons=None):
         """

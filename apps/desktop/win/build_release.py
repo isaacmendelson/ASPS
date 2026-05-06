@@ -4,8 +4,21 @@ Creates:
 1. Standalone EXE (via PyInstaller)
 2. Windows Installer (via Inno Setup - if available)
 3. Release archive (ZIP)
+
+Environment overrides:
+    python build_release.py                   # default config (local testing)
+    python build_release.py --env dev         # uses src/config_dev.py
+    python build_release.py --env production  # uses src/config_production.py
+    ...
+
+When `--env <name>` is given, src/config_<name>.py is copied to
+src/config_override.py before PyInstaller runs. `config.py` imports
+config_override at module load, replacing any default value (BACKEND_HOST,
+WEBAPI_URL, ...) with the env-specific one. After the build the override
+file is removed so the source tree stays clean.
 """
 
+import argparse
 import os
 import sys
 import shutil
@@ -13,6 +26,17 @@ import subprocess
 import zipfile
 from pathlib import Path
 from datetime import datetime
+
+# ─── Argument parsing ───────────────────────────────────────────────────────
+_parser = argparse.ArgumentParser(description="Build AntiScam Desktop Agent")
+_parser.add_argument(
+    "--env", "--environment",
+    dest="env",
+    default=None,
+    help="Apply src/config_<env>.py overrides (e.g. dev, production, aws)",
+)
+_args = _parser.parse_args()
+ENV_NAME = _args.env
 
 # Paths
 ROOT_DIR = Path(__file__).parent.absolute()
@@ -22,18 +46,49 @@ BUILD_DIR = ROOT_DIR / "build"
 RELEASE_DIR = ROOT_DIR / "release"
 INSTALLER_OUTPUT = ROOT_DIR / "installer_output"
 
+OVERRIDE_FILE = SRC_DIR / "config_override.py"
+
 # Version (from src/version.py)
 sys.path.insert(0, str(SRC_DIR))
 from version import __version__
 
+# ─── Environment override file: copy config_<env>.py → config_override.py ───
+def _cleanup_override():
+    """Remove config_override.py from source tree on script exit."""
+    if OVERRIDE_FILE.exists():
+        try:
+            OVERRIDE_FILE.unlink()
+        except Exception:
+            pass
+
+import atexit
+atexit.register(_cleanup_override)
+
+if ENV_NAME:
+    env_source = SRC_DIR / f"config_{ENV_NAME}.py"
+    if not env_source.exists():
+        available = sorted(p.stem.replace("config_", "")
+                           for p in SRC_DIR.glob("config_*.py")
+                           if p.stem != "config_override")
+        print(f"❌ Environment '{ENV_NAME}' not found. Looked for: {env_source}")
+        if available:
+            print(f"   Available: {', '.join(available)}")
+        sys.exit(1)
+    shutil.copy2(env_source, OVERRIDE_FILE)
+    print(f"📋 Environment override: {env_source.name} → config_override.py")
+
+VERSION_TAG = f"{__version__}-{ENV_NAME}" if ENV_NAME else __version__
+
 print("=" * 70)
-print(f"AntiScam Desktop Agent - Release Builder v{__version__}")
+print(f"AntiScam Desktop Agent - Release Builder v{VERSION_TAG}")
 print("=" * 70)
 print()
 
 # Clean previous builds
+# NOTE: RELEASE_DIR is NOT cleaned — we want successive `--env dev` and
+# `--env prod` builds to accumulate ZIPs in the same release directory.
 print("🧹 Cleaning previous builds...")
-for dir_path in [DIST_DIR, BUILD_DIR, RELEASE_DIR, INSTALLER_OUTPUT]:
+for dir_path in [DIST_DIR, BUILD_DIR, INSTALLER_OUTPUT]:
     if dir_path.exists():
         shutil.rmtree(dir_path)
         print(f"   Removed: {dir_path}")
@@ -55,12 +110,19 @@ try:
         '--onefile',
         '--windowed',
         '--clean',
+        '--noconfirm',
         f'--distpath={DIST_DIR}',
         f'--workpath={BUILD_DIR}',
-        # Add hidden imports that PyInstaller might miss
+        # Hidden imports PyInstaller's static analysis might miss
         '--hidden-import=pystray._win32',
         '--hidden-import=PIL._tkinter_finder',
-        # Collect data files
+        '--hidden-import=keyring.backends.Windows',
+        '--hidden-import=keyring.backends.fail',
+        # customtkinter ships theme JSONs and fonts that must be bundled
+        '--collect-all=customtkinter',
+        # Optional toast libraries (only collect if installed)
+        '--collect-submodules=winotify',
+        # Collect data files (icons etc.)
         f'--add-data={SRC_DIR}/data;data',
         # Icon (if exists)
         # '--icon=icon.ico',
@@ -85,7 +147,7 @@ except Exception as e:
 print("📦 Step 2: Creating ZIP archive...")
 print("-" * 70)
 
-zip_filename = f"AntiScamDesktop-v{__version__}-Standalone.zip"
+zip_filename = f"AntiScamDesktop-v{VERSION_TAG}-Standalone.zip"
 zip_path = RELEASE_DIR / zip_filename
 
 try:
@@ -186,3 +248,5 @@ print("  2. Test the installer (if created)")
 print("  3. Upload to release server/GitHub")
 print("  4. Update JIRA task ASPS-16")
 print()
+
+# config_override.py is removed automatically by the atexit hook above.

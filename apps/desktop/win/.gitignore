@@ -21,7 +21,13 @@ ENV/
 # Build artifacts
 dist/
 build/
+release/
+installer_output/
 *.spec
+
+# Generated environment override (created by build_release.py --env <name>,
+# removed at script exit). Should never be committed.
+src/config_override.py
 
 # Logs
 *.log

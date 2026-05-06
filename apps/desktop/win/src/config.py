@@ -293,3 +293,22 @@ CONFIG_FILE = "config.json"
 WEBAPI_URL = "http://localhost:5001"
 #WEBAPI_URL = "https://admin.asps.io"  # AWS Production
 #WEBAPI_URL = "http://100.88.78.75:5001"  # Old local server
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Optional environment-specific overrides.
+#
+# `config_override.py` is generated at build time by:
+#     python build_release.py --env <name>
+# which copies `config_<name>.py` (e.g., config_dev.py, config_production.py)
+# to `config_override.py`. It is gitignored and absent at runtime when not
+# building a tagged environment — so the import must be tolerant.
+#
+# Any name defined in the override (BACKEND_HOST, WEBAPI_URL, ...) replaces
+# the value above because Python applies the assignments in order and `*`-import
+# rebinds the existing module attributes.
+# ─────────────────────────────────────────────────────────────────────────────
+try:
+    from config_override import *  # noqa: F401, F403
+except ImportError:
+    pass

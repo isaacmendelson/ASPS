@@ -193,10 +193,19 @@ class CenteredToast(ctk.CTkToplevel):
         self._countdown.pack(fill="x", side="bottom")
         self._countdown.set(1.0)
 
-        # Drag bindings on the header (whole row, including the icon/title/hint)
-        for w in (self._header, self._icon_label, self._title_label, self._drag_hint, self._stripe):
-            w.bind("<Button-1>", self._start_drag)
-            w.bind("<B1-Motion>", self._do_drag)
+        # Drag bindings — bind on the Toplevel itself so events bubble up from
+        # all customtkinter children (CTkLabel/CTkFrame wrap inner tkinter
+        # widgets that swallow Button-1 events; binding on `self` catches them
+        # via tkinter's event-propagation chain). The drag handler restricts
+        # itself to the header zone (top ~80 px) so clicks on the buttons in
+        # the bottom row don't get hijacked.
+        self._header_zone_h = 80
+        self.bind("<Button-1>", self._start_drag, add="+")
+        self.bind("<B1-Motion>", self._do_drag, add="+")
+        self.bind("<ButtonRelease-1>", self._end_drag, add="+")
+        self._dragging = False
+        self._drag_offset_x = 0
+        self._drag_offset_y = 0
 
         # Center on the primary monitor
         self.update_idletasks()
@@ -264,16 +273,31 @@ class CenteredToast(ctk.CTkToplevel):
 
     # ─── Drag ────────────────────────────────────────────────────────────
     def _start_drag(self, event):
-        self._drag_x = event.x_root - self.winfo_x()
-        self._drag_y = event.y_root - self.winfo_y()
+        # event.y_root is absolute screen Y; subtract window top to get y inside the window.
+        try:
+            y_in_window = event.y_root - self.winfo_rooty()
+        except Exception:
+            y_in_window = 0
+        if y_in_window > self._header_zone_h:
+            # Click is in the bottom area (buttons / countdown) — don't drag.
+            self._dragging = False
+            return
+        self._dragging = True
+        self._drag_offset_x = event.x_root - self.winfo_x()
+        self._drag_offset_y = event.y_root - self.winfo_y()
 
     def _do_drag(self, event):
-        new_x = event.x_root - self._drag_x
-        new_y = event.y_root - self._drag_y
+        if not self._dragging:
+            return
+        new_x = event.x_root - self._drag_offset_x
+        new_y = event.y_root - self._drag_offset_y
         try:
             self.geometry(f"+{new_x}+{new_y}")
         except Exception:
             pass
+
+    def _end_drag(self, event):
+        self._dragging = False
 
     # ─── Cleared-mode auto-dismiss ───────────────────────────────────────
     def _tick(self):
