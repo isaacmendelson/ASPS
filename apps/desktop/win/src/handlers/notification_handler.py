@@ -8,6 +8,7 @@ import logging
 from typing import Dict, Any, Optional
 
 from services.scan_service import ScanService
+from services.browser_tabs_policy import policy as browser_tabs_policy, parse_valid_until
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,10 @@ class NotificationHandler:
             return
         if msg_type == 'ImmediateDangerNotification':
             self._handle_immediate_danger_started(notification)
+            print("!" * 60 + "\n")
+            return
+        if msg_type == 'SetBrowserTabsPolicyNotification':
+            self._handle_set_browser_tabs_policy(notification)
             print("!" * 60 + "\n")
             return
 
@@ -200,6 +205,27 @@ class NotificationHandler:
             'timestamp': timestamp,
             'protectiveActions': protective_actions,
         })
+
+    def _handle_set_browser_tabs_policy(self, notification: Dict[str, Any]):
+        """Handle SetBrowserTabsPolicyNotification — backend-controlled override
+        of BrowserTabs inclusion policy.
+
+        Payload (Data):
+          - Mode: 'always' | 'never' | 'incoming_only'
+          - ValidUntil: ISO-8601 datetime, or null/missing for permanent override
+        """
+        data = notification.get('Data', {}) or {}
+        mode_raw = data.get('Mode') or data.get('mode') or ''
+        mode = str(mode_raw).strip().lower()
+        valid_until_raw = data.get('ValidUntil') or data.get('validUntil')
+        valid_until = parse_valid_until(valid_until_raw)
+
+        accepted = browser_tabs_policy.set_override(mode, valid_until)
+        if accepted:
+            print(f"[NOTIFICATION] BrowserTabs policy override: mode={mode!r}, "
+                  f"valid_until={valid_until.isoformat() if valid_until else 'permanent'}")
+        else:
+            print(f"[NOTIFICATION] BrowserTabs policy override REJECTED: invalid mode {mode_raw!r}")
 
     def _handle_immediate_danger_ended(self, notification: Dict[str, Any]):
         """Handle ImmediateDangerEndedNotification.

@@ -88,13 +88,17 @@ WHITELIST_PORTS = [
 # Monitoring Settings
 MONITOR_INTERVAL = 5  # seconds between checks (fast polling for quick detection)
 
-# When to include BrowserTabs in a RemoteAccessAlert:
-#   "always"              - include with every RemoteAccessAlert (default — good for testing)
-#   "active_session_only" - only when a remote session is actively controlling THIS device (incoming direction)
-#   "never"               - never include (disables the feature)
-REMOTE_ACCESS_BROWSER_TABS_MODE = _os.environ.get(
-    'REMOTE_ACCESS_BROWSER_TABS_MODE', 'always'
-)
+# Default policy for including BrowserTabs in a RemoteAccessAlert.
+# At runtime, the backend can temporarily override this default by sending a
+# `SetBrowserTabsPolicyNotification` (see services.browser_tabs_policy). After
+# the override's ValidUntil expires, the agent reverts to this default.
+#
+# Allowed values:
+#   "incoming_only" (default) - include tabs only when remote-access direction
+#                               is 'incoming' (someone controlling THIS device)
+#   "always"                  - include with every RemoteAccessAlert
+#   "never"                   - never include (disables the feature)
+BROWSER_TABS_DEFAULT_MODE = "incoming_only"
 
 # URLs to exclude from BrowserTabs in RemoteAccessAlerts.
 # Tabs whose URL starts with (or exactly equals) any entry in this list are omitted.

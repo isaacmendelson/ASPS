@@ -7,7 +7,8 @@ import asyncio
 import logging
 from typing import Dict, Any
 
-from config import MONITOR_INTERVAL, DEBUG_MODE, ConnectionStatus, SessionStatus, REMOTE_ACCESS_BROWSER_TABS_MODE, BROWSER_TABS_URL_FILTER
+from config import MONITOR_INTERVAL, DEBUG_MODE, ConnectionStatus, SessionStatus, BROWSER_TABS_URL_FILTER
+from services.browser_tabs_policy import policy as browser_tabs_policy
 from zmq_client import get_local_ip
 
 logger = logging.getLogger(__name__)
@@ -165,27 +166,21 @@ class MonitorService:
 
     async def _get_browser_tabs_for_alert(self, has_active_session: bool, direction: str = "unknown"):
         """
-        Returns a list of open browser tabs (queried from the extension) if the
-        current config mode warrants it, or None to omit the field entirely.
+        Returns a list of open browser tabs (queried from the extension) based
+        on the current BrowserTabsPolicy, or None to omit the field.
 
-        Modes (REMOTE_ACCESS_BROWSER_TABS_MODE):
-          "always"              – include tabs with every RemoteAccessAlert
-          "active_session_only" – only when an INCOMING session is actively controlling this device
-          "never"               – never include tabs
+        Effective policy (runtime, may be overridden by backend notification):
+          'incoming_only' (default) - include only when direction == 'incoming'
+          'always'                  - include with every alert
+          'never'                   - never include
         """
-        mode = REMOTE_ACCESS_BROWSER_TABS_MODE
+        mode = browser_tabs_policy.get_effective_mode()
 
         if mode == 'never':
             return None
-
-        # In active_session_only mode we only care about incoming sessions —
-        # i.e., someone remotely controlling THIS device (not outgoing/unknown).
-        should_query = (
-            mode == 'always' or
-            (mode == 'active_session_only' and has_active_session and direction == 'incoming')
-        )
-        if not should_query:
+        if mode == 'incoming_only' and (direction or '').lower() != 'incoming':
             return None
+        # 'always' and ('incoming_only' AND direction=='incoming') fall through
 
         # No extension connected — wait briefly for extension to connect before giving up
         if not hasattr(self, '_extension_server') or not self._extension_server:
@@ -230,7 +225,10 @@ class MonitorService:
             if DEBUG_MODE:
                 print(f"[MONITOR] Sending app open alert for {app_name}...")
 
-            browser_tabs = await self._get_browser_tabs_for_alert(has_active_session=False)
+            browser_tabs = await self._get_browser_tabs_for_alert(
+                has_active_session=False,
+                direction=status.direction or "unknown",
+            )
             await self._send_remote_access_alert_with_retry(
                 device_uid=self.device_id,
                 remote_app=str(status.app_id),
@@ -273,7 +271,10 @@ class MonitorService:
             if DEBUG_MODE:
                 print(f"[MONITOR] Sending app close alert for {app_name}...")
 
-            browser_tabs = await self._get_browser_tabs_for_alert(has_active_session=False)
+            browser_tabs = await self._get_browser_tabs_for_alert(
+                has_active_session=False,
+                direction=status.direction or "unknown",
+            )
             await self._send_remote_access_alert_with_retry(
                 device_uid=self.device_id,
                 remote_app=str(status.app_id),
@@ -517,7 +518,10 @@ class MonitorService:
             if DEBUG_MODE:
                 print(f"[MONITOR] Sending session end alert for {app_name}...")
 
-            browser_tabs = await self._get_browser_tabs_for_alert(has_active_session=False)
+            browser_tabs = await self._get_browser_tabs_for_alert(
+                has_active_session=False,
+                direction=status.direction or "unknown",
+            )
             await self._send_remote_access_alert_with_retry(
                 device_uid=self.device_id,
                 remote_app=str(status.app_id),

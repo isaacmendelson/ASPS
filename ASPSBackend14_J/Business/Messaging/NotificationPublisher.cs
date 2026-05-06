@@ -236,6 +236,89 @@ public class NotificationPublisher : IDisposable
         }
     }
 
+    /// <summary>
+    /// Publish a BrowserTabs policy override to a device (or all devices of a user).
+    /// The desktop agent applies the override until <paramref name="validUntil"/>
+    /// elapses, then reverts to its built-in default ('incoming_only').
+    /// </summary>
+    /// <param name="deviceUid">Target device UID, or null/empty to publish only on the user topic.</param>
+    /// <param name="userKeyField">Target user key (KeyField.Value), or null/empty to publish only on the device topic.</param>
+    /// <param name="mode">"incoming_only" | "always" | "never". Other values are rejected by the agent.</param>
+    /// <param name="validUntil">UTC expiry. Null = no expiry (override stays until next override or agent restart).</param>
+    public virtual void PublishSetBrowserTabsPolicy(string? deviceUid, string? userKeyField, string mode, DateTime? validUntil)
+    {
+        if (!_isRunning)
+        {
+            _logger.LogWarning("NotificationPublisher is not running, skipping SetBrowserTabsPolicy");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(deviceUid) && string.IsNullOrEmpty(userKeyField))
+        {
+            _logger.LogWarning("Both deviceUid and userKeyField are null/empty, skipping SetBrowserTabsPolicy");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(mode))
+        {
+            _logger.LogWarning("SetBrowserTabsPolicy called with empty mode, skipping");
+            return;
+        }
+
+        try
+        {
+            var payload = new SetBrowserTabsPolicyNotification(
+                deviceUid ?? string.Empty,
+                userKeyField ?? string.Empty,
+                mode,
+                validUntil);
+
+            var notification = new
+            {
+                Type = "SetBrowserTabsPolicyNotification",
+                Timestamp = DateTime.UtcNow,
+                DeviceUid = deviceUid ?? string.Empty,
+                Data = payload
+            };
+
+            var jsonSettings = new JsonSerializerSettings
+            {
+                TypeNameHandling = TypeNameHandling.None,
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                NullValueHandling = NullValueHandling.Ignore,
+                DateTimeZoneHandling = DateTimeZoneHandling.Utc,
+                Formatting = Formatting.None
+            };
+
+            var json = JsonConvert.SerializeObject(notification, jsonSettings);
+
+            lock (_sendLock)
+            {
+                if (!string.IsNullOrEmpty(deviceUid))
+                {
+                    var deviceTopic = $"device:{deviceUid}";
+                    _publisherSocket.SendMoreFrame(deviceTopic).SendFrame(json);
+                    _logger.LogInformation(
+                        "Published SetBrowserTabsPolicy to '{Topic}' mode={Mode} validUntil={ValidUntil}",
+                        deviceTopic, mode, validUntil?.ToString("o") ?? "permanent");
+                }
+
+                if (!string.IsNullOrEmpty(userKeyField))
+                {
+                    var userTopic = $"user:{userKeyField}";
+                    _publisherSocket.SendMoreFrame(userTopic).SendFrame(json);
+                    _logger.LogInformation(
+                        "Published SetBrowserTabsPolicy to '{Topic}' mode={Mode} validUntil={ValidUntil}",
+                        userTopic, mode, validUntil?.ToString("o") ?? "permanent");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error publishing SetBrowserTabsPolicy notification");
+        }
+    }
+
     public virtual void Stop()
     {
         _isRunning = false;
