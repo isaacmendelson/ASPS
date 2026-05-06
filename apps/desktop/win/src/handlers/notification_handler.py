@@ -149,6 +149,39 @@ class NotificationHandler:
             raise  # Re-raise so caller's retry loop can detect failure
 
     @staticmethod
+    def _build_immediate_danger_details(
+        notification: Dict[str, Any], *,
+        danger_key: str, user_key: str, device_uid: str,
+        protective_actions: list, timestamp,
+    ) -> Dict[str, Any]:
+        """Extract a structured details dict from an ImmediateDangerNotification
+        payload — used by the in-app 'View Details' window."""
+        from enums import RemoteAccessApp
+
+        data = notification.get('Data', {}) or {}
+        immediate_danger = data.get('ImmediateDanger') or {}
+
+        # RemoteAccessApp arrives as an int (Newtonsoft serializes enum as number)
+        ra_app_raw = immediate_danger.get('RemoteAccessApp')
+        ra_app_name = None
+        if ra_app_raw is not None:
+            try:
+                ra_app_name = RemoteAccessApp(int(ra_app_raw)).name
+            except (ValueError, TypeError):
+                ra_app_name = str(ra_app_raw)
+
+        return {
+            "danger_key": danger_key,
+            "user_key": user_key,
+            "device_uid": device_uid,
+            "timestamp": timestamp or immediate_danger.get('Timestamp'),
+            "remote_app_name": ra_app_name,
+            "direction": "incoming",  # ImmediateDanger only fires for incoming sessions
+            "sensitive_url": immediate_danger.get('SensitiveUrl'),
+            "protective_actions": protective_actions,
+        }
+
+    @staticmethod
     def _key_value(key_obj):
         """Backend `Key` is serialized as {"Type": ..., "Value": ...}; reduce to the string."""
         if isinstance(key_obj, dict):
@@ -203,6 +236,15 @@ class NotificationHandler:
         # debounce bypass so any state change is reported instantly.
         danger_mode.activate()
 
+        # Build a structured details dict for the in-app DangerDetailsWindow
+        # opened by 'View Details'. Resolves the RemoteAccessApp enum to a
+        # human name and pre-formats the timestamp.
+        details = self._build_immediate_danger_details(
+            notification, danger_key=danger_key, user_key=user_key,
+            device_uid=device_uid, protective_actions=protective_actions,
+            timestamp=timestamp,
+        )
+
         # Fire toast(s) for DisplayNotification protective actions.
         # No fallback — Phase 1 only acts when backend explicitly sent a DisplayNotification.
         if self.protection_service:
@@ -212,6 +254,7 @@ class NotificationHandler:
                 risk_level="critical",
                 action_buttons=[("View Details", ""), ("Dismiss", "")],
                 fallback_message=None,
+                details=details,
             )
 
         self._broadcast_typed({
@@ -270,6 +313,15 @@ class NotificationHandler:
         # Leave DangerMode: revert to adaptive polling + normal debounce.
         danger_mode.deactivate()
 
+        # Build details dict for the cleared-state DangerDetailsWindow.
+        details = {
+            "danger_key": danger_key,
+            "user_key": user_key,
+            "device_uid": device_uid,
+            "timestamp": end_time,
+            "protective_actions": protective_actions,
+        }
+
         # Always show a "cleared" toast. If the payload includes a
         # DisplayNotification ProtectiveAction, use its Message; otherwise
         # fall back to the default "Threat cleared" copy.
@@ -280,6 +332,7 @@ class NotificationHandler:
                 risk_level="none",
                 action_buttons=[("View Details", ""), ("Dismiss", "")],
                 fallback_message="The previous immediate danger has been resolved.",
+                details=details,
             )
 
         self._broadcast_typed({

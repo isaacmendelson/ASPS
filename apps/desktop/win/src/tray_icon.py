@@ -329,14 +329,19 @@ class TrayIcon:
         message: str,
         risk_level: str = "critical",
         on_view_details: Optional[Callable] = None,
+        details: Optional[dict] = None,
     ) -> bool:
         """Show or update the singleton LOCKED alert (red, no close button,
-        always-on-top, draggable). Used for active ImmediateDanger."""
+        always-on-top, draggable). Used for active ImmediateDanger.
+
+        When `details` is given, View Details opens an in-app DangerDetailsWindow
+        with the full ImmediateDanger context (no browser, no admin login)."""
         if on_view_details is None:
             on_view_details = self._open_webapi_dashboard
         return centered_toast.show_locked(
             root=self._root, title=title, message=message,
             risk_level=risk_level, on_view_details=on_view_details,
+            details=details,
         )
 
     def transform_alert_to_cleared(
@@ -344,6 +349,7 @@ class TrayIcon:
         title: str,
         message: str,
         on_view_details: Optional[Callable] = None,
+        details: Optional[dict] = None,
     ) -> bool:
         """Transform the active locked alert into a CLEARED (green) alert
         with a Close button. If no alert is active, shows a fresh one."""
@@ -353,6 +359,7 @@ class TrayIcon:
             root=self._root, title=title, message=message,
             auto_dismiss_seconds=0,  # require explicit Close
             on_view_details=on_view_details,
+            details=details,
         )
 
     @staticmethod

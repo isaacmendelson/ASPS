@@ -70,6 +70,104 @@ def _get_active() -> Optional["CenteredToast"]:
         return _active_alert
 
 
+# ─── Details popup ───────────────────────────────────────────────────────────
+class DangerDetailsWindow(ctk.CTkToplevel):
+    """A separate window that opens when the user clicks 'View Details' on
+    the centered alert. Shows the full ImmediateDanger context: when it
+    started, which remote-access app, the sensitive URL the user has open,
+    and the list of protective actions delivered by the backend."""
+
+    WIDTH = 560
+    HEIGHT = 420
+
+    def __init__(self, master, details: dict):
+        super().__init__(master)
+        self.withdraw()
+
+        self.title("Immediate Danger — Details")
+        self.configure(fg_color=COLORS["bg_dark"])
+        self.attributes("-topmost", True)
+        self.geometry(f"{self.WIDTH}x{self.HEIGHT}")
+        try:
+            self.wm_attributes("-alpha", 0.98)
+        except Exception:
+            pass
+
+        # Header
+        header = ctk.CTkFrame(self, fg_color=COLORS["red"], corner_radius=0)
+        header.pack(fill="x", side="top")
+        ctk.CTkLabel(
+            header,
+            text="Immediate Danger Details",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color=COLORS["text_primary"],
+        ).pack(padx=16, pady=10)
+
+        # Body — scrollable so long URLs / many actions don't get clipped
+        body = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        body.pack(fill="both", expand=True, padx=16, pady=(12, 8))
+
+        def _row(label: str, value):
+            row = ctk.CTkFrame(body, fg_color="transparent")
+            row.pack(fill="x", pady=3)
+            ctk.CTkLabel(row, text=label, width=130, anchor="w",
+                         font=ctk.CTkFont(size=12, weight="bold"),
+                         text_color=COLORS["text_muted"]).pack(side="left")
+            ctk.CTkLabel(row, text=str(value) if value not in (None, "") else "—",
+                         anchor="w", justify="left", wraplength=self.WIDTH - 180,
+                         font=ctk.CTkFont(size=12),
+                         text_color=COLORS["text_primary"]).pack(side="left", fill="x", expand=True)
+
+        _row("Started:",       details.get("timestamp"))
+        _row("Remote App:",    details.get("remote_app_name"))
+        _row("Direction:",     details.get("direction"))
+        _row("Sensitive URL:", details.get("sensitive_url"))
+        _row("Device:",        details.get("device_uid"))
+        _row("User:",          details.get("user_key"))
+        _row("Danger Key:",    details.get("danger_key"))
+
+        actions = details.get("protective_actions") or []
+        if actions:
+            sep = ctk.CTkFrame(body, height=1, fg_color=COLORS["separator"])
+            sep.pack(fill="x", pady=10)
+            ctk.CTkLabel(body, text="Protective actions:",
+                         font=ctk.CTkFont(size=12, weight="bold"),
+                         text_color=COLORS["text_muted"], anchor="w").pack(fill="x")
+            for a in actions:
+                line = a.get("Message") or a.get("ActionTypeName") or "(action)"
+                ctk.CTkLabel(body, text=f"• {line}", anchor="w", justify="left",
+                             wraplength=self.WIDTH - 60,
+                             font=ctk.CTkFont(size=12),
+                             text_color=COLORS["text_primary"]).pack(fill="x", pady=2)
+
+        # Footer
+        footer = ctk.CTkFrame(self, fg_color="transparent")
+        footer.pack(fill="x", padx=16, pady=(0, 12), side="bottom")
+        ctk.CTkButton(
+            footer,
+            text="Close",
+            command=self.destroy,
+            fg_color=COLORS["bg_section"],
+            hover_color=COLORS["separator"],
+            text_color=COLORS["text_primary"],
+            corner_radius=8,
+            height=34,
+        ).pack(side="right")
+
+        # Center over screen
+        self.update_idletasks()
+        sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
+        x = (sw - self.WIDTH) // 2
+        y = (sh - self.HEIGHT) // 3
+        self.geometry(f"{self.WIDTH}x{self.HEIGHT}+{x}+{y}")
+        self.deiconify()
+        try:
+            self.lift()
+            self.focus_force()
+        except Exception:
+            pass
+
+
 # ─── Window class ────────────────────────────────────────────────────────────
 class CenteredToast(ctk.CTkToplevel):
     """Centered, always-on-top, draggable alert window with two modes."""
@@ -88,6 +186,7 @@ class CenteredToast(ctk.CTkToplevel):
         mode: str = "locked",
         auto_dismiss_seconds: int = 0,
         on_view_details: Optional[Callable] = None,
+        details: Optional[dict] = None,
     ):
         super().__init__(master)
 
@@ -99,6 +198,7 @@ class CenteredToast(ctk.CTkToplevel):
         self._tick_after_id: Optional[str] = None
         self._lift_after_id: Optional[str] = None
         self._on_view_details_cb = on_view_details
+        self._details: dict = details or {}
 
         # Window chrome
         self.overrideredirect(True)               # Borderless (also blocks resize/Alt+F4)
@@ -317,6 +417,16 @@ class CenteredToast(ctk.CTkToplevel):
 
     # ─── Buttons ─────────────────────────────────────────────────────────
     def _handle_view_details(self):
+        # If we have a details dict, prefer the in-app DangerDetailsWindow
+        # (no browser, no admin login required, all data is local).
+        if self._details:
+            try:
+                DangerDetailsWindow(self.master, self._details)
+                return
+            except Exception as e:
+                logger.error(f"DangerDetailsWindow failed: {e}")
+                # fall through to optional callback
+
         if self._on_view_details_cb:
             try:
                 self._on_view_details_cb()
@@ -390,6 +500,7 @@ def show_locked(
     message: str,
     risk_level: str = "critical",
     on_view_details: Optional[Callable] = None,
+    details: Optional[dict] = None,
 ) -> bool:
     """Show or update the singleton LOCKED alert.
 
@@ -405,12 +516,15 @@ def show_locked(
             existing.update_content(title=title, message=message,
                                     risk_level=risk_level, mode="locked",
                                     auto_dismiss_seconds=0)
+            if details is not None:
+                existing._details = details
             return
         toast = CenteredToast(
             root, title=title, message=message,
             risk_level=risk_level, mode="locked",
             auto_dismiss_seconds=0,
             on_view_details=on_view_details,
+            details=details,
         )
         toast._risk_level = risk_level  # track current risk for color helpers
         _set_active(toast)
@@ -429,6 +543,7 @@ def transform_to_cleared(
     message: str,
     auto_dismiss_seconds: int = 0,
     on_view_details: Optional[Callable] = None,
+    details: Optional[dict] = None,
 ) -> bool:
     """Transform the active locked alert into the CLEARED (green) state.
 
@@ -444,12 +559,15 @@ def transform_to_cleared(
             existing.update_content(title=title, message=message,
                                     risk_level="none", mode="cleared",
                                     auto_dismiss_seconds=auto_dismiss_seconds)
+            if details is not None:
+                existing._details = details
             return
         toast = CenteredToast(
             root, title=title, message=message,
             risk_level="none", mode="cleared",
             auto_dismiss_seconds=auto_dismiss_seconds,
             on_view_details=on_view_details,
+            details=details,
         )
         toast._risk_level = "none"
         _set_active(toast)

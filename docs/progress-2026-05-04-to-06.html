@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASPS — דו״ח התקדמות 4-6 במאי 2026</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --backend:        #3b82f6;
+    --backend-bg:     #eff6ff;
+    --backend-border: #93c5fd;
+    --agent:          #f59e0b;
+    --agent-bg:       #fffbeb;
+    --agent-border:   #fcd34d;
+    --build:          #10b981;
+    --build-bg:       #ecfdf5;
+    --build-border:   #6ee7b7;
+    --done:           #10b981;
+    --new:            #8b5cf6;
+    --dark:           #1e293b;
+    --muted:          #64748b;
+    --soft:           #f8fafc;
+    --white:          #ffffff;
+    --shadow:         0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-lg:      0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.06);
+  }
+
+  body {
+    font-family: 'Heebo', sans-serif;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    color: var(--dark);
+    min-height: 100vh;
+    padding: 24px;
+    line-height: 1.55;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  header.page-head {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+  }
+
+  header.page-head h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--dark);
+    margin-bottom: 6px;
+  }
+
+  header.page-head .subtitle {
+    color: var(--muted);
+    font-size: 15px;
+  }
+
+  .summary-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .stat {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+    text-align: center;
+  }
+
+  .stat .num {
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+
+  .stat .label {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 4px;
+  }
+
+  .stat.total .num    { color: var(--dark); }
+  .stat.backend .num  { color: var(--backend); }
+  .stat.agent .num    { color: var(--agent); }
+  .stat.build .num    { color: var(--build); }
+
+  section.area {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  section.area h2 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--soft);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  section.area h2 .badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    color: var(--white);
+  }
+
+  section.area.backend h2          { color: var(--backend); }
+  section.area.backend h2 .badge   { background: var(--backend); }
+  section.area.agent h2            { color: var(--agent); }
+  section.area.agent h2 .badge     { background: var(--agent); }
+  section.area.build h2            { color: var(--build); }
+  section.area.build h2 .badge     { background: var(--build); }
+
+  .task {
+    border-left: 4px solid transparent;
+    padding: 14px 18px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    background: var(--soft);
+    transition: background 0.2s;
+  }
+
+  .task:hover {
+    background: #eef2f6;
+  }
+
+  section.area.backend .task { border-right: 4px solid var(--backend); border-left: none; }
+  section.area.agent   .task { border-right: 4px solid var(--agent);   border-left: none; }
+  section.area.build   .task { border-right: 4px solid var(--build);   border-left: none; }
+
+  .task .head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+
+  .task .num {
+    background: var(--white);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .task .title {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--dark);
+  }
+
+  .task .when {
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--white);
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-inline-start: auto;
+  }
+
+  .task .when.today     { background: #dcfce7; color: #166534; }
+  .task .when.yesterday { background: #fef3c7; color: #92400e; }
+
+  .task .body {
+    color: var(--muted);
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+
+  .task .body code {
+    background: #e2e8f0;
+    color: #475569;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 12.5px;
+  }
+
+  .task .body ul {
+    margin-top: 6px;
+    padding-inline-start: 18px;
+  }
+
+  .task .body li {
+    margin-bottom: 3px;
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 24px;
+    padding: 18px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  @media (max-width: 720px) {
+    .summary-row { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media print {
+    body { background: white; padding: 0; }
+    .stat, section.area, header.page-head { box-shadow: none; border: 1px solid #e2e8f0; }
+    .task:hover { background: var(--soft); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header class="page-head">
+  <h1>ASPS — דו״ח התקדמות</h1>
+  <div class="subtitle">4 — 6 במאי 2026 · 23 משימות הושלמו · גירסה 0.0.0.3 → 0.1.0.0</div>
+</header>
+
+<div class="summary-row">
+  <div class="stat total">    <div class="num">23</div><div class="label">משימות סך הכל</div></div>
+  <div class="stat backend">  <div class="num">8</div> <div class="label">Backend (.NET)</div></div>
+  <div class="stat agent">    <div class="num">11</div><div class="label">Agent (Python)</div></div>
+  <div class="stat build">    <div class="num">4</div> <div class="label">Build & Distribution</div></div>
+</div>
+
+<!-- ─────────────  Backend  ───────────── -->
+<section class="area backend">
+  <h2>🟦 Backend (.NET) <span class="badge">8 משימות</span></h2>
+
+  <div class="task">
+    <div class="head"><span class="num">1</span><span class="title">Forensics fields ב-RemoteAccessAlert</span><span class="when yesterday">אתמול</span></div>
+    <div class="body">חמישה שדות ש-Python שלח אבל לא נשמרו: <code>RemoteId</code>, <code>RemoteName</code>, <code>LoggedUser</code>, <code>ConnectionId</code>, <code>Software</code>. עדכון מקצה לקצה — Model → Entity → View → AlertPersistenceActor → EF migration <code>AddRemoteSessionForensicsToRemoteAccessAlert</code> → Admin UI (Index + Details).</div>
+  </div>
+
+  <div class="task">
+    <div class="head"><span class="num">2</span><span class="title">Direction / Confidence / Geo ב-RemoteAccessAlert</span><span class="when today">היום</span></div>
+    <div class="body">ארבעה שדות נוספים: <code>Direction</code>, <code>Confidence</code>, <code>RemoteCountry</code>, <code>RemoteCountryCode</code>. Migration <code>AddDirectionAndGeoToRemoteAccessAlert</code> הופעלה ב-DB.</div>
+  </div>
+
+  <div class="task">
+    <div class="head"><span class="num">3</span><span class="title">UDAnalysisManager / UDAnalysis / UDUserAnalyzer subscribe to ImmediateDanger events</span><span class="when today">היום</span></div>
+    <div class="body">שלוש המחלקות לא קיבלו <code>ImmediateDangerAdded</code> כי לא היו ב-DI. תיקון: <code>BuildPerUserHandlers</code> ב-<code>ImmediateDangerPersistanceActor</code> בונה publisher אינליין שמכיל singletons + per-user manager + analysis. הוסף <code>HandleImmediateDangerEnded</code> בשלוש המחלקות.</div>
+  </div>
+
+  <div class="task">
+    <div class="head"><span class="num">4</span><span class="title">Fix duplicate PublishImmediateDangerEnded notification</span><span class="when today">היום</span></div>
+    <div class="body">ה-event הופץ פעמיים: פעם דרך UDUserAnalyzer publisher, פעם דרך re-publish של PersistanceActor. פתרון: דגל <code>includeSingletons</code> ב-<code>BuildPerUserHandlers</code>. עבור Ended: רק per-user.</div>
+  </div>
+
+  <div class="task">
+    <div class="head"><span class="num">5</span><span class="title">Fix duplicate PublishImmediateDangerEvent notification</span><span class="when today">היום</span></div>
+    <div class="body">שני מקומות יצרו <code>ImmediateDangerEvent</code> מ-<code>ImmediateDangerAdded</code>: UDUserAnalyzer (קיים) ו-UDAnalysis (חדש). הוסר ה-raise מ-UDAnalysis — UDUserAnalyzer נשאר המקור הקנוני.</div>
+  </div>
+
+  <div class="task">
+    <div class="head"><span class="num">6</span><span class="title">SetBrowserTabsPolicyNotification + Publisher method</span><span class="when today">היום</span></div>
+    <div class="body">מחלקה חדשה <code>Business/Messaging/SetBrowserTabsPolicyNotification.cs</code> (Mode + ValidUntil) + <code>NotificationPublisher.PublishSetBrowserTabsPolicy(deviceUid, userKey, mode, validUntil)</code>. מאפשר ל-backend לעקוף ב-runtime את policy ברירת המחדל ב-agent.</div>
+  </div>
+
+  <div class="task">
+    <div class="head"><span class="num">7</span><span class="title">ImmediateDangerEnded lifecycle handling</span><span class="when yesterday">אתמול</span></div>
+    <div class="body">PersistanceActor שומר <code>EndTime</code> כש-RemoteAccess נסגר. שדה <code>EndTime</code> ב-<code>ImmediateDanger</code> entity מתעדכן אוטומטית.</div>
+  </div>
+
+  <div class="task">
+    <div class="head"><span class="num">8</span><span class="title">SCRUM-845 — RemoteAccessAlert direction='In' fix</span><span class="when yesterday">אתמול</span></div>
+    <div class="body">Agent שלח <code>Direction='Unknown'</code> במקום <code>'In'</code> עבור AnyDesk incoming. תוקן בצד agent (ראה משימות 9-11).</div>
+  </div>
+</section>
+
+<!-- ─────────────  Agent  ───────────── -->
+<section class="area agent">
+  <h2>🟧 Desktop-Win Agent (Python) <span class="badge">11 משימות</span></h2>
+
+  <div class="task">
+    <div class="head"><span class="num">9</span><span class="title">Enhanced AnyDesk monitoring — 4 sub-tasks</span><span class="when yesterday">אתמול</span></div>
+    <div class="body">אימוץ לוגיקה משופרת מ-<code>anydesk_monitor (9).py</code>:
+      <ul>
+        <li><strong>A.</strong> Regex enrichment — TeamViewer (PARTICIPANT, PARTNER_ID, PEER_IP, FILE_TRANSFER, CONN_INCOMING), VNC (DISCONNECT_REASON, X11_ACCEPT, WIN_ACCEPT), Chrome RD.</li>
+        <li><strong>B.</strong> Forensics fields ב-<code>SessionState</code>/<code>RemoteAppStatus</code>: <code>remote_id</code>, <code>remote_name</code>, <code>logged_user</code>, <code>connection_id</code>, <code>software</code>.</li>
+        <li><strong>C.</strong> מחלקת <code>HistoryReader</code> — read_anydesk_connection_trace, read_teamviewer_connections, read_anydesk_svc_trace, read_all_recent.</li>
+        <li><strong>D.</strong> מחלקת <code>AnyDeskCLI</code> — get_id, get_status, disconnect, is_available.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="task">
+    <div class="head"><span class="num">10</span><span class="title">SCRUM-840 — Detection for RemotePC / Splashtop / RDP</span><span class="when yesterday">אתמול</span></div>
+    <div class="body">3 entries חדשים ב-<code>REMOTE_APPS</code>. <code>_get_system_listen_port_connections</code> ל-server-side detection (RDP). <code>_infer_direction_from_processes</code> ל-direction inference מ-topology כש-log parsing לא קיים.</div>
+  </div>
+
+  <div class="task">
+    <div class="head"><span class="num">11</span><span class="title">AnyDesk direction=unknown fix</span><span class="when today">היום</span></div>
+    <div class="body">שלושה תיקונים:
+      <ul>
+        <li><strong>Unified backfill</strong> — אוסף events מ-ad.trace + ad_svc.trace + connection_trace.txt, ממיין לפי timestamp, מריץ דרך ה-tracker לפני start של tail threads.</li>
+        <li><strong>Guard לפני clobber</strong> — <code>_session_stopped</code> לא מבטל <code>current</code> אם stop event מקדים את <code>start_time</code>.</li>
+        <li><strong>Diagnostic log</strong> — כש-direction נשאר UNKNOWN למרות active session.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="task">
+    <div class="head"><span class="num">12</span><span class="title">Faster RemoteAccessAlert delivery on app/session close</span><span class="when today">היום</span></div>
+    <div class="body">close_debounce: 3s → 1s. session_end_debounce: 10s → 4s. <strong>Adaptive interval</strong>: 1s pending / 5s active / 30s idle. AnyDesk close → alert תוך ≤ 2s (במקום 8-13s).</div>
+  </div>
+
+  <div class="task">
+    <div class="head"><span class="num">13</span><span class="title">ImmediateDanger notification handlers</span><span class="when today">היום</span></div>
+    <div class="body">ב-<code>NotificationHandler.handle</code> נוסף Type-based dispatch. handlers ייעודיים <code>_handle_immediate_danger_started</code> / <code>_handle_immediate_danger_ended</code> / <code>_handle_set_browser_tabs_policy</code>. broadcast ל-extension כ-typed message.</div>
+  </div>
+
+  <div class="task">
+    <div class="head"><span class="num">14</span><span class="title">CenteredToast — חלון התראה מותאם</span><span class="when today">היום</span></div>
+    <div class="body">מודול חדש <code>ui/centered_toast.py</code>:
+      <ul>
+        <li>borderless, always-on-top (lift loop כל 2s), ממורכז.</li>
+        <li><strong>Drag-and-drop</strong> (bind על Toplevel + הגבלה ל-header zone).</li>
+        <li>מצב <strong>locked</strong> (אין close, persistent — ל-active danger) ו-<strong>cleared</strong> (ירוק, יש Close — ל-cleared).</li>
+        <li>Singleton — <code>transform_to_cleared</code> משנה את הקיים בלי ליצור חדש.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="task">
+    <div class="head"><span class="num">15</span><span class="title">DangerDetailsWindow — View Details בתוך ה-agent</span><span class="when today">היום</span></div>
+    <div class="body">View Details היה פותח admin URL — תוקן. מחלקה חדשה <code>DangerDetailsWindow</code> מציגה: Started, Remote App, Direction, Sensitive URL, Device, User, Danger Key, Protective Actions. כל הנתונים מ-payload — אין round-trip ל-backend.</div>
+  </div>
+
+  <div class="task">
+    <div class="head"><span class="num">16</span><span class="title">DangerMode — fast polling + no debounce</span><span class="when today">היום</span></div>
+    <div class="body">singleton <code>services/danger_mode.py</code>. <code>ImmediateDangerNotification</code> → <code>activate()</code> (poll כל 2s + bypass debounce). <code>ImmediateDangerEndedNotification</code> → <code>deactivate()</code>. AnyDesk close בזמן danger → alert תוך ≤ 2s.</div>
+  </div>
+
+  <div class="task">
+    <div class="head"><span class="num">17</span><span class="title">BrowserTabsPolicy runtime override</span><span class="when today">היום</span></div>
+    <div class="body">מודול חדש <code>services/browser_tabs_policy.py</code>. ברירת מחדל <code>incoming_only</code>. ה-backend יכול לשלוח <code>SetBrowserTabsPolicyNotification</code> עם <code>Mode</code> + <code>ValidUntil</code>. אחרי <code>ValidUntil</code> חוזר ל-default.</div>
+  </div>
+
+  <div class="task">
+    <div class="head"><span class="num">18</span><span class="title">BrowserTabs only when direction=Incoming</span><span class="when today">היום</span></div>
+    <div class="body"><code>_get_browser_tabs_for_alert</code> מחזירה <code>None</code> אם <code>direction != 'incoming'</code>. כל 4 ה-callers (open / close / new_session / session_end) מעבירים <code>direction</code>.</div>
+  </div>
+
+  <div class="task">
+    <div class="head"><span class="num">19</span><span class="title">DisplayNotification ProtectiveAction → centered alert</span><span class="when today">היום</span></div>
+    <div class="body">סינון <code>DisplayNotification</code>/<code>UserDisplayNotification</code> מ-actions ב-payload. העברה ל-<code>ProtectionService.show_display_notification_actions</code> שמרים centered alert. תמיכה ב-fallback message (default green "Threat cleared" כש-Ended בלי action).</div>
+  </div>
+</section>
+
+<!-- ─────────────  Build & Distribution  ───────────── -->
+<section class="area build">
+  <h2>🟩 Build & Distribution <span class="badge">4 משימות</span></h2>
+
+  <div class="task">
+    <div class="head"><span class="num">20</span><span class="title">Compile agent to single EXE</span><span class="when today">היום</span></div>
+    <div class="body">PyInstaller <code>--onefile --windowed</code>. תיקון <code>__version__</code>/<code>VERSION</code> mismatch. הוספת <code>--collect-all=customtkinter</code>, <code>--hidden-import=keyring.backends.Windows</code>. EXE 65MB, רץ ללא תלויות חיצוניות.</div>
+  </div>
+
+  <div class="task">
+    <div class="head"><span class="num">21</span><span class="title">Environment-specific config overrides</span><span class="when today">היום</span></div>
+    <div class="body">
+      <ul>
+        <li><code>config.py</code> טוען <code>config_override.py</code> אם קיים (<code>try / except ImportError</code>).</li>
+        <li>קבצים חדשים <code>config_dev.py</code> (<code>127.0.0.1</code>) ו-<code>config_prod.py</code> (<code>app.asps.io</code>).</li>
+        <li><code>build_release.py --env &lt;name&gt;</code> מעתיק → builds → <code>atexit</code> cleanup.</li>
+        <li>ZIP filename מקבל suffix של ה-env: <code>AntiScamDesktop-v0.1.0.0-prod-Standalone.zip</code>.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="task">
+    <div class="head"><span class="num">22</span><span class="title">Version bump 0.0.0.3 → 0.1.0.0</span><span class="when today">היום</span></div>
+    <div class="body">Minor bump — פיצ'רים חדשים: ImmediateDanger UI, DangerMode, BrowserTabsPolicy, RDP/RemotePC/Splashtop support, EXE compilation.</div>
+  </div>
+
+  <div class="task">
+    <div class="head"><span class="num">23</span><span class="title">Post-EXE bug fixes — drag + View Details</span><span class="when today">היום</span></div>
+    <div class="body">
+      <ul>
+        <li><strong>Drag לא עבד ב-EXE</strong> — customtkinter עוטף tkinter פנימיים שלא מפיצים <code>&lt;Button-1&gt;</code>. תיקון: bind על Toplevel + הגבלת y zone.</li>
+        <li><strong>View Details נסגר מיד</strong> — TrayPopup binds <code>&lt;FocusOut&gt;</code> שמתנגש עם lift loop. תיקון סופי: <code>DangerDetailsWindow</code> מקומי במקום tray popup.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  הופק אוטומטית · כל המשימות הושלמו ועברו smoke tests · gen 2026-05-06
+</footer>
+
+</div>
+</body>
+</html>

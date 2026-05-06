@@ -158,6 +158,7 @@ class ProtectionService:
         risk_level: str = "critical",
         action_buttons: Optional[list] = None,
         fallback_message: Optional[str] = None,
+        details: Optional[Dict] = None,
     ) -> bool:
         """
         Render DisplayNotification / UserDisplayNotification entries from a
@@ -257,16 +258,20 @@ class ProtectionService:
         #             window in place.
         #   other   → LOCKED alert (red/yellow, NO close button, always-on-top,
         #             draggable). Used by ImmediateDanger started/ongoing.
+        # `details` (full ImmediateDanger context) is forwarded so the
+        # 'View Details' button can open an in-app DangerDetailsWindow.
         shown = False
         for pair_title, pair_msg in pairs:
             if risk_level == "none":
                 ok = self.tray.transform_alert_to_cleared(
                     title=pair_title, message=pair_msg,
+                    details=details,
                 )
             else:
                 ok = self.tray.show_locked_alert(
                     title=pair_title, message=pair_msg,
                     risk_level=risk_level,
+                    details=details,
                 )
 
             if not ok:
