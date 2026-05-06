@@ -303,21 +303,23 @@ class TrayIcon:
                     "Remote control detected", "red"
                 ))
 
-    def show_notification(self, title: str, message: str, risk_level: str = "medium"):
+    def show_notification(self, title: str, message: str, risk_level: str = "medium", action_buttons=None):
         """
         Show a Windows Toast notification.
-        
+
         Args:
             title: Notification title
             message: Notification message
             risk_level: Risk level for styling ("none", "low", "medium", "high", "critical")
+            action_buttons: optional list of (label, launch) tuples for toast buttons
         """
         try:
             # Use Windows Toast Notification Manager
             self.notification_manager.show_risk_notification(
                 risk_level=risk_level,
                 title=title,
-                message=message
+                message=message,
+                action_buttons=action_buttons,
             )
         except Exception as e:
             logger.error(f"Error showing toast notification: {e}")

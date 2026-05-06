@@ -4,7 +4,7 @@ Handles protective actions from backend
 """
 
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from enums import (
     ProtectiveActionType, ProtectiveActionSubject,
@@ -150,6 +150,71 @@ class ProtectionService:
 
         elif action_type == ProtectiveActionType.DisplayNotification:
             print("[PROTECTION] Logging alert for protector dashboard")
+
+    def show_display_notification_actions(
+        self,
+        actions: List[Dict],
+        title: str,
+        risk_level: str = "critical",
+        action_buttons: Optional[list] = None,
+        fallback_message: Optional[str] = None,
+    ) -> bool:
+        """
+        Run only DisplayNotification / UserDisplayNotification entries from a
+        ProtectiveAction list using a custom toast title and buttons. Used by
+        the ImmediateDanger flow (and any future event-driven flow) where the
+        toast styling is dictated by the event, not by the URL-analysis path.
+
+        Args:
+            actions: list of action dicts from notification Data.ProtectiveActions
+            title: toast title (the per-action Message goes into the body)
+            risk_level: 'critical'/'high'/'medium'/'low'/'none' (drives icon+sound)
+            action_buttons: list of (label, launch) tuples for toast buttons
+            fallback_message: shown as a single toast when there are no
+                DisplayNotification actions in `actions`. None = silent.
+
+        Returns:
+            True iff at least one toast was shown.
+        """
+        display_types = (
+            ProtectiveActionType.DisplayNotification,
+            ProtectiveActionType.UserDisplayNotification,
+        )
+        display_actions = [
+            a for a in (actions or [])
+            if a.get('ActionType') in display_types
+        ]
+
+        if not display_actions and not fallback_message:
+            return False
+
+        # Mark tray as having an alert (red icon) for non-cleared toasts
+        if risk_level in ('critical', 'high', 'medium'):
+            self.tray.set_alert(True)
+
+        if display_actions:
+            shown = False
+            for action in display_actions:
+                message = action.get('Message') or fallback_message
+                if not message:
+                    continue
+                self.tray.show_notification(
+                    title=title,
+                    message=message,
+                    risk_level=risk_level,
+                    action_buttons=action_buttons,
+                )
+                shown = True
+            return shown
+
+        # No DisplayNotification actions in payload — show fallback once
+        self.tray.show_notification(
+            title=title,
+            message=fallback_message,
+            risk_level=risk_level,
+            action_buttons=action_buttons,
+        )
+        return True
 
     def get_cache_action(
         self,

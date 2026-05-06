@@ -173,9 +173,10 @@ class NotificationHandler:
         """Handle ImmediateDangerNotification (session of immediate danger opened).
 
         The backend payload (NotificationPublisher.PublishImmediateDangerEvent)
-        wraps an ImmediateDangerEvent in `Data`. We log the salient fields and
-        forward a typed message to the extension so it can show its UI
-        (e.g., black-screen / blocking modal)."""
+        wraps an ImmediateDangerEvent in `Data`. We log the salient fields,
+        forward a typed message to the extension, and fire a critical Windows
+        toast for any ProtectiveAction of type DisplayNotification /
+        UserDisplayNotification (Phase 1: only DisplayNotification types)."""
         data = notification.get('Data', {}) or {}
         immediate_danger = data.get('ImmediateDanger') or {}
 
@@ -196,6 +197,17 @@ class NotificationHandler:
             "ImmediateDanger started: key=%s user=%s device=%s",
             danger_key, user_key, device_uid,
         )
+
+        # Fire toast(s) for DisplayNotification protective actions.
+        # No fallback — Phase 1 only acts when backend explicitly sent a DisplayNotification.
+        if self.protection_service:
+            self.protection_service.show_display_notification_actions(
+                actions=protective_actions,
+                title="Immediate Danger",
+                risk_level="critical",
+                action_buttons=[("View Details", ""), ("Dismiss", "")],
+                fallback_message=None,
+            )
 
         self._broadcast_typed({
             'type': 'immediate_danger_started',
@@ -232,14 +244,16 @@ class NotificationHandler:
 
         The backend payload (NotificationPublisher.PublishImmediateDangerEnded)
         contains ImmediateDangerKey, UserKey, DeviceUid, EndTime. We log the
-        end and forward a typed message to the extension so it can drop any
-        immediate-danger UI (black-screen, blocking modal)."""
+        end, fire a green "Threat cleared" toast (or use a DisplayNotification
+        ProtectiveAction's message if one is included), and forward a typed
+        message to the extension so it can drop any immediate-danger UI."""
         data = notification.get('Data', {}) or {}
 
         danger_key = self._key_value(data.get('ImmediateDangerKey'))
         user_key = self._key_value(data.get('UserKey'))
         device_uid = data.get('DeviceUid') or notification.get('DeviceUid') or ''
         end_time = data.get('EndTime') or notification.get('Timestamp')
+        protective_actions = data.get('ProtectiveActions') or []
 
         print(f"[NOTIFICATION] ImmediateDanger ENDED: key={danger_key}, "
               f"user={user_key}, device={device_uid}, end={end_time}")
@@ -247,6 +261,18 @@ class NotificationHandler:
             "ImmediateDanger ended: key=%s user=%s device=%s end=%s",
             danger_key, user_key, device_uid, end_time,
         )
+
+        # Always show a "cleared" toast. If the payload includes a
+        # DisplayNotification ProtectiveAction, use its Message; otherwise
+        # fall back to the default "Threat cleared" copy.
+        if self.protection_service:
+            self.protection_service.show_display_notification_actions(
+                actions=protective_actions,
+                title="Threat Cleared",
+                risk_level="none",
+                action_buttons=[("View Details", ""), ("Dismiss", "")],
+                fallback_message="The previous immediate danger has been resolved.",
+            )
 
         self._broadcast_typed({
             'type': 'immediate_danger_ended',

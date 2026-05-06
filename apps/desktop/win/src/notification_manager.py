@@ -88,44 +88,56 @@ class NotificationManager:
         title: str,
         message: str,
         url: Optional[str] = None,
-        duration: int = 10
+        duration: int = 10,
+        action_buttons: Optional[list] = None,
     ):
         """
         Show a risk-based notification.
-        
+
         Args:
             risk_level: "none", "low", "medium", "high", "critical"
             title: Notification title
             message: Notification message
             url: URL to show in details (optional)
             duration: Duration in seconds (winotify only)
+            action_buttons: optional list of (label, launch) tuples. When
+                provided, overrides the default "View Details for high/critical".
+                Each tuple becomes a clickable button on the toast. `launch` may
+                be empty string to make the button a no-op (just dismisses).
         """
         if not TOAST_AVAILABLE:
             logger.warning(f"Toast not available - would show: {title}: {message}")
             return
-            
+
         # Normalize risk level
         risk_level = risk_level.lower() if risk_level else "medium"
         if risk_level not in self.RISK_ICONS:
             risk_level = "medium"
-        
+
         # Add risk icon to title
         icon = self.RISK_ICONS[risk_level]
         full_title = f"{icon} {title}"
-        
+
         # Add URL to message if provided
         if url:
             message = f"{message}\n\nURL: {url}"
-        
+
         try:
             if TOAST_BACKEND == "winotify":
-                self._show_winotify(full_title, message, risk_level, duration)
+                self._show_winotify(full_title, message, risk_level, duration, action_buttons)
             elif TOAST_BACKEND == "win10toast":
                 self._show_win10toast(full_title, message, duration)
         except Exception as e:
             logger.error(f"Failed to show notification: {e}")
-    
-    def _show_winotify(self, title: str, message: str, risk_level: str, duration: int):
+
+    def _show_winotify(
+        self,
+        title: str,
+        message: str,
+        risk_level: str,
+        duration: int,
+        action_buttons: Optional[list] = None,
+    ):
         """Show notification using winotify (preferred)."""
         toast = Notification(
             app_id=self.app_id,
@@ -133,21 +145,25 @@ class NotificationManager:
             msg=message,
             duration=duration
         )
-        
+
         # Set icon based on risk level
         icon_path = self._get_risk_icon_path(risk_level)
         if icon_path and os.path.exists(icon_path):
             toast.set_icon(icon_path)
-        
+
         # Set audio based on risk level
         if self.RISK_AUDIO and audio:
             audio_type = self.RISK_AUDIO.get(risk_level, audio.Default)
             toast.set_audio(audio_type, loop=False)
-        
-        # Add action button for high/critical risk
-        if risk_level in ["high", "critical"]:
+
+        # Action buttons: explicit list takes precedence; otherwise default
+        # behavior is "View Details" for high/critical only.
+        if action_buttons is not None:
+            for label, launch in action_buttons:
+                toast.add_actions(label=str(label), launch=str(launch or ""))
+        elif risk_level in ["high", "critical"]:
             toast.add_actions(label="View Details", launch="")
-        
+
         toast.show()
         logger.info(f"Showed winotify notification: {title}")
     
