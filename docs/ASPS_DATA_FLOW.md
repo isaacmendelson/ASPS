@@ -506,18 +506,48 @@ Triggered for extended time on risky URLs.
 ```
 
 ## 4.3 RemoteAccessAlert
-Triggered when remote access app is detected.
+
+Triggered when a remote-access app changes state (opened / closed / session_started / session_ended). Sampling cadence is adaptive: 5 s when an app is running, 30 s when idle, **2 s while the agent is in DangerMode** (between `ImmediateDangerNotification` and `ImmediateDangerEndedNotification`). Close / session-end events are debounced (1 s / 4 s) — the debounce is bypassed entirely while DangerMode is active.
+
+Supported apps: AnyDesk, TeamViewer, ChromeRemoteDesktop, RustDesk (mapped to VNC id), VNC, RemotePC, Splashtop, RDP, QuickAssist, ConnectWise, LogMeIn.
 
 ```json
 {
   "AlertType": "RemoteAccessAlert",
-  "RemoteAccessApp": "AnyDesk",
-  "ConnectionStatus": "Open",
-  "SessionStatus": "Open",
-  "RemoteAccessDirection": "In",
-  "BrowserTabs": [...]
+  "RemoteAccessApp": 1,           // enum value (AnyDesk=1, TeamViewer=2, …, RDP=8, QuickAssist=9, ConnectWise=10)
+  "Software": "AnyDesk",
+  "RunningProcesses": 3,
+  "ConnectionUrl": "203.0.113.42",
+  "ConnectionStatus": 1,          // Open=1, Closed=2
+  "ConnectionsCount": 2,
+  "SessionStatus": 1,             // Open=1, Closed=2
+
+  // Direction (string on the wire — backend stores into Direction column)
+  "Direction": "incoming",        // 'incoming' | 'outgoing' | 'unknown'
+  "Confidence": "high",           // 'low' | 'medium' | 'high'
+  "RemoteCountry": "Nigeria",
+  "RemoteCountryCode": "NG",
+
+  // Session forensics (populated when log/trace provides)
+  "RemoteId":      "1458399339",  // AnyDesk numeric ID / TV Partner ID
+  "RemoteName":    "DESKTOP-X1",
+  "LoggedUser":    "isaac",        // local user logged on at session time
+  "ConnectionId":  "abc-1234-…",   // GUID from TV Connections_incoming.txt
+  "RemoteOS":      "Windows 11",
+  "RemoteVersion": "8.0.13",
+  "ConnectionType":"direct",       // 'direct' | 'relay'
+  "FileTransferActive": false,
+  "FileTransfers":     0,
+
+  // Browser tabs — attached only when Direction == 'incoming' (default policy);
+  // backend can override at runtime via SetBrowserTabsPolicyNotification.
+  "BrowserTabs": [
+    { "url": "https://bank.example.com/login", "title": "Sign in" }
+  ]
 }
 ```
+
+The full payload is persisted to the `DeviceAlerts` table as a `RemoteAccessAlert` discriminator row — see [ARCHITECTURE.md §5.6](../ARCHITECTURE.md#56-database-schema-mysql) for the column list.
 
 ---
 
@@ -544,17 +574,83 @@ Source: `Common/Enums/Enumerations.cs → ProtectiveActionType`
 
 # 6. Immediate Danger Scenarios
 
+## 6.1 Triggers
+
 The system detects "immediate danger" when:
 
-1. **Remote Access + Sensitive Site**: User has an active remote access session (AnyDesk, TeamViewer) AND is browsing a banking/crypto site
-2. **Extended Risky Browsing**: User spends >5 minutes on a risky URL while remote access is active
-3. **Scam-in-Progress**: Known scam pattern detected (e.g., tech support scam flow)
+1. **Remote Access + Sensitive Site** *(implemented)* — incoming remote-access session + open browser tab on a sensitive (banking / crypto) domain.
+2. **Extended Risky Browsing** *(planned)* — user spends >5 min on a risky URL while remote access is active.
+3. **Scam-in-Progress** *(planned)* — known scam pattern detected (e.g., tech-support scam flow).
 
-When immediate danger is detected:
-- Log warning
-- Raise `ImmediateDangerAlert`
-- Notify user urgently
-- Potentially block or force-close tabs
+## 6.2 End-to-end flow (RemoteAccess + sensitive site)
+
+```
+Agent: RemoteAccessAlert (Direction='incoming') + RemoteAccessAnalysisResult.SensitiveUrl
+   │
+Backend: UDUserAnalyzer.DetectImmediateDanger()
+   │  (matches active session against open sensitive tabs in UDUser.BrowserTabs)
+   ├──► raise ImmediateDangerDetected on UDUserAnalyzer publisher
+   │       │
+   │       └──► ImmediateDangerPersistanceActor (singleton)
+   │              ├── INSERT into ImmediateDangers table
+   │              └── BuildPerUserHandlers(includeSingletons=true).Raise(ImmediateDangerAdded)
+   │                     ├── ASView.HandleImmediateDangerAdded   → cache update
+   │                     ├── UDAnalysisManager.Handle            → delegates to UDUserAnalyzer
+   │                     │     └── UDUserAnalyzer.HandleImmediateDangerAdded
+   │                     │           └── raise ImmediateDangerEvent
+   │                     │                  └── NotificationPublisherActor
+   │                     │                        └── PublishImmediateDangerEvent
+   │                     │                              └── AGENT (PUB:50002, topic device:{uid})
+   │                     └── UDAnalysis.Handle                   → log only (no re-raise; prevents duplicate)
+   │
+   ├──► AGENT receives ImmediateDangerNotification
+   │       ├── danger_mode.activate()                            → 2s polling + no debounce
+   │       ├── ProtectionService.show_display_notification_actions()
+   │       │     └── DisplayNotification ProtectiveActions → CenteredToast (locked, red)
+   │       └── broadcast typed event 'immediate_danger_started' to Extension
+   │
+[…the user disconnects the remote session, or closes the sensitive tab…]
+   │
+Agent: next RemoteAccessAlert with Direction!='incoming' OR no sensitive tab
+   │
+Backend: UDUserAnalyzer.DetectImmediateDanger()
+   ├──► raise ImmediateDangerEnded on UDUserAnalyzer publisher
+   │       ├── ImmediateDangerPersistanceActor               → UPDATE EndTime = UtcNow
+   │       │     └── BuildPerUserHandlers(includeSingletons=false).Raise(ImmediateDangerEnded)
+   │       │            ├── UDAnalysisManager.Handle         → delegates clear-up to UDUserAnalyzer
+   │       │            └── UDAnalysis.Handle                → log only
+   │       └── NotificationPublisherActor (singleton, received via the original raise — NOT the re-publish)
+   │             └── PublishImmediateDangerEnded
+   │                   └── AGENT (PUB:50002)
+   │
+   └──► AGENT receives ImmediateDangerEndedNotification
+           ├── danger_mode.deactivate()                       → revert to adaptive polling
+           ├── ProtectionService.show_display_notification_actions(risk_level='none')
+           │     └── CenteredToast.transform_to_cleared()     → same window: red→green, Close button added
+           └── broadcast typed event 'immediate_danger_ended' to Extension
+```
+
+> **Why the asymmetry between Added and Ended re-publish?** `Added` is constructed inside `ImmediateDangerPersistanceActor` (no singleton has seen it yet — singletons must be included so ASView and others react). `Ended` is raised on `UDUserAnalyzer`'s publisher first, so all singletons (including `NotificationPublisherActor`) already received it; the re-publish only needs to reach the per-user handlers (`UDAnalysisManager` + `UDAnalysis`) which live outside DI. Including singletons twice would publish the agent notification twice.
+
+## 6.3 BrowserTabsPolicy override flow
+
+```
+Backend admin/automation
+  └── _notificationPublisher.PublishSetBrowserTabsPolicy(
+          deviceUid, userKey, mode, validUntil)
+        └── PUB:50002 → topic device:{uid} or user:{key}
+              ↓
+              AGENT NotificationHandler._handle_set_browser_tabs_policy
+                └── browser_tabs_policy.set_override(mode, valid_until)
+
+[On every RemoteAccessAlert, BrowserTabs is included only when:]
+  - browser_tabs_policy.get_effective_mode() returns 'always', OR
+  - mode is 'incoming_only' (default) AND alert direction == 'incoming'
+
+[After valid_until expires, get_effective_mode() returns the
+ built-in default 'incoming_only'. Override is not persisted across
+ agent restarts.]
+```
 
 ---
 

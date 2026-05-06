@@ -349,16 +349,14 @@ PORTS = [8080, 8181, 8282, 8383, 8484]
 
 ### 4.6 Notification Handler (`notification_handler.py`)
 
-Listens on ZMQ SUB (port 50002) for analysis results pushed by the Backend.
+Listens on ZMQ SUB (port 50002) for messages pushed by the Backend. Dispatches by the top-level `Type` field, then falls through to the legacy URL-analysis path for untyped notifications.
 
-```
-1. Receive notification on topic "device:{deviceUid}"
-2. Parse analysis result
-3. Extract: score, riskType, protectiveAction
-4. Update local cache
-5. Broadcast to all connected Extensions via WebSocket
-6. On failure: retry once, then log error and raise
-```
+| `Type` | Handler | Purpose |
+|---|---|---|
+| `ImmediateDangerNotification` | `_handle_immediate_danger_started` | Activates DangerMode + opens centered locked alert (DisplayNotification ProtectiveActions). |
+| `ImmediateDangerEndedNotification` | `_handle_immediate_danger_ended` | Deactivates DangerMode + transforms locked alert to green CLEARED state. |
+| `SetBrowserTabsPolicyNotification` | `_handle_set_browser_tabs_policy` | Applies a runtime override (Mode + ValidUntil) to BrowserTabsPolicy. |
+| _other_ | URL-analysis path | Cache update + Extension broadcast (existing flow). |
 
 ### 4.7 ZMQ Client (`zmq_client.py`)
 
@@ -374,6 +372,85 @@ socket.curve_publickey = client_public
 socket.curve_secretkey = client_secret
 socket.curve_serverkey = server_public_key  # from config/auth response
 ```
+
+### 4.8 Remote-Access Monitor (`remote_monitor.py`)
+
+Detects active sessions of remote-access apps (AnyDesk, TeamViewer, Chrome Remote Desktop, VNC, RustDesk, RemotePC, Splashtop, RDP, QuickAssist, ConnectWise, LogMeIn) and emits `RemoteAccessAlert` to the Backend.
+
+**Detection signals (combined):**
+- Process scan (`psutil.process_iter`) by `process_names`.
+- Established TCP connections owned by the matched processes.
+- Listening ports (system-wide for service-hosted apps like RDP under `svchost`).
+- Windows service status (e.g., `TermService` for RDP).
+- Per-app log parsing (`ad.trace`, `ad_svc.trace`, `connection_trace.txt`, `Connections_incoming.txt`, …).
+
+**Direction inference (priority order):**
+1. Log parser (incoming/outgoing/session_started events with timestamps).
+2. Topology fallback — `_infer_direction_from_processes` matches established conns vs `listen_ports`.
+3. AnyDesk-specific fallback — most recent entry in `connection_trace.txt` (within 30 min).
+
+**Backfill on startup** (`_backfill_app`): collects events from ALL log files for the app, sorts by timestamp, replays through the SessionTracker BEFORE starting tail threads — so a session that began before the agent started is still recognised.
+
+**Adaptive poll interval** (`get_next_poll_interval`):
+
+| State | Interval |
+|---|---|
+| Pending close/session-end (debounce ticking) | 1s |
+| App running OR active session | 5s |
+| Idle (no remote-access app detected) | 30s |
+| **DangerMode active** (override) | **2s** |
+
+**Debounced state transitions** (`DebouncedStateTracker`): close = 1s, session_end = 4s; both bypassed entirely while DangerMode is active.
+
+### 4.9 DangerMode (`services/danger_mode.py`)
+
+Process-wide flag flipped by ImmediateDanger notifications.
+
+| Event | Action |
+|---|---|
+| `ImmediateDangerNotification` | `danger_mode.activate()` — fast 2s polling + debounce bypass |
+| `ImmediateDangerEndedNotification` | `danger_mode.deactivate()` — revert to adaptive intervals + normal debounce |
+
+Worst-case time from a state change to alert delivery during DangerMode: ≤ 2s.
+
+### 4.10 BrowserTabs Policy (`services/browser_tabs_policy.py`)
+
+Decides whether to attach `BrowserTabs` to a `RemoteAccessAlert`.
+
+| Mode | Behaviour |
+|---|---|
+| `incoming_only` (default) | Attach tabs only when remote-access direction is `'incoming'` |
+| `always` | Attach with every alert |
+| `never` | Never attach |
+
+Backend can override the default at runtime via `SetBrowserTabsPolicyNotification` (Mode + ValidUntil). After ValidUntil elapses, the agent reverts to its built-in default. Overrides are not persisted across restarts.
+
+### 4.11 Centered Alert UI (`ui/centered_toast.py`)
+
+Borderless, always-on-top, draggable alert window centered on the primary monitor. Singleton — at most one is on screen at any time.
+
+| Mode | Used by | Behaviour |
+|---|---|---|
+| `locked` | ImmediateDanger active | No close button. Persistent. Periodic `lift()` every 2s defeats Windows topmost loss. Drag-and-drop on header zone. |
+| `cleared` | ImmediateDanger ended | Green styling. **Close** button added. Same window transformed in place via `update_content()`. |
+
+The `View Details` button opens an in-app `DangerDetailsWindow` (CTkToplevel) with the full ImmediateDanger payload — no browser, no admin login. Falls back to opening `WEBAPI_URL` only when the in-app details payload is unavailable.
+
+### 4.12 Build & Distribution
+
+Single-file EXE produced by PyInstaller:
+
+```
+python build_release.py [--env <name>]
+```
+
+| `--env` value | Effect |
+|---|---|
+| _omitted_ | Default `config.py` values (local testing — `127.0.0.1`) |
+| `dev` | Overrides applied from `src/config_dev.py` |
+| `prod` | Overrides applied from `src/config_prod.py` (AWS — `app.asps.io`) |
+
+The build script copies `src/config_<env>.py` to `src/config_override.py` before PyInstaller runs; `config.py` does `try: from config_override import *` at the bottom. The override file is gitignored and removed by an `atexit` hook so the source tree stays clean.
 
 ---
 
@@ -476,9 +553,10 @@ Step 7: Fire events:
 |-------|---------|-------------|
 | `Users` | User accounts | Key, Email, FirstName, LastName, KeycloakUserId |
 | `UserDevices` | Registered devices | DeviceUid, UserKey, DeviceType, OperatingSystem, MAC |
-| `DeviceAlerts` | Incoming alerts | AlertType, Url, DeviceUid, Token, Priority |
+| `DeviceAlerts` | Incoming alerts (TPH; discriminator splits Url / TrackUrl / RemoteAccess) | AlertType, Url, DeviceUid, Token, Priority |
 | `AnalysisResults` | Analysis output | DeviceAlertKey, JsonValue, Severity, HasError |
 | `AlertFlags` | Per-alert review/triage flags | AlertKey, Type, Notes |
+| `ImmediateDangers` | Persisted ImmediateDanger events (RemoteAccess + sensitive site open) | Key, UserKey, DeviceUid, RemoteAccessApp, SensitiveUrl, ProtectiveActionsJson, Timestamp, EndTime |
 | `KnownPhishingWebsites` | Phishing DB | Url, Domain, Source (~500K records) |
 | `SafeDomains` | Whitelisted domains | Domain |
 | `TrackedDomains` | Long-duration URL tracking | Domain, IsActive, Source |
@@ -489,6 +567,46 @@ Step 7: Fire events:
 | `Simulations` | Test scenarios for the dashboard | Name, Steps (JSON) |
 | `DeviceTokens` | Active device tokens | DeviceUid, Token, ExpiresAt |
 | `Roadmaps` | Product roadmap data (admin-only) | Name, Data (JSON), Version, LastUpdatedBy |
+
+**RemoteAccessAlert columns** (TPH discriminator on `DeviceAlerts`):
+`RemoteAccessApp`, `RunningProcesses`, `ConnectionUrl`, `ConnectionStatus`, `ConnectionsCount`, `SessionStatus`, `RemoteOS`, `RemoteVersion`, `ConnectionType`, `FileTransferActive`, `FileTransfers`,
+`RemoteId`, `RemoteName`, `LoggedUser`, `ConnectionId`, `Software` (forensics — added in `AddRemoteSessionForensicsToRemoteAccessAlert`),
+`Direction`, `Confidence`, `RemoteCountry`, `RemoteCountryCode` (wire fields — added in `AddDirectionAndGeoToRemoteAccessAlert`).
+
+### 5.7 Notification Publishers
+
+The Backend pushes typed messages to Agents via `NotificationPublisher` (NetMQ PUB on port 50002). Topic format: `device:{deviceUid}` and/or `user:{userKey}`. Each method wraps its payload in `{ Type, Timestamp, DeviceUid, Data }`.
+
+| Method | Wire `Type` | Trigger | Agent handler |
+|---|---|---|---|
+| `PublishAnalysisResult` | `AnalysisResult` | `AnalysisResultReceived` (URL/TrackUrl/RemoteAccess analyzer finished) | URL-analysis path |
+| `PublishImmediateDangerEvent` | `ImmediateDangerNotification` | `ImmediateDangerEvent` raised by `UDUserAnalyzer` (one ProtectiveActions resolution per user) | `_handle_immediate_danger_started` |
+| `PublishImmediateDangerEnded` | `ImmediateDangerEndedNotification` | `ImmediateDangerEnded` raised by `UDUserAnalyzer` when the underlying RemoteAccess condition clears | `_handle_immediate_danger_ended` |
+| `PublishSetBrowserTabsPolicy` | `SetBrowserTabsPolicyNotification` | Backend-driven (admin command / future automation) — Mode + ValidUntil | `_handle_set_browser_tabs_policy` |
+
+**ImmediateDanger flow** (single canonical raiser to avoid duplicates):
+
+```
+UDUserAnalyzer.DetectImmediateDanger()
+  → ImmediateDangerDetected           [per-user UDAnalysis publisher]
+    → ImmediateDangerPersistanceActor   (saves entity)
+      → BuildPerUserHandlers(includeSingletons=true)
+        → ImmediateDangerAdded         [singletons + UDAnalysisManager + UDAnalysis]
+          → ASView.HandleImmediateDangerAdded     (cache update)
+          → UDAnalysisManager.Handle              (delegates to UDUserAnalyzer)
+            → UDUserAnalyzer.HandleImmediateDangerAdded
+              → ImmediateDangerEvent               [own publisher]
+                → NotificationPublisherActor       → PublishImmediateDangerEvent (the ONE notification)
+          → UDAnalysis.Handle                      (log only — does NOT re-raise)
+
+UDUserAnalyzer.DetectImmediateDanger() (clearing path)
+  → ImmediateDangerEnded               [per-user UDAnalysis publisher]
+    → ImmediateDangerPersistanceActor    (sets EndTime)
+      → BuildPerUserHandlers(includeSingletons=false)   ← skips singletons; they already received
+        → UDAnalysisManager + UDAnalysis             (per-user only)
+    → NotificationPublisherActor (singleton, received from original raise)
+      → PublishImmediateDangerEnded (the ONE notification)
+```
 
 ---
 

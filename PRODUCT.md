@@ -92,8 +92,14 @@ ASPS is designed to support **two-sided households** — a parent / spouse / NPO
 
 ### 4.2 Tech-support scam detection
 
-- **Remote-access app awareness** — recognizes AnyDesk / TeamViewer / etc. running
-- **Combined signal** — "remote access + sensitive site = immediate danger" → **Immediate Danger** alert with high-priority protective action
+- **Broad remote-access coverage** — detects sessions across AnyDesk, TeamViewer, Chrome Remote Desktop, RustDesk, VNC variants, RemotePC, Splashtop, Microsoft RDP, Quick Assist, ConnectWise, and LogMeIn. Server-side detection (RDP via TermService + system listen-port scan) catches sessions that don't have a named host process.
+- **Forensics on every alert** — Remote ID, remote name, logged-in local user, connection type (direct/relay), software version, file-transfer state, GeoIP country.
+- **Direction inference** — log parsing first, then connection-topology fallback (`listen_ports` vs established connections), then per-app history (`connection_trace.txt`) — so an `incoming` session is correctly labelled even when the agent started mid-session.
+- **Combined signal** — "incoming remote-access + sensitive site open" → **Immediate Danger** event:
+  - Backend persists the event (`ImmediateDangers` table, with `EndTime` populated when the condition clears).
+  - Agent enters **DangerMode** — remote-access status is sampled every 2s with no debounce, so any state change is reported within ~2s.
+  - A centered, always-on-top, draggable alert window appears on the user's screen — no close button while the danger is active. When the backend issues `ImmediateDangerEndedNotification`, the same window transforms to green ("Threat Cleared") and gains a Close button.
+  - **View Details** opens an in-app summary (Started time, remote app, direction, sensitive URL, device, protective actions). No browser, no admin login.
 
 ### 4.3 Long-duration tracking
 
@@ -112,11 +118,13 @@ ASPS is designed to support **two-sided households** — a parent / spouse / NPO
 | Display banner / overlay | Medium-risk URL | Browser tab |
 | Modal warning | High-risk URL | Browser tab |
 | Block page | Critical-risk URL | Browser tab (replaces page) |
+| Centered always-on-top alert | Immediate-danger | Desktop agent (custom UI, draggable, no close while active) |
 | Sound alert | High urgency, user not looking | OS notification |
 | Email notification | High severity, user has linked protector | SMTP |
 | Block remote-access | Immediate-danger | Desktop terminates session |
 | Quarantine device | Repeated risk events | Backend marks device for admin review |
 | Track URL | Flagged but not yet conclusive | Backend extends monitoring |
+| Set track mode | Adjust per-domain tracking aggressiveness | Extension via Backend |
 
 ### 4.6 Admin tooling (WebApi)
 
