@@ -163,6 +163,41 @@
                             }
                         </dl>
                     }
+                    else if (Model.Alert is Common.Entities.TabClosedAlertEntity tcAlert)
+                    {
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">Tab ID:</dt>
+                            <dd class="col-sm-8"><code>@tcAlert.TabId</code></dd>
+
+                            <dt class="col-sm-4">URL closed:</dt>
+                            <dd class="col-sm-8 text-break">
+                                @if (!string.IsNullOrEmpty(tcAlert.Url))
+                                {
+                                    <a href="@tcAlert.Url" target="_blank">@tcAlert.Url</a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </dd>
+
+                            <dt class="col-sm-4">Immediate Danger:</dt>
+                            <dd class="col-sm-8">
+                                @if (tcAlert.ImmediateDanger == true)
+                                {
+                                    <span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> Yes</span>
+                                }
+                                else if (tcAlert.ImmediateDanger == false)
+                                {
+                                    <span class="badge bg-secondary">No</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Unknown</span>
+                                }
+                            </dd>
+                        </dl>
+                    }
                     else if (Model.Alert is Common.Entities.RemoteAccessAlertEntity raAlert)
                     {
                         <dl class="row mb-0">

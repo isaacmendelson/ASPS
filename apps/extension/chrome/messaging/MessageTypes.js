@@ -73,6 +73,16 @@ export const MSG = {
   WS_BROWSER_TABS_RESPONSE: 'browser_tabs_response',
   WS_TRACK_URL_ALERT: 'track_url_alert',
 
+  // ImmediateDanger lifecycle (broadcast by the agent when the backend tells
+  // it ImmediateDanger started/ended). The extension uses these to set its
+  // local immediateDangerMode flag.
+  WS_IMMEDIATE_DANGER_STARTED: 'immediate_danger_started',
+  WS_IMMEDIATE_DANGER_ENDED:   'immediate_danger_ended',
+
+  // Sent by the extension to the agent whenever a tab is closed during
+  // ImmediateDanger mode. Forwarded to the backend as a TabClosedAlert.
+  WS_TAB_CLOSED_ALERT: 'tab_closed_alert',
+
   // ==========================================
   // Remote Access Warning Messages
   // ==========================================

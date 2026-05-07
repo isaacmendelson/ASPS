@@ -74,9 +74,17 @@
                                 {
                                     <span class="badge bg-danger"><i class="fas fa-desktop"></i> Remote Access</span>
                                 }
+                                else if (alert.AlertType.Contains("TabClosed", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <span class="badge bg-secondary"><i class="fas fa-times-circle"></i> Tab Closed</span>
+                                }
                                 else
                                 {
                                     <span class="badge bg-info">@alert.AlertType</span>
+                                }
+                                @if (alert.ImmediateDanger == true)
+                                {
+                                    <br /><span class="badge bg-danger mt-1"><i class="fas fa-exclamation-triangle"></i> Immediate Danger</span>
                                 }
                             </td>
                             <td>
@@ -166,6 +174,12 @@
                                 {
                                     <small class="text-truncate d-inline-block" style="max-width: 200px;" title="@urlAlert.Url">
                                         @urlAlert.Url
+                                    </small>
+                                }
+                                else if (alert is Common.Entities.TabClosedAlertEntity tcAlert)
+                                {
+                                    <small class="text-truncate d-inline-block" style="max-width: 200px;" title="@tcAlert.Url">
+                                        Tab @tcAlert.TabId — @tcAlert.Url
                                     </small>
                                 }
                                 else if (alert is Common.Entities.RemoteAccessAlertEntity raAlert)

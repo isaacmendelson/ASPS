@@ -1,17 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Newtonsoft.Json;
+using System;
 
 namespace Common.Models.Alerts
 {
     public class BrowserTab
     {
-
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-        protected BrowserTab() { }
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+        // Public parameterless ctor — Newtonsoft prefers it; properties are
+        // populated by setters after construction.
+        public BrowserTab() { }
 
         public BrowserTab(string title, string tabId, string userAgent, string url, DateTime? timestamp, bool isActive)
         {
@@ -23,14 +19,40 @@ namespace Common.Models.Alerts
             IsActive = isActive;
         }
 
-        public string Title { get; set; }
-        public string TabId { get; set; }
-        public string UserAgent { get; set; }
-        public string Url { get; set; }
+        // Full ctor including the v0.0.1.0 logged-in fields. Optional so existing
+        // call sites continue to compile.
+        public BrowserTab(
+            string title, string tabId, string userAgent, string url,
+            DateTime? timestamp, bool isActive,
+            bool? loggedIn, string? loggedInConfidence, string[]? loggedInSignals)
+            : this(title, tabId, userAgent, url, timestamp, isActive)
+        {
+            LoggedIn = loggedIn;
+            LoggedInConfidence = loggedInConfidence;
+            LoggedInSignals = loggedInSignals;
+        }
+
+        // [JsonProperty] tags are added explicitly so deserialization succeeds
+        // regardless of the agent / extension casing (camelCase vs PascalCase).
+        [JsonProperty("title", NullValueHandling = NullValueHandling.Ignore)]
+        public string? Title { get; set; }
+
+        [JsonProperty("tabId", NullValueHandling = NullValueHandling.Ignore)]
+        public string? TabId { get; set; }
+
+        [JsonProperty("userAgent", NullValueHandling = NullValueHandling.Ignore)]
+        public string? UserAgent { get; set; }
+
+        [JsonProperty("url", NullValueHandling = NullValueHandling.Ignore)]
+        public string? Url { get; set; }
+
+        [JsonProperty("timestamp", NullValueHandling = NullValueHandling.Ignore)]
         public DateTime? Timestamp { get; set; }
+
+        [JsonProperty("isActive")]
         public bool IsActive { get; set; }
 
-        // Logged-in detection results from the Chrome extension (extension v0.0.1.0+).
+        // ─── v0.0.1.0 logged-in detection (from Chrome extension) ────────
         // The extension combines two signals:
         //   - chrome.cookies API: presence of session-like cookies for the URL
         //   - DOM scan: logout/sign-out element matched (en/he/fr/ru regex)
@@ -38,6 +60,7 @@ namespace Common.Models.Alerts
         // Tri-state: true / false / null. Null means "unknown" — neither signal
         // could be evaluated (e.g., content script not yet injected, or chrome
         // restricted URL). Treat null as "unknown" — do NOT default to false.
+        [JsonProperty("loggedIn")]
         public bool? LoggedIn { get; set; }
 
         // 'high' | 'medium' | 'low' | null — confidence level of LoggedIn.
@@ -45,9 +68,11 @@ namespace Common.Models.Alerts
         // 'medium' = signals conflict OR only one signal is conclusive
         // 'low'    = one signal says false, the other is unknown
         // null     = no signal could be evaluated
+        [JsonProperty("loggedInConfidence")]
         public string? LoggedInConfidence { get; set; }
 
         // Which signals contributed to the decision: subset of ["cookie", "dom"].
+        [JsonProperty("loggedInSignals")]
         public string[]? LoggedInSignals { get; set; }
     }
 }

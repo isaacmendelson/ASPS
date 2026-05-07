@@ -159,6 +159,32 @@ namespace Business.RealtimeAnalysis
                         UserKeyField = userDevice.UserKeyField,
                     };
                     break;
+
+                case TabClosedAlert tc:
+                    alertEntity = new TabClosedAlertEntity()
+                    {
+                        DateCreated = DateTime.UtcNow,
+                        KeyField = entityKey,
+                        AlertType = vm.AlertType,
+                        Priority = vm.Priority,
+                        Timestamp = vm.Timestamp,
+                        Token = vm.Token,
+                        Status = vm.Status,
+                        DeviceUid = vm.DeviceInfo.DeviceUid,
+                        DeviceType = userDevice.DeviceType,
+                        OperatingSystem = userDevice.OperatingSystem,
+                        UserKeyField = userDevice.UserKeyField,
+                        TabId = tc.TabId,
+                        Url   = tc.Url,
+                    };
+                    break;
+            }
+
+            // Snapshot of agent's ImmediateDanger flag at the time of the alert.
+            // Applies to every alert type — set after the switch for centralisation.
+            if (alertEntity != null)
+            {
+                alertEntity.ImmediateDanger = vm.DeviceInfo.ImmediateDanger;
             }
 
             // Save alert entity to database using scoped repository

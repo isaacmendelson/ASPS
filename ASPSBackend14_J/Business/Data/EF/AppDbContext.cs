@@ -215,7 +215,8 @@ public class AppDbContext : DbContext
             entity.HasDiscriminator<string>("Discriminator")
                 .HasValue<RemoteAccessAlertEntity>("RemoteAccess")
                 .HasValue<UrlAlertEntity>("Url")
-                .HasValue<TrackUrlAlertEntity>("TrackUrl");
+                .HasValue<TrackUrlAlertEntity>("TrackUrl")
+                .HasValue<TabClosedAlertEntity>("TabClosed");
             
             entity.HasKey(e => e.KeyField);
             entity.Property(e => e.KeyField)
@@ -279,7 +280,10 @@ public class AppDbContext : DbContext
         {
             entity.Property(e => e.Url).HasColumnType("TEXT");
             entity.Property(e => e.UserAgent).HasColumnType("TEXT");
-            entity.Property(e => e.TabId).HasMaxLength(100);
+            // Pin the column name so the TPH share with TabClosedAlertEntity.TabId
+            // resolves to the same physical column. Without this, EF synthesises
+            // `WebAlertEntity_TabId` on parallel siblings and orphans existing data.
+            entity.Property(e => e.TabId).HasColumnName("TabId").HasMaxLength(100);
         });
 
         // UrlAlertEntity specific configuration
@@ -287,6 +291,23 @@ public class AppDbContext : DbContext
         {
             entity.Property(e => e.TrackerKeys).HasColumnType("TEXT");
             entity.Property(e => e.IFrameDomains).HasColumnType("TEXT");
+        });
+
+        // TabClosedAlertEntity specific configuration —
+        //   * TabId is shared with WebAlertEntity.TabId via TPH; aliased to the
+        //     same column so EF doesn't synthesise a `WebAlertEntity_TabId`
+        //     parallel column (which would orphan existing UrlAlert.TabId data).
+        //   * Url is mapped to a NEW column ("TabClosedUrl") because
+        //     WebAlertEntity already owns "Url" and EF can't share a column
+        //     between siblings at different inheritance levels.
+        modelBuilder.Entity<TabClosedAlertEntity>(entity =>
+        {
+            entity.Property(e => e.TabId)
+                .HasColumnName("TabId")
+                .HasMaxLength(100);
+            entity.Property(e => e.Url)
+                .HasColumnName("TabClosedUrl")
+                .HasColumnType("TEXT");
         });
 
         // TrackUrlAlertEntity specific configuration

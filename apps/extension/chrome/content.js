@@ -406,9 +406,33 @@
     // and tend to be normalised, so this list stays Latin.
     _hrefPattern: /\/(log\s*out|logout|log\s*off|logoff|sign\s*-?\s*out|signout|deconnexion|deconnect|exit_session|leave_session|user\/?logout)\b/i,
 
+    // Visibility check — element must actually be rendered. This eliminates
+    // the false positive where a "Logout" link sits hidden in the master
+    // page template even before the user logs in (common on bank homepages
+    // that share a single layout for logged-in / logged-out states).
+    _isVisible(el) {
+      if (!el) return false;
+      // Quick rejects
+      if (el.hidden) return false;
+      if (el.getAttribute('aria-hidden') === 'true') return false;
+      // offsetParent === null means display:none (or fixed-position hidden);
+      // also catches detached elements.
+      if (el.offsetParent === null) {
+        // <body> always has offsetParent === null but is visible — only
+        // tagged elements (a/button/etc.) reach this code, so this is safe.
+        return false;
+      }
+      // Computed-style sanity: zero size or hidden visibility
+      const cs = window.getComputedStyle(el);
+      if (cs.visibility === 'hidden' || cs.display === 'none' || cs.opacity === '0') {
+        return false;
+      }
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) return false;
+      return true;
+    },
+
     isLoggedIn() {
-      // Avoid false positives on the literal Login page — if the URL looks
-      // like a login route AND there's no other strong signal, return false.
       try {
         if (document.readyState === 'loading') {
           // DOM not parsed yet → unknown
@@ -420,10 +444,6 @@
         );
 
         for (const el of candidates) {
-          // Cheap reject — skip elements that are display:none AND have empty
-          // accessible name (those are usually inert template fragments).
-          // We DO accept hidden elements behind menus — they exist in DOM and
-          // signal logged-in state, even if not currently visible.
           const text = (el.textContent || '').trim();
           const aria = (el.getAttribute('aria-label') || '').trim();
           const title = (el.getAttribute('title') || '').trim();
@@ -431,14 +451,24 @@
 
           // textContent can be huge if `el` wraps the whole header — cap.
           const probeText = (text.length > 200 ? '' : text) + ' ' + aria + ' ' + title + ' ' + value;
-          if (this._textPattern.test(probeText)) {
-            return true;
-          }
-
           const href = el.getAttribute('href') || '';
           const onclick = el.getAttribute('onclick') || '';
           const dataAction = el.getAttribute('data-action') || el.getAttribute('data-test') || '';
-          if (this._hrefPattern.test(href) || this._hrefPattern.test(onclick) || this._hrefPattern.test(dataAction)) {
+
+          const matchedText = this._textPattern.test(probeText);
+          const matchedHref = this._hrefPattern.test(href) ||
+                              this._hrefPattern.test(onclick) ||
+                              this._hrefPattern.test(dataAction);
+
+          if (!matchedText && !matchedHref) continue;
+
+          // Strict visibility check — pre-login pages often carry a hidden
+          // "Logout" element from the shared template. Only count when it's
+          // actually rendered (this covers items inside currently-collapsed
+          // menus too: their offsetParent is non-null since the menu is
+          // display:block but visibility:hidden — but the computed style
+          // catches that).
+          if (this._isVisible(el)) {
             return true;
           }
         }

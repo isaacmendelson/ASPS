@@ -164,6 +164,9 @@ class AntiScamApp:
 
         # Connect notification handler to extension server for broadcasting results
         self.container.notification_handler.set_extension_server(self.container.extension_server)
+        # ...and to monitor_service so ImmediateDanger notifications can
+        # start/stop the periodic-alert loop.
+        self.container.notification_handler.set_monitor_service(self.container.monitor_service)
 
         # Authenticate with backend
         print("\n[STARTUP] Authenticating with backend...")

@@ -33,6 +33,7 @@ class ExtensionHandler:
         handlers = {
             'url_check': self._handle_url_check,
             'track_url_alert': self._handle_track_url_alert,
+            'tab_closed_alert': self._handle_tab_closed_alert,
             'ping': self._handle_ping,
             'user_auth': self._handle_user_auth,
             'get_user': self._handle_get_user,
@@ -59,6 +60,18 @@ class ExtensionHandler:
         tab_id = data.get('tabId', '')
 
         return self.scan_service.check_url(url, trackers, iframes, ip_address=ip_address, tab_id=tab_id)
+
+    def _handle_tab_closed_alert(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Forward TabClosedAlert from extension → backend (via scan_service).
+        The extension sends this for every tab close while it believes the
+        agent is in ImmediateDanger mode."""
+        tab_id = str(data.get('tabId', '') or data.get('TabId', ''))
+        url = data.get('url', '') or data.get('Url', '')
+        ip_address = data.get('ipAddress', '') or self._local_ip
+        print(f"[EXTENSION] TabClosedAlert: tabId={tab_id}, url={url}")
+        return self.scan_service.send_tab_closed_alert(
+            tab_id=tab_id, url=url, ip_address=ip_address,
+        )
 
     def _handle_track_url_alert(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Handle TrackUrlAlert from extension - send to backend"""

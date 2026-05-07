@@ -34,6 +34,16 @@ public class DeviceInfo
 
     public string? MACAddress { get; set; }
 
+    /// <summary>
+    /// True when the agent that produced this message is currently inside an
+    /// active ImmediateDanger event (between ImmediateDangerNotification and
+    /// ImmediateDangerEndedNotification). Null = unknown / agent doesn't
+    /// support the flag yet (older versions). Used by analyzers to elevate
+    /// the urgency of correlated alerts and by the persistence layer for
+    /// post-hoc filtering.
+    /// </summary>
+    public bool? ImmediateDanger { get; set; }
+
     public DeviceType DeviceType
     {
         get

@@ -275,6 +275,33 @@ class ScanService:
             'message': message
         }
 
+    def send_tab_closed_alert(
+        self,
+        tab_id: str,
+        url: str,
+        ip_address: str = '',
+    ) -> Dict[str, Any]:
+        """Forward a TabClosedAlert from the Chrome extension to the backend.
+        Triggered by the extension while in ImmediateDanger mode whenever a
+        tab is closed. The backend's UDUserAnalyzer re-evaluates the danger
+        condition on receipt."""
+        try:
+            print(f"\n[TAB-CLOSED] Forwarding to backend — TabId={tab_id}, Url={url}")
+            response = self.zmq_client.send_tab_closed_alert(
+                device_uid=self.device_id,
+                tab_id=tab_id,
+                url=url,
+                ip_address=ip_address,
+                token=self.auth_manager.token or '',
+            )
+            if response:
+                print(f"[TAB-CLOSED] Backend response: {response.get('Status', 'unknown')}")
+                return {'type': 'tab_closed_ack', 'status': 'ok'}
+            return {'type': 'tab_closed_ack', 'status': 'error', 'message': 'No response'}
+        except Exception as e:
+            logger.error(f"send_tab_closed_alert failed: {e}")
+            return {'type': 'tab_closed_ack', 'status': 'error', 'message': str(e)}
+
     def send_track_url_alert(
         self,
         url: str,

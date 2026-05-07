@@ -27,6 +27,7 @@ class NotificationHandler:
         self.protection_service = protection_service
         self.cache = cache
         self.extension_server = extension_server
+        self.monitor_service = None  # set later — see set_monitor_service
         self._event_loop: Optional[asyncio.AbstractEventLoop] = None
 
     def set_extension_server(self, extension_server):
@@ -37,6 +38,11 @@ class NotificationHandler:
             print("[NOTIFICATION] Extension server set + event loop captured")
         except RuntimeError:
             print("[NOTIFICATION] WARNING: No running event loop when setting extension server")
+
+    def set_monitor_service(self, monitor_service):
+        """Provide a back-reference to the MonitorService so ImmediateDanger
+        notifications can start/stop the periodic-alert loop."""
+        self.monitor_service = monitor_service
 
     def handle(self, notification: Dict[str, Any]):
         """Handle notification from backend.
@@ -236,6 +242,16 @@ class NotificationHandler:
         # debounce bypass so any state change is reported instantly.
         danger_mode.activate()
 
+        # Start the periodic ImmediateDanger RemoteAccessAlert loop (every
+        # IMMEDIATE_DANGER_ALERT_INTERVAL_SECONDS, with fresh BrowserTabs).
+        if self.monitor_service is not None and self._event_loop is not None:
+            try:
+                self._event_loop.call_soon_threadsafe(
+                    self.monitor_service.start_immediate_danger_loop
+                )
+            except Exception as e:
+                logger.error(f"Failed to start ImmediateDanger loop: {e}")
+
         # Build a structured details dict for the in-app DangerDetailsWindow
         # opened by 'View Details'. Resolves the RemoteAccessApp enum to a
         # human name and pre-formats the timestamp.
@@ -312,6 +328,15 @@ class NotificationHandler:
 
         # Leave DangerMode: revert to adaptive polling + normal debounce.
         danger_mode.deactivate()
+
+        # Stop the periodic ImmediateDanger RemoteAccessAlert loop.
+        if self.monitor_service is not None and self._event_loop is not None:
+            try:
+                self._event_loop.call_soon_threadsafe(
+                    self.monitor_service.stop_immediate_danger_loop
+                )
+            except Exception as e:
+                logger.error(f"Failed to stop ImmediateDanger loop: {e}")
 
         # Build details dict for the cleared-state DangerDetailsWindow.
         details = {

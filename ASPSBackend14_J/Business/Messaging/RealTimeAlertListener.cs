@@ -494,6 +494,7 @@ public class RealTimeAlertListener : IDisposable
                 "RemoteAccessAlert" => JsonConvert.DeserializeObject<RemoteAccessAlert>(message),
                 "UrlAlert"          => JsonConvert.DeserializeObject<UrlAlert>(message),
                 "TrackUrlAlert"     => JsonConvert.DeserializeObject<TrackUrlAlert>(message),
+                "TabClosedAlert"    => JsonConvert.DeserializeObject<TabClosedAlert>(message),
                 _ => InferAlertType(message, alertType)
             };
 

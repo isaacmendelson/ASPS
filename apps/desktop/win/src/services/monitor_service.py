@@ -5,9 +5,12 @@ Handles background monitoring tasks
 
 import asyncio
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
-from config import MONITOR_INTERVAL, DEBUG_MODE, ConnectionStatus, SessionStatus, BROWSER_TABS_URL_FILTER
+from config import (
+    MONITOR_INTERVAL, DEBUG_MODE, ConnectionStatus, SessionStatus,
+    BROWSER_TABS_URL_FILTER, IMMEDIATE_DANGER_ALERT_INTERVAL_SECONDS,
+)
 from services.browser_tabs_policy import policy as browser_tabs_policy
 from services.danger_mode import danger_mode
 from zmq_client import get_local_ip
@@ -47,6 +50,12 @@ class MonitorService:
         self._running = False
         self._last_remote_status: Dict[str, Any] = {}
         self._local_ip: str = get_local_ip()
+
+        # ImmediateDanger periodic-alert loop bookkeeping. The task is
+        # started by start_immediate_danger_loop() (called from
+        # NotificationHandler when ImmediateDangerNotification arrives) and
+        # stopped by stop_immediate_danger_loop() on the Ended notification.
+        self._immediate_danger_task: Optional[asyncio.Task] = None
 
     async def start(self, extension_server):
         """Start all monitoring tasks"""
@@ -148,6 +157,111 @@ class MonitorService:
                              f"{'(danger)' if danger_mode.active else ''}")
 
             await asyncio.sleep(interval)
+
+    # ─── ImmediateDanger periodic alert loop ─────────────────────────────
+    def start_immediate_danger_loop(self) -> None:
+        """Spawn the periodic RemoteAccessAlert task. Idempotent — calling
+        twice is a no-op while a task is already running."""
+        if self._immediate_danger_task and not self._immediate_danger_task.done():
+            return
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            logger.warning("start_immediate_danger_loop: no running loop")
+            return
+        self._immediate_danger_task = loop.create_task(self._immediate_danger_loop())
+        print(f"[MONITOR] ImmediateDanger loop STARTED — interval {IMMEDIATE_DANGER_ALERT_INTERVAL_SECONDS}s")
+
+    def stop_immediate_danger_loop(self) -> None:
+        """Cancel the periodic task. The loop body also self-terminates
+        when danger_mode.active becomes False, so this is belt-and-suspenders."""
+        task = self._immediate_danger_task
+        self._immediate_danger_task = None
+        if task and not task.done():
+            task.cancel()
+            print("[MONITOR] ImmediateDanger loop STOPPED")
+
+    async def _immediate_danger_loop(self):
+        """Every IMMEDIATE_DANGER_ALERT_INTERVAL_SECONDS while in danger mode,
+        query browser tabs from the extension and emit a fresh
+        RemoteAccessAlert. Stops on danger_mode.deactivate() OR cancellation."""
+        try:
+            while self._running and danger_mode.active:
+                try:
+                    await self._emit_immediate_danger_alert()
+                except Exception as e:
+                    logger.error(f"ImmediateDanger periodic alert error: {e}")
+                    if DEBUG_MODE:
+                        print(f"[MONITOR] ImmediateDanger error: {e}")
+                await asyncio.sleep(IMMEDIATE_DANGER_ALERT_INTERVAL_SECONDS)
+        except asyncio.CancelledError:
+            pass
+
+    async def _emit_immediate_danger_alert(self):
+        """Build and send one RemoteAccessAlert for the active incoming
+        remote-access session (if any), with fresh BrowserTabs attached."""
+        if not self.auth_manager.is_valid():
+            return
+
+        # Find the most likely active session — prefer incoming, with an
+        # active session, fall back to any running app.
+        results = self.remote_monitor.check_all()
+        target = None
+        for app_name, status in results.items():
+            if not status.is_running:
+                continue
+            if status.has_active_session and (status.direction or '').lower() == 'incoming':
+                target = (app_name, status)
+                break
+        if target is None:
+            for app_name, status in results.items():
+                if status.has_active_session:
+                    target = (app_name, status)
+                    break
+        if target is None:
+            if DEBUG_MODE:
+                print("[MONITOR] ImmediateDanger tick: no active RA session — skipping")
+            return
+
+        app_name, status = target
+        # Always query tabs in danger mode (regardless of policy) — they're the
+        # whole reason the danger fired.
+        browser_tabs = []
+        if hasattr(self, '_extension_server') and self._extension_server \
+                and self._extension_server.clients:
+            try:
+                tabs = await self._extension_server.request_browser_tabs(timeout=3.0)
+                browser_tabs = self._apply_browser_tabs_filter(tabs)
+            except Exception as e:
+                logger.warning(f"ImmediateDanger tab query failed: {e}")
+
+        await self._send_remote_access_alert_with_retry(
+            device_uid=self.device_id,
+            remote_app=str(status.app_id),
+            running_processes=status.process_count,
+            connection_url=status.remote_ip or "",
+            connection_status=str(status.connection_status),
+            session_status=str(SessionStatus.OPEN),
+            direction=status.direction or "unknown",
+            confidence=status.confidence or "low",
+            remote_country=status.remote_country or "",
+            remote_country_code=status.remote_country_code or "",
+            browser_tabs=browser_tabs,
+            ip_address=self._local_ip,
+            remote_os=getattr(status, 'remote_os', '') or "",
+            remote_version=getattr(status, 'remote_version', '') or "",
+            connection_type=getattr(status, 'connection_type', '') or "",
+            file_transfer_active=getattr(status, 'file_transfer_active', False),
+            file_transfers=getattr(status, 'file_transfers', 0),
+            remote_id=getattr(status, 'remote_id', '') or "",
+            remote_name=getattr(status, 'remote_name', '') or "",
+            logged_user=getattr(status, 'logged_user', '') or "",
+            connection_id=getattr(status, 'connection_id', '') or "",
+            software=getattr(status, 'software', '') or "",
+        )
+        if DEBUG_MODE:
+            print(f"[MONITOR] ImmediateDanger periodic alert sent for {app_name} "
+                  f"({len(browser_tabs)} tabs)")
 
     @staticmethod
     def _apply_browser_tabs_filter(tabs: list) -> list:

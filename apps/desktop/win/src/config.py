@@ -88,6 +88,12 @@ WHITELIST_PORTS = [
 # Monitoring Settings
 MONITOR_INTERVAL = 5  # seconds between checks (fast polling for quick detection)
 
+# While in ImmediateDanger mode (between ImmediateDangerNotification and
+# ImmediateDangerEndedNotification), the agent emits a RemoteAccessAlert on
+# this cadence with the current BrowserTabs attached. This is in addition to
+# the normal adaptive polling.
+IMMEDIATE_DANGER_ALERT_INTERVAL_SECONDS = 10
+
 # Default policy for including BrowserTabs in a RemoteAccessAlert.
 # At runtime, the backend can temporarily override this default by sending a
 # `SetBrowserTabsPolicyNotification` (see services.browser_tabs_policy). After

@@ -173,6 +173,19 @@ function setupWebSocketHandlers() {
     }
   });
 
+  // ─── ImmediateDanger lifecycle ────────────────────────────────────────
+  // While `immediateDangerMode` is true, every tab close generates a
+  // TabClosedAlert sent to the agent (the agent forwards it to the backend
+  // for re-evaluation of the danger condition).
+  connectionService.onMessage(MSG.WS_IMMEDIATE_DANGER_STARTED, () => {
+    immediateDangerMode = true;
+    console.log('[Background] ImmediateDanger mode ON');
+  });
+  connectionService.onMessage(MSG.WS_IMMEDIATE_DANGER_ENDED, () => {
+    immediateDangerMode = false;
+    console.log('[Background] ImmediateDanger mode OFF');
+  });
+
   // Handle remote access alert from desktop
   connectionService.onMessage(MSG.REMOTE_ACCESS_ALERT, async (data) => {
     console.log('[Background] Remote access alert received:', data);
@@ -616,6 +629,47 @@ function setupMessageHandlers() {
 // Track URL navigation history per tab
 const tabNavigationHistory = new Map();
 const tabActivationTimes = new Map();
+
+// ─── ImmediateDanger state ─────────────────────────────────────────────
+// Flipped by WS_IMMEDIATE_DANGER_STARTED / _ENDED messages from the agent.
+// While true, chrome.tabs.onRemoved fires a TabClosedAlert per closed tab.
+let immediateDangerMode = false;
+
+// tabId → last-known URL. Filled from chrome.tabs.onUpdated and consumed by
+// chrome.tabs.onRemoved (which delivers only tabId, not the URL).
+const tabUrlMap = new Map();
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (tab && tab.url) tabUrlMap.set(tabId, tab.url);
+});
+chrome.tabs.onCreated.addListener((tab) => {
+  if (tab && tab.id != null && tab.url) tabUrlMap.set(tab.id, tab.url);
+});
+
+chrome.tabs.onRemoved.addListener((tabId /*, removeInfo */) => {
+  // Capture URL BEFORE we forget it, even if not in danger mode.
+  const url = tabUrlMap.get(tabId) || '';
+  tabUrlMap.delete(tabId);
+
+  if (!immediateDangerMode) return;
+
+  // Best-effort send. connectionService may not be initialised yet during
+  // service-worker bootstrap, in which case we skip — there's no useful
+  // recovery for an already-gone tab.
+  try {
+    if (typeof connectionService !== 'undefined' && connectionService.isConnected && connectionService.isConnected()) {
+      connectionService.send({
+        type:      MSG.WS_TAB_CLOSED_ALERT,
+        tabId:     String(tabId),
+        url:       url,
+        timestamp: new Date().toISOString(),
+      });
+      console.log('[Background] TabClosedAlert sent (danger mode):', tabId, url);
+    }
+  } catch (e) {
+    console.warn('[Background] TabClosedAlert send failed:', e);
+  }
+});
 
 // TrackMode enum - matches backend Common.Enums.TrackMode
 const TrackMode = {
@@ -1099,11 +1153,39 @@ async function init() {
 // Logged-In Detection — cookies + DOM (per-tab)
 // ============================================
 
-// Common session-cookie name patterns. Most sites either match this list
-// directly (`PHPSESSID`, `JSESSIONID`, `connect.sid`, …) or use a name that
-// matches one of these substrings. We also accept any cookie that's BOTH
-// httpOnly and secure — the standard shape of an auth cookie.
-const SESSION_COOKIE_NAME_PATTERN = /session|sess[_-]?id|sid|jsess|asp\.net.?sessionid|auth|token|jwt|access[_-]?token|id[_-]?token|csrf|xsrf|connect\.sid|__Secure|__Host/i;
+// Strict auth-cookie name patterns. The earlier broad list (session/sid/csrf/
+// any httpOnly+secure) caused false positives on banking sites that set
+// session/CSRF cookies BEFORE login (e.g., bankhapoalim.co.il). We now only
+// match names that are conventional for *authenticated* sessions:
+//
+//  - Web framework session IDs that are typically set on login: PHPSESSID,
+//    JSESSIONID, connect.sid, ASP.NET_SessionId, _session_id (Rails)
+//  - Explicit auth tokens: auth_token, access_token, id_token, refresh_token,
+//    bearer_token, jwt
+//  - Modern cookie prefixes that REQUIRE Secure: __Secure-, __Host-
+//    (treated as a strong signal — they're the canonical shape of auth cookies)
+//
+// We deliberately DO NOT match: csrf, xsrf, _ga, _gid, ai_session, AWSALB,
+// ASLB-* (load-balancer affinity), incap_ses_, visid_incap_, etc. — those
+// are routinely set pre-login.
+const AUTH_COOKIE_NAME_PATTERN = new RegExp(
+  '^(' + [
+    // Framework session cookies (set on login by these stacks)
+    'phpsessid', 'jsessionid', 'connect\\.sid', 'asp\\.net.?sessionid',
+    '_session_id', 'rack\\.session', 'laravel_session', 'symfony',
+    'ci_session', 'codeigniter_session',
+    // Explicit auth/token cookies
+    '(remember|auth|access|refresh|bearer|id)[_-]?token',
+    '(remember|auth|user)[_-]?session',
+    'jwt',
+    'authorization',
+    'sessionid',  // exact match only (not as a substring of '_ga_sessionid')
+    // Modern secure-prefix cookies
+    '__secure-.+',
+    '__host-.+',
+  ].join('|') + ')$',
+  'i'
+);
 
 async function checkLoggedInByCookies(url) {
   // Returns: { loggedIn: true|false|null, hasCookies: bool }
@@ -1115,8 +1197,11 @@ async function checkLoggedInByCookies(url) {
     if (!cookies || cookies.length === 0) {
       return { loggedIn: false, hasCookies: false };
     }
-    const sessionLike = cookies.some(
-      c => SESSION_COOKIE_NAME_PATTERN.test(c.name) || (c.httpOnly && c.secure)
+    // Only an exact name match counts. We also require the value to be
+    // long enough (>= 16 chars) to look like a real session token rather
+    // than a bool flag like "session=1".
+    const sessionLike = cookies.some(c =>
+      AUTH_COOKIE_NAME_PATTERN.test(c.name) && (c.value || '').length >= 16
     );
     return { loggedIn: sessionLike, hasCookies: true };
   } catch (e) {
