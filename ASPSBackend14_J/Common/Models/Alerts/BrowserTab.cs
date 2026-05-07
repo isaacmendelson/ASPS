@@ -29,6 +29,25 @@ namespace Common.Models.Alerts
         public string Url { get; set; }
         public DateTime? Timestamp { get; set; }
         public bool IsActive { get; set; }
-        
+
+        // Logged-in detection results from the Chrome extension (extension v0.0.1.0+).
+        // The extension combines two signals:
+        //   - chrome.cookies API: presence of session-like cookies for the URL
+        //   - DOM scan: logout/sign-out element matched (en/he/fr/ru regex)
+        //
+        // Tri-state: true / false / null. Null means "unknown" — neither signal
+        // could be evaluated (e.g., content script not yet injected, or chrome
+        // restricted URL). Treat null as "unknown" — do NOT default to false.
+        public bool? LoggedIn { get; set; }
+
+        // 'high' | 'medium' | 'low' | null — confidence level of LoggedIn.
+        // 'high'   = both signals agree
+        // 'medium' = signals conflict OR only one signal is conclusive
+        // 'low'    = one signal says false, the other is unknown
+        // null     = no signal could be evaluated
+        public string? LoggedInConfidence { get; set; }
+
+        // Which signals contributed to the decision: subset of ["cookie", "dom"].
+        public string[]? LoggedInSignals { get; set; }
     }
 }

@@ -361,6 +361,96 @@
   };
 
   // ============================================
+  // Logged-In Detector — DOM scan for logout indicators
+  //
+  // Heuristic. Looks for anchor/button/link elements whose visible text,
+  // aria-label, title, or href clearly says "logout / sign out". Multi-language:
+  // English, Hebrew, French, Russian. Returns true / false / null (null when
+  // the page is not in a state we can scan — e.g., still loading).
+  //
+  // Combined with a cookie check on the background side for higher confidence.
+  // See ARCHITECTURE.md §3 for the full flow.
+  // ============================================
+
+  const LoggedInDetector = {
+    // Match in element textContent / aria-label / title.
+    // Word-boundary on Latin scripts to avoid matching parts of unrelated words;
+    // Hebrew/Cyrillic don't use \b the same way so they match as substrings.
+    _textPattern: new RegExp(
+      [
+        // English
+        '\\blog\\s*out\\b',
+        '\\blogout\\b',
+        '\\blog\\s*off\\b',
+        '\\blogoff\\b',
+        '\\bsign\\s*-?\\s*out\\b',
+        '\\bsignout\\b',
+        // Hebrew — התנתק / התנתקות / יציאה / יציאה מחשבון
+        'התנתק',
+        'התנתקות',
+        'יציאה',
+        // French — déconnexion / se déconnecter / fermer la session
+        'd[ée]connexion',
+        'se\\s+d[ée]connecter',
+        'fermer\\s+la\\s+session',
+        'quitter',
+        // Russian — выйти / выход / разлогиниться
+        'выйти',
+        'выход',
+        'разлогин',
+      ].join('|'),
+      'i'
+    ),
+
+    // Match anywhere inside href / data-* / id — these are not human-language
+    // and tend to be normalised, so this list stays Latin.
+    _hrefPattern: /\/(log\s*out|logout|log\s*off|logoff|sign\s*-?\s*out|signout|deconnexion|deconnect|exit_session|leave_session|user\/?logout)\b/i,
+
+    isLoggedIn() {
+      // Avoid false positives on the literal Login page — if the URL looks
+      // like a login route AND there's no other strong signal, return false.
+      try {
+        if (document.readyState === 'loading') {
+          // DOM not parsed yet → unknown
+          return null;
+        }
+
+        const candidates = document.querySelectorAll(
+          'a, button, [role="button"], [role="menuitem"], input[type="submit"]'
+        );
+
+        for (const el of candidates) {
+          // Cheap reject — skip elements that are display:none AND have empty
+          // accessible name (those are usually inert template fragments).
+          // We DO accept hidden elements behind menus — they exist in DOM and
+          // signal logged-in state, even if not currently visible.
+          const text = (el.textContent || '').trim();
+          const aria = (el.getAttribute('aria-label') || '').trim();
+          const title = (el.getAttribute('title') || '').trim();
+          const value = (el.value || '').toString().trim();
+
+          // textContent can be huge if `el` wraps the whole header — cap.
+          const probeText = (text.length > 200 ? '' : text) + ' ' + aria + ' ' + title + ' ' + value;
+          if (this._textPattern.test(probeText)) {
+            return true;
+          }
+
+          const href = el.getAttribute('href') || '';
+          const onclick = el.getAttribute('onclick') || '';
+          const dataAction = el.getAttribute('data-action') || el.getAttribute('data-test') || '';
+          if (this._hrefPattern.test(href) || this._hrefPattern.test(onclick) || this._hrefPattern.test(dataAction)) {
+            return true;
+          }
+        }
+
+        return false;
+      } catch (e) {
+        return null;
+      }
+    },
+  };
+
+  // ============================================
   // Message Handler
   // ============================================
 
@@ -379,6 +469,14 @@
         case MSG.PAGE_INFO_REQUEST:
         case 'getPageInfo':
           sendResponse(TrackerService.getPageInfo());
+          break;
+
+        case MSG.CHECK_LOGGED_IN_REQUEST:
+        case 'auth:check_logged_in:request':
+          sendResponse({
+            type: MSG.CHECK_LOGGED_IN_RESPONSE,
+            loggedIn: LoggedInDetector.isLoggedIn(),
+          });
           break;
 
         case MSG.SHOW_WARNING:

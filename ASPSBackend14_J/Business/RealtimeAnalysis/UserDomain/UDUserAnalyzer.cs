@@ -622,8 +622,13 @@ namespace Business.RealtimeAnalysis.UserDomain
                         res = true;
                         var remoteAccessApp = remoteAccessObjectsWithActiveSession.OrderByDescending(i => i.Value.Timestamp).FirstOrDefault(i => i.Key == deviceUid).Value.RemoteAccessApp;
                         _logger.LogWarning($"Immediate danger detected for user {this.UDUser.Key} on device {deviceUid} with active remote access session and sensitive website open.");
-                        var sUrl = this.UDUser.BrowserTabs?[deviceUid]?.FirstOrDefault(i => this.IsSensitiveWebsite(i.Url))?.Url;
-                        var urls = this.UDUser.BrowserTabs?[deviceUid]?.Where(i => this.IsSensitiveWebsite(i.Url)).ToList();
+                        // Include only tabs that are sensitive AND the user is plausibly logged in to.
+                        // (`IsConfidentlyNotLoggedIn` returns true ONLY when LoggedIn==false AND confidence=='high';
+                        // any 'unknown' / lower-confidence false is treated as logged-in to avoid false negatives.)
+                        var sUrl = this.UDUser.BrowserTabs?[deviceUid]
+                            ?.FirstOrDefault(i => this.IsSensitiveWebsite(i.Url) && !this.IsConfidentlyNotLoggedIn(i))?.Url;
+                        var urls = this.UDUser.BrowserTabs?[deviceUid]
+                            ?.Where(i => this.IsSensitiveWebsite(i.Url) && !this.IsConfidentlyNotLoggedIn(i)).ToList();
                         if (this._immediateDangers is null)
                         {
                             this._immediateDangers = new();
@@ -653,7 +658,31 @@ namespace Business.RealtimeAnalysis.UserDomain
 
         private bool HasSensitiveBrowserPages(string deviceUid)
         {
-            return this.UDUser.BrowserTabs?[deviceUid]?.Select(i => i.Url).Any(i => this.IsSensitiveWebsite(i)) ?? false;
+            // A sensitive tab counts toward ImmediateDanger only if the user is
+            // not confidently signed-out of it. The Chrome extension supplies
+            // LoggedIn (true / false / null) + LoggedInConfidence on each tab
+            // by combining a cookie check and a DOM scan. We suppress the alert
+            // ONLY when both signals confidently say "not logged in"; anything
+            // ambiguous or unknown still triggers (safer default).
+            return this.UDUser.BrowserTabs?[deviceUid]
+                ?.Any(i => this.IsSensitiveWebsite(i.Url) && !this.IsConfidentlyNotLoggedIn(i)) ?? false;
+        }
+
+        /// <summary>
+        /// True iff the Chrome extension confidently determined the user is
+        /// NOT logged in to this tab. Used to suppress false-positive
+        /// ImmediateDanger alerts on sensitive sites the user is just browsing
+        /// without authenticating. See `BrowserTab.LoggedIn`.
+        /// </summary>
+        private bool IsConfidentlyNotLoggedIn(BrowserTab tab)
+        {
+            if (tab is null) return false;
+            // Tri-state semantics:
+            //   LoggedIn == null   → unknown — assume logged in (safer)
+            //   LoggedIn == true   → not "confidently not"
+            //   LoggedIn == false  → only suppress when both signals agreed (high)
+            return tab.LoggedIn == false
+                && string.Equals(tab.LoggedInConfidence, "high", StringComparison.OrdinalIgnoreCase);
         }
 
         private bool IsSensitiveWebsite(string url)

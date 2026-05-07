@@ -25,6 +25,12 @@ export const MSG = {
   PAGE_INFO_REQUEST: 'page:info:request',
   PAGE_INFO_RESPONSE: 'page:info:response',
 
+  // Sent from background to content script to ask whether the user appears to
+  // be logged in to this tab (DOM scan for logout indicators in he/en/fr/ru).
+  // Response is { loggedIn: true|false|null }.
+  CHECK_LOGGED_IN_REQUEST:  'auth:check_logged_in:request',
+  CHECK_LOGGED_IN_RESPONSE: 'auth:check_logged_in:response',
+
   // ==========================================
   // Warning/Protection Messages
   // ==========================================

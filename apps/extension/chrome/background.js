@@ -124,15 +124,39 @@ function setupWebSocketHandlers() {
     console.log('[Background] Browser tabs requested by desktop agent');
     try {
       const tabs = await chrome.tabs.query({});
-      const tabData = tabs
-        .filter(tab => tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('chrome-extension://'))
-        .map(tab => ({
-          title:     tab.title     || '',
-          url:       tab.url       || '',
-          isActive:  tab.active    || false,
-          userAgent: navigator.userAgent,
-          timestamp: tab.lastAccessed ? new Date(tab.lastAccessed).toISOString() : new Date().toISOString()
-        }));
+      const visibleTabs = tabs.filter(
+        tab => tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('chrome-extension://')
+      );
+
+      // Per-tab logged-in detection (cookies + DOM scan), in parallel.
+      // Each detector may return null for "unknown".
+      const tabData = await Promise.all(
+        visibleTabs.map(async (tab) => {
+          const [cookieResult, domResult] = await Promise.all([
+            checkLoggedInByCookies(tab.url),
+            checkLoggedInByDom(tab.id),
+          ]);
+
+          const { loggedIn, confidence, signals } = combineLoggedInSignals(
+            cookieResult,
+            domResult
+          );
+
+          return {
+            title:               tab.title     || '',
+            url:                 tab.url       || '',
+            isActive:            tab.active    || false,
+            userAgent:           navigator.userAgent,
+            timestamp:           tab.lastAccessed
+                                   ? new Date(tab.lastAccessed).toISOString()
+                                   : new Date().toISOString(),
+            loggedIn:            loggedIn,            // true | false | null
+            loggedInConfidence:  confidence,          // 'high' | 'medium' | 'low' | null
+            loggedInSignals:     signals,             // ['cookie', 'dom'] subset
+          };
+        })
+      );
+
       connectionService.send({
         type:      MSG.WS_BROWSER_TABS_RESPONSE,
         requestId: data.requestId,
@@ -1069,6 +1093,80 @@ async function init() {
   iconService.update();
 
   console.log('[Background] Extension initialized');
+}
+
+// ============================================
+// Logged-In Detection — cookies + DOM (per-tab)
+// ============================================
+
+// Common session-cookie name patterns. Most sites either match this list
+// directly (`PHPSESSID`, `JSESSIONID`, `connect.sid`, …) or use a name that
+// matches one of these substrings. We also accept any cookie that's BOTH
+// httpOnly and secure — the standard shape of an auth cookie.
+const SESSION_COOKIE_NAME_PATTERN = /session|sess[_-]?id|sid|jsess|asp\.net.?sessionid|auth|token|jwt|access[_-]?token|id[_-]?token|csrf|xsrf|connect\.sid|__Secure|__Host/i;
+
+async function checkLoggedInByCookies(url) {
+  // Returns: { loggedIn: true|false|null, hasCookies: bool }
+  if (!url || !/^https?:/i.test(url)) {
+    return { loggedIn: null, hasCookies: false };
+  }
+  try {
+    const cookies = await chrome.cookies.getAll({ url });
+    if (!cookies || cookies.length === 0) {
+      return { loggedIn: false, hasCookies: false };
+    }
+    const sessionLike = cookies.some(
+      c => SESSION_COOKIE_NAME_PATTERN.test(c.name) || (c.httpOnly && c.secure)
+    );
+    return { loggedIn: sessionLike, hasCookies: true };
+  } catch (e) {
+    // Cookies permission missing or runtime error — unknown, not false.
+    console.warn('[Background] checkLoggedInByCookies failed:', e?.message || e);
+    return { loggedIn: null, hasCookies: false };
+  }
+}
+
+async function checkLoggedInByDom(tabId) {
+  // Returns: true | false | null   (null = no content script / timeout)
+  if (typeof tabId !== 'number') return null;
+  try {
+    const resp = await Promise.race([
+      chrome.tabs.sendMessage(tabId, { type: MSG.CHECK_LOGGED_IN_REQUEST }),
+      new Promise(resolve => setTimeout(() => resolve(null), 1500)),
+    ]);
+    if (resp && typeof resp.loggedIn !== 'undefined') {
+      return resp.loggedIn;
+    }
+    return null;
+  } catch (e) {
+    // No content script in this tab (e.g., chrome:// URL filtered earlier,
+    // or page hasn't injected yet). Treat as unknown.
+    return null;
+  }
+}
+
+function combineLoggedInSignals(cookieResult, domResult) {
+  const cookieSays = cookieResult?.loggedIn;   // true | false | null
+  const domSays    = domResult;                 // true | false | null
+  const signals = [];
+  if (cookieSays !== null) signals.push('cookie');
+  if (domSays    !== null) signals.push('dom');
+
+  // Both unknown → unknown
+  if (cookieSays === null && domSays === null) {
+    return { loggedIn: null, confidence: null, signals: [] };
+  }
+
+  // Both agree → high confidence
+  if (cookieSays === true  && domSays === true)  return { loggedIn: true,  confidence: 'high',   signals };
+  if (cookieSays === false && domSays === false) return { loggedIn: false, confidence: 'medium', signals };
+
+  // One says yes, one says no → conflict; lean on the positive (false negatives
+  // would suppress an alert that should fire; safer to err toward "logged in")
+  if (cookieSays === true  || domSays === true) return { loggedIn: true,  confidence: 'medium', signals };
+
+  // One says false, the other unknown → low-confidence false
+  return { loggedIn: false, confidence: 'low', signals };
 }
 
 // Start

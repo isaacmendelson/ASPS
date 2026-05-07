@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AntiScam Protection",
-  "version": "0.0.0.3",
+  "version": "0.0.1.0",
   "description": "Protection against online scams and fraud",
   "permissions": [
     "activeTab",
@@ -9,7 +9,8 @@
     "webNavigation",
     "storage",
     "notifications",
-    "alarms"
+    "alarms",
+    "cookies"
   ],
   "host_permissions": [
     "<all_urls>"
