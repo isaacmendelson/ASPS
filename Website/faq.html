@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<link rel="apple-touch-icon" href="favicon.svg"/>
+<meta name="description" content="FAQ ASPS Anti-Scam Protection Systems. Straight answers, no fluff."/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="FAQ ASPS Anti-Scam Protection"/>
+<meta property="og:description" content="Everything you need to know about ASPS scam protection. Straight answers, no fluff."/>
+<meta property="og:image" content="https://asps.io/assets/og/og-FINAL.png"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:image" content="https://asps.io/assets/og/og-FINAL.png"/>
+  <meta property="og:url" content="https://asps.io/faq.html"/>
+<link rel="canonical" href="https://asps.io/faq.html"/>
+<title>FAQ ASPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:'Instrument Sans',sans-serif;background:#FAFAF8;color:#1A2255;overflow-x:clip}
+
+/* ── SKIP LINK ── */
+.skip-link{
+  position:absolute;
+  top:-100%;
+  left:1rem;
+  background:#1F8B5C;
+  color:#fff;
+  padding:8px 16px;
+  border-radius:0 0 8px 8px;
+  font-weight:700;
+  z-index:9999;
+  transition:top 0.2s;
+  text-decoration:none;
+}
+.skip-link:focus{top:0}
+
+/* ── FOCUS STYLES ── */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible{
+  outline:3px solid #1F8B5C;
+  outline-offset:3px;
+}
+
+/* Nav login remove permanent outline, only show on keyboard focus */
+.nav-login{
+  outline:none;
+}
+.nav-login:focus-visible{
+  outline:3px solid #1F8B5C;
+  outline-offset:3px;
+}
+
+/* ── REDUCED MOTION ── */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:0.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:0.01ms !important;
+  }
+}
+
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  height:68px;padding:0 60px;
+  display:flex;align-items:center;gap:40px;
+  background:rgba(22,30,56,0.95);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(255,255,255,0.12);
+}
+.logo{margin-right:auto;display:block}
+.logo-svg{display:block;flex-shrink:0}
+nav a{font-size:.84rem;color:#7880A8;text-decoration:none;transition:.2s}
+nav a:hover{color:#C8CCE8}
+.nav-login{padding:9px 20px;border-radius:8px;background:transparent;border:1.5px solid rgba(255,255,255,0.2);color:#C8CCE8;font-size:.84rem;font-weight:600;transition:.2s;cursor:pointer;text-decoration:none;font-family:'Instrument Sans',sans-serif}
+.nav-login:hover{border-color:rgba(255,255,255,0.45);color:#fff;background:rgba(255,255,255,0.05)}
+.nav-cta{padding:9px 20px;border-radius:8px;background:#fff;color:#161E38;font-size:.84rem;font-weight:700;transition:.2s;cursor:pointer}
+.nav-cta:hover{background:#EEF0FF}
+
+/* ── PAGE HERO ── */
+.page-hero{background:#1A2255;padding:120px 24px 60px;text-align:center}
+.page-hero h1{font-family:'Syne',sans-serif;font-weight:800;font-size:2.2rem;color:#fff;margin-bottom:12px;line-height:1.2}
+.page-hero p{color:#7880A8;font-size:1rem}
+
+/* ── FAQ ── */
+.faq-inner{max-width:720px;margin:0 auto}
+.faq-item{border-bottom:1px solid rgba(26,34,85,0.1)}
+.faq-q{display:flex;justify-content:space-between;align-items:center;padding:20px 0;cursor:pointer;font-family:'Syne',sans-serif;font-weight:600;font-size:1.0rem;color:#1A2255;gap:16px;transition:color .25s;user-select:none;background:none;border:none;width:100%;text-align:left}
+.faq-q.open{color:#1F8B5C}
+.faq-arrow{flex-shrink:0;width:20px;height:20px;display:flex;align-items:center;justify-content:center;transition:transform .3s ease;color:#1F8B5C;font-size:1rem}
+.faq-q.open .faq-arrow{transform:rotate(180deg)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .3s ease;font-family:'Instrument Sans',sans-serif;font-size:.95rem;color:#4A5280;line-height:1.7;padding:0}
+.faq-a.open{max-height:800px;padding-bottom:20px}
+
+/* ── FOOTER ── */
+footer{
+  background:#0E1428;
+  padding:40px 60px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-top:1px solid rgba(255,255,255,0.10);
+}
+.f-copy{font-size:.78rem;color:#404870}
+.f-links{display:flex;gap:24px}
+.f-links a{font-size:.78rem;color:#3A4068;text-decoration:none}
+.f-links a:hover{color:#3FB785}
+
+/* ── MOBILE ── */
+/* ═══════════════════════════════════════════════════════════
+   EXTRA LARGE SCREENS  1440px+
+═══════════════════════════════════════════════════════════ */
+@media(min-width:1440px){
+  nav{
+    padding:0 calc((100vw - 1320px) / 2);
+  }
+  footer{
+    padding-left:calc((100vw - 1320px) / 2);
+    padding-right:calc((100vw - 1320px) / 2);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ULTRA WIDE SCREENS  1920px+
+═══════════════════════════════════════════════════════════ */
+@media(min-width:1920px){
+  nav{
+    padding:0 calc((100vw - 1600px) / 2);
+  }
+  footer{
+    padding-left:calc((100vw - 1600px) / 2);
+    padding-right:calc((100vw - 1600px) / 2);
+  }
+}
+
+@media(max-width:768px){
+  nav{padding:0 20px;gap:0;height:60px}
+  nav a:not(.nav-cta):not(.logo){display:none}
+  .logo{margin-right:auto}
+  .nav-cta{font-size:.78rem;padding:7px 14px;flex-shrink:0}
+  .page-hero{padding:100px 20px 48px}
+  .page-hero h1{font-size:1.8rem}
+  footer{flex-direction:column;align-items:center;text-align:center;gap:20px;padding:36px 20px}
+  .f-links{flex-wrap:wrap;justify-content:center;gap:14px 20px}
+}
+@media(max-width:480px){
+  nav{padding:0 14px}
+  .nav-cta{padding:6px 12px;font-size:.73rem}
+  .nav-login{padding:6px 12px;font-size:.73rem}
+  footer{padding:28px 16px;gap:16px}
+  .f-links{gap:10px 16px}
+}
+</style>
+</head>
+<body>
+
+<!-- SKIP LINK -->
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<!-- NAV -->
+<nav aria-label="Main navigation">
+  <a href="index.html" class="logo" aria-label="ASPS Home">
+    <svg class="logo-svg" width="148" height="40" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#navBarGradFaq)"/>
+      <text x="12" y="26" font-family="'Syne', sans-serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+      <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+      <circle cx="20" cy="6" r="4" fill="#1F8B5C" opacity="0.35">
+        <animate attributeName="r" values="4;7;4" dur="2.5s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.35;0;0.35" dur="2.5s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+      <defs>
+        <linearGradient id="navBarGradFaq" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#1F8B5C"/>
+          <stop offset="100%" stop-color="#16734C"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  </a>
+  <a href="index.html#vision">Mission</a>
+  <a href="index.html#stats">Numbers</a>
+  <a href="index.html#approach">Approach</a>
+  <a href="index.html#team">Team</a>
+  <div class="nav-cta" role="button" tabindex="0" onclick="location.href='index.html#contact'" onkeydown="if(event.key==='Enter'||event.key===' '){location.href='index.html#contact'}">Talk to us</div>
+</nav>
+
+<!-- PAGE HERO -->
+<div class="page-hero">
+  <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.75rem;letter-spacing:0.12em;text-transform:uppercase;color:#1F8B5C;margin-bottom:12px">Questions &amp; Answers</div>
+  <h1>Straight answers.<br>No fluff.</h1>
+  <p>Everything you need to know about ASPS.</p>
+</div>
+
+<!-- FAQ CONTENT -->
+<main id="main-content" role="main" style="background:#FAFAF8;padding:60px 24px 100px">
+  <div class="faq-inner">
+    <div class="faq-list">
+
+      <!-- Q1 -->
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)" aria-expanded="false">
+          <span>What is ASPS?</span>
+          <span class="faq-arrow">▼</span>
+        </button>
+        <div class="faq-a">ASPS is a full-envelope scam protection system. It monitors calls, texts, emails, and browser activity in real time and uses AI-powered analysis to detect threats before you act. The protection layer runs on your device. The intelligence behind it is AI.</div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)" aria-expanded="false">
+          <span>Which devices and platforms does ASPS support?</span>
+          <span class="faq-arrow">▼</span>
+        </button>
+        <div class="faq-a">ASPS runs on Mac, Android, and iOS. On desktop, it also includes a browser extension that monitors your web activity in real time. Each device runs its own app and they all work together as one unified protection layer around you.</div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)" aria-expanded="false">
+          <span>How do my devices work together to protect me?</span>
+          <span class="faq-arrow">▼</span>
+        </button>
+        <div class="faq-a">Scammers rarely use one channel. They'll call you while sending a link over WhatsApp. Or email you while impersonating your bank on screen. ASPS sees all your devices as one system and detects patterns across them simultaneously. The moment something looks coordinated and suspicious, you're alerted before you act.</div>
+      </div>
+
+      <!-- Q4 -->
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)" aria-expanded="false">
+          <span>How is ASPS different from antivirus software?</span>
+          <span class="faq-arrow">▼</span>
+        </button>
+        <div class="faq-a">Think of it this way: antivirus is ASPS for computers. ASPS is antivirus for people.<br><br>Antivirus blocks malicious code. ASPS blocks manipulation the social engineering that tricks real humans into handing over money or trust voluntarily. No existing software was built to stop that. We were.</div>
+      </div>
+
+      <!-- Q5 -->
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)" aria-expanded="false">
+          <span>Which types of scams does ASPS detect?</span>
+          <span class="faq-arrow">▼</span>
+        </button>
+        <div class="faq-a">All the major ones: phishing emails, voice cloning &amp; fake calls, investment fraud, romance scams, tech support scams, smishing (SMS scams), social media impersonation, and emerging AI-generated threats.</div>
+      </div>
+
+      <!-- Q6 -->
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)" aria-expanded="false">
+          <span>What if I get too many alerts?</span>
+          <span class="faq-arrow">▼</span>
+        </button>
+        <div class="faq-a">You're in control. ASPS lets you choose your level of intervention aggressive, balanced, or subtle. If you want to be notified about everything, you can. If you prefer it to step in only when the risk is high, that works too. The system protects you on your terms, not ours.</div>
+      </div>
+
+      <!-- Q7 -->
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)" aria-expanded="false">
+          <span>Can ASPS alert a family member if I'm being targeted?</span>
+          <span class="faq-arrow">▼</span>
+        </button>
+        <div class="faq-a">Yes this is one of our most important features. You can designate a trusted contact: a family member, a caregiver, a friend. If ASPS detects a scam in progress, they get notified too. So if a scammer is targeting an elderly mother, her daughter gets the alert even before mom realizes what's happening. Protection doesn't have to be a solo effort.</div>
+      </div>
+
+      <!-- Q8 -->
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)" aria-expanded="false">
+          <span>What if Apple or Google build something like this?</span>
+          <span class="faq-arrow">▼</span>
+        </button>
+        <div class="faq-a">If they do it proves the market is real. But they're platforms. We're a dedicated protection layer.<br><br>Apple and Google secure their ecosystems. They're not built to intervene in user behavior across platforms, analyze cross-app conversations, or stop social engineering in real time. And structurally, they can't be aggressive: Google's business runs on advertising and a lot of scam traffic flows through ads.<br><br>History backs this up. Apple didn't kill the antivirus market. Google didn't kill EDR. Microsoft Defender didn't end CrowdStrike. Specialists win on depth.<br><br>And if a giant does enter? We become their integration layer, their acquisition target, or the deep specialist they can't match on ROI. None of those outcomes are bad.</div>
+      </div>
+
+      <!-- Q9 -->
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)" aria-expanded="false">
+          <span>Is ASPS available now?</span>
+          <span class="faq-arrow">▼</span>
+        </button>
+        <div class="faq-a">We're currently in closed development. Join the waitlist to get priority access when we launch in the US. Early members will have a direct line to our team.</div>
+      </div>
+
+      <!-- Q10 -->
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)" aria-expanded="false">
+          <span>How is my personal data handled?</span>
+          <span class="faq-arrow">▼</span>
+        </button>
+        <div class="faq-a">We collect only what's necessary to detect threats no content is stored or sold. Your privacy is a core product principle, not an afterthought. Full details will be in our Privacy Policy at launch.</div>
+      </div>
+
+      <!-- Q11 -->
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)" aria-expanded="false">
+          <span>What will ASPS cost?</span>
+          <span class="faq-arrow">▼</span>
+        </button>
+        <div class="faq-a">We're finalizing pricing. Our goal is to make real protection accessible not a luxury. Waitlist members will get exclusive early-bird pricing.</div>
+      </div>
+
+    </div>
+  </div>
+    <div style="text-align:center;margin-top:60px;padding-top:40px;border-top:1px solid rgba(26,34,85,0.08)">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;color:#1A2255;margin-bottom:8px">Ready to get protected?</div>
+      <div style="font-family:'Instrument Sans',sans-serif;font-size:.9rem;color:#4A5280;margin-bottom:24px">Join the waitlist. Priority access when ASPS launches.</div>
+      <a href="index.html#cta" style="display:inline-block;background:linear-gradient(135deg,#1F8B5C,#16734C);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;padding:14px 32px;border-radius:10px;text-decoration:none;transition:.2s" onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">Join the Waitlist →</a>
+    </div>
+</main>
+
+<!-- FOOTER -->
+<footer role="contentinfo">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <svg width="130" height="36" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footBarGradFaq)"/>
+      <text x="12" y="26" font-family="'Syne', sans-serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+      <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+      <circle cx="20" cy="6" r="4" fill="#1F8B5C" opacity="0.3">
+        <animate attributeName="r" values="4;7;4" dur="2.5s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.3;0;0.3" dur="2.5s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+      <text x="13" y="37" font-family="'Instrument Sans', sans-serif" font-weight="500" font-size="7.5" fill="rgba(255,255,255,0.28)" letter-spacing="2">ANTI-SCAM PROTECTION</text>
+      <defs>
+        <linearGradient id="footBarGradFaq" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#1F8B5C"/>
+          <stop offset="100%" stop-color="#16734C"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <div style="font-size:.72rem;color:#3A4068;font-style:italic">Because trust shouldn&#8217;t be a luxury.</div>
+  </div>
+  <div class="f-links">
+    <a href="index.html#vision">Mission</a>
+    <a href="index.html#stats">Numbers</a>
+    <a href="index.html#hiw">How It Works</a>
+    <a href="index.html#team">Team</a>
+    <a href="faq.html" style="color:#1F8B5C">FAQ</a>
+    <a href="contact.html">Contact</a>
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="accessibility.html">Accessibility</a>
+  </div>
+  <div class="f-copy">© 2026 ASPS. All rights reserved.</div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script>
+function toggleFaq(el) {
+  const answer = el.nextElementSibling;
+  const isOpen = el.classList.contains('open');
+  document.querySelectorAll('.faq-q').forEach(q => {
+    q.classList.remove('open');
+    q.setAttribute('aria-expanded','false');
+    if(q.nextElementSibling) q.nextElementSibling.classList.remove('open');
+  });
+  if (!isOpen) {
+    el.classList.add('open');
+    el.setAttribute('aria-expanded','true');
+    answer.classList.add('open');
+  }
+}
+
+// Nav scroll
+const nav = document.querySelector('nav');
+window.addEventListener('scroll', () => {
+  nav.style.background = window.scrollY > 50 ? 'rgba(10,14,32,0.98)' : 'rgba(22,30,56,0.95)';
+}, {passive: true});
+
+// Smooth scroll for internal links
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const t = document.querySelector(a.getAttribute('href'));
+    if (t) { e.preventDefault(); t.scrollIntoView({behavior:'smooth', block:'start'}); }
+  });
+});
+</script>
+<script src="cookie-banner.js"></script>
+</body>
+</html>
