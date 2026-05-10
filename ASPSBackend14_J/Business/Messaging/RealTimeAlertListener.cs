@@ -495,6 +495,7 @@ public class RealTimeAlertListener : IDisposable
                 "UrlAlert"          => JsonConvert.DeserializeObject<UrlAlert>(message),
                 "TrackUrlAlert"     => JsonConvert.DeserializeObject<TrackUrlAlert>(message),
                 "TabClosedAlert"    => JsonConvert.DeserializeObject<TabClosedAlert>(message),
+                "TabChangedAlert"   => JsonConvert.DeserializeObject<TabChangedAlert>(message),
                 _ => InferAlertType(message, alertType)
             };
 
@@ -586,7 +587,7 @@ public class RealTimeAlertListener : IDisposable
     private async Task DispatchAlertInBackground(DeviceAlertReceived domainEvent, Key userKey, string deviceUid)
     {
         try
-        {
+  {
 
             this._domainEventPublisher.Register(domainEvent);
             this._domainEventPublisher.RaiseAll();

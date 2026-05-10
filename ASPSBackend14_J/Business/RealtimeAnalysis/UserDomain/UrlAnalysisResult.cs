@@ -79,6 +79,15 @@ namespace Business.RealtimeAnalysis.UserDomain
         [DataMember]
         public string[]? missing_data { get; set; }
 
-
+        /// <summary>
+        /// True when the URL's domain matches an active SensitiveSite entry
+        /// (banking, crypto, government, trading) OR when website_category
+        /// classifies it as bank/banking/crypto_exchange.
+        /// Computed by the backend at analysis time and forwarded to the
+        /// desktop agent (and from there to the Chrome extension) so the
+        /// extension can flag tabs without re-querying classification.
+        /// </summary>
+        [DataMember]
+        public bool? IsSensitiveWebsite { get; set; }
     }
 }

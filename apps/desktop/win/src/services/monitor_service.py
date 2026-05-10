@@ -57,6 +57,13 @@ class MonitorService:
         # stopped by stop_immediate_danger_loop() on the Ended notification.
         self._immediate_danger_task: Optional[asyncio.Task] = None
 
+        # Tracks whether the agent's last RemoteAccessAlert reported an active
+        # incoming session (session=open + direction=incoming). The Chrome
+        # extension uses this gate to decide whether to push fine-grained
+        # TabChangedAlert / TabClosedAlert during the session — see
+        # _broadcast_is_device_remote_controlled_if_changed.
+        self._is_device_remote_controlled: bool = False
+
     async def start(self, extension_server):
         """Start all monitoring tasks"""
         self._running = True
@@ -542,6 +549,25 @@ class MonitorService:
             if DEBUG_MODE:
                 print(f"[MONITOR] Broadcast app close to extension")
 
+    async def _broadcast_is_device_remote_controlled_if_changed(self, controlled: bool):
+        """Push the IsDeviceRemoteControlled flag to the extension when it
+        changes. Extension uses this as a gate: while true, every URL change
+        in a sensitive tab is reported via TabChangedAlert (otherwise it's
+        kept silent to avoid noise during normal browsing)."""
+        if controlled == self._is_device_remote_controlled:
+            return
+        self._is_device_remote_controlled = controlled
+        if not (hasattr(self, '_extension_server') and self._extension_server):
+            return
+        try:
+            await self._extension_server.broadcast({
+                'type': 'set_remote_controlled',
+                'isDeviceRemoteControlled': controlled,
+            })
+            print(f"[MONITOR] IsDeviceRemoteControlled -> {controlled} (broadcast to extension)")
+        except Exception as e:
+            logger.warning(f"Failed to broadcast IsDeviceRemoteControlled: {e}")
+
     async def _send_remote_access_alert_with_retry(
         self,
         device_uid: str,
@@ -598,6 +624,18 @@ class MonitorService:
             connection_id=connection_id,
             software=software,
         )
+
+        # Compute & broadcast the IsDeviceRemoteControlled flag right after a
+        # send (regardless of server response — what matters is what the agent
+        # is *asserting*). True iff active incoming session.
+        try:
+            controlled = (
+                (direction or '').lower() == 'incoming'
+                and str(session_status) == str(int(SessionStatus.OPEN))
+            )
+            await self._broadcast_is_device_remote_controlled_if_changed(controlled)
+        except Exception as e:
+            logger.warning(f"IsDeviceRemoteControlled compute/broadcast failed: {e}")
 
         if response:
             print(f"[MONITOR-RETRY] Server response status: {response.get('status', 'N/A')}")

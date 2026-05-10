@@ -178,6 +178,27 @@ namespace Business.RealtimeAnalysis
                         Url   = tc.Url,
                     };
                     break;
+
+                case TabChangedAlert tch:
+                    alertEntity = new TabChangedAlertEntity()
+                    {
+                        DateCreated = DateTime.UtcNow,
+                        KeyField = entityKey,
+                        AlertType = vm.AlertType,
+                        Priority = vm.Priority,
+                        Timestamp = vm.Timestamp,
+                        Token = vm.Token,
+                        Status = vm.Status,
+                        DeviceUid = vm.DeviceInfo.DeviceUid,
+                        DeviceType = userDevice.DeviceType,
+                        OperatingSystem = userDevice.OperatingSystem,
+                        UserKeyField = userDevice.UserKeyField,
+                        TabId = tch.TabId,
+                        Url = tch.Url,
+                        IsSensitiveWebsite = tch.IsSensitiveWebsite,
+                        IsLoggedIn = tch.IsLoggedIn
+                    };
+                    break;
             }
 
             // Snapshot of agent's ImmediateDanger flag at the time of the alert.
@@ -185,11 +206,9 @@ namespace Business.RealtimeAnalysis
             if (alertEntity != null)
             {
                 alertEntity.ImmediateDanger = vm.DeviceInfo.ImmediateDanger;
-            }
+            
 
-            // Save alert entity to database using scoped repository
-            if (alertEntity != null)
-            {
+                // Save alert entity to database using scoped repository
                 _logger.LogInformation( 
                     $"[AlertPersistenceActor] Saved device alert: " +
                     $"Key={alertEntity.Key.Value}, " +

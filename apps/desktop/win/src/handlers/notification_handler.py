@@ -146,7 +146,8 @@ class NotificationHandler:
                 'riskType': cache_data['risk_types'],
                 'protectiveAction': cache_data['protective_action'],
                 'protectiveActions': ext_protective_actions,  # Full array for extension
-                'fromCache': False
+                'fromCache': False,
+                'isSensitiveWebsite': analysis.get('is_sensitive_website'),
             }
             await self.extension_server.broadcast(result_message)
             print(f"[NOTIFICATION] Broadcasted result to extension: score={cache_data['score']}, actions={len(ext_protective_actions)}")
@@ -465,11 +466,21 @@ class NotificationHandler:
         elif analyzer_results:
             phishing_check = analyzer_results.get('phishing_check', {})
 
+        # Pull IsSensitiveWebsite — set by backend (UDUrlAnalyzer) from
+        # SensitiveSites table + website_category. Forwarded to extension so
+        # it can flag tabs without re-querying classification.
+        is_sensitive_website = None
+        if analysis_result:
+            is_sensitive_website = analysis_result.get('IsSensitiveWebsite')
+        if is_sensitive_website is None and analyzer_results:
+            is_sensitive_website = analyzer_results.get('IsSensitiveWebsite')
+
         return {
             'url': url,
             'risk_score': risk_score,
             'risk_assessment': risk_assessment,
-            'phishing_check': phishing_check
+            'phishing_check': phishing_check,
+            'is_sensitive_website': is_sensitive_website,
         }
 
     def _display_indicators(self, indicators: list):

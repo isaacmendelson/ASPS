@@ -186,6 +186,17 @@ function setupWebSocketHandlers() {
     console.log('[Background] ImmediateDanger mode OFF');
   });
 
+  // ─── IsDeviceRemoteControlled gate ──────────────────────────────────
+  // Pushed by the agent each time its RA flag toggles. While true, every
+  // URL change to a sensitive site (or login transition) emits
+  // WS_TAB_CHANGED_ALERT; sensitive tab closes emit WS_TAB_CLOSED_ALERT.
+  connectionService.onMessage(MSG.WS_SET_REMOTE_CONTROLLED, (data) => {
+    const next = !!(data && data.isDeviceRemoteControlled);
+    if (next === isDeviceRemoteControlled) return;
+    isDeviceRemoteControlled = next;
+    console.log('[Background] IsDeviceRemoteControlled =', next);
+  });
+
   // Handle remote access alert from desktop
   connectionService.onMessage(MSG.REMOTE_ACCESS_ALERT, async (data) => {
     console.log('[Background] Remote access alert received:', data);
@@ -303,6 +314,23 @@ function setupWebSocketHandlers() {
 
 function handleUrlResult(data) {
   console.log('[Background] URL result received:', { url: data.url, score: data.score, action: data.protectiveAction, analyzing: data.analyzing });
+
+  // Cache `isSensitiveWebsite` per root domain — used by the TabChangedAlert
+  // pipeline to decide whether navigation events for a domain matter.
+  // We only OVERWRITE on definitive true/false; null/undefined leaves cache.
+  if (data && data.url && typeof data.isSensitiveWebsite === 'boolean') {
+    const root = _safeRootDomain(data.url);
+    if (root) {
+      sensitiveDomainCache.set(root, data.isSensitiveWebsite);
+      // Back-fill any open tab on the same root so a still-open bank tab
+      // becomes "known sensitive" once the analysis result lands.
+      for (const [tid, ctrl] of tabControls) {
+        if (ctrl.root === root) {
+          ctrl.isSensitiveWebsite = data.isSensitiveWebsite;
+        }
+      }
+    }
+  }
 
   // If server is still analyzing, keep loading state and wait for final result
   if (data.analyzing === true) {
@@ -630,45 +658,165 @@ function setupMessageHandlers() {
 const tabNavigationHistory = new Map();
 const tabActivationTimes = new Map();
 
-// ─── ImmediateDanger state ─────────────────────────────────────────────
-// Flipped by WS_IMMEDIATE_DANGER_STARTED / _ENDED messages from the agent.
-// While true, chrome.tabs.onRemoved fires a TabClosedAlert per closed tab.
+// ─── ImmediateDanger / RemoteControlled state ─────────────────────────
+// `immediateDangerMode` is flipped by WS_IMMEDIATE_DANGER_STARTED/_ENDED.
+// `isDeviceRemoteControlled` is flipped by WS_SET_REMOTE_CONTROLLED — set
+// to true while the agent's last RemoteAccessAlert reports
+// session=open + direction=incoming. While EITHER is true, tab close on a
+// previously-sensitive tab fires WS_TAB_CLOSED_ALERT. While
+// `isDeviceRemoteControlled` is true, every URL change to a sensitive site
+// (or login transition on an already-sensitive tab) fires
+// WS_TAB_CHANGED_ALERT — so the backend can re-evaluate ImmediateDanger
+// without waiting for the next 10s RA poll.
 let immediateDangerMode = false;
+let isDeviceRemoteControlled = false;
 
-// tabId → last-known URL. Filled from chrome.tabs.onUpdated and consumed by
-// chrome.tabs.onRemoved (which delivers only tabId, not the URL).
-const tabUrlMap = new Map();
+// tabId → { url, root, isSensitiveWebsite, isLoggedIn }. The richer
+// per-tab state needed to decide when a TabChangedAlert is meaningful.
+const tabControls = new Map();
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (tab && tab.url) tabUrlMap.set(tabId, tab.url);
-});
-chrome.tabs.onCreated.addListener((tab) => {
-  if (tab && tab.id != null && tab.url) tabUrlMap.set(tab.id, tab.url);
-});
+// rootDomain → bool. Cached from the backend's `isSensitiveWebsite` flag
+// in WS_URL_RESULT. New tabs/onUpdated events look up sensitivity here
+// without a round-trip.
+const sensitiveDomainCache = new Map();
 
-chrome.tabs.onRemoved.addListener((tabId /*, removeInfo */) => {
-  // Capture URL BEFORE we forget it, even if not in danger mode.
-  const url = tabUrlMap.get(tabId) || '';
-  tabUrlMap.delete(tabId);
-
-  if (!immediateDangerMode) return;
-
-  // Best-effort send. connectionService may not be initialised yet during
-  // service-worker bootstrap, in which case we skip — there's no useful
-  // recovery for an already-gone tab.
+function _safeRootDomain(url) {
   try {
-    if (typeof connectionService !== 'undefined' && connectionService.isConnected && connectionService.isConnected()) {
-      connectionService.send({
-        type:      MSG.WS_TAB_CLOSED_ALERT,
-        tabId:     String(tabId),
-        url:       url,
-        timestamp: new Date().toISOString(),
-      });
-      console.log('[Background] TabClosedAlert sent (danger mode):', tabId, url);
-    }
+    const u = new URL(url);
+    return getRootDomain(u.hostname);
+  } catch (_) {
+    return '';
+  }
+}
+
+function _isSensitiveByCache(url) {
+  const root = _safeRootDomain(url);
+  if (!root) return undefined; // unknown
+  return sensitiveDomainCache.get(root); // true / false / undefined
+}
+
+async function _detectLoggedInForTab(tab) {
+  // Returns true | false | null. Re-uses the existing combineLoggedInSignals
+  // pipeline (cookies + DOM scan).
+  try {
+    if (!tab || !tab.url || !/^https?:/i.test(tab.url)) return null;
+    const [cookieResult, domResult] = await Promise.all([
+      checkLoggedInByCookies(tab.url),
+      checkLoggedInByDom(tab.id),
+    ]);
+    return combineLoggedInSignals(cookieResult, domResult).loggedIn;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function _refreshTabControl(tabId, url) {
+  // Build/refresh per-tab cached state. Returns the snapshot.
+  const root = _safeRootDomain(url);
+  const isSensitive = sensitiveDomainCache.get(root);
+  let isLoggedIn = null;
+  if (isSensitive === true) {
+    // Only pay the cookies+DOM cost when the tab is on a sensitive domain.
+    try {
+      const tab = await chrome.tabs.get(tabId);
+      isLoggedIn = await _detectLoggedInForTab(tab);
+    } catch (_) { /* tab may have closed */ }
+  }
+  const snap = { url, root, isSensitiveWebsite: isSensitive ?? null, isLoggedIn };
+  tabControls.set(tabId, snap);
+  return snap;
+}
+
+function _sendTabChangedAlert(tabId, snap) {
+  if (typeof connectionService === 'undefined') return;
+  if (!connectionService.isConnected || !connectionService.isConnected()) return;
+  try {
+    connectionService.send({
+      type:               MSG.WS_TAB_CHANGED_ALERT,
+      tabId:              String(tabId),
+      url:                snap.url || '',
+      isSensitiveWebsite: snap.isSensitiveWebsite,
+      isLoggedIn:         snap.isLoggedIn,
+      timestamp:          new Date().toISOString(),
+    });
+    console.log('[Background] TabChangedAlert sent:',
+      tabId, snap.url, 'sensitive=', snap.isSensitiveWebsite, 'loggedIn=', snap.isLoggedIn);
+  } catch (e) {
+    console.warn('[Background] TabChangedAlert send failed:', e);
+  }
+}
+
+function _sendTabClosedAlert(tabId, url) {
+  if (typeof connectionService === 'undefined') return;
+  if (!connectionService.isConnected || !connectionService.isConnected()) return;
+  try {
+    connectionService.send({
+      type:      MSG.WS_TAB_CLOSED_ALERT,
+      tabId:     String(tabId),
+      url:       url || '',
+      timestamp: new Date().toISOString(),
+    });
+    console.log('[Background] TabClosedAlert sent:', tabId, url);
   } catch (e) {
     console.warn('[Background] TabClosedAlert send failed:', e);
   }
+}
+
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (!tab || !tab.url) return;
+  // We only care about URL changes for the Tab*Alert flow. status='complete'
+  // also gives us a chance to re-check loggedIn after the page finished
+  // loading (cookies/DOM are fully set by then).
+  const urlChanged = !!changeInfo.url;
+  const completed  = changeInfo.status === 'complete';
+  if (!urlChanged && !completed) return;
+
+  const prev = tabControls.get(tabId);
+  const snap = await _refreshTabControl(tabId, tab.url);
+
+  if (!isDeviceRemoteControlled) return;
+
+  // Fire TabChangedAlert when:
+  //  - The URL changed AND the new (or old) URL is sensitive, OR
+  //  - The tab is on a sensitive site AND loggedIn just transitioned
+  //    (covers SPA logins and post-load cookie-set logins).
+  const wasSensitive = prev && prev.isSensitiveWebsite === true;
+  const nowSensitive = snap.isSensitiveWebsite === true;
+  const loggedInTransition = nowSensitive
+    && prev
+    && prev.isLoggedIn !== snap.isLoggedIn;
+
+  if ((urlChanged && (nowSensitive || wasSensitive)) || loggedInTransition) {
+    _sendTabChangedAlert(tabId, snap);
+  }
+});
+
+chrome.tabs.onCreated.addListener(async (tab) => {
+  if (!tab || tab.id == null || !tab.url) return;
+  const snap = await _refreshTabControl(tab.id, tab.url);
+  if (isDeviceRemoteControlled && snap.isSensitiveWebsite === true) {
+    _sendTabChangedAlert(tab.id, snap);
+  }
+});
+
+chrome.tabs.onRemoved.addListener((tabId /*, removeInfo */) => {
+  // Capture state BEFORE we forget it.
+  const prev = tabControls.get(tabId);
+  tabControls.delete(tabId);
+
+  if (!prev) return;
+
+  // Two paths trigger TabClosedAlert:
+  //  - immediateDangerMode (legacy): every close, regardless of sensitivity
+  //    (backend filters; UDUserAnalyzer trims by url+tabId)
+  //  - isDeviceRemoteControlled: only when the closed tab was sensitive
+  //    (avoids noise during normal browsing under an active RA session)
+  const shouldSend =
+    (immediateDangerMode) ||
+    (isDeviceRemoteControlled && prev.isSensitiveWebsite === true);
+  if (!shouldSend) return;
+
+  _sendTabClosedAlert(tabId, prev.url);
 });
 
 // TrackMode enum - matches backend Common.Enums.TrackMode

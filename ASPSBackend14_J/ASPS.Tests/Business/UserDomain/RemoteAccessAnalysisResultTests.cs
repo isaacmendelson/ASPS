@@ -20,9 +20,9 @@ public class RemoteAccessAnalysisResultTests
         var count = 5;
         var session = 1;
         var direction = RemoteAccessDirection.Incoming;
-        var tabs = new BrowserTab[] 
-        { 
-            new BrowserTab("Test", "Mozilla/5.0", "t1", "http://test.com", DateTime.UtcNow, true) 
+        var tabs = new BrowserTab[]
+        {
+            new BrowserTab { Title = "Test", UserAgent = "Mozilla/5.0", TabId = "t1", Url = "http://test.com", Timestamp = DateTime.UtcNow, IsActive = true }
         };
         var riskAssessment = new RiskAssessment(50f, "Medium risk", false, 1f); // MEDIUM risk
 
@@ -69,9 +69,9 @@ public class RemoteAccessAnalysisResultTests
         // Arrange
         var tabs = new BrowserTab[]
         {
-            new BrowserTab("Test 1", "Agent", "t1", "http://test1.com", DateTime.UtcNow, true),
-            new BrowserTab("Test 2", "Agent", "t2", "http://test2.com", DateTime.UtcNow, false),
-            new BrowserTab("Test 3", "Agent", "t3", "http://test3.com", DateTime.UtcNow, true)
+            new BrowserTab { Title = "Test 1", UserAgent = "Agent", TabId = "t1", Url = "http://test1.com", Timestamp = DateTime.UtcNow, IsActive = true },
+            new BrowserTab { Title = "Test 2", UserAgent = "Agent", TabId = "t2", Url = "http://test2.com", Timestamp = DateTime.UtcNow, IsActive = false },
+            new BrowserTab { Title = "Test 3", UserAgent = "Agent", TabId = "t3", Url = "http://test3.com", Timestamp = DateTime.UtcNow, IsActive = true }
         };
 
         // Act

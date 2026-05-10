@@ -34,6 +34,7 @@ class ExtensionHandler:
             'url_check': self._handle_url_check,
             'track_url_alert': self._handle_track_url_alert,
             'tab_closed_alert': self._handle_tab_closed_alert,
+            'tab_changed_alert': self._handle_tab_changed_alert,
             'ping': self._handle_ping,
             'user_auth': self._handle_user_auth,
             'get_user': self._handle_get_user,
@@ -71,6 +72,31 @@ class ExtensionHandler:
         print(f"[EXTENSION] TabClosedAlert: tabId={tab_id}, url={url}")
         return self.scan_service.send_tab_closed_alert(
             tab_id=tab_id, url=url, ip_address=ip_address,
+        )
+
+    def _handle_tab_changed_alert(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Forward TabChangedAlert from extension → backend (via scan_service).
+        Sent by the extension on URL change in any tab while
+        IsDeviceRemoteControlled is true. The extension also includes the
+        per-tab `isSensitiveWebsite` and `isLoggedIn` it has cached, so the
+        backend can re-evaluate ImmediateDanger without waiting for the next
+        UrlAlert round-trip."""
+        tab_id = str(data.get('tabId', '') or data.get('TabId', ''))
+        url = data.get('url', '') or data.get('Url', '')
+        is_sensitive = data.get('isSensitiveWebsite', None)
+        if is_sensitive is None:
+            is_sensitive = data.get('IsSensitiveWebsite', None)
+        is_logged_in = data.get('isLoggedIn', None)
+        if is_logged_in is None:
+            is_logged_in = data.get('IsLoggedIn', None)
+        ip_address = data.get('ipAddress', '') or self._local_ip
+        print(f"[EXTENSION] TabChangedAlert: tabId={tab_id}, url={url}, "
+              f"sensitive={is_sensitive}, loggedIn={is_logged_in}")
+        return self.scan_service.send_tab_changed_alert(
+            tab_id=tab_id, url=url,
+            is_sensitive_website=is_sensitive,
+            is_logged_in=is_logged_in,
+            ip_address=ip_address,
         )
 
     def _handle_track_url_alert(self, data: Dict[str, Any]) -> Dict[str, Any]:

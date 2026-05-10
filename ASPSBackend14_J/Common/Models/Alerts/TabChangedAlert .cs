@@ -53,4 +53,5 @@ public class TabChangedAlert : DeviceAlert
     public string Url { get; set; } = string.Empty;
     public bool? IsSensitiveWebsite { get; set; }
     public bool? IsLoggedIn { get; set; }
+
 }

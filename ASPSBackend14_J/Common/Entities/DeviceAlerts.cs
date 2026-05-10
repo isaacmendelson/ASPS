@@ -266,3 +266,16 @@ public class TabClosedAlertEntity : DeviceAlertEntity
     [NotMapped]
     public override string TypeName => "TabClosedAlert";
 }
+
+public class TabChangedAlertEntity : DeviceAlertEntity
+{
+    public TabChangedAlertEntity() { }
+
+    public string? TabId { get; set; }
+    public string? Url { get; set; }
+    public bool? IsSensitiveWebsite { get; set; }
+    public bool? IsLoggedIn { get; set; }
+
+    [NotMapped]
+    public override string TypeName => "TabChangedAlert";
+}

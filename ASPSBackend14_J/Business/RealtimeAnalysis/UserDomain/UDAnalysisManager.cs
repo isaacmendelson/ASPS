@@ -186,10 +186,15 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
 
         try
         {
-            if (alertEvent.Alert is RemoteAccessAlert r)
+            if (alertEvent.Alert is RemoteAccessAlert ra)
             {
-                _= this._userAnalyzer.AnalyzeAsync(alertEvent.Alert);
+                _= this._userAnalyzer.AnalyzeAsync(ra);
             }
+            else if (alertEvent.Alert is TabChangedAlert tc)
+            {
+                _ = this._userAnalyzer.AnalyzeAsync(tc);
+            }
+
             this._analysis.AnalyzeAsync(alertEvent.Alert, deviceUid, alertEvent.DeviceAlertEntityKey);
             //// Pass alert to the single analysis instance with entity key
             //var analysisResultForDeviceAlert = await this._analysis.AnalyzeAsync(alertEvent.Alert, deviceUid, alertEvent.DeviceAlertEntityKey);

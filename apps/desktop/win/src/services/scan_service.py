@@ -302,6 +302,39 @@ class ScanService:
             logger.error(f"send_tab_closed_alert failed: {e}")
             return {'type': 'tab_closed_ack', 'status': 'error', 'message': str(e)}
 
+    def send_tab_changed_alert(
+        self,
+        tab_id: str,
+        url: str,
+        is_sensitive_website: Optional[bool] = None,
+        is_logged_in: Optional[bool] = None,
+        ip_address: str = '',
+    ) -> Dict[str, Any]:
+        """Forward a TabChangedAlert from the Chrome extension to the backend.
+        Fired by the extension on URL change in a tab while the device is
+        under remote control (session=open + direction=incoming). Lets the
+        backend re-evaluate ImmediateDanger immediately when the user logs
+        in to a sensitive site mid-session."""
+        try:
+            print(f"\n[TAB-CHANGED] Forwarding to backend — TabId={tab_id}, Url={url}, "
+                  f"sensitive={is_sensitive_website}, loggedIn={is_logged_in}")
+            response = self.zmq_client.send_tab_changed_alert(
+                device_uid=self.device_id,
+                tab_id=tab_id,
+                url=url,
+                is_sensitive_website=is_sensitive_website,
+                is_logged_in=is_logged_in,
+                ip_address=ip_address,
+                token=self.auth_manager.token or '',
+            )
+            if response:
+                print(f"[TAB-CHANGED] Backend response: {response.get('Status', 'unknown')}")
+                return {'type': 'tab_changed_ack', 'status': 'ok'}
+            return {'type': 'tab_changed_ack', 'status': 'error', 'message': 'No response'}
+        except Exception as e:
+            logger.error(f"send_tab_changed_alert failed: {e}")
+            return {'type': 'tab_changed_ack', 'status': 'error', 'message': str(e)}
+
     def send_track_url_alert(
         self,
         url: str,

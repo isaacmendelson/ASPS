@@ -83,6 +83,17 @@ export const MSG = {
   // ImmediateDanger mode. Forwarded to the backend as a TabClosedAlert.
   WS_TAB_CLOSED_ALERT: 'tab_closed_alert',
 
+  // Sent by the extension to the agent whenever a tab's URL changes
+  // (existing or new) while IsDeviceRemoteControlled is true. Forwarded
+  // to the backend as a TabChangedAlert. Lets the backend re-evaluate
+  // ImmediateDanger immediately on a mid-session login to a sensitive site.
+  WS_TAB_CHANGED_ALERT: 'tab_changed_alert',
+
+  // Broadcast by the agent whenever its IsDeviceRemoteControlled flag
+  // toggles (active incoming session = open). Extension caches this and
+  // uses it as a gate for WS_TAB_CHANGED_ALERT / WS_TAB_CLOSED_ALERT.
+  WS_SET_REMOTE_CONTROLLED: 'set_remote_controlled',
+
   // ==========================================
   // Remote Access Warning Messages
   // ==========================================

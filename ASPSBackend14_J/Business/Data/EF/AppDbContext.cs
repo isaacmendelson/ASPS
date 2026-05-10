@@ -216,7 +216,8 @@ public class AppDbContext : DbContext
                 .HasValue<RemoteAccessAlertEntity>("RemoteAccess")
                 .HasValue<UrlAlertEntity>("Url")
                 .HasValue<TrackUrlAlertEntity>("TrackUrl")
-                .HasValue<TabClosedAlertEntity>("TabClosed");
+                .HasValue<TabClosedAlertEntity>("TabClosed")
+                .HasValue<TabChangedAlertEntity>("TabChanged");
             
             entity.HasKey(e => e.KeyField);
             entity.Property(e => e.KeyField)
@@ -308,6 +309,28 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Url)
                 .HasColumnName("TabClosedUrl")
                 .HasColumnType("TEXT");
+        });
+
+        // TabChangedAlertEntity specific configuration —
+        //   * TabId pinned to the shared "TabId" column (also used by
+        //     WebAlertEntity and TabClosedAlertEntity).
+        //   * Url mapped to a NEW column ("TabChangedUrl") for the same
+        //     reason TabClosedAlertEntity.Url got its own — siblings at the
+        //     same TPH level can't share a column already owned by
+        //     WebAlertEntity at a different level.
+        //   * IsSensitiveWebsite / IsLoggedIn are TabChanged-only columns.
+        modelBuilder.Entity<TabChangedAlertEntity>(entity =>
+        {
+            entity.Property(e => e.TabId)
+                .HasColumnName("TabId")
+                .HasMaxLength(100);
+            entity.Property(e => e.Url)
+                .HasColumnName("TabChangedUrl")
+                .HasColumnType("TEXT");
+            entity.Property(e => e.IsSensitiveWebsite)
+                .HasColumnName("IsSensitiveWebsite");
+            entity.Property(e => e.IsLoggedIn)
+                .HasColumnName("IsLoggedIn");
         });
 
         // TrackUrlAlertEntity specific configuration

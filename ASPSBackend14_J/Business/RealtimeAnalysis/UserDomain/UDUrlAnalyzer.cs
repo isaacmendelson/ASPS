@@ -103,7 +103,8 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
                 website_category = null,
                 Reputation = null,
                 Warnings = Array.Empty<string>(),
-                missing_data = Array.Empty<string>()
+                missing_data = Array.Empty<string>(),
+                IsSensitiveWebsite = false
             };
 
             return new AnalyzerResult(
@@ -181,6 +182,15 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
                 if (result != null)
                 {
                     result.phishing_check = phishingCheckResult;
+
+                    // Compute IsSensitiveWebsite once per analysis. Primary source:
+                    // SensitiveSites table (covers banks/crypto/government even on
+                    // first visit). Fallback: classifier's website_category.
+                    var sensitiveByTable = _asView.IsSensitiveDomain(url);
+                    var category = result.website_category?.category?.ToLower();
+                    var sensitiveByCategory = category is "bank" or "banking" or "crypto_exchange";
+                    result.IsSensitiveWebsite = sensitiveByTable || sensitiveByCategory;
+
                     results.Add(result);
                     _logger.LogInformation($"Analyzer {analyzer.ScriptFile} completed successfully. Risk Score: {result.risk_assessment?.risk_score ?? 0}");
                     
