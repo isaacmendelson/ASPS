@@ -27,14 +27,24 @@ namespace Business.RealtimeAnalysis.ProtectivActions
 
                     // ProtectiveActions for the reporting device:
                     var msg = $"DANGER! DO NOT PROCEED! Your sensitive data online is accessible by remote pary using remote control!\nClose any remote access application running on this device.\nLogout from any website you are logged to.";
-                    if (immediateDangerByRemoteAccessDto.DeviceKey is not null)
+
+                    // Subject key for the actions: prefer the explicit DeviceKey
+                    // from the DTO. If it's missing (UserDevices cache not yet
+                    // loaded, Device navigation property not fetched, …), fall
+                    // back to a synthetic Key from DeviceUid so we still emit
+                    // the actions — without this fallback the entire array
+                    // came back empty and the agent never showed a toast.
+                    Key subjectKey = immediateDangerByRemoteAccessDto.DeviceKey
+                        ?? (!string.IsNullOrEmpty(immediateDangerByRemoteAccessDto.DeviceUid)
+                                ? new Key(nameof(Common.Entities.UserDevice), immediateDangerByRemoteAccessDto.DeviceUid)
+                                : null);
+
+                    if (subjectKey is not null)
                     {
-                        var pa1 = new ProtectiveAction(immediateDangerByRemoteAccessDto.DeviceKey, ProtectiveActionType.DisplayNotification, AnalysisLevel.User, msg, immediateDangerByRemoteAccessDto.DeviceAlertKey?.Value);
-                        protectiveActions.Add(pa1);
-                        var pa2 = new ProtectiveAction(immediateDangerByRemoteAccessDto.DeviceKey, ProtectiveActionType.SoundAlert, AnalysisLevel.User, msg, immediateDangerByRemoteAccessDto.DeviceAlertKey?.Value);
-                        protectiveActions.Add(pa2);
-                        var pa3 = new ProtectiveAction(immediateDangerByRemoteAccessDto.DeviceKey, ProtectiveActionType.BlockRemoteAccess, AnalysisLevel.User, msg, immediateDangerByRemoteAccessDto.DeviceAlertKey?.Value);
-                        protectiveActions.Add(pa3);
+                        var alertId = immediateDangerByRemoteAccessDto.DeviceAlertKey?.Value;
+                        protectiveActions.Add(new ProtectiveAction(subjectKey, ProtectiveActionType.DisplayNotification, AnalysisLevel.User, msg, alertId));
+                        protectiveActions.Add(new ProtectiveAction(subjectKey, ProtectiveActionType.SoundAlert,         AnalysisLevel.User, msg, alertId));
+                        protectiveActions.Add(new ProtectiveAction(subjectKey, ProtectiveActionType.BlockRemoteAccess,  AnalysisLevel.User, msg, alertId));
                     }
 
 

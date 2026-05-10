@@ -129,6 +129,8 @@ namespace Business.RealtimeAnalysis.UserDomain
                     _logger.LogInformation(
                         "[UDUserAnalyzer] TabClosedAlert received: User={UserKey}, Device={DeviceUid}, TabId={TabId}, Url={Url}",
                         this.UDUser.Key.Value, tc.DeviceInfo.DeviceUid, tc.TabId, tc.Url);
+
+                    var IsImmediateGangerDetected = this.DetectImmediateDanger(tc.Key);
                     break;
             }
 
@@ -590,20 +592,27 @@ namespace Business.RealtimeAnalysis.UserDomain
         {
             if (alertKey == null)
             {
+                _logger.LogInformation("[DetectImmediateDanger] SKIP: alertKey is null (caller passed null Key — happens for alerts without AlertId)");
                 return false;
             }
             bool res = false;
-            
+
             this.GetLatestAnalysisResults();
-            
+
             var remoteAccessStatus = this.GetRemoteAccessStatus();
             this._remoteAccessStatus = this.GetRemoteAccessStatus()?.ToList() ?? new List<KeyValuePair<string, RemoteAccessStatusObject>>();
-            //if (remoteAccessStatus is not null && !_remoteAccessStatus.Any(i => i.Timestamp >= remoteAccessStatus.Timestamp))
-            //{
-            //    this._remoteAccessStatus.Add(remoteAccessStatus);
-            //}
+
+            // Diagnostic — show exactly what state is in front of us when we run.
+            _logger.LogInformation(
+                "[DetectImmediateDanger] alertKey={AlertKey} | _remoteAccessStatus.count={RaCount} | userDevices.count={DevCount} | browserTabs.deviceCount={TabsDevs}",
+                alertKey?.Value,
+                this._remoteAccessStatus.Count,
+                this.UDUser.UserDevices?.Count() ?? 0,
+                this.UDUser.BrowserTabs?.Count ?? 0);
+
             if (!this._remoteAccessStatus.Any(i => i.Value.isRemoteAccessSessionActive && i.Value.RemoteAccessDirection == RemoteAccessDirection.Incoming))
             {
+                _logger.LogInformation("[DetectImmediateDanger] No active INCOMING remote-access session in cache — will scan for ended dangers below");
                 //return false;
             }
 
@@ -629,10 +638,15 @@ namespace Business.RealtimeAnalysis.UserDomain
                     .OrderByDescending(I => I.Timestamp)
                     .ToList();
                 var userDervices = this.UDUser.UserDevices.Select(i => i.DeviceUid);
+                _logger.LogInformation(
+                    "[DetectImmediateDanger] activeIncomingDevices=[{Active}], userDevices=[{All}]",
+                    string.Join(",", activeDeviceUids ?? new HashSet<string>()),
+                    string.Join(",", userDervices));
                 foreach (var deviceUid in userDervices)
                 {
                     if (activeDeviceUids?.Count == 0 || !(activeDeviceUids?.Contains(deviceUid) == true))
                     {
+                        _logger.LogInformation("[DetectImmediateDanger] device {DeviceUid} not in active-incoming set — closing any open dangers", deviceUid);
                         foreach (var item in this._immediateDangers.Where(i => i.DeviceUid == deviceUid && i.EndTime == null))
                         {
                             item.EndTime = DateTime.UtcNow;
@@ -640,7 +654,15 @@ namespace Business.RealtimeAnalysis.UserDomain
                             this._domainEventPublisher.Register(evt);
                         }
                     }
-                    //else if (this.HasSensitiveBrowserPages(deviceUid))
+                    else if (!this.HasSensitiveBrowserPages(deviceUid))
+                    {
+                        // Active incoming session but no sensitive+logged-in tab → not a danger.
+                        var tabs = this.UDUser.BrowserTabs?.GetValueOrDefault(deviceUid)?.ToList() ?? new List<BrowserTab>();
+                        _logger.LogInformation(
+                            "[DetectImmediateDanger] device {DeviceUid}: incoming session active, BUT HasSensitiveBrowserPages=false. tabs={N}: [{Tabs}]",
+                            deviceUid, tabs.Count,
+                            string.Join(" | ", tabs.Select(t => $"{t.Url} (loggedIn={t.LoggedIn?.ToString() ?? "null"} sensitive={IsSensitiveWebsite(t.Url)})")));
+                    }
                     else if (this.HasSensitiveBrowserPages(deviceUid))
                     {
 
@@ -668,12 +690,19 @@ namespace Business.RealtimeAnalysis.UserDomain
                             // Create new immediate danger instance and add to the list
                             var immediateDanger = new ImmediateDangerByRemoteAccessDto(new Key(nameof(ImmediateDangerByRemoteAccess), Guid.NewGuid().ToString()), remoteAccessApp, sUrl, deviceUid, this.UDUser.Key.Value,
                                 this.UDUser.UserDevices.FirstOrDefault(i => i.DeviceUid == deviceUid)?.Key, alertKey, null, []);
+                            var x1 = this.GetRemoteAccessStatus();
                             this._immediateDangers.Add(immediateDanger);
                         }
                         //Publish event ImmediateDanderDetected
+                        var x = this._immediateDangers.OrderByDescending(i => i.Timestamp).OfType<ImmediateDangerByRemoteAccessDto>()
+                            .Where(i => i.EndTime == null && i.RemoteAccessApp == remoteAccessApp && i.DeviceUid == deviceUid && i.SensitiveUrl?.ToLower() == sUrl.ToLower());
+
                         var domainEvent = new ImmediateDangerDetected(this._immediateDangers.OrderByDescending(i => i.Timestamp).OfType<ImmediateDangerByRemoteAccessDto>()
-                            .First(i => i.EndTime == null && i.RemoteAccessApp == remoteAccessApp && i.DeviceUid == deviceUid && i.SensitiveUrl?.ToLower() == sUrl));
+                            .First(i => i.EndTime == null && i.RemoteAccessApp == remoteAccessApp && i.DeviceUid == deviceUid && i.SensitiveUrl?.ToLower() == sUrl.ToLower()));
                         this._domainEventPublisher.Register(domainEvent);
+                        _logger.LogWarning(
+                            "[DetectImmediateDanger] FIRING ImmediateDangerDetected — user={UserKey}, device={DeviceUid}, app={App}, sensitiveUrl={Url}, dangerKey={DangerKey}",
+                            this.UDUser.Key.Value, deviceUid, remoteAccessApp, sUrl, domainEvent.ImmediateDanger?.Key?.Value);
 
 
                     }
@@ -700,10 +729,19 @@ namespace Business.RealtimeAnalysis.UserDomain
             // by combining a cookie check and a DOM scan. We suppress the alert
             // ONLY when both signals confidently say "not logged in"; anything
             // ambiguous or unknown still triggers (safer default).
+            var x = this.UDUser.BrowserTabs?[deviceUid]
+                ?.Any(i => this.IsSensitiveWebsite(i.Url) && this.IsLoggedIn(i)) ?? false;
+
             return this.UDUser.BrowserTabs?[deviceUid]
-                ?.Any(i => this.IsSensitiveWebsite(i.Url)) ?? false;
+                ?.Any(i => this.IsSensitiveWebsite(i.Url) && this.IsLoggedIn(i)) ?? false;
                 //?.Any(i => this.IsSensitiveWebsite(i.Url) && !this.IsConfidentlyNotLoggedIn(i)) ?? false;
         }
+
+        private bool IsLoggedIn(BrowserTab tab)
+        {
+            return tab.LoggedIn ?? false;
+        }
+
 
         /// <summary>
         /// True iff the Chrome extension confidently determined the user is
@@ -736,6 +774,14 @@ namespace Business.RealtimeAnalysis.UserDomain
                 return false;
             }
 
+            // PRIMARY: SensitiveSites table (works for first-visit URLs, no analysis cache needed).
+            // Catches banks/crypto/government/trading by configured DomainPattern.
+            if (this._asView.IsSensitiveDomain(url) || this._asView.IsSensitiveDomain(domain))
+            {
+                return true;
+            }
+
+            // FALLBACK: previously-cached UrlAnalysisResult with website_category classification.
             string[] sensitiveWebsiteCategories = "crypto_exchange,bank,banking".Split(',');
             List<UrlAnalysisResultView> urlAnalysisResultViews = this._asView.GetUrlAnalysisResultsByUserKey(this.UDUser.Key)
                 .OrderByDescending(I => I.Timestamp)
@@ -745,7 +791,7 @@ namespace Business.RealtimeAnalysis.UserDomain
             {
                 return true;
             }
-            
+
             return false;
         }
     }

@@ -192,6 +192,14 @@ class CenteredToast(ctk.CTkToplevel):
 
         self.withdraw()  # build then reveal
 
+        # Store risk_level FIRST so the _color()/_icon() helpers used during
+        # widget construction below pick up the caller-supplied value rather
+        # than falling back to the "critical" default. Bug fix: previously
+        # _risk_level was assigned only AFTER __init__ returned, so a fresh
+        # cleared/none toast was built with red/critical colors and never
+        # corrected (no update_content call follows a fresh creation).
+        self._risk_level = (risk_level or "critical").lower()
+
         self._mode = mode
         self._auto_dismiss_seconds = max(0, int(auto_dismiss_seconds))
         self._remaining_ms = self._auto_dismiss_seconds * 1000
@@ -458,23 +466,33 @@ class CenteredToast(ctk.CTkToplevel):
         mode: str,
         auto_dismiss_seconds: int = 0,
     ):
-        """Update title, message, color, and mode without re-creating the window."""
+        """Update title, message, color, and mode without re-creating the window.
+        Each widget update is wrapped independently so a failure on one (e.g.,
+        a destroyed widget mid-transform) does not skip the others."""
         self._mode = mode
-        self._risk_level = risk_level
-        color = RISK_COLOR.get(risk_level, COLORS["red"])
-        icon = RISK_ICON.get(risk_level, "[!]")
+        self._risk_level = (risk_level or "critical").lower()
+        color = RISK_COLOR.get(self._risk_level, COLORS["red"])
+        icon = RISK_ICON.get(self._risk_level, "[!]")
 
-        try:
-            self._title_label.configure(text=title)
-            self._message_label.configure(text=message)
-            self._icon_label.configure(text=icon, text_color=color)
-            self._stripe.configure(fg_color=color)
-            self._view_btn.configure(fg_color=color)
-            self._countdown.configure(progress_color=color)
-            self._countdown.set(1.0)
-        except Exception as e:
-            logger.error(f"update_content failed: {e}")
-            return
+        # Soft hover for the cleared (success/green) state — using the same
+        # color tone but darker, otherwise the default `bg_section` looks dead
+        # next to a green button. We keep the existing dark hover for the
+        # locked state (red + dark = good contrast).
+        hover = COLORS["bg_section"]
+
+        def _try(label, fn):
+            try:
+                fn()
+            except Exception as e:
+                logger.warning(f"update_content[{label}]: {e}")
+
+        _try("title",      lambda: self._title_label.configure(text=title))
+        _try("message",    lambda: self._message_label.configure(text=message))
+        _try("icon",       lambda: self._icon_label.configure(text=icon, text_color=color))
+        _try("stripe",     lambda: self._stripe.configure(fg_color=color))
+        _try("view_btn",   lambda: self._view_btn.configure(fg_color=color, hover_color=hover))
+        _try("countdown",  lambda: self._countdown.configure(progress_color=color))
+        _try("countdown_set", lambda: self._countdown.set(1.0))
 
         # Add Close button if entering cleared mode
         if mode == "cleared":

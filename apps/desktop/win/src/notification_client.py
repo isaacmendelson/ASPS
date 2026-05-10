@@ -147,7 +147,7 @@ class NotificationClient:
 
                     # Print heartbeat every ~2 minutes to show we're still listening
                     if heartbeat_counter >= 24:  # 24 * 5s = 120s = 2 min
-                        print(f"[NOTIFY] HEARTBEAT: Still listening for notifications... (topic: {topic})")
+                        print(f"[NOTIFY] HEARTBEAT: Still listening for notifications... (topic: {topic})" + time.strftime("%Y-%m-%d %H:%M:%S"))
                         heartbeat_counter = 0
 
                     continue

@@ -67,6 +67,11 @@ public interface ISafeDomainRepository
     Task<bool> IsSafeDomainAsync(string domain);
 }
 
+public interface ISensitiveSiteRepository
+{
+    Task<IEnumerable<SensitiveSite>> GetAllActiveAsync();
+}
+
 public interface IKnownPhishingWebsiteRepository
 {
     Task<KnownPhishingWebsite?> GetByIdAsync(int id);

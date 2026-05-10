@@ -62,6 +62,14 @@ class MonitorService:
         self._running = True
         self._extension_server = extension_server
 
+        # When a Chrome extension client attaches AFTER startup, immediately
+        # re-emit a RemoteAccessAlert with BrowserTabs if there's an active
+        # incoming session. This fixes the race where the agent's startup
+        # scan fires the first RA alert BEFORE the extension has connected
+        # (so BrowserTabs=[] permanently — backend never gets the tabs).
+        if hasattr(extension_server, 'on_client_connect'):
+            extension_server.on_client_connect(self._on_extension_client_connected)
+
         tasks = [
             asyncio.create_task(self._monitor_remote_access()),
             asyncio.create_task(self._monitor_browser_history()),
@@ -69,6 +77,68 @@ class MonitorService:
         ]
 
         return tasks
+
+    async def _on_extension_client_connected(self):
+        """Handler fired by ExtensionServer when a client attaches.
+        Re-emits a RemoteAccessAlert with fresh BrowserTabs if there's an
+        active incoming session right now. Idempotent — if no incoming
+        session, does nothing (apart from logging)."""
+        try:
+            results = self.remote_monitor.check_all()
+        except Exception as e:
+            logger.warning(f"on_extension_client_connected: check_all failed: {e}")
+            return
+
+        # Find an active incoming session (the alerts that need BrowserTabs)
+        target = None
+        for app_name, status in results.items():
+            if status.has_active_session and (status.direction or '').lower() == 'incoming':
+                target = (app_name, status)
+                break
+
+        if target is None:
+            print("[MONITOR][EXT-CONNECT] no active incoming session — nothing to refresh")
+            return
+
+        app_name, status = target
+        print(f"[MONITOR][EXT-CONNECT] extension attached + active incoming "
+              f"{app_name} session → re-emitting RemoteAccessAlert with tabs (in 2s)")
+
+        # Chrome MV3 service workers wake up lazily — the WebSocket open event
+        # arrives before the extension finishes registering its onMessage
+        # handlers (we observed user_auth arriving ~5s after the WS connect).
+        # Wait 2s so the get_browser_tabs query lands on a responsive worker,
+        # then retry once on timeout in case 2s wasn't enough.
+        await asyncio.sleep(2.0)
+
+        attempts = 2
+        for attempt in range(1, attempts + 1):
+            try:
+                browser_tabs = await self._get_browser_tabs_for_alert(
+                    has_active_session=True,
+                    direction=status.direction or "unknown",
+                )
+                if browser_tabs:
+                    print(f"[MONITOR][EXT-CONNECT] attempt {attempt}/{attempts}: "
+                          f"got {len(browser_tabs)} tabs — emitting alert")
+                    break
+                else:
+                    print(f"[MONITOR][EXT-CONNECT] attempt {attempt}/{attempts}: "
+                          f"got {len(browser_tabs or [])} tabs — "
+                          f"{'retrying after 2s' if attempt < attempts else 'giving up, sending without tabs'}")
+                    if attempt < attempts:
+                        await asyncio.sleep(2.0)
+            except Exception as e:
+                logger.warning(f"on_extension_client_connected attempt {attempt}: tab query failed: {e}")
+                browser_tabs = []
+                break
+
+        # Now refresh as a "new session" — _handle_new_session will re-query
+        # tabs (now warm) and emit a fresh RA alert with them attached.
+        try:
+            await self._handle_new_session(app_name, status, late_detection=True)
+        except Exception as e:
+            logger.warning(f"on_extension_client_connected: re-emit failed: {e}")
 
     def stop(self):
         """Stop monitoring"""
@@ -230,7 +300,7 @@ class MonitorService:
         if hasattr(self, '_extension_server') and self._extension_server \
                 and self._extension_server.clients:
             try:
-                tabs = await self._extension_server.request_browser_tabs(timeout=3.0)
+                tabs = await self._extension_server.request_browser_tabs(timeout=5.0)
                 browser_tabs = self._apply_browser_tabs_filter(tabs)
             except Exception as e:
                 logger.warning(f"ImmediateDanger tab query failed: {e}")
@@ -299,41 +369,69 @@ class MonitorService:
           'never'                   - never include
         """
         mode = browser_tabs_policy.get_effective_mode()
+        norm_dir = (direction or '').lower()
+        ext_attached = hasattr(self, '_extension_server') and self._extension_server is not None
+        client_count = (
+            len(self._extension_server.clients) if ext_attached and self._extension_server.clients is not None else 0
+        )
+        print(f"[MONITOR][TABS] entry: mode={mode}, direction={norm_dir}, "
+              f"has_active_session={has_active_session}, extension_attached={ext_attached}, "
+              f"clients={client_count}")
 
         if mode == 'never':
+            print("[MONITOR][TABS] policy=never → returning None")
             return None
-        if mode == 'incoming_only' and (direction or '').lower() != 'incoming':
+        if mode == 'incoming_only' and norm_dir != 'incoming':
+            print(f"[MONITOR][TABS] policy=incoming_only and direction={norm_dir!r} → returning None")
             return None
         # 'always' and ('incoming_only' AND direction=='incoming') fall through
 
         # No extension connected — wait briefly for extension to connect before giving up
-        if not hasattr(self, '_extension_server') or not self._extension_server:
+        if not ext_attached:
+            print("[MONITOR][TABS] _extension_server is None — returning []")
             return []
         if not self._extension_server.clients:
-            # Extension may still be starting up — wait up to 2s in 0.25s intervals
+            print("[MONITOR][TABS] no extension clients yet — waiting up to 2s …")
             for _ in range(8):
                 await asyncio.sleep(0.25)
                 if self._extension_server.clients:
                     break
             if not self._extension_server.clients:
-                print("[MONITOR] No extension connected — BrowserTabs will be empty")
+                print("[MONITOR][TABS] No extension connected after wait — BrowserTabs will be empty")
                 return []
+            print(f"[MONITOR][TABS] extension connected during wait — clients={len(self._extension_server.clients)}")
 
         try:
-            tabs = await self._extension_server.request_browser_tabs(timeout=3.0)
+            tabs = await self._extension_server.request_browser_tabs(timeout=5.0)
             filtered = self._apply_browser_tabs_filter(tabs)
-            print(f"[MONITOR] Collected {len(tabs)} browser tab(s), "
+            print(f"[MONITOR][TABS] Collected {len(tabs)} browser tab(s), "
                   f"{len(filtered)} after URL filter, for RemoteAccessAlert")
+            if tabs and not filtered:
+                # Helpful: show which URLs the filter dropped
+                urls = [(t.get('url') or '')[:80] for t in tabs]
+                print(f"[MONITOR][TABS] filter dropped all tabs. URLs were: {urls}")
             return filtered
         except Exception as e:
             logger.error(f"Error querying browser tabs: {e}")
             return []
 
     async def _handle_app_open(self, app_name: str, status, late_detection: bool = False):
-        """Handle remote access app opening (not yet session)"""
+        """Handle remote access app opening.
+
+        SessionStatus reflects the current state at detection time:
+          - has_active_session=True  → SessionStatus.OPEN  (covers the
+              "agent started mid-session" case where DebouncedStateTracker
+              fires only an 'opened' event because there's no prior
+              has_active_session=False state to transition from).
+          - has_active_session=False → SessionStatus.UNKNOWN (app process
+              running but no incoming/outgoing session yet).
+        """
         detection_note = " (detected on startup)" if late_detection else ""
-        print(f"[MONITOR] App opened: {app_name}{detection_note}")
-        logger.info(f"Remote app opened: {app_name}{detection_note}")
+        has_session = bool(getattr(status, 'has_active_session', False))
+        print(f"[MONITOR] App opened: {app_name}{detection_note} "
+              f"(has_active_session={has_session})")
+        logger.info(f"Remote app opened: {app_name}{detection_note} "
+                    f"has_active_session={has_session}")
 
         self.event_logger.log_event('RemoteAccessOpened', {
             'app': app_name,
@@ -341,25 +439,29 @@ class MonitorService:
             'process_count': status.process_count,
             'direction': status.direction,
             'confidence': status.confidence,
-            'late_detection': late_detection
+            'late_detection': late_detection,
+            'has_active_session': has_session,
         })
 
-        # Send alert if authenticated (no active session yet → SessionStatus.UNKNOWN)
         if self.auth_manager.is_valid():
             if DEBUG_MODE:
                 print(f"[MONITOR] Sending app open alert for {app_name}...")
 
+            session_status_value = (
+                SessionStatus.OPEN if has_session else SessionStatus.UNKNOWN
+            )
+
             browser_tabs = await self._get_browser_tabs_for_alert(
-                has_active_session=False,
+                has_active_session=has_session,
                 direction=status.direction or "unknown",
             )
             await self._send_remote_access_alert_with_retry(
                 device_uid=self.device_id,
                 remote_app=str(status.app_id),
                 running_processes=status.process_count,
-                connection_url="",
+                connection_url=getattr(status, 'remote_ip', '') or "",
                 connection_status=str(status.connection_status),
-                session_status=str(SessionStatus.UNKNOWN),
+                session_status=str(session_status_value),
                 direction=status.direction or "unknown",
                 confidence=status.confidence or "low",
                 remote_country=status.remote_country or "",

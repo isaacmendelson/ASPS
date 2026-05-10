@@ -32,6 +32,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
     private List<TrackUrlAnalysisResultView> _trackUrlAnalysisResults = new();
     private List<KnownPhishingWebsite> _knownPhishingWebsites = new();
     private List<SafeDomain> _safeDomains = new();
+    private List<SensitiveSite> _sensitiveSites = new();
     private List<IImmediateDangerView> _immediateDangers = new();
     private List<string> _riskyDomains = new();
     private List<UserDeviceUrlSurfData> _riskyUrlSurfings = new();
@@ -568,6 +569,10 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                 var safeDomains = await safeDomainRepository.GetAllActiveAsync();
                 _logger.LogInformation($"safeDomains fetched: {safeDomains.Count()} records");
 
+                var sensitiveSiteRepository = scope.ServiceProvider.GetRequiredService<ISensitiveSiteRepository>();
+                var sensitiveSites = await sensitiveSiteRepository.GetAllActiveAsync();
+                _logger.LogInformation($"sensitiveSites fetched: {sensitiveSites.Count()} records");
+
                 var websiteCategoryRepository = scope.ServiceProvider.GetRequiredService<IWebsiteCategoryRepository>();
                 var websiteCategories = await websiteCategoryRepository.GetAllAsync();
                 _logger.LogInformation($"websiteCategories fetched: {websiteCategories.Count()} records");
@@ -600,6 +605,7 @@ public class ASView : IDomainEventHandler, IBackgroundTask
                         .OrderByDescending(i => i.Timestamp).ToList();
                     _knownPhishingWebsites = knownPhishingWebsites.ToList();
                     _safeDomains = safeDomains.ToList();
+                    _sensitiveSites = sensitiveSites.ToList();
                     WebsiteCategoryViews = websiteCategories.Select(wc => new WebsiteCategoryView(wc)).ToList();
 
                     _riskyDomains = _deviceAlerts
@@ -866,6 +872,40 @@ public class ASView : IDomainEventHandler, IBackgroundTask
         {
             var normalized = domain.ToLowerInvariant();
             return _safeDomains.Any(d => d.Domain.Equals(normalized, StringComparison.OrdinalIgnoreCase) && !d.IsDeleted);
+        }
+    }
+
+    /// <summary>
+    /// Checks whether a URL or domain matches an active SensitiveSite entry
+    /// (banking, crypto, government, trading). Used by UDUserAnalyzer for
+    /// ImmediateDanger detection — independent of UrlAnalysisResult cache,
+    /// so first-visit URLs to known sensitive sites still trigger.
+    /// </summary>
+    public virtual bool IsSensitiveDomain(string urlOrDomain)
+    {
+        if (string.IsNullOrWhiteSpace(urlOrDomain))
+            return false;
+
+        lock (_lock)
+        {
+            return _sensitiveSites.Any(s => s.IsEnabled && s.MatchesDomain(urlOrDomain));
+        }
+    }
+
+    /// <summary>
+    /// Returns the matching SensitiveSite category (Banking/Crypto/Government/Trading)
+    /// or null if no active entry matches.
+    /// </summary>
+    public virtual string? GetSensitiveSiteCategory(string urlOrDomain)
+    {
+        if (string.IsNullOrWhiteSpace(urlOrDomain))
+            return null;
+
+        lock (_lock)
+        {
+            return _sensitiveSites
+                .FirstOrDefault(s => s.IsEnabled && s.MatchesDomain(urlOrDomain))
+                ?.Category;
         }
     }
 

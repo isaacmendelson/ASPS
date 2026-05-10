@@ -1740,21 +1740,34 @@ class RemoteAccessMonitor:
                     break
 
         # Build signals for confidence calculation
+        # `direction_known` — direction was successfully resolved (incoming /
+        # outgoing). Producing a non-UNKNOWN direction requires a positive
+        # signal from one of: log parser session-start lines, topology
+        # inference (peer on listen-port), or AnyDesk connection_trace. All
+        # of those imply a session is happening — so we treat it as a
+        # session-active signal in its own right. This fills the gap where
+        # AnyDesk relays via port 443 (filtered out of suspicious_conn by
+        # INFRASTRUCTURE_PORTS) and the log parser missed the start line.
+        direction_known = (log_direction or '').lower() in ('incoming', 'outgoing')
+
         signals = {
             'active_connection': suspicious_conn > 0,
             'log_session_active': log_session_active,
             'cpu_active': cpu_usage > 5.0,
-            'service_running': service_running
+            'service_running': service_running,
+            'direction_known': direction_known,
         }
 
         confidence = calculate_confidence(signals)
-        # Session is "active" only on strong signals — a live network connection or
-        # an explicit "session started" log entry. CPU usage is too noisy (the app
-        # consumes CPU on launch and idle GUI activity), so it stays a confidence
-        # booster only and does not flip has_active_session by itself.
+        # Session is "active" on any strong signal — a live network connection,
+        # an explicit "session started" log entry, OR a resolved direction
+        # (which itself only happens when one of those signals fired upstream).
+        # CPU usage is too noisy (idle GUI activity), so it stays a confidence
+        # booster only.
         has_active_session = any([
             signals['active_connection'],
-            signals['log_session_active']
+            signals['log_session_active'],
+            signals['direction_known'],
         ])
 
         final_remote_ip = remote_ip or log_remote_ip

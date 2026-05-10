@@ -19,6 +19,9 @@ Pillow>=10.0.0
 # Modern tkinter widgets for popup UI
 customtkinter>=5.2.2
 
+# Windows native toast notifications (used by notification_manager.py)
+winotify>=1.1.0
+
 # Process monitoring
 psutil>=5.9.0
 

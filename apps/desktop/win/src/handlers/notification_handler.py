@@ -234,53 +234,102 @@ class NotificationHandler:
         print(f"[NOTIFICATION] ImmediateDanger STARTED: key={danger_key}, "
               f"user={user_key}, device={device_uid}, actions={len(protective_actions)}")
         logger.info(
-            "ImmediateDanger started: key=%s user=%s device=%s",
-            danger_key, user_key, device_uid,
+            "ImmediateDanger started: key=%s user=%s device=%s actions=%d",
+            danger_key, user_key, device_uid, len(protective_actions),
         )
 
-        # Switch the agent into DangerMode: 2s remote-access polling +
-        # debounce bypass so any state change is reported instantly.
-        danger_mode.activate()
+        # Each step runs independently — a failure in one (e.g., missing UI
+        # subsystem, malformed payload, broadcast failure) MUST NOT block the
+        # subsequent steps. Previously a single uncaught exception silently
+        # killed the whole handler so neither the toast nor the extension
+        # broadcast happened.
 
-        # Start the periodic ImmediateDanger RemoteAccessAlert loop (every
-        # IMMEDIATE_DANGER_ALERT_INTERVAL_SECONDS, with fresh BrowserTabs).
-        if self.monitor_service is not None and self._event_loop is not None:
-            try:
+        # 1. DangerMode flag
+        try:
+            danger_mode.activate()
+            print("[NOTIFICATION] step 1/5: danger_mode.activate() OK")
+        except Exception as e:
+            logger.error(f"[NOTIFICATION] step 1/5 danger_mode.activate failed: {e}")
+
+        # 2. Start the periodic ImmediateDanger RemoteAccessAlert loop
+        try:
+            if self.monitor_service is not None and self._event_loop is not None:
                 self._event_loop.call_soon_threadsafe(
                     self.monitor_service.start_immediate_danger_loop
                 )
-            except Exception as e:
-                logger.error(f"Failed to start ImmediateDanger loop: {e}")
+                print("[NOTIFICATION] step 2/5: start_immediate_danger_loop scheduled OK")
+            else:
+                print(f"[NOTIFICATION] step 2/5: SKIP — monitor_service={self.monitor_service is not None}, "
+                      f"event_loop={self._event_loop is not None}")
+        except Exception as e:
+            logger.error(f"[NOTIFICATION] step 2/5 start loop failed: {e}")
 
-        # Build a structured details dict for the in-app DangerDetailsWindow
-        # opened by 'View Details'. Resolves the RemoteAccessApp enum to a
-        # human name and pre-formats the timestamp.
-        details = self._build_immediate_danger_details(
-            notification, danger_key=danger_key, user_key=user_key,
-            device_uid=device_uid, protective_actions=protective_actions,
-            timestamp=timestamp,
-        )
+        # 3. Build details dict
+        details: Dict[str, Any] = {}
+        try:
+            details = self._build_immediate_danger_details(
+                notification, danger_key=danger_key, user_key=user_key,
+                device_uid=device_uid, protective_actions=protective_actions,
+                timestamp=timestamp,
+            )
+            print(f"[NOTIFICATION] step 3/5: details built — app={details.get('remote_app_name')}, "
+                  f"url={details.get('sensitive_url')}")
+        except Exception as e:
+            logger.error(f"[NOTIFICATION] step 3/5 build details failed: {e}")
+            details = {
+                "danger_key": danger_key, "user_key": user_key, "device_uid": device_uid,
+                "protective_actions": protective_actions,
+            }
 
-        # Fire toast(s) for DisplayNotification protective actions.
-        # No fallback — Phase 1 only acts when backend explicitly sent a DisplayNotification.
-        if self.protection_service:
-            self.protection_service.show_display_notification_actions(
-                actions=protective_actions,
-                title="Immediate Danger",
-                risk_level="critical",
-                action_buttons=[("View Details", ""), ("Dismiss", "")],
-                fallback_message=None,
-                details=details,
+        # Fallback toast text (used when no DisplayNotification action carries a Message).
+        app_name = (details.get('remote_app_name') or 'Unknown app')
+        sensitive_url = (details.get('sensitive_url') or '').strip()
+        if sensitive_url:
+            fallback = (
+                f"Active incoming remote-access session via {app_name} "
+                f"while a sensitive site is open: {sensitive_url}.\n"
+                f"Disconnect the session immediately, or contact your guardian."
+            )
+        else:
+            fallback = (
+                f"Active incoming remote-access session via {app_name} "
+                f"while a sensitive site is open.\n"
+                f"Disconnect the session immediately, or contact your guardian."
             )
 
-        self._broadcast_typed({
-            'type': 'immediate_danger_started',
-            'dangerKey': danger_key,
-            'userKey': user_key,
-            'deviceUid': device_uid,
-            'timestamp': timestamp,
-            'protectiveActions': protective_actions,
-        })
+        # 4. Fire toast(s)
+        try:
+            if self.protection_service:
+                ok = self.protection_service.show_display_notification_actions(
+                    actions=protective_actions,
+                    title="Immediate Danger",
+                    risk_level="critical",
+                    action_buttons=[("View Details", ""), ("Dismiss", "")],
+                    fallback_message=fallback,
+                    details=details,
+                )
+                print(f"[NOTIFICATION] step 4/5: show_display_notification_actions returned {ok}")
+            else:
+                print("[NOTIFICATION] step 4/5: SKIP — protection_service is None")
+        except Exception as e:
+            logger.error(f"[NOTIFICATION] step 4/5 toast failed: {e}")
+            import traceback; traceback.print_exc()
+
+        # 5. Broadcast to extension so it can flip immediateDangerMode and start
+        # emitting TabClosedAlerts on tab closes.
+        try:
+            self._broadcast_typed({
+                'type': 'immediate_danger_started',
+                'dangerKey': danger_key,
+                'userKey': user_key,
+                'deviceUid': device_uid,
+                'timestamp': timestamp,
+                'protectiveActions': protective_actions,
+            })
+            print("[NOTIFICATION] step 5/5: broadcast immediate_danger_started OK")
+        except Exception as e:
+            logger.error(f"[NOTIFICATION] step 5/5 broadcast failed: {e}")
+            import traceback; traceback.print_exc()
 
     def _handle_set_browser_tabs_policy(self, notification: Dict[str, Any]):
         """Handle SetBrowserTabsPolicyNotification — backend-controlled override

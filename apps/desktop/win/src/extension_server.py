@@ -24,20 +24,38 @@ class ExtensionServer:
         self.server = None
         self.clients: Set[WebSocketServerProtocol] = set()
         self._on_message_callback: Optional[Callable] = None
+        self._on_client_connect_callback: Optional[Callable] = None
         self._running = False
         # Pending tab requests: key = "{request_id}:{client_id}" → Future[List[dict]]
         self._tab_request_futures: Dict[str, asyncio.Future] = {}
-        
+
     def on_message(self, callback: Callable):
         """Set callback for incoming messages"""
         self._on_message_callback = callback
-        
+
+    def on_client_connect(self, callback: Callable):
+        """Register an async callback fired the moment a NEW WebSocket client
+        attaches. Used by MonitorService to re-emit a RemoteAccessAlert with
+        BrowserTabs once the extension is finally available (extensions take
+        seconds to attach after agent startup; a startup-time RA alert is
+        sent before that, with empty BrowserTabs)."""
+        self._on_client_connect_callback = callback
+
     async def _handle_client(self, websocket: WebSocketServerProtocol):
         """Handle a client connection"""
         self.clients.add(websocket)
         client_id = id(websocket)
         logger.info(f"Extension connected (client {client_id})")
         print(f"\n[EXTENSION] Client connected (ID: {client_id})")
+
+        # Notify subscribers that a client just attached. The handler may
+        # schedule a fresh RA alert, query tabs, etc. Best-effort — failure
+        # MUST NOT break the WebSocket loop.
+        if self._on_client_connect_callback:
+            try:
+                await self._on_client_connect_callback()
+            except Exception as e:
+                logger.warning(f"on_client_connect callback failed: {e}")
         
         try:
             async for message in websocket:
@@ -59,10 +77,14 @@ class ExtensionServer:
                     # Handle browser tabs response — resolve the matching pending Future
                     if msg_type == 'browser_tabs_response':
                         request_id = data.get('requestId', '')
+                        tabs = data.get('tabs', [])
                         key = f"{request_id}:{id(websocket)}"
                         future = self._tab_request_futures.get(key)
+                        print(f"[EXT-SERVER][TABS-RESP] from client {id(websocket)} req={request_id[:8]}… "
+                              f"tabs={len(tabs)} future_found={future is not None} "
+                              f"future_done={future.done() if future else 'n/a'}")
                         if future and not future.done():
-                            future.set_result(data.get('tabs', []))
+                            future.set_result(tabs)
                         continue  # Do not pass to regular callback
 
                     # Print ALL other messages - full visibility

@@ -135,6 +135,7 @@ class Program
                 services.AddScoped<IAlertFlagRepository, AlertFlagRepository>();
                 services.AddScoped<IKnownPhishingWebsiteRepository, KnownPhishingWebsiteRepository>();
                 services.AddScoped<ISafeDomainRepository, SafeDomainRepository>();
+                services.AddScoped<ISensitiveSiteRepository, SensitiveSiteRepository>();
                 services.AddScoped<ITrackedDomainRepository, TrackedDomainRepository>();
                 services.AddScoped<ISimulationRepository, SimulationRepository>();
                 services.AddScoped<IBlacklistedPhoneNumberRepository, BlacklistedPhoneNumberRepository>(); // ASPS-282
