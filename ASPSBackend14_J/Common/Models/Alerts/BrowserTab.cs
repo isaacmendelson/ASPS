@@ -9,7 +9,24 @@ namespace Common.Models.Alerts
         // populated by setters after construction.
         public BrowserTab() { }
 
-        public BrowserTab(string title, string tabId, string userAgent, string url, DateTime? timestamp, bool isActive)
+        //public BrowserTab(string title, string tabId, string userAgent, string url, DateTime? timestamp, bool isActive, bool isSensitiveWebsite)
+        //{
+        //    Title = title;
+        //    TabId = tabId;
+        //    UserAgent = userAgent;
+        //    Url = url;
+        //    Timestamp = timestamp;
+        //    IsActive = isActive;
+        //    IsSensitiveWebsite = isSensitiveWebsite;
+        //}
+
+        // Full ctor including the v0.0.1.0 logged-in fields. Optional so existing
+        // call sites continue to compile.
+        public BrowserTab(
+            string title, string tabId, string userAgent, string url,
+            DateTime? timestamp, bool isActive,
+            bool? loggedIn, string? loggedInConfidence, string[]? loggedInSignals, bool? isSensitiveWebsite)
+            //: this(title, tabId, userAgent, url, timestamp, isActive, isSensitiveWebsite)
         {
             Title = title;
             TabId = tabId;
@@ -17,19 +34,10 @@ namespace Common.Models.Alerts
             Url = url;
             Timestamp = timestamp;
             IsActive = isActive;
-        }
-
-        // Full ctor including the v0.0.1.0 logged-in fields. Optional so existing
-        // call sites continue to compile.
-        public BrowserTab(
-            string title, string tabId, string userAgent, string url,
-            DateTime? timestamp, bool isActive,
-            bool? loggedIn, string? loggedInConfidence, string[]? loggedInSignals)
-            : this(title, tabId, userAgent, url, timestamp, isActive)
-        {
             LoggedIn = loggedIn;
             LoggedInConfidence = loggedInConfidence;
             LoggedInSignals = loggedInSignals;
+            IsSensitiveWebsite = isSensitiveWebsite;
         }
 
         // [JsonProperty] tags are added explicitly so deserialization succeeds
@@ -74,5 +82,8 @@ namespace Common.Models.Alerts
         // Which signals contributed to the decision: subset of ["cookie", "dom"].
         [JsonProperty("loggedInSignals")]
         public string[]? LoggedInSignals { get; set; }
+
+        [JsonProperty("isSensitiveWebsite")]
+        public bool? IsSensitiveWebsite { get; set; }
     }
 }

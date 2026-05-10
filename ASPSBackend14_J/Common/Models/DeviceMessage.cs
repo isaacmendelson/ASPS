@@ -19,6 +19,7 @@ public interface IDeviceAlert
 
 public abstract class DeviceAlert : DeviceMessage, IDeviceAlert
 {
+
     public string AlertType { get; set; } = string.Empty;
 
     public string? AlertId { get; set; }

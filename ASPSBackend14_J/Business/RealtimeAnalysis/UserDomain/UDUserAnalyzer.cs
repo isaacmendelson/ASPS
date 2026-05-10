@@ -115,12 +115,13 @@ namespace Business.RealtimeAnalysis.UserDomain
                     // sensitive one, the BrowserTabs cache (updated below)
                     // will no longer contain it and DetectImmediateDanger
                     // (called at the bottom of this method) will end the danger.
-                    if (!string.IsNullOrEmpty(tc.Url))
+
+                    if (!string.IsNullOrEmpty(tc.TabId) && !string.IsNullOrEmpty(tc.Url))
                     {
-                        var existingTabs = this.UDUser.BrowserTabs?.GetValueOrDefault(tc.DeviceInfo.DeviceUid);
-                        if (existingTabs != null)
+                        var existingTabsForDevice = this.UDUser.BrowserTabs?.GetValueOrDefault(tc.DeviceInfo.DeviceUid);
+                        if (existingTabsForDevice != null)
                         {
-                            var trimmed = existingTabs
+                            var trimmed = existingTabsForDevice
                                 .Where(b => b.Url != tc.Url && b.TabId != tc.TabId)
                                 .ToArray();
                             this.UDUser.SetBrowserTabs(tc.DeviceInfo.DeviceUid, trimmed);
@@ -132,6 +133,35 @@ namespace Business.RealtimeAnalysis.UserDomain
 
                     var IsImmediateGangerDetected = this.DetectImmediateDanger(tc.Key);
                     break;
+                
+                case TabChangedAlert tch:
+                    var existingTabs = this.UDUser.BrowserTabs?.GetValueOrDefault(tch.DeviceInfo.DeviceUid)?.Where(i => i.TabId is not null);
+                    if (existingTabs is null)
+                    {
+                        _logger.LogInformation(
+                            "[UDUserAnalyzer] TabChangedAlert received but no existing tabs found for device {DeviceUid} — skipping tab update. User={UserKey}, TabId={TabId}, Url={Url}",
+                            tch.DeviceInfo.DeviceUid, this.UDUser.Key.Value, tch.TabId, tch.Url);
+                        this.UDUser.SetBrowserTabs(tch.DeviceInfo.DeviceUid, new BrowserTab[] { new BrowserTab { TabId = tch.TabId, Url = tch.Url } });
+                        break;
+                    }   
+                    if (!string.IsNullOrEmpty(tch.TabId) && !string.IsNullOrEmpty(tch.Url))
+                    {
+                        var tabToChange = existingTabs.FirstOrDefault(b => b.TabId == tch.TabId);
+                        if ( tabToChange is not null)
+                        {
+                            tabToChange.Timestamp = tch.Timestamp;
+                            tabToChange.Url = tch.Url;
+                            tabToChange.IsSensitiveWebsite = tch.IsSensitiveWebsite ?? false;
+                            tabToChange.LoggedIn = tch.IsLoggedIn;
+                            this.UDUser.SetBrowserTabs(tch.DeviceInfo.DeviceUid, existingTabs.ToArray());
+                        }
+                        else { 
+                         // TabId not found in existing tabs - add as new tab
+                            var newTabs = existingTabs.Append(new BrowserTab { TabId = tch.TabId, Url = tch.Url, Timestamp = tch.Timestamp, IsSensitiveWebsite = tch.IsSensitiveWebsite ?? false, LoggedIn = tch.IsLoggedIn }).ToArray();
+                            this.UDUser.SetBrowserTabs(tch.DeviceInfo.DeviceUid, newTabs);
+                        }
+                    }
+                        break;
             }
 
             Key? key = alert.AlertId is not null ? new Key(alert.GetType().Name, alert.AlertId) : null;
