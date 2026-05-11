@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="ASPS - Real-time AI protection against fraud, scams, and social engineering. Stop scams before they happen."/>
+<title>ASPS - Stop Scams Before They Happen</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+/* ══════════════════════════════════════════════════════════════
+   ASPS Homepage — Dark Navy Design System
+   ══════════════════════════════════════════════════════════════ */
+
+:root {
+  --bg: #070B14;
+  --bg-2: #0A0E1A;
+  --bg-3: #0F1238;
+  --bg-navy: #161E38;
+  --bg-card: rgba(255,255,255,0.03);
+  --bg-card-h: rgba(255,255,255,0.06);
+  --green-500: #1F8B5C;
+  --green-400: #3FB785;
+  --green-700: #16734C;
+  --green-dim: rgba(31,139,92,0.15);
+  --purple: #7C3AED;
+  --cyan: #00D4FF;
+  --orange: #FF6B35;
+  --white: #FFFFFF;
+  --gray-1: #E2E8F0;
+  --gray-2: #94A3B8;
+  --gray-3: #7880A8;
+  --gray-4: #5868A0;
+  --gray-5: #3A4068;
+  --border: rgba(255,255,255,0.08);
+  --border-h: rgba(31,139,92,0.3);
+  --font-main: 'Instrument Sans', sans-serif;
+  --font-display: 'Syne', sans-serif;
+  --radius: 16px;
+  --radius-sm: 8px;
+  --transition: 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-main);
+  background: var(--bg);
+  color: var(--gray-1);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+a { color: inherit; text-decoration: none; }
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 60px;
+}
+
+/* ── NAV ── */
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  height: 72px;
+  padding: 0 60px;
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  background: rgba(22,30,56,0.95);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-right: auto;
+}
+
+.logo-svg {
+  display: block;
+}
+
+nav a {
+  font-size: 0.85rem;
+  color: var(--gray-3);
+  transition: var(--transition);
+}
+
+nav a:hover {
+  color: var(--gray-1);
+}
+
+.nav-cta {
+  padding: 10px 22px;
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  color: var(--bg-navy);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.nav-cta:hover {
+  background: #EEF0FF;
+}
+
+.nav-ghost {
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--gray-2);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.nav-ghost:hover {
+  border-color: rgba(255,255,255,0.3);
+  color: var(--white);
+}
+
+/* ── HERO ── */
+#hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 140px 60px 100px;
+  background: linear-gradient(145deg, #1A2255 0%, #131840 55%, #0F1238 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-glow {
+  position: absolute;
+  top: -100px;
+  right: 100px;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(31,139,92,0.12) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.hero-glow-2 {
+  position: absolute;
+  bottom: -200px;
+  left: -100px;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.hero-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--green-400);
+  margin-bottom: 28px;
+}
+
+.ey-bar {
+  width: 24px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--green-500), var(--green-400));
+  border-radius: 2px;
+}
+
+.hero-content h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 4vw, 3.2rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--white);
+  margin-bottom: 24px;
+}
+
+.hero-content h1 .accent {
+  color: var(--green-400);
+}
+
+.hero-sub {
+  font-size: 1.1rem;
+  color: var(--gray-3);
+  line-height: 1.8;
+  margin-bottom: 40px;
+  max-width: 500px;
+}
+
+.hero-btns {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 48px;
+}
+
+.btn-p {
+  padding: 16px 32px;
+  border-radius: 10px;
+  background: var(--white);
+  color: var(--bg-navy);
+  font-size: 0.95rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: var(--transition);
+  border: none;
+}
+
+.btn-p:hover {
+  background: #EEF0FF;
+  transform: translateY(-2px);
+}
+
+.btn-s {
+  padding: 16px 32px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--gray-2);
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-s:hover {
+  border-color: rgba(255,255,255,0.3);
+  color: var(--white);
+}
+
+.hero-stats {
+  display: flex;
+  gap: 32px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+}
+
+.hs-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hs-num {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.8rem;
+  color: var(--green-500);
+  letter-spacing: -0.02em;
+}
+
+.hs-label {
+  font-size: 0.72rem;
+  color: var(--gray-4);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Shield Visual */
+.hero-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.shield-scene {
+  position: relative;
+  width: 400px;
+  height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(31,139,92,0.15);
+  animation: spin linear infinite;
+}
+
+.ring-1 {
+  width: 250px;
+  height: 250px;
+  border-style: dashed;
+  animation-duration: 20s;
+}
+
+.ring-2 {
+  width: 350px;
+  height: 350px;
+  animation-duration: 30s;
+  animation-direction: reverse;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.shield-wrap {
+  position: relative;
+  z-index: 3;
+  animation: shieldFloat 4s ease-in-out infinite;
+}
+
+@keyframes shieldFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.shield-glow {
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(31,139,92,0.25) 0%, transparent 70%);
+  filter: blur(20px);
+}
+
+/* Floating threat labels */
+.threat-label {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  backdrop-filter: blur(8px);
+  font-size: 0.75rem;
+  color: var(--gray-2);
+  animation: floatLabel 3s ease-in-out infinite;
+}
+
+.threat-label .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.threat-label.blocked .dot { background: var(--green-500); box-shadow: 0 0 8px var(--green-500); }
+.threat-label.warning .dot { background: var(--orange); box-shadow: 0 0 8px var(--orange); }
+.threat-label.active .dot { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+
+.threat-label:nth-child(1) { top: 20%; left: -20px; animation-delay: 0s; }
+.threat-label:nth-child(2) { top: 50%; right: -30px; animation-delay: 0.5s; }
+.threat-label:nth-child(3) { bottom: 25%; left: 0; animation-delay: 1s; }
+
+@keyframes floatLabel {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* ── PROBLEM SECTION ── */
+.problem {
+  padding: 120px 60px;
+  background: linear-gradient(180deg, #0F1238 0%, #141830 100%);
+  position: relative;
+}
+
+.problem-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.section-label {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--green-500);
+  margin-bottom: 18px;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--white);
+  margin-bottom: 16px;
+  line-height: 1.15;
+}
+
+.section-sub {
+  font-size: 1rem;
+  color: var(--gray-4);
+  line-height: 1.8;
+  max-width: 600px;
+  margin-bottom: 56px;
+}
+
+.pain-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.pain-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px 28px;
+  position: relative;
+  transition: var(--transition);
+}
+
+.pain-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--green-500), var(--green-400));
+  border-radius: var(--radius) var(--radius) 0 0;
+  opacity: 0.5;
+}
+
+.pain-card:hover {
+  border-color: var(--border-h);
+  background: rgba(31,139,92,0.04);
+  transform: translateY(-4px);
+}
+
+.pain-icon {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 20px;
+  color: var(--green-500);
+}
+
+.pain-card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--gray-1);
+  margin-bottom: 12px;
+}
+
+.pain-card p {
+  font-size: 0.85rem;
+  color: var(--gray-4);
+  line-height: 1.75;
+}
+
+/* ── STATS SECTION (Light) ── */
+.stats {
+  padding: 100px 60px;
+  background: var(--white);
+}
+
+.stats-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 32px;
+  margin-top: 60px;
+}
+
+.stat-card {
+  padding: 40px 24px;
+  background: #F6F5FF;
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.stat-num {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+
+.stat-num.green { color: var(--green-500); }
+.stat-num.purple { color: var(--purple); }
+.stat-num.orange { color: var(--orange); }
+.stat-num.navy { color: var(--bg-navy); }
+
+.stat-label {
+  font-size: 0.85rem;
+  color: #5A5880;
+  line-height: 1.5;
+}
+
+.stats .section-title,
+.stats .section-sub {
+  color: #141428;
+}
+
+.stats .section-sub {
+  color: #5A5880;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── HOW IT WORKS ── */
+.hiw {
+  padding: 120px 60px;
+  background: linear-gradient(160deg, #161E38 0%, #0F1230 100%);
+}
+
+.hiw-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.hiw-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-top: 60px;
+}
+
+.hiw-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px 24px;
+  text-align: center;
+  position: relative;
+  transition: var(--transition);
+}
+
+.hiw-card:hover {
+  border-color: var(--border-h);
+  background: rgba(31,139,92,0.04);
+  transform: translateY(-4px);
+}
+
+.hiw-num {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, var(--green-500), var(--green-400));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--white);
+}
+
+.hiw-icon {
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+}
+
+.hiw-card h3 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--white);
+  margin-bottom: 12px;
+}
+
+.hiw-card p {
+  font-size: 0.85rem;
+  color: var(--gray-4);
+  line-height: 1.7;
+}
+
+.hiw-arrow {
+  position: absolute;
+  right: -18px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gray-5);
+  font-size: 1.2rem;
+  z-index: 5;
+}
+
+/* ── HUMAN SECTION ── */
+.human {
+  padding: 120px 60px;
+  background: #F6F5FF;
+  text-align: center;
+}
+
+.human-inner {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.human .section-label {
+  color: #993556;
+  background: rgba(153,53,86,0.1);
+  padding: 8px 16px;
+  border-radius: 100px;
+  display: inline-block;
+  margin-bottom: 24px;
+}
+
+.human .section-title {
+  color: #141428;
+}
+
+.human .section-sub {
+  color: #5A5880;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 48px;
+}
+
+.quote-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 40px;
+  box-shadow: 0 8px 40px rgba(15,18,56,0.08);
+  text-align: left;
+  position: relative;
+}
+
+.quote-mark {
+  position: absolute;
+  top: 24px;
+  left: 32px;
+  font-size: 4rem;
+  color: #E8E5F0;
+  font-family: Georgia, serif;
+  line-height: 1;
+}
+
+.quote-card blockquote {
+  font-size: 1.15rem;
+  color: #141428;
+  line-height: 1.8;
+  margin-bottom: 16px;
+  padding-top: 24px;
+}
+
+.quote-card cite {
+  font-size: 0.85rem;
+  color: #7A7898;
+  font-style: italic;
+}
+
+/* ── INTELLIGENCE SECTION ── */
+.intel {
+  padding: 100px 60px;
+  background: var(--white);
+}
+
+.intel-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.intel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 48px;
+}
+
+.intel .section-title {
+  color: #141428;
+  margin-bottom: 8px;
+}
+
+.intel .section-sub {
+  color: #5A5880;
+  margin-bottom: 0;
+}
+
+.intel-link {
+  font-size: 0.85rem;
+  color: var(--green-500);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.intel-link:hover {
+  color: var(--green-700);
+}
+
+.intel-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.intel-card {
+  background: #FAFBFF;
+  border: 1px solid #E8E5F0;
+  border-radius: var(--radius);
+  padding: 28px;
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.intel-card:hover {
+  border-color: var(--green-500);
+  background: rgba(31,139,92,0.04);
+  transform: translateY(-3px);
+}
+
+.intel-card h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #141428;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.intel-card .meta {
+  font-size: 0.8rem;
+  color: #7A7898;
+}
+
+/* ── PARTNERS CTA ── */
+.partners {
+  padding: 120px 60px;
+  background: linear-gradient(145deg, #1A2255 0%, #161E38 100%);
+  text-align: center;
+  position: relative;
+}
+
+.partners-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(31,139,92,0.1) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.partners-inner {
+  max-width: 700px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+}
+
+.partners-tags {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 48px;
+}
+
+.partner-tag {
+  padding: 10px 20px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  font-size: 0.85rem;
+  color: var(--gray-2);
+}
+
+/* ── TRUST SECTION ── */
+.trust {
+  padding: 100px 60px;
+  background: #F6F5FF;
+}
+
+.trust-inner {
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.trust .section-label {
+  color: #185FA5;
+  background: rgba(24,95,165,0.1);
+  padding: 8px 16px;
+  border-radius: 100px;
+  display: inline-block;
+  margin-bottom: 24px;
+}
+
+.trust .section-title {
+  color: #141428;
+}
+
+.trust-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  margin-top: 60px;
+}
+
+.trust-card {
+  background: var(--white);
+  border: 1px solid #E8E5F0;
+  border-radius: var(--radius);
+  padding: 40px 32px;
+  text-align: center;
+}
+
+.trust-icon {
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+}
+
+.trust-card h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #141428;
+  margin-bottom: 12px;
+}
+
+.trust-card p {
+  font-size: 0.9rem;
+  color: #5A5880;
+  line-height: 1.7;
+}
+
+/* ── FINAL CTA ── */
+.cta {
+  padding: 100px 60px;
+  background: var(--white);
+  text-align: center;
+  border-top: 1px solid #E8E5F0;
+}
+
+.cta-inner {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.cta .section-title {
+  color: #141428;
+}
+
+.cta .section-sub {
+  color: #5A5880;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 40px;
+}
+
+.cta-btns {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.cta .btn-p {
+  background: linear-gradient(135deg, var(--green-500), var(--green-400));
+  color: var(--white);
+  box-shadow: 0 8px 32px rgba(31,139,92,0.3);
+}
+
+.cta .btn-p:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(31,139,92,0.4);
+}
+
+.cta .btn-s {
+  border-color: var(--green-500);
+  color: var(--green-500);
+}
+
+.cta .btn-s:hover {
+  background: rgba(31,139,92,0.08);
+}
+
+/* ── FOOTER ── */
+footer {
+  padding: 80px 60px 40px;
+  background: #0E1428;
+}
+
+.footer-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 60px;
+  margin-bottom: 60px;
+}
+
+.footer-brand p {
+  font-size: 0.9rem;
+  color: var(--gray-4);
+  line-height: 1.8;
+  max-width: 300px;
+  margin-top: 20px;
+}
+
+.footer-col h4 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--gray-2);
+  margin-bottom: 20px;
+}
+
+.footer-col a {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--gray-4);
+  margin-bottom: 12px;
+  transition: var(--transition);
+}
+
+.footer-col a:hover {
+  color: var(--gray-1);
+}
+
+.footer-bottom {
+  border-top: 1px solid var(--border);
+  padding-top: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-bottom p {
+  font-size: 0.8rem;
+  color: var(--gray-5);
+}
+
+.footer-links {
+  display: flex;
+  gap: 24px;
+}
+
+.footer-links a {
+  font-size: 0.8rem;
+  color: var(--gray-5);
+  transition: var(--transition);
+}
+
+.footer-links a:hover {
+  color: var(--gray-2);
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 1024px) {
+  .hero-inner { grid-template-columns: 1fr; text-align: center; }
+  .hero-sub { margin-left: auto; margin-right: auto; }
+  .hero-btns { justify-content: center; }
+  .hero-stats { justify-content: center; }
+  .hero-visual { display: none; }
+  .pain-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .hiw-grid { grid-template-columns: repeat(2, 1fr); }
+  .hiw-arrow { display: none; }
+  .intel-grid { grid-template-columns: 1fr; }
+  .trust-grid { grid-template-columns: 1fr; }
+  .footer-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 768px) {
+  nav { padding: 0 24px; gap: 20px; }
+  nav a:not(.nav-cta):not(.nav-ghost) { display: none; }
+  #hero, .problem, .stats, .hiw, .human, .intel, .partners, .trust, .cta { padding-left: 24px; padding-right: 24px; }
+  .container { padding: 0 24px; }
+  .stats-grid { grid-template-columns: 1fr; }
+  .hiw-grid { grid-template-columns: 1fr; }
+  .footer-grid { grid-template-columns: 1fr; gap: 40px; }
+  .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="logo">
+    <svg class="logo-svg" width="148" height="40" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#navBarGrad)"/>
+      <text x="12" y="26" font-family="'Syne', sans-serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+      <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+      <circle cx="20" cy="6" r="4" fill="#1F8B5C" opacity="0.35">
+        <animate attributeName="r" values="4;7;4" dur="2.5s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.35;0;0.35" dur="2.5s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+      <defs>
+        <linearGradient id="navBarGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#1F8B5C"/>
+          <stop offset="100%" stop-color="#16734C"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  </a>
+  <a href="#problem">The threat</a>
+  <a href="#hiw">How it works</a>
+  <a href="#partners">Partners</a>
+  <a href="#intel">Intelligence</a>
+  <a href="#trust">About</a>
+  <div class="nav-ghost">Partner login</div>
+  <div class="nav-cta">Get protected</div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-glow-2"></div>
+  
+  <div class="hero-inner">
+    <div class="hero-content">
+      <div class="hero-eyebrow"><span class="ey-bar"></span>Real-time scam prevention</div>
+      <h1>Stop scams <span class="accent">before</span> they happen.</h1>
+      <p class="hero-sub">AI-powered protection against fraud, scams, and social engineering. Protecting people at the moment it matters most.</p>
+      
+      <div class="hero-btns">
+        <button class="btn-p">
+          Get protected
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+        <button class="btn-s">Partner with us</button>
+      </div>
+      
+      <div class="hero-stats">
+        <div class="hs-item">
+          <span class="hs-num">$400B+</span>
+          <span class="hs-label">Lost to scams yearly</span>
+        </div>
+        <div class="hs-item">
+          <span class="hs-num">Real-time</span>
+          <span class="hs-label">Protection</span>
+        </div>
+        <div class="hs-item">
+          <span class="hs-num">AI-powered</span>
+          <span class="hs-label">Cross-channel</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="hero-visual">
+      <div class="shield-scene">
+        <div class="ring ring-1"></div>
+        <div class="ring ring-2"></div>
+        
+        <div class="threat-label blocked">
+          <span class="dot"></span>
+          Phishing blocked
+        </div>
+        <div class="threat-label warning">
+          <span class="dot"></span>
+          Voice scam detected
+        </div>
+        <div class="threat-label active">
+          <span class="dot"></span>
+          Monitoring active
+        </div>
+        
+        <div class="shield-wrap">
+          <div class="shield-glow"></div>
+          <svg width="100" height="115" viewBox="0 0 96 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M48 0L4 20v35c0 28.3 18.7 54.7 44 65 25.3-10.3 44-36.7 44-65V20L48 0z" fill="url(#shieldGrad)" stroke="#3FB785" stroke-width="2"/>
+            <path d="M36 55l10 10 18-20" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <defs>
+              <linearGradient id="shieldGrad" x1="48" y1="0" x2="48" y2="110" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#1F8B5C"/>
+                <stop offset="100%" stop-color="#16734C"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEM -->
+<section id="problem" class="problem">
+  <div class="problem-inner">
+    <span class="section-label">The growing threat</span>
+    <h2 class="section-title">A global epidemic targeting people — not systems.</h2>
+    <p class="section-sub">Scams have become one of the fastest-growing global threats. Attackers no longer need to hack systems — they manipulate people directly.</p>
+    
+    <div class="pain-grid">
+      <div class="pain-card">
+        <svg class="pain-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        <h3>AI-powered attacks</h3>
+        <p>Voice cloning, deepfakes, and AI-generated content make scams more convincing than ever before.</p>
+      </div>
+      <div class="pain-card">
+        <svg class="pain-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        <h3>Social engineering</h3>
+        <p>Attackers exploit trust, fear, and urgency to manipulate people into making costly mistakes.</p>
+      </div>
+      <div class="pain-card">
+        <svg class="pain-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        <h3>Anyone is a target</h3>
+        <p>No level of intelligence or technical knowledge guarantees protection. Anyone can be manipulated.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section id="stats" class="stats">
+  <div class="stats-inner">
+    <span class="section-label" style="color: #5A5880;">The scale of the problem</span>
+    <h2 class="section-title">A $400 billion crisis that's accelerating.</h2>
+    <p class="section-sub">Every year, billions of people are exposed to scams. Most remain unprotected.</p>
+    
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-num orange">$400B+</div>
+        <div class="stat-label">Global losses to scams annually</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num purple">5B+</div>
+        <div class="stat-label">People at risk worldwide</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num green">Real-time</div>
+        <div class="stat-label">Protection before damage</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num navy">Human-first</div>
+        <div class="stat-label">Protecting people, not just systems</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="hiw" class="hiw">
+  <div class="hiw-inner">
+    <span class="section-label">How it works</span>
+    <h2 class="section-title">Protection at the moment of decision.</h2>
+    <p class="section-sub">ASPS protects users during active scam scenarios. Not after. Before.</p>
+    
+    <div class="hiw-grid">
+      <div class="hiw-card">
+        <span class="hiw-num">1</span>
+        <div class="hiw-icon">🔍</div>
+        <h3>Detect</h3>
+        <p>Monitor signals across calls, messages, and browsing activity in real-time.</p>
+        <span class="hiw-arrow">→</span>
+      </div>
+      <div class="hiw-card">
+        <span class="hiw-num">2</span>
+        <div class="hiw-icon">🧠</div>
+        <h3>Analyze</h3>
+        <p>AI models identify scam patterns, manipulation tactics, and risk signals.</p>
+        <span class="hiw-arrow">→</span>
+      </div>
+      <div class="hiw-card">
+        <span class="hiw-num">3</span>
+        <div class="hiw-icon">⚡</div>
+        <h3>Alert</h3>
+        <p>Instant clear warning at the critical moment before damage occurs.</p>
+        <span class="hiw-arrow">→</span>
+      </div>
+      <div class="hiw-card">
+        <span class="hiw-num">4</span>
+        <div class="hiw-icon">🛡️</div>
+        <h3>Protect</h3>
+        <p>Help users make the right decision and prevent financial or emotional harm.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HUMAN SECTION -->
+<section id="human" class="human">
+  <div class="human-inner">
+    <span class="section-label">You're not alone</span>
+    <h2 class="section-title">Scams are not a personal failure.</h2>
+    <p class="section-sub">Anyone can be manipulated. There should be no shame in talking about scams. Awareness, openness, and community protection are essential.</p>
+    
+    <div class="quote-card">
+      <span class="quote-mark">"</span>
+      <blockquote>I thought it was my son calling. The voice sounded exactly like him. Only later did I realize it was an AI-generated voice scam.</blockquote>
+      <cite>— A story shared to help others stay safe</cite>
+    </div>
+  </div>
+</section>
+
+<!-- INTELLIGENCE -->
+<section id="intel" class="intel">
+  <div class="intel-inner">
+    <div class="intel-header">
+      <div>
+        <span class="section-label" style="color: #5A5880;">Scam intelligence</span>
+        <h2 class="section-title">Latest threat insights</h2>
+      </div>
+      <a href="#" class="intel-link">View all insights →</a>
+    </div>
+    
+    <div class="intel-grid">
+      <div class="intel-card">
+        <h4>UK scam reimbursement rules are reshaping fraud prevention</h4>
+        <span class="meta">ThreatMark • May 2026</span>
+      </div>
+      <div class="intel-card">
+        <h4>AI voice cloning scams are accelerating globally</h4>
+        <span class="meta">Trend Micro • May 2026</span>
+      </div>
+      <div class="intel-card">
+        <h4>GASA calls for stronger global anti-scam coordination</h4>
+        <span class="meta">GASA • May 2026</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PARTNERS -->
+<section id="partners" class="partners">
+  <div class="partners-glow"></div>
+  <div class="partners-inner">
+    <span class="section-label">Partnerships</span>
+    <h2 class="section-title">Fighting scams requires collaboration.</h2>
+    <p class="section-sub">We work with financial institutions, fraud prevention companies, NGOs, researchers, and public sector initiatives to protect consumers worldwide.</p>
+    
+    <div class="partners-tags">
+      <span class="partner-tag">Banks & insurers</span>
+      <span class="partner-tag">Fraud prevention</span>
+      <span class="partner-tag">NGOs & research</span>
+      <span class="partner-tag">Public sector</span>
+    </div>
+    
+    <button class="btn-p" style="background: #fff; color: #161E38;">
+      Become a partner
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+  </div>
+</section>
+
+<!-- TRUST -->
+<section id="trust" class="trust">
+  <div class="trust-inner">
+    <span class="section-label">Ethics & trust</span>
+    <h2 class="section-title">Built on trust.</h2>
+    
+    <div class="trust-grid">
+      <div class="trust-card">
+        <div class="trust-icon">🔒</div>
+        <h3>Privacy-first</h3>
+        <p>Protecting users without unnecessary data collection. Your privacy is our priority.</p>
+      </div>
+      <div class="trust-card">
+        <div class="trust-icon">🤖</div>
+        <h3>Responsible AI</h3>
+        <p>Using AI carefully, transparently, and ethically in everything we do.</p>
+      </div>
+      <div class="trust-card">
+        <div class="trust-icon">❤️</div>
+        <h3>Human-centered</h3>
+        <p>Supporting people — not exploiting fear. Protection with empathy.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="cta-inner">
+    <h2 class="section-title">Ready to protect yourself?</h2>
+    <p class="section-sub">Join the movement against scams. Get protected today.</p>
+    
+    <div class="cta-btns">
+      <button class="btn-p">Get protected</button>
+      <button class="btn-s">Contact us</button>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="130" height="36" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerBarGrad)"/>
+          <text x="12" y="26" font-family="'Syne', sans-serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs>
+            <linearGradient id="footerBarGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#1F8B5C"/>
+              <stop offset="100%" stop-color="#16734C"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <p>Real-time AI protection against fraud, scams, and social engineering. Protecting people at the moment it matters most.</p>
+      </div>
+      
+      <div class="footer-col">
+        <h4>Platform</h4>
+        <a href="#">How it works</a>
+        <a href="#">Protection</a>
+        <a href="#">For partners</a>
+        <a href="#">Pricing</a>
+      </div>
+      
+      <div class="footer-col">
+        <h4>Resources</h4>
+        <a href="#">Knowledge base</a>
+        <a href="#">Scam intelligence</a>
+        <a href="#">Support</a>
+        <a href="#">Stories</a>
+      </div>
+      
+      <div class="footer-col">
+        <h4>Company</h4>
+        <a href="#">About us</a>
+        <a href="#">Mission</a>
+        <a href="#">Ethics</a>
+        <a href="#">Contact</a>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <p>© 2026 ASPS. All rights reserved.</p>
+      <div class="footer-links">
+        <a href="privacy.html">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Cookies</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
