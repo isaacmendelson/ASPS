@@ -1313,29 +1313,66 @@ img { max-width: 100%; display: block; }
 .footer-links a:hover {
   color: var(--text-light);
 }
-/* Language Switcher */
-.lang-switcher {
+/* Language Dropdown */
+.lang-dropdown {
+  position: relative;
+}
+.lang-dropdown-btn {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-right: 16px;
-  padding-right: 16px;
-  border-right: 1px solid rgba(255,255,255,0.12);
-}
-.lang-btn {
-  padding: 6px 10px;
-  font-size: 0.75rem;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border-dark-2);
+  border-radius: var(--radius-sm);
+  color: var(--text-light);
+  font-size: 0.8125rem;
   font-weight: 600;
-  color: #94A3B8;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 6px;
   cursor: pointer;
-  transition: 0.25s;
+  transition: var(--transition);
+}
+.lang-dropdown-btn:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.25);
+}
+.lang-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 140px;
+  padding: 8px 0;
+  background: var(--bg-navy);
+  border: 1px solid var(--border-dark-2);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: var(--transition);
+  z-index: 100;
+}
+.lang-dropdown:hover .lang-dropdown-menu,
+.lang-dropdown:focus-within .lang-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.lang-option {
+  display: block;
+  padding: 10px 16px;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  transition: var(--transition);
   text-decoration: none;
 }
-.lang-btn:hover { color: #fff; border-color: rgba(255,255,255,0.2); }
-.lang-btn.active { color: #3FB785; border-color: #3FB785; }
+.lang-option:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-white);
+}
+.lang-option.active {
+  color: var(--green-400);
+  font-weight: 600;
+}
 </style>
 </head>
 <body>
@@ -1374,7 +1411,19 @@ img { max-width: 100%; display: block; }
     </div>
     
     <div class="nav-actions">
-      <div class="lang-switcher"><span class="lang-btn active">EN</span><a href="he/index.html" class="lang-btn">עב</a></div>
+      <div class="lang-dropdown">
+        <button class="lang-dropdown-btn" aria-label="Select language">
+          <span class="lang-current">EN</span>
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l4 4 4-4"/></svg>
+        </button>
+        <div class="lang-dropdown-menu">
+          <span class="lang-option active">English</span>
+          <a href="he/index.html" class="lang-option">עברית</a>
+          <a href="fr/index.html" class="lang-option">Français</a>
+          <a href="ru/index.html" class="lang-option">Русский</a>
+          <a href="es/index.html" class="lang-option">Español</a>
+        </div>
+      </div>
       <a href="contact.html" class="nav-btn nav-btn-ghost">Partner login</a>
       <a href="contact.html" class="nav-btn nav-btn-primary">Get protected</a>
     </div>
