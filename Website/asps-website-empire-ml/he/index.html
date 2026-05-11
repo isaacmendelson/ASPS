@@ -1,0 +1,1865 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="ASPS - הגנה בזמן אמת מפני הונאות, תרמיות והנדסה חברתית. עוצרים הונאות לפני שהן קורות."/>
+<meta property="og:title" content="ASPS - Stop Scams Before They Happen"/>
+<meta property="og:description" content="הגנה בזמן אמת באמצעות בינה מלאכותית מפני הונאות, תרמיות והנדסה חברתית."/>
+<title>ASPS - עוצרים הונאות לפני שהן קורות</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&family=Instrument+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+/* ══════════════════════════════════════════════════════════════
+   ASPS — Rich Homepage
+   Design System: Tech + Institutional + Human Warmth
+   ══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Dark backgrounds */
+  --bg-dark: #070B14;
+  --bg-dark-2: #0A0E1A;
+  --bg-navy: #0F1238;
+  --bg-navy-2: #161E38;
+  --bg-navy-3: #1A2255;
+  
+  /* Light backgrounds */
+  --bg-white: #FFFFFF;
+  --bg-light: #F8F9FC;
+  --bg-light-2: #F3F4F8;
+  --bg-warm: #FDF8F6;
+  --bg-warm-pink: #FBF0F3;
+  --bg-warm-purple: #F6F5FF;
+  
+  /* Primary colors */
+  --green-600: #16734C;
+  --green-500: #1F8B5C;
+  --green-400: #3FB785;
+  --green-300: #6FCFA3;
+  --green-dim: rgba(31,139,92,0.12);
+  
+  /* Accent colors */
+  --purple: #7C3AED;
+  --purple-dim: rgba(124,58,237,0.12);
+  --cyan: #00D4FF;
+  --orange: #FF6B35;
+  --orange-dim: rgba(255,107,53,0.12);
+  --red: #EF4444;
+  --pink: #EC4899;
+  --pink-dim: rgba(236,72,153,0.08);
+  
+  /* Text colors */
+  --text-white: #FFFFFF;
+  --text-light: #E2E8F0;
+  --text-light-2: #CBD5E1;
+  --text-muted: #94A3B8;
+  --text-muted-2: #64748B;
+  --text-dark: #0F172A;
+  --text-dark-2: #334155;
+  --text-dark-3: #475569;
+  
+  /* On dark backgrounds */
+  --on-dark-heading: #FFFFFF;
+  --on-dark-body: #94A3B8;
+  --on-dark-muted: #64748B;
+  
+  /* On light backgrounds */
+  --on-light-heading: #0F172A;
+  --on-light-body: #475569;
+  --on-light-muted: #94A3B8;
+  
+  /* Borders */
+  --border-dark: rgba(255,255,255,0.08);
+  --border-dark-2: rgba(255,255,255,0.12);
+  --border-light: #E2E8F0;
+  --border-light-2: #CBD5E1;
+  
+  /* Fonts */
+  --font-body: 'Heebo', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Syne', Georgia, serif;
+  
+  /* Spacing & Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+  
+  /* Transitions */
+  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── RESET ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg-white);
+  color: var(--text-dark);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+img { max-width: 100%; display: block; }
+
+/* ── UTILITIES ── */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+@media (min-width: 768px) {
+  .container { padding: 0 40px; }
+}
+
+@media (min-width: 1024px) {
+  .container { padding: 0 60px; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   NAVIGATION
+   ══════════════════════════════════════════════════════════════ */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  height: 72px;
+  background: rgba(15, 18, 56, 0.97);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.nav-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 40px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.nav-links {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (min-width: 1024px) {
+  .nav-links { display: flex; }
+}
+
+.nav-link {
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.nav-link:hover {
+  color: var(--text-white);
+  background: rgba(255,255,255,0.05);
+}
+
+.nav-link.active {
+  color: var(--green-400);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-btn {
+  padding: 10px 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+  border: none;
+}
+
+.nav-btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-dark-2);
+}
+
+.nav-btn-ghost:hover {
+  color: var(--text-white);
+  border-color: rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.05);
+}
+
+.nav-btn-primary {
+  background: var(--text-white);
+  color: var(--bg-navy);
+}
+
+.nav-btn-primary:hover {
+  background: var(--bg-light);
+}
+
+/* Mobile menu button */
+.nav-mobile-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: none;
+  color: var(--text-white);
+}
+
+@media (min-width: 1024px) {
+  .nav-mobile-btn { display: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   HERO SECTION
+   ══════════════════════════════════════════════════════════════ */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  padding: 120px 0 80px;
+  background: linear-gradient(145deg, var(--bg-navy-3) 0%, var(--bg-navy) 60%, #0B0F24 100%);
+  overflow: hidden;
+}
+
+.hero-bg-glow {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(80px);
+}
+
+.hero-bg-glow-1 {
+  top: -200px;
+  right: -100px;
+  width: 600px;
+  height: 600px;
+  background: rgba(31, 139, 92, 0.15);
+}
+
+.hero-bg-glow-2 {
+  bottom: -150px;
+  left: -100px;
+  width: 500px;
+  height: 500px;
+  background: rgba(124, 58, 237, 0.1);
+}
+
+.hero-inner {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 60px;
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .hero-inner {
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+  }
+}
+
+.hero-content {
+  text-align: center;
+}
+
+@media (min-width: 1024px) {
+  .hero-content { text-align: left; }
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: var(--green-dim);
+  border: 1px solid rgba(31,139,92,0.25);
+  border-radius: var(--radius-full);
+  margin-bottom: 28px;
+}
+
+.hero-badge-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--green-500);
+  border-radius: 50%;
+  box-shadow: 0 0 12px var(--green-500);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+.hero-badge-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--green-400);
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 5vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--text-white);
+  margin-bottom: 24px;
+}
+
+.hero-title-accent {
+  color: var(--green-400);
+}
+
+.hero-subtitle {
+  font-size: 1.125rem;
+  line-height: 1.8;
+  color: var(--on-dark-body);
+  max-width: 520px;
+  margin-bottom: 40px;
+}
+
+@media (min-width: 1024px) {
+  .hero-subtitle { margin-left: 0; margin-right: 0; }
+}
+
+@media (max-width: 1023px) {
+  .hero-subtitle { margin-left: auto; margin-right: auto; }
+}
+
+.hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  margin-bottom: 48px;
+}
+
+@media (min-width: 1024px) {
+  .hero-cta { justify-content: flex-start; }
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: none;
+  transition: var(--transition);
+}
+
+.btn-primary {
+  background: var(--text-white);
+  color: var(--bg-navy);
+}
+
+.btn-primary:hover {
+  background: var(--bg-light);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(255,255,255,0.15);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1.5px solid var(--border-dark-2);
+}
+
+.btn-secondary:hover {
+  color: var(--text-white);
+  border-color: rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.05);
+}
+
+.btn-green {
+  background: linear-gradient(135deg, var(--green-500), var(--green-400));
+  color: var(--text-white);
+  box-shadow: 0 4px 20px rgba(31,139,92,0.35);
+}
+
+.btn-green:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(31,139,92,0.45);
+}
+
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border-dark);
+}
+
+.hero-stat {
+  text-align: center;
+}
+
+@media (min-width: 1024px) {
+  .hero-stat { text-align: left; }
+}
+
+.hero-stat-value {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--green-400);
+  margin-bottom: 4px;
+}
+
+.hero-stat-label {
+  font-size: 0.75rem;
+  color: var(--on-dark-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Hero Visual */
+.hero-visual {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+@media (min-width: 1024px) {
+  .hero-visual { display: flex; }
+}
+
+.shield-container {
+  position: relative;
+  width: 420px;
+  height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shield-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px dashed rgba(31,139,92,0.2);
+  animation: spin linear infinite;
+}
+
+.shield-ring-1 {
+  width: 280px;
+  height: 280px;
+  animation-duration: 25s;
+}
+
+.shield-ring-2 {
+  width: 380px;
+  height: 380px;
+  border-style: solid;
+  border-color: rgba(31,139,92,0.1);
+  animation-duration: 35s;
+  animation-direction: reverse;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.shield-glow {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(31,139,92,0.3) 0%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(30px);
+}
+
+.shield-icon {
+  position: relative;
+  z-index: 3;
+  animation: float 4s ease-in-out infinite;
+  filter: drop-shadow(0 0 30px rgba(31,139,92,0.4));
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+/* Floating threat labels */
+.threat-pill {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-full);
+  backdrop-filter: blur(10px);
+  font-size: 0.8125rem;
+  color: var(--text-light-2);
+  white-space: nowrap;
+  animation: floatPill 3.5s ease-in-out infinite;
+}
+
+.threat-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.threat-pill-dot.green { background: var(--green-500); box-shadow: 0 0 8px var(--green-500); }
+.threat-pill-dot.orange { background: var(--orange); box-shadow: 0 0 8px var(--orange); }
+.threat-pill-dot.cyan { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+
+.threat-pill:nth-child(1) { top: 15%; left: -10%; animation-delay: 0s; }
+.threat-pill:nth-child(2) { top: 55%; right: -15%; animation-delay: 0.7s; }
+.threat-pill:nth-child(3) { bottom: 20%; left: 5%; animation-delay: 1.4s; }
+
+@keyframes floatPill {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LIVE INTELLIGENCE TICKER
+   ══════════════════════════════════════════════════════════════ */
+.ticker {
+  background: var(--bg-dark);
+  border-bottom: 1px solid var(--border-dark);
+  padding: 14px 0;
+  overflow: hidden;
+}
+
+.ticker-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ticker-label {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: var(--orange-dim);
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--orange);
+}
+
+.ticker-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--orange);
+  border-radius: 50%;
+  animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.ticker-track {
+  flex: 1;
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+}
+
+.ticker-content {
+  display: flex;
+  gap: 48px;
+  animation: scroll 30s linear infinite;
+  white-space: nowrap;
+}
+
+@keyframes scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.ticker-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.ticker-item-icon {
+  font-size: 1rem;
+}
+
+.ticker-item strong {
+  color: var(--text-light);
+  font-weight: 600;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PROBLEM / EPIDEMIC SECTION
+   ══════════════════════════════════════════════════════════════ */
+.epidemic {
+  padding: 100px 0;
+  background: var(--bg-white);
+}
+
+.section-header {
+  max-width: 680px;
+  margin-bottom: 64px;
+}
+
+.section-header.center {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: var(--green-dim);
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--green-500);
+  margin-bottom: 20px;
+}
+
+.section-label.orange {
+  background: var(--orange-dim);
+  color: var(--orange);
+}
+
+.section-label.purple {
+  background: var(--purple-dim);
+  color: var(--purple);
+}
+
+.section-label.pink {
+  background: var(--pink-dim);
+  color: var(--pink);
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.5vw, 2.75rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: var(--on-light-heading);
+  margin-bottom: 16px;
+}
+
+.section-title.light {
+  color: var(--text-white);
+}
+
+.section-subtitle {
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  color: var(--on-light-body);
+}
+
+.section-subtitle.light {
+  color: var(--on-dark-body);
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+@media (min-width: 768px) {
+  .stats-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.stat-card {
+  padding: 32px 24px;
+  background: var(--bg-light);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  transition: var(--transition);
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.stat-value.orange { color: var(--orange); }
+.stat-value.purple { color: var(--purple); }
+.stat-value.green { color: var(--green-500); }
+.stat-value.dark { color: var(--text-dark); }
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--on-light-body);
+  line-height: 1.5;
+}
+
+.stat-source {
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: var(--on-light-muted);
+  font-style: italic;
+}
+
+/* Pain Cards */
+.pain-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin-top: 48px;
+}
+
+@media (min-width: 768px) {
+  .pain-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.pain-card {
+  padding: 32px 28px;
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  transition: var(--transition);
+}
+
+.pain-card:hover {
+  border-color: var(--green-500);
+  box-shadow: 0 8px 30px rgba(31,139,92,0.1);
+  transform: translateY(-4px);
+}
+
+.pain-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--green-dim);
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+}
+
+.pain-card h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--on-light-heading);
+  margin-bottom: 12px;
+}
+
+.pain-card p {
+  font-size: 0.9375rem;
+  color: var(--on-light-body);
+  line-height: 1.7;
+}
+
+/* Why Now Box */
+.why-now-box {
+  margin-top: 60px;
+  padding: 32px 40px;
+  background: linear-gradient(135deg, var(--orange-dim), rgba(255,107,53,0.05));
+  border: 1px solid rgba(255,107,53,0.2);
+  border-right: 4px solid var(--orange); border-left: none;
+  border-radius: var(--radius-lg);
+}
+
+.why-now-label {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--orange);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+}
+
+.why-now-text {
+  font-size: 1.125rem;
+  color: var(--on-light-heading);
+  line-height: 1.75;
+  max-width: 900px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   HOW IT WORKS SECTION
+   ══════════════════════════════════════════════════════════════ */
+.how-it-works {
+  padding: 100px 0;
+  background: linear-gradient(180deg, var(--bg-navy) 0%, var(--bg-navy-2) 100%);
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 768px) {
+  .steps-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .steps-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.step-card {
+  position: relative;
+  padding: 36px 28px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  transition: var(--transition);
+}
+
+.step-card:hover {
+  background: rgba(31,139,92,0.06);
+  border-color: rgba(31,139,92,0.3);
+  transform: translateY(-4px);
+}
+
+.step-number {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--green-500), var(--green-400));
+  border-radius: 50%;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-white);
+}
+
+.step-icon {
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+}
+
+.step-card h3 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-white);
+  margin-bottom: 12px;
+}
+
+.step-card p {
+  font-size: 0.9375rem;
+  color: var(--on-dark-body);
+  line-height: 1.7;
+}
+
+.step-arrow {
+  display: none;
+  position: absolute;
+  right: -18px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--on-dark-muted);
+  font-size: 1.25rem;
+  z-index: 5;
+}
+
+@media (min-width: 1024px) {
+  .step-card:not(:last-child) .step-arrow { display: block; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FEATURED INTELLIGENCE SECTION
+   ══════════════════════════════════════════════════════════════ */
+.intelligence {
+  padding: 100px 0;
+  background: var(--bg-light);
+}
+
+.section-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  margin-bottom: 48px;
+}
+
+.view-all-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--green-500);
+  transition: var(--transition);
+}
+
+.view-all-link:hover {
+  color: var(--green-600);
+  gap: 10px;
+}
+
+.intel-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 768px) {
+  .intel-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .intel-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.intel-card {
+  display: flex;
+  flex-direction: column;
+  padding: 28px;
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  transition: var(--transition);
+}
+
+.intel-card:hover {
+  border-color: var(--green-500);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+  transform: translateY(-4px);
+}
+
+.intel-card-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--green-dim);
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--green-600);
+  margin-bottom: 16px;
+  width: fit-content;
+}
+
+.intel-card-tag.alert {
+  background: var(--orange-dim);
+  color: var(--orange);
+}
+
+.intel-card-tag.research {
+  background: var(--purple-dim);
+  color: var(--purple);
+}
+
+.intel-card h3 {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--on-light-heading);
+  line-height: 1.5;
+  margin-bottom: 12px;
+  flex-grow: 1;
+}
+
+.intel-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--on-light-muted);
+}
+
+.intel-card-meta-dot {
+  width: 3px;
+  height: 3px;
+  background: var(--on-light-muted);
+  border-radius: 50%;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   HUMAN / YOU'RE NOT ALONE SECTION
+   ══════════════════════════════════════════════════════════════ */
+.human-section {
+  padding: 100px 0;
+  background: linear-gradient(135deg, var(--bg-warm-pink) 0%, var(--bg-warm-purple) 100%);
+}
+
+.human-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 48px;
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .human-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.human-content .section-label {
+  background: var(--pink-dim);
+  color: var(--pink);
+}
+
+.quote-card {
+  position: relative;
+  padding: 40px;
+  background: var(--bg-white);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.06);
+}
+
+.quote-mark {
+  position: absolute;
+  top: 20px;
+  left: 32px;
+  font-family: Georgia, serif;
+  font-size: 5rem;
+  line-height: 1;
+  color: var(--bg-light-2);
+}
+
+.quote-text {
+  position: relative;
+  font-size: 1.1875rem;
+  line-height: 1.8;
+  color: var(--on-light-heading);
+  margin-bottom: 20px;
+  padding-top: 24px;
+}
+
+.quote-author {
+  font-size: 0.9375rem;
+  color: var(--on-light-muted);
+  font-style: italic;
+}
+
+.human-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.btn-warm {
+  background: linear-gradient(135deg, #EC4899, #A855F7);
+  color: var(--text-white);
+  box-shadow: 0 4px 20px rgba(236,72,153,0.3);
+}
+
+.btn-warm:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(236,72,153,0.4);
+}
+
+.btn-outline {
+  background: var(--bg-white);
+  color: var(--on-light-heading);
+  border: 1.5px solid var(--border-light-2);
+}
+
+.btn-outline:hover {
+  border-color: var(--pink);
+  color: var(--pink);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PARTNERS SECTION
+   ══════════════════════════════════════════════════════════════ */
+.partners {
+  padding: 100px 0;
+  background: linear-gradient(145deg, var(--bg-navy-3) 0%, var(--bg-navy) 100%);
+  text-align: center;
+}
+
+.partners-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(31,139,92,0.12) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.partner-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin: 40px 0;
+}
+
+.partner-tag {
+  padding: 12px 24px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-full);
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+  transition: var(--transition);
+}
+
+.partner-tag:hover {
+  background: rgba(31,139,92,0.1);
+  border-color: rgba(31,139,92,0.3);
+  color: var(--green-400);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TRUST SECTION
+   ══════════════════════════════════════════════════════════════ */
+.trust {
+  padding: 100px 0;
+  background: var(--bg-white);
+}
+
+.trust-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 768px) {
+  .trust-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.trust-card {
+  padding: 36px 28px;
+  background: var(--bg-light);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  transition: var(--transition);
+}
+
+.trust-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.06);
+}
+
+.trust-icon {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  margin: 0 auto 24px;
+  font-size: 2rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+}
+
+.trust-card h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--on-light-heading);
+  margin-bottom: 12px;
+}
+
+.trust-card p {
+  font-size: 0.9375rem;
+  color: var(--on-light-body);
+  line-height: 1.7;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FINAL CTA SECTION
+   ══════════════════════════════════════════════════════════════ */
+.final-cta {
+  padding: 100px 0;
+  background: var(--bg-light);
+  text-align: center;
+}
+
+.final-cta-inner {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.final-cta-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 40px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FOOTER
+   ══════════════════════════════════════════════════════════════ */
+.footer {
+  padding: 80px 0 40px;
+  background: var(--bg-dark);
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 48px;
+  margin-bottom: 64px;
+}
+
+@media (min-width: 768px) {
+  .footer-grid { grid-template-columns: 2fr 1fr 1fr 1fr; }
+}
+
+.footer-brand p {
+  font-size: 0.9375rem;
+  color: var(--on-dark-body);
+  line-height: 1.75;
+  max-width: 320px;
+  margin-top: 20px;
+}
+
+.footer-col h4 {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-light);
+  margin-bottom: 20px;
+}
+
+.footer-col a {
+  display: block;
+  font-size: 0.9375rem;
+  color: var(--on-dark-body);
+  margin-bottom: 14px;
+  transition: var(--transition);
+}
+
+.footer-col a:hover {
+  color: var(--green-400);
+}
+
+.footer-bottom {
+  padding-top: 32px;
+  border-top: 1px solid var(--border-dark);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.footer-bottom p {
+  font-size: 0.875rem;
+  color: var(--on-dark-muted);
+}
+
+.footer-links {
+  display: flex;
+  gap: 24px;
+}
+
+.footer-links a {
+  font-size: 0.875rem;
+  color: var(--on-dark-muted);
+  transition: var(--transition);
+}
+
+.footer-links a:hover {
+  color: var(--text-light);
+}
+/* Language Switcher */
+.lang-switcher {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 16px;
+  padding-left: 16px;
+  border-left: 1px solid rgba(255,255,255,0.12);
+}
+.lang-btn {
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94A3B8;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.25s;
+  text-decoration: none;
+}
+.lang-btn:hover { color: #fff; border-color: rgba(255,255,255,0.2); }
+.lang-btn.active { color: #3FB785; border-color: #3FB785; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════
+     NAVIGATION
+     ══════════════════════════════════════════════════════════════ -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C" opacity="0.4">
+          <animate attributeName="r" values="4;8;4" dur="2.5s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.4;0;0.4" dur="2.5s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs>
+          <linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#1F8B5C"/>
+            <stop offset="100%" stop-color="#16734C"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </a>
+    
+    <div class="nav-links">
+      <a href="#epidemic" class="nav-link">האיום</a>
+      <a href="platform.html" class="nav-link">איך זה עובד</a>
+      <a href="knowledge.html" class="nav-link">מרכז ידע</a>
+      <a href="stories.html" class="nav-link">סיפורים</a>
+      <a href="partners.html" class="nav-link">שותפים</a>
+      <a href="about.html" class="nav-link">אודות</a>
+    </div>
+    
+    <div class="nav-actions">
+      <div class="lang-switcher"><a href="../index.html" class="lang-btn">EN</a><span class="lang-btn active">עב</span></div>
+      <a href="contact.html" class="nav-btn nav-btn-ghost">כניסת שותפים</a>
+      <a href="contact.html" class="nav-btn nav-btn-primary">קבל הגנה</a>
+    </div>
+    
+    <button class="nav-mobile-btn">
+      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════════════
+     HERO SECTION
+     ══════════════════════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-bg-glow hero-bg-glow-1"></div>
+  <div class="hero-bg-glow hero-bg-glow-2"></div>
+  
+  <div class="container">
+    <div class="hero-inner">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span class="hero-badge-dot"></span>
+          <span class="hero-badge-text">Real-time scam prevention</span>
+        </div>
+        
+        <h1 class="hero-title">
+          Stop scams <span class="hero-title-accent">before</span> שהן קורות.
+        </h1>
+        
+        <p class="hero-subtitle">
+          AI-powered protection against fraud, scams, and social engineering. 
+          מגנים על אנשים ברגע שזה הכי חשוב — during the interaction itself.
+        </p>
+        
+        <div class="hero-cta">
+          <a href="contact.html" class="btn btn-primary">
+            Get protected
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+          <a href="partners.html" class="btn btn-secondary">שיתוף פעולה</a>
+        </div>
+        
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="hero-stat-value">$400B+</div>
+            <div class="hero-stat-label">Lost yearly</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-value">זמן אמת</div>
+            <div class="hero-stat-label">הגנה</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-value">AI-powered</div>
+            <div class="hero-stat-label">Cross-channel</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="hero-visual">
+        <div class="shield-container">
+          <div class="shield-ring shield-ring-1"></div>
+          <div class="shield-ring shield-ring-2"></div>
+          
+          <div class="threat-pill">
+            <span class="threat-pill-dot green"></span>
+            Phishing blocked
+          </div>
+          <div class="threat-pill">
+            <span class="threat-pill-dot orange"></span>
+            Voice scam detected
+          </div>
+          <div class="threat-pill">
+            <span class="threat-pill-dot cyan"></span>
+            Monitoring active
+          </div>
+          
+          <div class="shield-glow"></div>
+          <svg class="shield-icon" width="110" height="125" viewBox="0 0 96 110" fill="none">
+            <path d="M48 2L6 22v33c0 27 17.5 52.5 42 63 24.5-10.5 42-36 42-63V22L48 2z" fill="url(#shieldFill)" stroke="#3FB785" stroke-width="2"/>
+            <path d="M35 55l11 11 19-21" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            <defs>
+              <linearGradient id="shieldFill" x1="48" y1="0" x2="48" y2="110" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#1F8B5C"/>
+                <stop offset="100%" stop-color="#16734C"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     LIVE INTELLIGENCE TICKER
+     ══════════════════════════════════════════════════════════════ -->
+<div class="ticker">
+  <div class="container">
+    <div class="ticker-inner">
+      <div class="ticker-label">
+        <span class="ticker-dot"></span>
+        Live alerts
+      </div>
+      <div class="ticker-track">
+        <div class="ticker-content">
+          <span class="ticker-item"><span class="ticker-item-icon">🇬🇧</span> <strong>בריטניה:</strong> כללי פיצוי חדשים משנים את מניעת ההונאות</span>
+          <span class="ticker-item"><span class="ticker-item-icon">🤖</span> <strong>התראת AI:</strong> הונאות שיבוט קול עלו ב-300% in 2026</span>
+          <span class="ticker-item"><span class="ticker-item-icon">🌍</span> <strong>GASA:</strong> קריאה לתיאום גלובלי חזק נגד הונאות</span>
+          <span class="ticker-item"><span class="ticker-item-icon">⚠️</span> <strong>אזהרה:</strong> זוהתה קמפיין התחזות לבנקים</span>
+          <span class="ticker-item"><span class="ticker-item-icon">📊</span> <strong>דו"ח:</strong> איומי הונאות AI הופכים לתעשייתיים</span>
+          <span class="ticker-item"><span class="ticker-item-icon">🇬🇧</span> <strong>בריטניה:</strong> כללי פיצוי חדשים משנים את מניעת ההונאות</span>
+          <span class="ticker-item"><span class="ticker-item-icon">🤖</span> <strong>התראת AI:</strong> הונאות שיבוט קול עלו ב-300% in 2026</span>
+          <span class="ticker-item"><span class="ticker-item-icon">🌍</span> <strong>GASA:</strong> קריאה לתיאום גלובלי חזק נגד הונאות</span>
+          <span class="ticker-item"><span class="ticker-item-icon">⚠️</span> <strong>אזהרה:</strong> זוהתה קמפיין התחזות לבנקים</span>
+          <span class="ticker-item"><span class="ticker-item-icon">📊</span> <strong>דו"ח:</strong> איומי הונאות AI הופכים לתעשייתיים</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     EPIDEMIC / PROBLEM SECTION
+     ══════════════════════════════════════════════════════════════ -->
+<section id="epidemic" class="epidemic">
+  <div class="container">
+    <div class="section-header center">
+      <span class="section-label orange">האיום הגובר</span>
+      <h2 class="section-title">מגפה עולמית שתוקפת אנשים — לא מערכות.</h2>
+      <p class="section-subtitle">הונאות הפכו לאחד האיומים הגלובליים המהירים ביותר. תוקפים כבר לא צריכים לפרוץ מערכות. הם מניפולציים אנשים ישירות באמצעות AI, שיבוט קול והנדסה חברתית.</p>
+    </div>
+    
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value orange">$442B</div>
+        <div class="stat-label">אובדן שנתי מהונאות</div>
+        <div class="stat-source">Source: GASA 2025</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value purple">57%</div>
+        <div class="stat-label">מהמבוגרים מותקפים בשנה</div>
+        <div class="stat-source">יותר מאחד מכל שניים</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value green">300%</div>
+        <div class="stat-label">עלייה בהונאות AI</div>
+        <div class="stat-source">שנה אחר שנה</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value dark">אפס</div>
+        <div class="stat-label">פתרונות בזמן אמת היו קיימים</div>
+        <div class="stat-source">עד עכשיו</div>
+      </div>
+    </div>
+    
+    <div class="pain-grid">
+      <div class="pain-card">
+        <div class="pain-icon">⚡</div>
+        <h3>התקפות מונעות AI</h3>
+        <p>שיבוט קול, דיפייקס ותוכן שנוצר על ידי AI הופכים הונאות למשכנעות יותר מתמיד. תוקפים יכולים עכשיו לחקות כל אחד — בני משפחה, עובדי בנק, מנהלים.</p>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon">🎭</div>
+        <h3>הנדסה חברתית</h3>
+        <p>נוכלים מנצלים אמון, פחד, דחיפות ובדידות. הם מניפולציים רגשות כדי לעקוף חשיבה רציונלית ולהפעיל לחץ לפעולה מיידית.</p>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon">👥</div>
+        <h3>כולם מטרה</h3>
+        <p>אף רמת אינטליגנציה או ידע טכני לא מבטיחה הגנה. רופאים, עורכי דין, מהנדסים ומומחי אבטחת מידע כולם נפלו קורבן.</p>
+      </div>
+    </div>
+    
+    <!-- Why Now callout -->
+    <div class="why-now-box">
+      <div class="why-now-label">למה עכשיו?</div>
+      <p class="why-now-text">בינה מלאכותית יצרתית הסירה את החיכוך האחרון מהונאות. שיבוט קול, וידאו דיפייק ופישינג מותאם אישית התפשטו בן לילה. זיהוי חייב להיות ברגע ההחלטה — מאוחר מדי אחרי שהשיחה נגמרת או שלחצו על הקישור.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     HOW IT WORKS SECTION
+     ══════════════════════════════════════════════════════════════ -->
+<section id="how-it-works" class="how-it-works">
+  <div class="container">
+    <div class="section-header center">
+      <span class="section-label">איך זה עובד</span>
+      <h2 class="section-title light">הגנה ברגע ההחלטה.</h2>
+      <p class="section-subtitle light">ASPS מגן על משתמשים במהלך תרחישי הונאה פעילים. לא אחרי הנזק. לפני שזה קורה — בזמן אמת.</p>
+    </div>
+    
+    <div class="steps-grid">
+      <div class="step-card">
+        <span class="step-number">1</span>
+        <div class="step-icon">🔍</div>
+        <h3>זיהוי</h3>
+        <p>Monitor signals across calls, messages, emails, and browsing activity בזמן אמת.</p>
+        <span class="step-arrow">←</span>
+      </div>
+      <div class="step-card">
+        <span class="step-number">2</span>
+        <div class="step-icon">🧠</div>
+        <h3>ניתוח</h3>
+        <p>מודלים של AI מזהים דפוסי הונאה, טקטיקות מניפולציה וסיגנלי סיכון התנהגותיים.</p>
+        <span class="step-arrow">←</span>
+      </div>
+      <div class="step-card">
+        <span class="step-number">3</span>
+        <div class="step-icon">⚡</div>
+        <h3>התראה</h3>
+        <p>Instant, clear warning ברגע הקריטי — לפני שקורה נזק.</p>
+        <span class="step-arrow">←</span>
+      </div>
+      <div class="step-card">
+        <span class="step-number">4</span>
+        <div class="step-icon">🛡️</div>
+        <h3>הגנה</h3>
+        <p>עזרה למשתמשים לקבל את ההחלטה הנכונה ומניעת נזק כספי או רגשי.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     FEATURED INTELLIGENCE SECTION
+     ══════════════════════════════════════════════════════════════ -->
+<section class="intelligence">
+  <div class="container">
+    <div class="section-header-row">
+      <div>
+        <span class="section-label">מודיעין הונאות</span>
+        <h2 class="section-title">תובנות איומים אחרונות</h2>
+      </div>
+      <a href="knowledge.html" class="view-all-link">
+        View all insights
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+    
+    <div class="intel-grid">
+      <a href="https://threatmark.com/blog/uk-scam-reimbursement-rules/" target="_blank" rel="noopener" class="intel-card">
+        <span class="intel-card-tag">רגולציה</span>
+        <h3>UK scam reimbursement rules are reshaping fraud prevention</h3>
+        <div class="intel-card-meta">
+          <span>ThreatMark</span>
+          <span class="intel-card-meta-dot"></span>
+          <span>May 2026</span>
+        </div>
+      </a>
+      
+      <a href="https://www.trendmicro.com/vinfo/us/security/news/cybercrime-and-digital-threats/ai-voice-cloning-scams" target="_blank" rel="noopener" class="intel-card">
+        <span class="intel-card-tag alert">התראה</span>
+        <h3>AI voice cloning scams are accelerating globally</h3>
+        <div class="intel-card-meta">
+          <span>Trend Micro</span>
+          <span class="intel-card-meta-dot"></span>
+          <span>May 2026</span>
+        </div>
+      </a>
+      
+      <a href="https://arxiv.org/abs/2402.06304" target="_blank" rel="noopener" class="intel-card">
+        <span class="intel-card-tag research">מחקר</span>
+        <h3>Even experts struggle to detect AI-generated scam voices</h3>
+        <div class="intel-card-meta">
+          <span>Academic Research</span>
+          <span class="intel-card-meta-dot"></span>
+          <span>May 2026</span>
+        </div>
+      </a>
+      
+      <a href="https://www.gasa.org/post/gasa-policy-agenda-2024" target="_blank" rel="noopener" class="intel-card">
+        <span class="intel-card-tag">מדיניות</span>
+        <h3>GASA calls for stronger global anti-scam coordination</h3>
+        <div class="intel-card-meta">
+          <span>GASA</span>
+          <span class="intel-card-meta-dot"></span>
+          <span>May 2026</span>
+        </div>
+      </a>
+      
+      <a href="https://www.gasa.org/post/the-global-state-of-scams-2024" target="_blank" rel="noopener" class="intel-card">
+        <span class="intel-card-tag alert">התראה</span>
+        <h3>AI scam threats are becoming industrialized at scale</h3>
+        <div class="intel-card-meta">
+          <span>GASA Report</span>
+          <span class="intel-card-meta-dot"></span>
+          <span>May 2026</span>
+        </div>
+      </a>
+      
+      <a href="https://www.eversheds-sutherland.com/en/global/insights/ai-regulation-tracker" target="_blank" rel="noopener" class="intel-card">
+        <span class="intel-card-tag">רגולציה</span>
+        <h3>Governments increase focus on AI safety and fraud regulation</h3>
+        <div class="intel-card-meta">
+          <span>Eversheds</span>
+          <span class="intel-card-meta-dot"></span>
+          <span>April 2026</span>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     HUMAN / YOU'RE NOT ALONE SECTION
+     ══════════════════════════════════════════════════════════════ -->
+<section class="human-section">
+  <div class="container">
+    <div class="human-grid">
+      <div class="human-content">
+        <span class="section-label pink">אתה לא לבד</span>
+        <h2 class="section-title">Scams are not a personal failure.</h2>
+        <p class="section-subtitle">
+          Anyone can be manipulated. There should be no shame in talking about scams. 
+          Awareness, openness, and community protection are essential parts of prevention.
+        </p>
+        <p class="section-subtitle">
+          Millions of people experience scam attempts every day. Many never tell anyone. 
+          We want to help change that. Sharing stories can prevent the next victim — and help people heal.
+        </p>
+        
+        <div class="human-cta">
+          <a href="stories.html" class="btn btn-warm">Read stories</a>
+          <a href="stories.html#support" class="btn btn-outline">קבל תמיכה</a>
+        </div>
+      </div>
+      
+      <div class="human-visual">
+        <div class="quote-card">
+          <span class="quote-mark">"</span>
+          <p class="quote-text">
+            I thought it was my son calling. The voice sounded exactly like him — his tone, his words, everything. 
+            He said he was in trouble and needed money urgently. Only later did I realize it was an AI-generated voice scam.
+          </p>
+          <p class="quote-author">— A story shared to help others stay safe</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PARTNERS SECTION
+     ══════════════════════════════════════════════════════════════ -->
+<section id="partners" class="partners">
+  <div class="partners-glow"></div>
+  <div class="container">
+    <div class="section-header center">
+      <span class="section-label">Partnerships</span>
+      <h2 class="section-title light">Fighting scams requires collaboration.</h2>
+      <p class="section-subtitle light">
+        We work with financial institutions, fraud prevention companies, NGOs, researchers, 
+        and public sector initiatives to protect consumers worldwide.
+      </p>
+    </div>
+    
+    <div class="partner-tags">
+      <span class="partner-tag">Banks & insurers</span>
+      <span class="partner-tag">Fraud prevention</span>
+      <span class="partner-tag">NGOs & advocacy</span>
+      <span class="partner-tag">Research institutions</span>
+      <span class="partner-tag">Public sector</span>
+      <span class="partner-tag">Consumer protection</span>
+    </div>
+    
+    <a href="contact.html" class="btn btn-primary" style="margin-top: 24px; text-decoration: none;">
+      Become a partner
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     TRUST SECTION
+     ══════════════════════════════════════════════════════════════ -->
+<section id="trust" class="trust">
+  <div class="container">
+    <div class="section-header center">
+      <span class="section-label purple">אתיקה ואמון</span>
+      <h2 class="section-title">Built on trust.</h2>
+      <p class="section-subtitle">Our principles guide everything we do. Protection must be built on a foundation of respect, transparency, and genuine care for people.</p>
+    </div>
+    
+    <div class="trust-grid">
+      <div class="trust-card">
+        <div class="trust-icon">🔒</div>
+        <h3>Privacy-first</h3>
+        <p>Protecting users without unnecessary data collection. Your privacy is fundamental to our mission, not an afterthought.</p>
+      </div>
+      <div class="trust-card">
+        <div class="trust-icon">🤖</div>
+        <h3>Responsible AI</h3>
+        <p>Using AI carefully, transparently, and ethically. We build technology that helps people, never exploits them.</p>
+      </div>
+      <div class="trust-card">
+        <div class="trust-icon">❤️</div>
+        <h3>Human-centered</h3>
+        <p>Supporting people — not exploiting fear. Real protection with empathy, understanding, and respect for human dignity.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     FINAL CTA SECTION
+     ══════════════════════════════════════════════════════════════ -->
+<section class="final-cta">
+  <div class="container">
+    <div class="final-cta-inner">
+      <span class="section-label">Get started</span>
+      <h2 class="section-title">Ready to protect yourself?</h2>
+      <p class="section-subtitle">Join the movement against scams. Get real-time protection for yourself and your family.</p>
+      
+      <div class="final-cta-buttons">
+        <a href="contact.html" class="btn btn-green">
+          Get protected
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="contact.html" class="btn btn-secondary" style="border-color: var(--border-light-2); color: var(--text-dark-2);">
+          Contact us
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     FOOTER
+     ══════════════════════════════════════════════════════════════ -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerLogoGrad)"/>
+          <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs>
+            <linearGradient id="footerLogoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#1F8B5C"/>
+              <stop offset="100%" stop-color="#16734C"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <p>הגנה בזמן אמת באמצעות בינה מלאכותית מפני הונאות, תרמיות והנדסה חברתית. מגנים על אנשים ברגע שזה הכי חשוב.</p>
+      </div>
+      
+      <div class="footer-col">
+        <h4>פלטפורמה</h4>
+        <a href="platform.html">איך זה עובד</a>
+        <a href="individuals.html#individuals">לאנשים פרטיים</a>
+        <a href="individuals.html#families">למשפחות</a>
+        <a href="partners.html">לשותפים</a>
+      </div>
+      
+      <div class="footer-col">
+        <h4>משאבים</h4>
+        <a href="knowledge.html">מרכז ידע</a>
+        <a href="knowledge.html">מודיעין הונאות</a>
+        <a href="stories.html#support">קבל תמיכה</a>
+        <a href="stories.html">סיפורים</a>
+      </div>
+      
+      <div class="footer-col">
+        <h4>חברה</h4>
+        <a href="about.html">אודותינו</a>
+        <a href="about.html#mission">המשימה שלנו</a>
+        <a href="about.html#ethics">אתיקה ואמון</a>
+        <a href="contact.html">צור קשר</a>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <p>© 2026 ASPS. כל הזכויות שמורות.</p>
+      <div class="footer-links">
+        <a href="privacy.html">פרטיות</a>
+        <a href="privacy.html#terms">תנאים</a>
+        <a href="privacy.html#cookies">עוגיות</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="../cookie-banner.js"></script>
+</body>
+</html>

@@ -1,0 +1,2015 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<link rel="apple-touch-icon" href="favicon.svg"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta name="description" content="ASPS Anti-Scam Protection Systems. The company identity for investors: vision, opportunity, team, and ask."/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="ASPS Investor Brief"/>
+<meta property="og:description" content="Real-time scam protection across calls, texts, emails and links. The company. The opportunity."/>
+<meta property="og:image" content="https://asps.io/assets/og/og-FINAL.png"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:image" content="https://asps.io/assets/og/og-FINAL.png"/>
+  <meta property="og:url" content="https://asps.io/"/>
+<link rel="canonical" href="https://asps.io/"/>
+<title>ASPS Investor Brief</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+/* ── THEME TOKENS (Dark only) ────────── */
+:root,
+html[data-theme="dark"]{
+  --text-primary:#141428;
+  --text-secondary:#5A5880;
+  --text-muted:#7A7898;
+  --green-500:#1F8B5C;
+  --green-400:#3FB785;
+  --green-700:#16734C;
+  --bg-page:#fff;
+  --bg-hero:linear-gradient(145deg,#1A2255 0%,#131840 55%,#0F1238 100%);
+  --bg-problem:linear-gradient(180deg,#0F1238 0%,#141830 100%);
+  --bg-stats:#fff;
+  --bg-news:#fff;
+  --bg-feats:#F6F5FF;
+  --bg-hiw:linear-gradient(160deg,#161E38 0%,#0F1230 100%);
+  --bg-prot:#F6F5FF;
+  --bg-team:linear-gradient(180deg,#141830 0%,#0F1238 100%);
+  --bg-cta:linear-gradient(145deg,#1A2255 0%,#161E38 100%);
+  --bg-gasaflow:#060C1A;
+  --bg-footer:#0E1428;
+  --nav-bg:rgba(22,30,56,0.95);
+  --nav-bg-scrolled:rgba(10,14,32,0.98);
+  --on-light-h:#141428;
+  --on-light-body:#5A5880;
+  --on-light-faint:#9895B4;
+  --card-light-bg:#FAFBFF;
+  --card-light-border:#DDDAF0;
+  --card-light-bg-2:#fff;
+  color-scheme:dark;
+}
+
+
+/* Apply tokens to existing sections without rewriting their original colors */
+#hero{background:var(--bg-hero) !important}
+section.problem{background:var(--bg-problem) !important}
+#stats{background:var(--bg-stats) !important}
+section.news{background:var(--bg-news) !important}
+section.feats{background:var(--bg-feats) !important}
+section.hiw{background:var(--bg-hiw) !important}
+section.prot{background:var(--bg-prot) !important}
+section.team{background:var(--bg-team) !important}
+section.ctasec{background:var(--bg-cta) !important}
+section.gasaflow{background:var(--bg-gasaflow) !important}
+footer{background:var(--bg-footer) !important}
+nav{background:var(--nav-bg) !important}
+
+/* Light-mode overrides for HERO + dark sections so text is readable */
+
+
+/* Radar rings — boost contrast in light mode */
+
+/* Threat labels around shield — readable on light */
+
+/* Buttons in light hero */
+
+/* Nav in light */
+
+/* Problem section in light */
+
+/* HIW in light */
+
+/* Team in light */
+
+/* CTA in light */
+
+/* Opportunity & Ask sections (new) inherit theme */
+
+  background:#fff;
+  border-color:#DDDAF0;
+  box-shadow:0 8px 32px rgba(15,18,56,0.12);
+}
+@media(max-width:768px){
+    }
+
+/* Vision section additions */
+.vision-grid{margin-top:14px}
+.vision-quote{
+  margin:64px auto 0;max-width:780px;
+  display:flex;gap:22px;align-items:flex-start;
+  padding:24px 28px;border-radius:14px;
+  background:rgba(31,139,92,0.06);
+  border:1px solid rgba(31,139,92,0.22);
+}
+.vision-quote .vq-bar{
+  flex:0 0 3px;align-self:stretch;border-radius:2px;
+  background:linear-gradient(180deg,#1F8B5C,#16734C);
+}
+.vision-quote p{
+  margin:0;font-family:'Syne',sans-serif;font-weight:700;
+  font-size:clamp(1.05rem,1.6vw,1.3rem);line-height:1.5;
+  color:#E8EAFB;letter-spacing:-.01em;
+}
+
+/* Approach section grid spacing */
+.approach-grid{margin-top:24px}
+
+/* Contact section */
+.contact-row{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:18px;
+  max-width:780px;margin:32px auto 22px;
+}
+.contact-card{
+  display:flex;flex-direction:column;gap:6px;
+  padding:22px 22px;border-radius:14px;text-align:left;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.10);
+  text-decoration:none;color:inherit;
+  transition:transform .25s ease, background .2s, border-color .2s;
+}
+.contact-card:hover{
+  transform:translateY(-2px);
+  background:rgba(31,139,92,0.08);
+  border-color:rgba(31,139,92,0.35);
+}
+.contact-card .cc-label{
+  font-family:'Instrument Sans',sans-serif;font-size:.7rem;
+  letter-spacing:.16em;text-transform:uppercase;
+  color:#9CA3CC;font-weight:600;
+}
+.contact-card .cc-email{
+  font-family:'Syne',sans-serif;font-weight:700;
+  font-size:1.05rem;color:#fff;letter-spacing:-.01em;
+}
+@media(max-width:760px){
+  .contact-row{grid-template-columns:1fr;gap:12px}
+  .vision-quote{margin-top:40px;padding:20px}
+}
+
+/* Investor pill in nav (small badge so audience is clear) */
+.audience-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 11px;border-radius:100px;
+  background:rgba(31,139,92,0.12);
+  border:1px solid rgba(31,139,92,0.30);
+  font-family:'Instrument Sans',sans-serif;
+  font-size:.66rem;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;
+  color:#3FB785;
+  margin-right:auto;margin-left:8px;
+  white-space:nowrap;
+}
+.audience-pill .ap-dot{width:6px;height:6px;border-radius:50%;background:#1F8B5C;box-shadow:0 0 6px rgba(31,139,92,.7)}
+
+/* OPPORTUNITY SECTION (new, investor-only) */
+section.opp{
+  background:linear-gradient(180deg,#0F1238 0%,#131840 100%);
+  padding:100px 60px;
+  border-bottom:1px solid rgba(255,255,255,0.07);
+}
+  background:linear-gradient(180deg,#FFFFFF 0%,#F8F9FF 100%) !important;
+  border-bottom-color:#E8E5F0;
+}
+.opp-inner{max-width:1100px;margin:0 auto}
+section.opp h2{color:#fff}
+section.opp .ssub{color:#7880A8;max-width:560px}
+.opp-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:48px;margin-top:56px;align-items:start}
+.opp-card{
+  background:transparent;
+  border:none;
+  border-left:2px solid rgba(31,139,92,0.28);
+  border-radius:0;padding:6px 0 6px 24px;
+  position:relative;transition:border-color .2s;
+}
+.opp-card:hover{transform:none;border-left-color:#1F8B5C}
+.opp-num{font-family:'Syne',sans-serif;font-weight:800;font-size:2.6rem;color:#3FB785;letter-spacing:-0.03em;margin-bottom:10px;line-height:.95}
+.opp-label{font-size:.82rem;font-weight:600;color:#E0E4F4;margin-bottom:10px;letter-spacing:-.005em}
+.opp-detail{font-size:.82rem;color:#8890B8;line-height:1.7}
+.opp-source{margin-top:14px;font-size:.64rem;color:#5A6090;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+
+/* Why-now strip below TAM cards */
+.opp-whynow{
+  margin-top:48px;
+  display:grid;grid-template-columns:repeat(2,1fr);gap:20px;
+}
+.opp-wnc{
+  background:rgba(31,139,92,0.06);
+  border:1px solid rgba(31,139,92,0.22);
+  border-radius:14px;padding:24px 26px;
+}
+  background:rgba(22,115,76,0.06) !important;
+  border-color:rgba(22,115,76,0.22) !important;
+}
+.opp-wnc h4{font-family:'Syne',sans-serif;font-size:.92rem;font-weight:700;color:#3FB785;margin-bottom:8px;letter-spacing:.01em}
+.opp-wnc p{font-size:.82rem;color:#9098C0;line-height:1.7}
+
+/* ASK SECTION (new) */
+section.ask{
+  background:linear-gradient(160deg,#161E38 0%,#0F1230 100%);
+  padding:100px 60px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+}
+  background:linear-gradient(160deg,#FAFBFF 0%,#F4F5FB 100%) !important;
+  border-bottom-color:#E8E5F0;
+}
+.ask-inner{max-width:1100px;margin:0 auto}
+section.ask h2{color:#fff}
+section.ask .ssub{color:#7880A8;max-width:560px}
+.ask-row{
+  margin-top:48px;
+  display:grid;grid-template-columns:1.2fr 1fr;gap:40px;align-items:flex-start;
+}
+.ask-statement{
+  background:rgba(31,139,92,0.06);
+  border:1px solid rgba(31,139,92,0.25);
+  border-radius:18px;padding:36px 34px;
+}
+  background:rgba(22,115,76,0.06) !important;
+  border-color:rgba(22,115,76,0.25) !important;
+}
+.ask-statement .ask-eyebrow{font-size:.68rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#1F8B5C;margin-bottom:16px}
+.ask-statement .ask-h{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:#fff;letter-spacing:-.025em;line-height:1.25;margin-bottom:14px}
+.ask-statement p{font-size:.9rem;color:#9098C0;line-height:1.75}
+.ask-list{display:flex;flex-direction:column;gap:14px}
+.ask-item{
+  display:flex;align-items:flex-start;gap:16px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.10);
+  border-radius:12px;padding:18px 20px;
+}
+  background:#fff !important;
+  border-color:#E8E5F0 !important;
+}
+.ask-item .ai-pct{font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;color:#1F8B5C;flex-shrink:0;min-width:54px;line-height:1.1}
+.ask-item .ai-body h4{font-size:.88rem;font-weight:700;color:#E0E4F4;margin-bottom:4px}
+.ask-item .ai-body p{font-size:.76rem;color:#7880A8;line-height:1.6}
+
+@media(max-width:1024px){
+  .opp-grid{grid-template-columns:repeat(3,1fr)}
+  .opp-whynow{grid-template-columns:repeat(2,1fr)}
+  .ask-row{grid-template-columns:1fr;gap:28px}
+}
+@media(max-width:768px){
+  section.opp,section.ask{padding:64px 20px}
+  .opp-grid{grid-template-columns:1fr;gap:14px;margin-top:36px}
+  .opp-whynow{grid-template-columns:1fr;margin-top:28px}
+  .ask-statement{padding:28px 24px}
+  .ask-statement .ask-h{font-size:1.3rem}
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;overflow-x:clip}
+body{font-family:'Instrument Sans',sans-serif;overflow-x:clip;background:#fff;position:relative}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:240px 240px;
+  opacity:.04;mix-blend-mode:multiply;
+}
+
+/* ── SKIP LINK ── */
+.skip-link{
+  position:absolute;
+  top:-100%;
+  left:1rem;
+  background:#1F8B5C;
+  color:#fff;
+  padding:8px 16px;
+  border-radius:0 0 8px 8px;
+  font-weight:700;
+  z-index:9999;
+  transition:top 0.2s;
+  text-decoration:none;
+}
+.skip-link:focus{top:0}
+
+/* ── FOCUS STYLES ── */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible{
+  outline:3px solid #1F8B5C;
+  outline-offset:3px;
+}
+
+/* Nav login remove permanent outline, only show on keyboard focus */
+.nav-login{
+  outline:none;
+}
+.nav-login:focus-visible{
+  outline:3px solid #1F8B5C;
+  outline-offset:3px;
+}
+
+/* ── REDUCED MOTION ── */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:0.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:0.01ms !important;
+  }
+}
+
+/* ── VISUALLY HIDDEN (for labels) ── */
+.visually-hidden{
+  position:absolute;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:-1px;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+  white-space:nowrap;
+  border:0;
+}
+
+/* ── PRELOADER ── */
+#preloader{
+  position:fixed;inset:0;z-index:9999;
+  background:#0F1238;
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity .5s ease, visibility .5s ease;
+}
+#preloader.hidden{opacity:0;visibility:hidden;pointer-events:none}
+.pre-logo{
+  font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;
+  color:#fff;letter-spacing:.08em;
+  display:flex;align-items:center;gap:10px;
+  animation:pre-pulse 1s ease-in-out infinite alternate;
+}
+.pre-dot{
+  width:10px;height:10px;border-radius:50%;
+  background:#1F8B5C;
+  box-shadow:0 0 12px #1F8B5C;
+}
+@keyframes pre-pulse{from{opacity:.5;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  height:68px;padding:0 60px;
+  display:flex;align-items:center;gap:40px;
+  background:rgba(22,30,56,0.95);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(255,255,255,0.12);
+}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;color:#fff;margin-right:auto;letter-spacing:.05em}
+.logo-svg{display:block;flex-shrink:0}
+nav a{font-size:.84rem;color:#7880A8;text-decoration:none;transition:.2s}
+nav a:hover{color:#C8CCE8}
+.nav-login{padding:9px 20px;border-radius:8px;background:transparent;border:1.5px solid rgba(255,255,255,0.2);color:#C8CCE8;font-size:.84rem;font-weight:600;transition:.2s;cursor:pointer;text-decoration:none;font-family:'Instrument Sans',sans-serif}
+.nav-login:hover{border-color:rgba(255,255,255,0.45);color:#fff;background:rgba(255,255,255,0.05)}
+.nav-cta{padding:9px 20px;border-radius:8px;background:#fff;color:#161E38;font-size:.84rem;font-weight:700;transition:.2s;cursor:pointer}
+.nav-cta:hover{background:#EEF0FF}
+
+/* ── HERO DARK NAVY ── */
+#hero{
+  display:flex;align-items:center;
+  padding:130px 60px 90px;
+  min-height:auto;
+  background:linear-gradient(145deg, #1A2255 0%, #131840 55%, #0F1238 100%);
+  position:relative;
+  color:#D8DCF0;
+}
+.hero-glow{
+  position:absolute;top:-100px;right:100px;
+  width:600px;height:600px;border-radius:50%;
+  background:radial-gradient(circle, rgba(160,140,255,0.07) 0%, transparent 65%);
+  pointer-events:none;
+}
+.dotgrid{
+  position:absolute;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  background-size:200px 200px;
+  opacity:.18;
+  mask-image:radial-gradient(ellipse 100% 90% at 50% 40%, black 30%, transparent 100%);
+  pointer-events:none;
+  mix-blend-mode:overlay;
+}
+
+.hero-inner{
+  position:relative;z-index:2;
+  max-width:1100px;width:100%;margin:0 auto;
+  display:grid;grid-template-columns:1fr 460px;
+  gap:60px;align-items:center;
+}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:.72rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+  color:#3FB785;margin-bottom:28px;
+}
+.ey-bar{width:22px;height:1.5px;background:#1F8B5C;border-radius:1px}
+
+h1{
+  font-family:'Syne',sans-serif;
+  font-size:clamp(1.85rem, 2.4vw + 0.6rem, 2.7rem);
+  font-weight:800;line-height:1.12;letter-spacing:-.025em;
+  color:#FFFFFF;margin-bottom:24px;
+  word-break:normal;overflow-wrap:break-word;hyphens:none;
+  max-width:100%;
+}
+h1 .ac{
+  color:#3FB785;display:block;
+  font-size:1.08em;line-height:1;letter-spacing:-.035em;
+  margin-bottom:.14em;
+}
+
+.hero-sub{font-size:1rem;color:#7880A8;line-height:1.8;margin-bottom:44px;max-width:460px;word-break:break-word;overflow-wrap:break-word}
+
+.hero-btns{display:flex;align-items:center;gap:18px}
+.btn-p{
+  padding:14px 28px;border-radius:9px;
+  background:#fff;color:#161E38;
+  font-size:.9rem;font-weight:700;
+  display:inline-flex;align-items:center;gap:7px;transition:.2s;cursor:pointer;
+}
+.btn-p:hover{background:#EEF0FF;transform:translateY(-1px)}
+.btn-s{font-size:.85rem;color:#6870A0;display:inline-flex;align-items:center;gap:5px;transition:.2s;cursor:pointer}
+.btn-s:hover{color:#B0B8D8}
+
+.hero-stats{
+  margin-top:40px;
+  display:flex;
+  align-items:center;
+  gap:24px;
+  padding:20px 0;
+  border-top:1px solid rgba(255,255,255,0.1);
+}
+.hs-item{display:flex;flex-direction:column;gap:4px}
+.hs-num{font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;color:#1F8B5C;letter-spacing:-0.02em}
+.hs-label{font-size:.72rem;color:#6870A8;text-transform:uppercase;letter-spacing:0.05em}
+.hs-divider{width:1px;height:36px;background:rgba(255,255,255,0.12)}
+
+.hero-social{margin-top:24px;display:flex;align-items:center;gap:10px}
+.avs{display:flex}
+.av{width:30px;height:30px;border-radius:50%;border:2px solid #161E38;background:linear-gradient(135deg,#2A3560,#222E50);display:flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:700;color:#7880A8;margin-left:-8px}
+.av:first-child{margin-left:0}
+.soc-text{font-size:.78rem;color:#3A4068}
+.soc-text b{color:#3FB785;font-weight:600}
+
+
+
+/* ── PROBLEM DEEP NAVY (used by Mission section #vision) ── */
+section.problem{
+  background:linear-gradient(180deg, #0F1238 0%, #141830 100%);
+  padding:100px 60px 130px;
+  border-bottom:none;
+  position:relative;
+}
+/* D9: smooth bleed from dark mission to white stats below */
+section.problem::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:120px;
+  background:linear-gradient(to bottom, transparent, #ffffff);
+  pointer-events:none;z-index:1;
+}
+.problem-inner{max-width:1100px;margin:0 auto}
+.slabel{font-size:.68rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#1F8B5C;margin-bottom:18px}
+h2{font-family:'Syne',sans-serif;font-size:clamp(1.8rem,3vw,2.5rem);font-weight:800;letter-spacing:-.03em;color:#FFFFFF;margin-bottom:12px;padding-bottom:0.25em;word-break:break-word;overflow-wrap:break-word}
+.ssub{font-size:.9rem;color:#6870A8;line-height:1.8;margin-bottom:48px;max-width:560px;word-break:break-word;overflow-wrap:break-word}
+
+.pain-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.pain-card{
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:16px;padding:32px 28px;
+  position:relative;
+  transition:.25s;
+}
+.pain-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,#1F8B5C,#3FB785);
+  border-radius:16px 16px 0 0;
+  opacity:0.45;
+}
+.pain-card:hover{
+  border-color:rgba(31,139,92,0.25);
+  background:rgba(31,139,92,0.03);
+  transform:translateY(-3px);
+}
+.pain-icon{display:block;width:24px;height:24px;margin-bottom:18px;color:#1F8B5C;stroke:#1F8B5C}
+.pain-icon svg{width:100%;height:100%}
+.pain-card h3{font-size:.95rem;font-weight:700;color:#E0E4F4;margin-bottom:10px;padding-bottom:0.08em}
+.pain-card p{font-size:.8rem;color:#5868A0;line-height:1.75;word-break:break-word;overflow-wrap:break-word}
+
+/* ── STATS WHITE ── */
+#stats{
+  background:#fff;
+  padding:80px 60px;
+  border-bottom:1px solid #EAECF4;
+}
+.stats-inner{max-width:1100px;margin:0 auto}
+.stats-header{text-align:center;margin-bottom:56px}
+.stats-eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:.68rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  color:#1F8B5C;margin-bottom:14px;
+}
+.stats-eyebrow::before,.stats-eyebrow::after{content:'';display:block;width:28px;height:1.5px;background:rgba(31,139,92,.35);border-radius:1px}
+.stats-title{font-family:'Syne',sans-serif;font-size:1.7rem;font-weight:800;color:#141428;letter-spacing:-.025em;padding-bottom:0.25em;word-break:break-word;overflow-wrap:break-word}
+.stats-sub{font-size:.85rem;color:#5A5880;margin-top:8px;word-break:break-word;overflow-wrap:break-word}
+.stats-frame{font-family:'Syne',sans-serif;font-weight:600;font-size:.98rem;color:#2A2F4E;letter-spacing:-.005em;line-height:1.55;max-width:540px;margin:28px auto 0;text-align:center}
+
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.stat-card{
+  background:#FAFBFF;
+  border:1px solid #DDDAF0;
+  border-radius:16px;
+  padding:32px 28px;
+  position:relative;
+  transition:transform .25s,box-shadow .25s,border-color .25s;
+  box-shadow:0 4px 20px rgba(22,115,76,.09);
+}
+.stat-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,#1F8B5C,#16734C);
+  border-radius:16px 16px 0 0;
+  opacity:0;transition:opacity .25s;
+}
+.stat-card:hover{transform:translateY(-4px);box-shadow:0 16px 50px rgba(31,139,92,.16);border-color:#B8A8E8}
+.stat-card:hover::before{opacity:1}
+
+.stat-icon{
+  width:44px;height:44px;border-radius:12px;
+  background:rgba(31,139,92,.08);border:1px solid rgba(31,139,92,.15);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:24px;
+}
+.stat-icon svg{width:22px;height:22px}
+
+.stat-num{
+  font-family:'Syne',sans-serif;font-size:2.6rem;font-weight:800;
+  color:#141830;letter-spacing:-.03em;
+  margin-bottom:8px;line-height:1;
+}
+.stat-label{font-size:.82rem;font-weight:600;color:#2A3060;margin-bottom:6px;padding-bottom:0.05em}
+.stat-detail{font-size:.74rem;color:#8890B8;line-height:1.6;word-break:break-word;overflow-wrap:break-word}
+.stat-source{margin-top:10px;padding-top:8px;border-top:1px solid rgba(26,34,85,0.07);font-size:.68rem;color:#9AA0C0;font-family:'Instrument Sans',sans-serif}
+.stat-source a{color:#1F8B5C;text-decoration:none;font-weight:500;opacity:.8;transition:.2s}
+.stat-source a:hover{opacity:1;text-decoration:underline}
+
+/* ── FEATURES LIGHT GRAY ── */
+section.feats{
+  background:#F6F5FF;
+  padding:100px 60px 130px;
+  border-bottom:none;
+  position:relative;
+}
+/* D9: smooth bleed from light-gray approach to dark-navy opp below */
+section.feats::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:120px;
+  background:linear-gradient(to bottom, transparent, #0F1238);
+  pointer-events:none;z-index:1;
+}
+.feats-inner{max-width:1100px;margin:0 auto}
+
+/* h2 and ssub inside feats need dark text */
+section.feats h2{color:#141428}
+section.feats .ssub{color:#5A5880}
+
+.g3{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:48px;align-items:start;margin-top:56px}
+.fc{
+  background:transparent;
+  border:none;
+  border-left:2px solid rgba(31,139,92,.22);
+  border-radius:0;padding:6px 0 6px 24px;
+  transition:border-color .2s;
+  box-shadow:none;
+}
+.fc:nth-child(1){border-left-color:rgba(31,139,92,.55)}
+.fc:nth-child(2){border-left-color:rgba(31,139,92,.35)}
+.fc:nth-child(3){border-left-color:rgba(31,139,92,.2)}
+.fc:hover{border-left-color:#1F8B5C;transform:none;background:transparent;box-shadow:none}
+.fn{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;letter-spacing:-.03em;color:#1F8B5C;margin-bottom:14px;line-height:1}
+.fc h3{font-size:1rem;font-weight:600;color:#141428;margin-bottom:10px;padding-bottom:0;letter-spacing:-.01em}
+.fc p{font-size:.86rem;color:#5A5880;line-height:1.7;word-break:break-word;overflow-wrap:break-word}
+
+/* ── HOW IT WORKS DARK NAVY ── */
+section.hiw{
+  background:linear-gradient(160deg,#161E38 0%,#0F1230 100%);
+  padding:100px 60px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+}
+.hiw-inner{max-width:1100px;margin:0 auto}
+section.hiw .slabel{color:#1F8B5C}
+section.hiw h2{color:#fff}
+section.hiw .ssub{color:#5A6090;margin-bottom:72px}
+
+/* Layout: radar left, steps right */
+.hiw-layout{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:80px;align-items:center;
+}
+
+/* Radar */
+.radar-wrap{
+  position:relative;display:flex;align-items:center;justify-content:center;
+}
+#radarCanvas{
+  width:400px;height:400px;max-width:100%;
+  border-radius:50%;
+  filter:drop-shadow(0 0 40px rgba(31,139,92,.12));
+}
+
+/* Steps vertical */
+.hiw-steps-col{display:flex;flex-direction:column;gap:40px}
+.step{
+  display:flex;align-items:flex-start;gap:20px;
+}
+.step-num{
+  width:52px;height:52px;border-radius:50%;flex-shrink:0;
+  background:rgba(31,139,92,.1);
+  border:1.5px solid rgba(31,139,92,.3);
+  display:flex;align-items:center;justify-content:center;
+}
+.step-n{
+  font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;color:#1F8B5C;
+}
+.step-body h3{font-size:.95rem;font-weight:700;color:#E0E4F4;margin-bottom:6px;padding-bottom:0.08em}
+.step-body p{font-size:.82rem;color:#5A6090;line-height:1.75;word-break:break-word;overflow-wrap:break-word}
+
+/* ── PROTECTION WHITE ── */
+section.prot{
+  background:#F6F5FF;
+  padding:100px 60px;
+  border-bottom:1px solid #E8EAF0;
+}
+.prot-inner{max-width:1100px;margin:0 auto}
+section.prot h2{color:#141428}
+section.prot .ssub{color:#5A5880}
+
+.pg{
+  display:grid;grid-template-columns:1fr 1fr;
+  border:1px solid #DDDAF0;border-radius:16px;overflow-x:clip;
+  gap:1px;background:#E8EAF0;
+}
+.pr{
+  background:#fff;padding:18px 22px;
+  display:flex;align-items:center;gap:14px;transition:.2s;
+}
+.pr:hover{background:#F8F9FF}
+.pe{font-size:1.1rem;width:28px;text-align:center;flex-shrink:0}
+.pb h4{font-size:.82rem;font-weight:700;color:#242448;padding-bottom:0.08em}
+.pb p{font-size:.7rem;color:#7878A0;margin-top:1px;word-break:break-word;overflow-wrap:break-word}
+.pp{
+  margin-left:auto;font-size:.62rem;font-weight:700;
+  color:#1F8B5C;border:1px solid rgba(31,139,92,.2);
+  padding:2px 8px;border-radius:5px;background:rgba(31,139,92,.06);
+}
+
+/* ── TEAM NAVY ── */
+section.team{
+  background:linear-gradient(180deg, #141830 0%, #0F1238 100%);
+  padding:100px 60px;
+  border-bottom:1px solid rgba(255,255,255,0.07);
+}
+.team-inner{max-width:1100px;margin:0 auto}
+section.team h2{color:#FFFFFF}
+section.team .ssub{color:#6870A8}
+
+.team-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;max-width:800px;margin:0 auto}
+.team-card{
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.09);
+  border-radius:20px;padding:36px 32px;
+  display:flex;flex-direction:column;align-items:flex-start;
+  transition:.25s;
+}
+.team-card:hover{
+  border-color:rgba(31,139,92,.25);
+  background:rgba(31,139,92,0.04);
+  transform:translateY(-4px);
+}
+.team-photo{
+  width:72px;height:72px;border-radius:50%;
+  object-fit:cover;
+  border:2px solid rgba(31,139,92,.3);
+  margin-bottom:20px;
+}
+.team-name{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;color:#FFFFFF;margin-bottom:4px;padding-bottom:0.08em}
+.team-title{font-size:.75rem;font-weight:600;color:#1F8B5C;letter-spacing:.08em;text-transform:uppercase;margin-bottom:16px}
+.team-bio{font-size:.82rem;color:#6070A0;line-height:1.8;word-break:break-word;overflow-wrap:break-word}
+.team-linkedin{display:inline-flex;align-items:center;margin-top:16px;color:#6070A0;transition:.2s}
+.team-linkedin:hover{color:#0A66C2}
+.team-linkedin.placeholder{color:#3A4068;cursor:default;opacity:.55}
+.team-linkedin.placeholder:hover{color:#3A4068}
+
+/* ── CTA NAVY ── */
+section.ctasec{
+  background:linear-gradient(145deg, #1A2255 0%, #161E38 100%);
+  padding:100px 60px;
+  position:relative;
+}
+.cta-glow{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:700px;height:400px;border-radius:50%;
+  background:radial-gradient(circle, rgba(31,139,92,0.08) 0%, transparent 65%);
+  pointer-events:none;
+}
+.cta-inner{
+  max-width:600px;margin:0 auto;text-align:center;position:relative;z-index:1;
+}
+.cta-label{font-size:.68rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#6870A0;margin-bottom:18px}
+.cta-h{font-family:'Syne',sans-serif;font-size:2.4rem;font-weight:800;letter-spacing:-.03em;color:#fff;margin-bottom:12px;line-height:1.2;padding-bottom:0.25em}
+.cta-sub{font-size:.9rem;color:#6870A0;line-height:1.8;margin-bottom:40px}
+.cf{display:flex;gap:8px;max-width:420px;margin:0 auto}
+.ci{
+  flex:1;padding:13px 16px;
+  background:rgba(255,255,255,0.12);
+  border:1px solid rgba(255,255,255,0.12);
+  border-radius:8px;color:#C8CCE8;font-size:.875rem;
+  font-family:'Instrument Sans',sans-serif;outline:none;transition:.2s;
+}
+.ci::placeholder{color:#404870}
+.ci:focus{border-color:rgba(255,255,255,0.25)}
+.cb{
+  padding:13px 22px;border-radius:8px;
+  background:#fff;color:#161E38;
+  font-size:.875rem;font-weight:700;white-space:nowrap;transition:.2s;cursor:pointer;border:none;
+}
+.cb:hover{background:#EEF0FF}
+.cta-fine{margin-top:16px;font-size:.72rem;color:#3A4068}
+.cta-faq-link{display:inline-block;margin-top:20px;font-family:'Instrument Sans',sans-serif;font-size:.82rem;color:#3FB785;text-decoration:none;opacity:.75;transition:.2s}
+.cta-faq-link:hover{opacity:1;letter-spacing:.01em}
+
+/* ── SHIELD VISUAL ── */
+.shield-scene{
+  position:relative;
+  width:460px;height:460px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+#heroThreatCanvas{
+  position:absolute;inset:0;
+  width:460px;height:460px;
+  z-index:1;pointer-events:none;
+}
+
+.ring{
+  position:absolute;border-radius:50%;
+  border:1px solid rgba(160,140,255,0.12);
+  animation:spin linear infinite;
+  pointer-events:none;
+}
+.ring-1{
+  width:280px;height:280px;
+  border-color:rgba(31,139,92,0.13);
+  animation-duration:18s;
+  border-style:dashed;
+}
+.ring-2{
+  width:380px;height:380px;
+  border-color:rgba(31,139,92,0.08);
+  animation-duration:30s;
+  animation-direction:reverse;
+}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+.shield-wrap{
+  position:relative;z-index:4;
+  display:flex;align-items:center;justify-content:center;
+  animation:shieldFloat 4s ease-in-out infinite;
+}
+@keyframes shieldFloat{
+  0%,100%{transform:translateY(0px)}
+  50%{transform:translateY(-8px)}
+}
+.shield-svg{
+  filter:drop-shadow(0 0 24px rgba(31,139,92,0.35)) drop-shadow(0 0 8px rgba(31,139,92,0.2));
+}
+.shield-glow-ring{
+  position:absolute;
+  width:130px;height:130px;border-radius:50%;
+  background:radial-gradient(circle, rgba(31,139,92,0.18) 0%, transparent 70%);
+  pointer-events:none;
+}
+
+.hero-pill-notif{
+  position:absolute;z-index:5;
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.12);
+  border-radius:100px;
+  padding:8px 16px;
+  backdrop-filter:blur(8px);
+  white-space:nowrap;
+  opacity:0;
+  animation:pillIn 0.5s ease forwards, pillFloat 3.5s ease-in-out infinite;
+}
+.pn-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.pn-dot.red  { background:#F04438; box-shadow:0 0 6px rgba(240,68,56,.7); }
+.pn-dot.green{ background:#12B76A; box-shadow:0 0 6px rgba(18,183,106,.7); }
+.pn-dot.orange{background:#F79009; box-shadow:0 0 6px rgba(247,144,9,.7); }
+.pn-icon{font-size:.78rem;line-height:1;flex-shrink:0}
+.pn-text{font-size:.76rem;font-weight:600;color:#C8CCE8;letter-spacing:.01em}
+.pn-badge{font-size:.64rem;font-weight:700;color:#6870A0;background:rgba(255,255,255,0.06);padding:2px 7px;border-radius:20px;border:1px solid rgba(255,255,255,0.08)}
+
+@keyframes pillIn{from{opacity:0;transform:translateY(8px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes pillFloat{0%,100%{transform:translateY(0px)}50%{transform:translateY(-5px)}}
+
+/* Pills spread evenly around shield, no overlap */
+.pill-1{top:24px;left:50%;transform:translateX(-50%);animation-delay:.2s,.2s;animation-duration:.5s,3.8s}
+.pill-2{top:18%;right:4px;animation-delay:.4s,.4s;animation-duration:.5s,4.2s}
+.pill-3{bottom:18%;right:4px;animation-delay:.7s,.7s;animation-duration:.5s,3.5s}
+.pill-4{bottom:18%;left:4px;animation-delay:1s,1s;animation-duration:.5s,4s}
+.pill-5{top:18%;left:4px;animation-delay:1.3s,1.3s;animation-duration:.5s,3.6s}
+
+/* ═══════════════════════════════════════════════════════════
+   EXTRA LARGE SCREENS  1440px+
+═══════════════════════════════════════════════════════════ */
+@media(min-width:1440px){
+  nav{
+    padding:0 calc((100vw - 1320px) / 2);
+  }
+  #hero{
+    padding-left:calc((100vw - 1320px) / 2);
+    padding-right:calc((100vw - 1320px) / 2);
+  }
+  section.problem,section.feats,section.hiw,section.prot,section.team,section.ctasec,#stats,section.news{
+    padding-left:calc((100vw - 1320px) / 2);
+    padding-right:calc((100vw - 1320px) / 2);
+  }
+  .hero-inner,.problem-inner,.stats-inner,.feats-inner,.hiw-inner,.prot-inner,.team-inner,.cta-inner,.news-inner{
+    max-width:1200px;
+  }
+  .gf-header{
+    padding-left:calc((100vw - 1320px) / 2);
+    padding-right:calc((100vw - 1320px) / 2);
+  }
+  .gf-cta{
+    padding-left:calc((100vw - 1320px) / 2);
+    padding-right:calc((100vw - 1320px) / 2);
+  }
+  footer{
+    padding-left:calc((100vw - 1320px) / 2);
+    padding-right:calc((100vw - 1320px) / 2);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ULTRA WIDE SCREENS  1920px+
+═══════════════════════════════════════════════════════════ */
+@media(min-width:1920px){
+  nav{
+    padding:0 calc((100vw - 1600px) / 2);
+  }
+  #hero{
+    padding-left:calc((100vw - 1600px) / 2);
+    padding-right:calc((100vw - 1600px) / 2);
+  }
+  section.problem,section.feats,section.hiw,section.prot,section.team,section.ctasec,#stats,section.news{
+    padding-left:calc((100vw - 1600px) / 2);
+    padding-right:calc((100vw - 1600px) / 2);
+  }
+  .gf-header{
+    padding-left:calc((100vw - 1600px) / 2);
+    padding-right:calc((100vw - 1600px) / 2);
+  }
+  .gf-cta{
+    padding-left:calc((100vw - 1600px) / 2);
+    padding-right:calc((100vw - 1600px) / 2);
+  }
+  footer{
+    padding-left:calc((100vw - 1600px) / 2);
+    padding-right:calc((100vw - 1600px) / 2);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TABLET  769px – 1024px
+═══════════════════════════════════════════════════════════ */
+@media(min-width:1025px) and (max-width:1280px){
+  .hero-inner{grid-template-columns:1fr 400px;gap:48px}
+  h1{font-size:clamp(1.85rem, 2.2vw + 0.5rem, 2.4rem)}
+}
+@media(min-width:769px) and (max-width:1024px){
+  nav{padding:0 32px;gap:16px}
+  nav a:not(.nav-cta):not(.logo){display:none}
+  #hero{padding:110px 32px 80px}
+  .hero-inner{grid-template-columns:1fr 340px;gap:36px}
+  h1{font-size:clamp(1.7rem, 2vw + 0.4rem, 2.1rem)}
+  .shield-scene{width:380px;height:380px}
+  #heroThreatCanvas{width:380px;height:380px}
+  section.problem,section.feats,section.hiw,section.prot,section.team,section.ctasec{padding:80px 32px}
+  #stats{padding:70px 32px}
+  section.news{padding:80px 16px}
+  footer{padding:32px 32px}
+  .pain-grid{grid-template-columns:repeat(3,1fr)}
+  .stats-grid{grid-template-columns:repeat(3,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .hiw-layout{grid-template-columns:1fr 1fr;gap:48px}
+  #radarCanvas{width:320px;height:320px}
+  .team-grid{grid-template-columns:repeat(2,1fr)}
+  .pg{grid-template-columns:1fr 1fr}
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE  ≤ 768px
+═══════════════════════════════════════════════════════════ */
+@media(max-width:768px){
+
+  /* ── NAV ── */
+  nav{
+    padding:0 20px;
+    gap:0;
+    height:60px;
+  }
+  /* Hide all nav anchor links */
+  nav a:not(.nav-cta):not(.logo){display:none}
+  /* Show only logo (margin-right auto already pushes CTA right) */
+  .logo{margin-right:auto}
+  .nav-cta{
+    font-size:.78rem;
+    padding:7px 14px;
+    flex-shrink:0;
+  }
+
+  /* ── GLOBAL MOBILE RESETS ── */
+  *{box-sizing:border-box}
+  h1,h2,h3,h4,p{
+    word-break:break-word;
+    overflow-wrap:break-word;
+    max-width:100%;
+  }
+  h1,h2{padding-bottom:0.08em} /* room for descenders (g,p,q,y) */
+  section{overflow-x:clip}
+
+  /* ── HERO ── */
+  #hero{
+    padding:88px 20px 64px;
+    min-height:auto;
+    align-items:flex-start;
+    overflow-x:clip;
+  }
+  /* Use display:block to fully escape the 1fr+460px grid trap on narrow screens */
+  .hero-inner{
+    display:block !important;
+    width:100%;
+    max-width:100%;
+  }
+  .shield-scene{display:none !important}
+  h1{
+    font-size:clamp(1.45rem,5.2vw,1.95rem);
+    margin-bottom:18px;
+    line-height:1.18;
+    letter-spacing:-.015em;
+  }
+  h1 .ac{font-size:1.12em;margin-bottom:.1em;letter-spacing:-.025em}
+  .hero-eyebrow{font-size:.66rem;margin-bottom:20px}
+  .hero-sub{
+    font-size:.88rem;
+    margin-bottom:32px;
+    max-width:100%;
+  }
+  .hero-btns{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:12px;
+  }
+  .btn-p{padding:12px 22px;font-size:.85rem;width:fit-content}
+  .hero-stats{margin-top:28px;gap:16px;flex-wrap:wrap}
+  .hs-num{font-size:1.3rem}
+  .hs-divider{display:none}
+  .hero-social{margin-top:20px}
+  /* Contain glow + dotgrid to prevent horizontal overflow */
+  .hero-glow{width:300px;height:300px;top:-60px;right:-60px}
+
+  /* ── PROBLEM ── */
+  section.problem{padding:64px 20px}
+  .pain-grid{
+    grid-template-columns:1fr;
+    gap:14px;
+  }
+
+  /* ── STATS ── */
+  #stats{padding:64px 20px}
+  .stats-grid{
+    grid-template-columns:1fr;
+    gap:14px;
+  }
+  .stat-num{font-size:2rem}
+
+  /* ── NEWS ── */
+  section.news{padding:64px 16px}
+  /* @media rules for 900px and 580px already exist above they still apply */
+
+  /* ── GASA FLOW ── */
+  section.gasaflow{padding:56px 0 52px}
+  .gf-header{padding:0 16px;margin-bottom:36px}
+  .gf-header h2{font-size:clamp(1.4rem,6vw,1.8rem)}
+  /* Narrow the fade masks so they don't eat too much card width */
+  .gf-mask::before,.gf-mask::after{width:60px}
+  /* Shrink marquee cards */
+  .gfc{
+    min-width:160px;
+    padding:14px 16px;
+  }
+  .gfc-num{font-size:1.45rem}
+  .gfc-label{font-size:.68rem;max-width:140px}
+  .gfc-src{font-size:.55rem}
+  .gf-row{gap:10px}
+
+  /* ── FEATURES ── */
+  section.feats{padding:64px 20px}
+  .g3{
+    grid-template-columns:1fr;
+    gap:12px;
+  }
+
+  /* ── HOW IT WORKS ── */
+  section.hiw{padding:64px 20px}
+  section.hiw .ssub{margin-bottom:40px}
+  .hiw-layout{
+    grid-template-columns:1fr;
+    gap:36px;
+  }
+  .radar-wrap{justify-content:center}
+  #radarCanvas{
+    width:260px;
+    height:260px;
+  }
+  .hiw-steps-col{gap:24px}
+
+  /* ── PROTECTION ── */
+  section.prot{padding:64px 20px}
+  .pg{
+    grid-template-columns:1fr;
+  }
+  .pr{flex-wrap:wrap;gap:10px}
+  .pp{margin-left:auto}
+
+  /* ── TEAM ── */
+  section.team{padding:64px 20px}
+  .team-grid{
+    grid-template-columns:1fr;
+    gap:16px;
+    max-width:100%;
+  }
+  .team-card{padding:28px 24px}
+
+  /* ── CTA ── */
+  section.ctasec{padding:64px 20px;overflow-x:clip}
+  .cta-inner{
+    width:100%;
+    max-width:100%;
+    box-sizing:border-box;
+    padding:0;
+  }
+  .cta-h{
+    font-size:clamp(1.5rem,6.5vw,2rem);
+    word-break:break-word;
+    overflow-wrap:break-word;
+    padding-bottom:0.12em;
+    line-height:1.15;
+  }
+  .cta-sub{
+    font-size:.85rem;
+    width:100%;
+    max-width:100%;
+    box-sizing:border-box;
+    word-break:break-word;
+    overflow-wrap:break-word;
+    hyphens:auto;
+  }
+  .cf{
+    flex-direction:column;
+    gap:10px;
+    max-width:100%;
+    width:100%;
+  }
+  .ci,.cb{width:100%;box-sizing:border-box;max-width:100%}
+  .cta-fine{font-size:.68rem;padding:0 8px}
+
+  /* ── FOOTER ── */
+  footer{
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+    gap:20px;
+    padding:36px 20px;
+  }
+  .f-links{
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:14px 20px;
+  }
+  .f-copy{font-size:.72rem}
+
+  /* ── GENERAL ── */
+  h2{font-size:clamp(1.5rem,5.5vw,2rem)}
+  .ssub{font-size:.85rem}
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SMALL PHONES  ≤ 480px
+═══════════════════════════════════════════════════════════ */
+@media(max-width:480px){
+
+  /* Nav */
+  nav{padding:0 14px}
+  .nav-cta{padding:6px 12px;font-size:.73rem}
+  .nav-login{padding:6px 12px;font-size:.73rem}
+
+  /* Hero */
+  #hero{padding:76px 16px 52px}
+  h1{font-size:clamp(1.65rem,8vw,2.1rem)}
+  .hero-sub{font-size:.82rem}
+  .btn-p{padding:11px 18px;font-size:.82rem}
+
+  /* Pain cards */
+  .pain-card{padding:24px 20px}
+
+  /* Stats */
+  .stat-card{padding:24px 20px}
+  .stat-num{font-size:1.8rem}
+
+  /* GASA */
+  .gfc{min-width:140px;padding:12px 14px}
+  .gfc-num{font-size:1.25rem}
+  .gf-mask::before,.gf-mask::after{width:40px}
+
+  /* Features */
+  .fc{padding:22px 18px}
+
+  /* HIW */
+  #radarCanvas{width:220px;height:220px}
+
+  /* Team */
+  .team-card{padding:24px 18px}
+  .team-photo{width:60px;height:60px}
+
+  /* CTA */
+  .cta-h{font-size:1.5rem}
+
+  /* Footer */
+  footer{padding:28px 16px;gap:16px}
+  .f-links{gap:10px 16px}
+}
+
+/* Footer */
+footer{
+  background:#0E1428;
+  padding:40px 60px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-top:1px solid rgba(255,255,255,0.10);
+}
+.f-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;color:#fff;letter-spacing:.05em}
+.f-copy{font-size:.78rem;color:#404870}
+.f-links{display:flex;gap:24px}
+.f-links a{font-size:.78rem;color:#3A4068;text-decoration:none}
+.f-links a:hover{color:#3FB785}
+
+/* ── SEPARATOR LINE ── */
+.sep-line{
+  width:40px;height:2px;
+  background:linear-gradient(90deg,#1F8B5C,rgba(31,139,92,.2));
+  border-radius:2px;
+  margin-bottom:18px;
+}
+
+/* ── NEWS SECTION ───────────────────────────────── */
+section.news{background:#fff;padding:100px 24px}
+.news-inner{max-width:1100px;margin:0 auto}
+.news-grid{display:flex;flex-direction:column;margin-top:48px}
+.nc{
+  display:grid;grid-template-columns:180px 1fr;
+  column-gap:48px;row-gap:10px;
+  padding:32px 0;
+  border-top:1px solid #E5E2F0;
+  background:transparent;border-radius:0;border-left:none;border-right:none;border-bottom:none;
+  text-decoration:none;transition:background-color .2s;
+  align-items:start;
+}
+.news-grid > .nc:last-child{border-bottom:1px solid #E5E2F0}
+.nc:hover{background-color:rgba(31,139,92,0.025);box-shadow:none;transform:none;border-color:#E5E2F0}
+.nc-meta{
+  grid-row:1 / 5;grid-column:1;
+  display:flex;flex-direction:column;gap:6px;
+  align-items:flex-start;justify-content:flex-start;
+}
+.nc-tag{grid-column:2;grid-row:1;justify-self:start}
+.nc-headline{grid-column:2;grid-row:2}
+.nc-quote{grid-column:2;grid-row:3}
+.nc-read{grid-column:2;grid-row:4;justify-self:start}
+.nc:hover{border-color:rgba(31,139,92,.38);box-shadow:0 8px 36px rgba(26,34,85,.09);transform:translateY(-3px)}
+.nc-meta{display:flex;align-items:center;justify-content:space-between}
+.nc-source{font-family:'Syne',sans-serif;font-weight:800;font-size:.73rem;letter-spacing:.06em;text-transform:uppercase}
+.nc-date{font-size:.68rem;color:#9895B4;font-weight:400}
+.nc-tag{display:inline-block;font-size:.62rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:rgba(31,139,92,.1);color:#16734C;border-radius:20px;padding:3px 10px;width:fit-content}
+.nc-headline{font-family:'Syne',sans-serif;font-weight:700;font-size:.93rem;color:#141428;line-height:1.42;padding-bottom:0.08em;word-break:break-word;overflow-wrap:break-word}
+.nc-quote{font-size:.81rem;color:#5A5880;line-height:1.62;font-style:italic;border-left:2px solid rgba(31,139,92,.28);padding-left:12px;flex:1;word-break:break-word;overflow-wrap:break-word}
+.nc-read{font-size:.75rem;font-weight:700;color:#1F8B5C;display:flex;align-items:center;gap:5px;transition:gap .18s;margin-top:4px}
+.nc:hover .nc-read{gap:9px}
+@media(max-width:680px){
+  .nc{grid-template-columns:1fr;column-gap:0;row-gap:8px;padding:24px 0}
+  .nc-meta{grid-row:auto;grid-column:1;flex-direction:row;align-items:center;gap:12px;margin-bottom:6px}
+  .nc-tag,.nc-headline,.nc-quote,.nc-read{grid-column:1;grid-row:auto}
+}
+
+/* ── GASA FLOW ───────────────────────────────── */
+section.gasaflow{background:#060C1A;padding:80px 0 72px}
+.gf-header{text-align:center;padding:0 24px;margin-bottom:52px}
+.gf-header h2{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(1.6rem,3vw,2.2rem);color:#fff;letter-spacing:-.03em;margin:10px 0 12px;padding-bottom:0.1em}
+.gf-header p{font-size:.88rem;color:rgba(255,255,255,.45);max-width:480px;margin:0 auto;word-break:break-word;overflow-wrap:break-word}
+.gf-mask{overflow:hidden;position:relative}
+.gf-mask::before,.gf-mask::after{content:'';position:absolute;top:0;bottom:0;width:140px;z-index:2;pointer-events:none}
+.gf-mask::before{left:0;background:linear-gradient(to right,#060C1A 30%,transparent)}
+.gf-mask::after{right:0;background:linear-gradient(to left,#060C1A 30%,transparent)}
+.gf-row{display:flex;gap:14px;width:max-content;padding:6px 0}
+.gf-row.lr{animation:gf-left 60s linear infinite}
+.gf-mask:hover .gf-row,.gf-row:hover{animation-play-state:paused}
+@keyframes gf-left{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes gf-right{0%{transform:translateX(-50%)}100%{transform:translateX(0)}}
+.gfc{background:rgba(255,255,255,.04);border:1px solid rgba(31,139,92,.13);border-radius:12px;padding:18px 26px;min-width:210px;white-space:nowrap;transition:border-color .2s,background .2s}
+.gfc:hover{background:rgba(31,139,92,.07);border-color:rgba(31,139,92,.3)}
+.gfc-num{font-family:'Syne',sans-serif;font-weight:800;font-size:1.85rem;color:#1F8B5C;line-height:1;letter-spacing:-.02em}
+.gfc-label{font-size:.76rem;color:rgba(255,255,255,.65);margin-top:6px;line-height:1.45;white-space:normal;max-width:175px;word-break:break-word;overflow-wrap:break-word}
+.gfc-src{font-size:.6rem;color:rgba(31,139,92,.45);margin-top:8px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.gf-cta{text-align:center;margin-top:44px;padding:0 24px}
+.gf-cta a{display:inline-flex;align-items:center;gap:8px;font-size:.83rem;font-weight:600;color:rgba(255,255,255,.55);text-decoration:none;border:1px solid rgba(255,255,255,.12);border-radius:30px;padding:10px 22px;transition:color .2s,border-color .2s}
+.gf-cta a:hover{color:#1F8B5C;border-color:rgba(31,139,92,.4)}
+
+</style>
+</head>
+<body>
+
+<!-- SKIP LINK -->
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<!-- PRELOADER -->
+<div id="preloader">
+  <div class="pre-logo">
+    <div class="pre-dot"></div>
+    ASPS
+  </div>
+</div>
+
+<nav aria-label="Main navigation">
+  <a href="index.html" class="logo" aria-label="ASPS Home">
+  <svg class="logo-svg" width="148" height="40" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#navBarGrad)"/>
+    <text x="12" y="26" font-family="'Syne', sans-serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+    <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+    <circle cx="20" cy="6" r="4" fill="#1F8B5C" opacity="0.35">
+      <animate attributeName="r" values="4;7;4" dur="2.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.35;0;0.35" dur="2.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+    <defs>
+      <linearGradient id="navBarGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#1F8B5C"/>
+        <stop offset="100%" stop-color="#16734C"/>
+      </linearGradient>
+    </defs>
+  </svg>
+  </a>
+  <a href="#vision">Mission</a>
+  <a href="#stats">Numbers</a>
+  <a href="#approach">Approach</a>
+  <a href="#team">Team</a>
+  <div class="nav-cta" role="button" tabindex="0" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})" onkeydown="if(event.key==='Enter'||event.key===' '){document.getElementById('contact').scrollIntoView({behavior:'smooth'})}">Talk to us</div>
+</nav>
+
+<!-- ─────────────────────────────────────────── -->
+<!-- HERO NAVY -->
+<!-- ─────────────────────────────────────────── -->
+<main id="main-content" role="main">
+<section id="hero">
+  <div class="hero-glow"></div>
+  <div class="dotgrid"></div>
+  <div class="hero-inner">
+    <div>
+      <div class="hero-eyebrow"><span class="ey-bar"></span>ASPS · Anti-Scam Protected Systems</div>
+      <h1><span class="ac">ASPS.</span>Fraud protection built for people, not devices.</h1>
+      <p class="hero-sub">An anti-scam company building real-time defense across phones, browsers, and inboxes &mdash; and pushing fraud into open public conversation.</p>
+      <div class="hero-btns">
+        <div class="btn-p" role="button" tabindex="0" onclick="document.getElementById('vision').scrollIntoView({behavior:'smooth'})" onkeydown="if(event.key==='Enter'||event.key===' '){document.getElementById('vision').scrollIntoView({behavior:'smooth'})}">Read our mission <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="btn-s" role="button" tabindex="0" onclick="document.getElementById('team').scrollIntoView({behavior:'smooth'})" onkeydown="if(event.key==='Enter'||event.key===' '){document.getElementById('team').scrollIntoView({behavior:'smooth'})}">Meet the founders <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+      </div>
+      <div class="hero-social">
+        <div class="soc-text">A company page for <b>partners, organizations &amp; investors</b></div>
+      </div>
+    </div>
+
+    <!-- SHIELD VISUAL -->
+    <div class="shield-scene">
+      <canvas id="heroThreatCanvas" width="460" height="460" aria-hidden="true"></canvas>
+      <div class="ring ring-1"></div>
+      <div class="ring ring-2"></div>
+      <div class="shield-wrap">
+        <svg class="shield-svg" width="96" height="110" viewBox="0 0 96 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="sg" x1="0" y1="0" x2="96" y2="110" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#1A2255"/>
+              <stop offset="100%" stop-color="#2A3570"/>
+            </linearGradient>
+            <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="6" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <path d="M48 4L8 18V52C8 74 26 93 48 106C70 93 88 74 88 52V18L48 4Z"
+                fill="url(#sg)" stroke="rgba(31,139,92,0.4)" stroke-width="1.2" filter="url(#glow)"/>
+          <!-- Halo glow dot angel halo effect -->
+          <circle cx="48" cy="57" r="22" fill="none" stroke="#1F8B5C" stroke-width="1" opacity="0.15">
+            <animate attributeName="r" values="20;28;20" dur="2.8s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.15;0;0.15" dur="2.8s" repeatCount="indefinite"/>
+          </circle>
+          <circle cx="48" cy="57" r="14" fill="none" stroke="#1F8B5C" stroke-width="1.5" opacity="0.3">
+            <animate attributeName="r" values="12;18;12" dur="2.8s" repeatCount="indefinite" begin="0.12s"/>
+            <animate attributeName="opacity" values="0.3;0.05;0.3" dur="2.8s" repeatCount="indefinite" begin="0.12s"/>
+          </circle>
+          <circle cx="48" cy="57" r="9" fill="#1F8B5C" opacity="0.2"/>
+          <circle cx="48" cy="57" r="6" fill="#1F8B5C" opacity="0.9"/>
+          <circle cx="48" cy="57" r="2.5" fill="#ffffff" opacity="0.95"/>
+        </svg>
+        <div class="shield-glow-ring"></div>
+      </div>
+
+      <div class="hero-pill-notif pill-1">
+        <span class="pn-dot green"></span>
+        <span class="pn-text">Real-time defense</span>
+        <span class="pn-badge">Now</span>
+      </div>
+      <div class="hero-pill-notif pill-2">
+        <span class="pn-dot green"></span>
+        <span class="pn-text">Cross-channel coverage</span>
+        <span class="pn-badge">Live</span>
+      </div>
+      <div class="hero-pill-notif pill-3">
+        <span class="pn-dot green"></span>
+        <span class="pn-text">AI-aware detection</span>
+        <span class="pn-badge">2026</span>
+      </div>
+      <div class="hero-pill-notif pill-4">
+        <span class="pn-dot green"></span>
+        <span class="pn-text">Person-first design</span>
+        <span class="pn-badge">Core</span>
+      </div>
+      <div class="hero-pill-notif pill-5">
+        <span class="pn-dot green"></span>
+        <span class="pn-text">Independent</span>
+        <span class="pn-badge">2026</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────────────────────────── -->
+<!-- ─────────────────────────────────────────── -->
+<!-- VISION -->
+<!-- ─────────────────────────────────────────── -->
+<section class="problem" id="vision">
+  <div class="problem-inner">
+    <div class="sep-line"></div>
+    <div class="slabel">Mission</div>
+    <h2>Our mission.</h2>
+    <p class="ssub">Three areas, treated as one problem: real-time protection, public conversation, and learning directly from the people who&#8217;ve been through it.</p>
+
+    <div class="pain-grid vision-grid">
+
+      <div class="pain-card">
+        <span class="pain-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
+        <h3>Technology</h3>
+        <p>Real-time fraud protection at the moment of contact, across calls, messages, and browsers.</p>
+      </div>
+
+      <div class="pain-card">
+        <span class="pain-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></span>
+        <h3>Public conversation</h3>
+        <p>Surfacing fraud as a topic in households, workplaces, media and policy.</p>
+      </div>
+
+      <div class="pain-card">
+        <span class="pain-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></span>
+        <h3>Lived experience</h3>
+        <p>Interviews with people who&#8217;ve been targeted, fed back into product design, public education, and outreach to peer organizations.</p>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ─────────────────────────────────────────── -->
+<!-- STATS WHITE -->
+<!-- ─────────────────────────────────────────── -->
+<section id="stats">
+  <div class="stats-inner">
+    <div class="stats-header">
+      <div class="stats-eyebrow">By the numbers</div>
+      <div class="stats-title">Scale of the problem.</div>
+      <div class="stats-sub">Three figures from public reporting. Sources: GASA, FTC, FBI IC3.</div>
+      <div class="stats-frame">What&#8217;s lost, who&#8217;s targeted, who&#8217;s covered &mdash; three angles on the same problem.</div>
+    </div>
+    <div class="stats-grid">
+
+      <div class="stat-card">
+        <div class="stat-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#1F8B5C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="6" y="2" width="12" height="20" rx="2"/>
+            <path d="M11 6h2"/>
+            <path d="M12 17.5v.01"/>
+            <path d="M9.5 9.5l5 5M14.5 9.5l-5 5"/>
+          </svg>
+        </div>
+        <div class="stat-num">$442B</div>
+        <div class="stat-label">Lost to scams every year</div>
+        <div class="stat-detail">More than the GDP of most countries. Most of it taken through manipulation, not through breached systems.</div>
+        <div class="stat-source">Source: <a href="https://www.gasa.org" target="_blank" rel="noopener">GASA Global State of Scams 2025 ↗</a></div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#1F8B5C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/>
+            <circle cx="12" cy="12" r="5"/>
+            <circle cx="12" cy="12" r="1.2" fill="#1F8B5C"/>
+            <line x1="12" y1="1" x2="12" y2="5"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="1" y1="12" x2="5" y2="12"/>
+            <line x1="19" y1="12" x2="23" y2="12"/>
+          </svg>
+        </div>
+        <div class="stat-num">57%</div>
+        <div class="stat-label">Of adults targeted each year</div>
+        <div class="stat-detail">More than 1 in 2. Statistically, someone in your immediate circle has already been targeted.</div>
+        <div class="stat-source">Source: <a href="https://www.gasa.org" target="_blank" rel="noopener">GASA Global State of Scams 2025 ↗</a></div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#1F8B5C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3z"/>
+            <path d="M9 11l1.5 5L15 9" stroke-dasharray="3 2"/>
+          </svg>
+        </div>
+        <div class="stat-num">5B+</div>
+        <div class="stat-label">Internet users with no real protection</div>
+        <div class="stat-detail">Antivirus protects machines. Nothing protects the seconds before a transfer or a shared code.</div>
+        <div class="stat-source">Source: <a href="https://www.gasa.org" target="_blank" rel="noopener">GASA Global State of Scams 2025 ↗</a></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ─────────────────────────────────────────── -->
+<!-- NEWS IN THE PRESS -->
+<!-- ─────────────────────────────────────────── -->
+<section class="news" id="news">
+  <div class="news-inner">
+    <div class="sep-line"></div>
+    <div class="slabel" style="color:#1F8B5C">In the press</div>
+    <h2 style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(1.7rem,3.2vw,2.4rem);color:#141428;letter-spacing:-.03em;margin:10px 0 0">Selected coverage<br><span style="color:#1A2255">on the problem.</span></h2>
+    <p style="font-size:.9rem;color:#5A5880;margin-top:14px;max-width:540px">Government agencies, regulators, security researchers and major outlets &mdash; all reporting losses up year over year.</p>
+
+    <div class="news-grid">
+
+      <!-- FTC Press Release -->
+      <a class="nc" href="https://www.ftc.gov/news-events/news/press-releases/2024/02/nationwide-fraud-losses-top-10-billion-2023-ftc-steps-efforts-protect-public" target="_blank" rel="noopener">
+        <div class="nc-meta">
+          <span class="nc-source" style="color:#1A2255">FTC.gov</span>
+          <span class="nc-date">Feb 9, 2024</span>
+        </div>
+        <div class="nc-tag">Investment Fraud</div>
+        <div class="nc-headline">Nationwide Fraud Losses Top $10 Billion in 2023</div>
+        <div class="nc-quote">"Investment scams cost consumers $4.6 billion in 2023 &mdash; a 21% jump over the prior year."</div>
+        <div class="nc-read">Read report <span>→</span></div>
+      </a>
+
+      <!-- FBI IC3 Annual Report PDF -->
+      <a class="nc" href="https://www.ic3.gov/Media/PDF/AnnualReport/2023_IC3Report.pdf" target="_blank" rel="noopener">
+        <div class="nc-meta">
+          <span class="nc-source" style="color:#1A3A6E">FBI / IC3</span>
+          <span class="nc-date">2024</span>
+        </div>
+        <div class="nc-tag">Cybercrime Report</div>
+        <div class="nc-headline">2023 Internet Crime Report: $12.5 Billion in Losses</div>
+        <div class="nc-quote">"Over 880,000 cybercrime complaints filed last year, with investment fraud and tech support scams leading the losses."</div>
+        <div class="nc-read">Read report <span>→</span></div>
+      </a>
+
+      <!-- Krebs on Security Pig Butchering -->
+      <a class="nc" href="https://krebsonsecurity.com/2022/07/massive-losses-define-epidemic-of-pig-butchering/" target="_blank" rel="noopener">
+        <div class="nc-meta">
+          <span class="nc-source" style="color:#C0392B">KrebsOnSecurity</span>
+          <span class="nc-date">Jul 2022</span>
+        </div>
+        <div class="nc-tag">Crypto Fraud</div>
+        <div class="nc-headline">Massive Losses Define Epidemic of 'Pig Butchering'</div>
+        <div class="nc-quote">"Reports flood in of victims losing hundreds of thousands to fake crypto platforms that seize all funds."</div>
+        <div class="nc-read">Read article <span>→</span></div>
+      </a>
+
+      <!-- FTC Consumer Advice AI Voice Cloning -->
+      <a class="nc" href="https://consumer.ftc.gov/consumer-alerts/2023/03/scammers-use-ai-enhance-their-family-emergency-schemes" target="_blank" rel="noopener">
+        <div class="nc-meta">
+          <span class="nc-source" style="color:#1A2255">FTC Consumer Advice</span>
+          <span class="nc-date">Mar 2023</span>
+        </div>
+        <div class="nc-tag">AI Deception</div>
+        <div class="nc-headline">Scammers Use AI to Clone Your Family's Voice</div>
+        <div class="nc-quote">"Voice cloning lets scammers fake a relative&#8217;s panicked call in seconds, weaponizing family emergencies."</div>
+        <div class="nc-read">Read alert <span>→</span></div>
+      </a>
+
+      <!-- GASA 2025 -->
+      <a class="nc" href="https://www.gasa.org" target="_blank" rel="noopener">
+        <div class="nc-meta">
+          <span class="nc-source" style="color:#16734C">GASA 2025</span>
+          <span class="nc-date">Jan 2025</span>
+        </div>
+        <div class="nc-tag">Global Threat</div>
+        <div class="nc-headline">57% of Adults Were Targeted by Scams in the Past Year</div>
+        <div class="nc-quote">"$442 billion lost annually worldwide; over 5 billion people have no real-time protection."</div>
+        <div class="nc-read">Read report <span>→</span></div>
+      </a>
+
+      <!-- FTC Consumer Advice Tech Support -->
+      <a class="nc" href="https://consumer.ftc.gov/articles/how-spot-avoid-and-report-tech-support-scams" target="_blank" rel="noopener">
+        <div class="nc-meta">
+          <span class="nc-source" style="color:#1A2255">FTC Consumer Advice</span>
+          <span class="nc-date">Updated 2024</span>
+        </div>
+        <div class="nc-tag">Tech Support Fraud</div>
+        <div class="nc-headline">How to Spot, Avoid, and Report Tech Support Scams</div>
+        <div class="nc-quote">"Scammers exploit fake computer alerts to steal money, financial information, and identity."</div>
+        <div class="nc-read">Read guide <span>→</span></div>
+      </a>
+
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────────────────────────── -->
+<!-- ─────────────────────────────────────────── -->
+<!-- OUR APPROACH (high level vision, no product details) -->
+<!-- ─────────────────────────────────────────── -->
+<section class="feats" id="approach">
+  <div class="feats-inner">
+    <div class="sep-line"></div>
+    <div class="slabel">Approach</div>
+    <h2>How we work.</h2>
+    <p class="ssub">A single protection layer that follows the person, not the device &mdash; across calls, messages, browsers, and apps.</p>
+    <div class="g3 approach-grid">
+      <div class="fc"><div class="fn">01</div><h3>Real time</h3><p>Detection and intervention in the seconds before a transfer or click — not after the report.</p></div>
+      <div class="fc"><div class="fn">02</div><h3>Cross-device</h3><p>A single layer across phone, laptop, and inbox — designed to follow the user across channels.</p></div>
+      <div class="fc"><div class="fn">03</div><h3>Accessible by default</h3><p>One install. No training. No IT.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────────────────────────── -->
+<!-- GASA FLOW STATS MARQUEE -->
+<!-- ─────────────────────────────────────────── -->
+<section class="opp" id="opp">
+  <div class="opp-inner">
+    <div class="sep-line"></div>
+    <div class="slabel">Market</div>
+    <h2>An emerging category.</h2>
+    <p class="ssub">Endpoint security solved a generation of machine-targeted threats. Human-targeted fraud is the next category — large, fragmented, and structurally underserved.</p>
+
+    <div class="opp-grid">
+      <div class="opp-card">
+        <div class="opp-num">$442B</div>
+        <div class="opp-label">TAM Global scam losses, annually</div>
+        <div class="opp-detail">The total addressable problem. Larger than most national GDPs and growing every year as AI-driven scams scale.</div>
+        <div class="opp-source">Source · GASA 2025</div>
+      </div>
+      <div class="opp-card">
+        <div class="opp-num">$50B</div>
+        <div class="opp-label">SAM Consumer + SMB anti-fraud spend</div>
+        <div class="opp-detail">Telecoms, banks, insurers and consumers already pay for partial defenses. Today fragmented across 7+ vendors &mdash; ASPS consolidates the layer.</div>
+        <div class="opp-source">Source · internal analysis</div>
+      </div>
+      <div class="opp-card">
+        <div class="opp-num">$2.5B</div>
+        <div class="opp-label">SOM 5-year obtainable target</div>
+        <div class="opp-detail">Capturing &lt;0.6% of TAM through B2C subscription + B2B2C distribution via banks &amp; telecoms in the US and EU.</div>
+        <div class="opp-source">Source · internal model</div>
+      </div>
+    </div>
+
+    <div class="opp-whynow">
+      <div class="opp-wnc">
+        <h4>Why now</h4>
+        <p>Generative AI removed the last friction from scams. Voice cloning, deepfake video and personalized phishing scaled overnight. Detection has to live at the moment of decision &mdash; too late once the call ends or the link is clicked.</p>
+      </div>
+      <div class="opp-wnc">
+        <h4>Why us</h4>
+        <p>30+ years building monitoring infrastructure, plus a team with offensive and defensive cyber backgrounds. Founders who studied how scammers operate and built systems that watch every channel as one.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="gasaflow" id="gasaflow">
+  <div class="gf-header">
+    <div class="slabel" style="color:#1F8B5C;opacity:.8">GASA · FTC · FBI IC3</div>
+    <h2>Public reporting on fraud,<br/>year over year.</h2>
+    <p>Government bodies, regulators, and industry researchers &mdash; same trajectory in every dataset.</p>
+  </div>
+
+  <!-- Single row, 8 unique items not duplicated in #stats or #opp -->
+  <div class="gf-mask">
+    <div class="gf-row lr">
+      <!-- set 1 -->
+      <div class="gfc"><div class="gfc-num">$12.5B</div><div class="gfc-label">Total US cybercrime losses, a new record high</div><div class="gfc-src">FBI IC3 2024</div></div>
+      <div class="gfc"><div class="gfc-num">$5.6B</div><div class="gfc-label">Lost to cryptocurrency fraud in the US in 2023</div><div class="gfc-src">FBI IC3 2024</div></div>
+      <div class="gfc"><div class="gfc-num">$3.4B</div><div class="gfc-label">Stolen from Americans over 60 in 2023 alone</div><div class="gfc-src">FBI IC3 2024</div></div>
+      <div class="gfc"><div class="gfc-num">$2.9B</div><div class="gfc-label">Lost to Business Email Compromise fraud in 2023</div><div class="gfc-src">FBI IC3 2024</div></div>
+      <div class="gfc"><div class="gfc-num">$924M</div><div class="gfc-label">Stolen via tech support fraud in 2023</div><div class="gfc-src">FBI IC3 2024</div></div>
+      <div class="gfc"><div class="gfc-num">880K+</div><div class="gfc-label">Cybercrime complaints filed with the FBI in 2023</div><div class="gfc-src">FBI IC3 2024</div></div>
+      <div class="gfc"><div class="gfc-num">14%</div><div class="gfc-label">Increase in total fraud losses from 2022 to 2023</div><div class="gfc-src">FTC 2024</div></div>
+      <div class="gfc"><div class="gfc-num">5</div><div class="gfc-label">Years in a row of record-breaking losses</div><div class="gfc-src">FTC 2024</div></div>
+      <!-- set 2 duplicate for infinite loop -->
+      <div class="gfc"><div class="gfc-num">$12.5B</div><div class="gfc-label">Total US cybercrime losses, a new record high</div><div class="gfc-src">FBI IC3 2024</div></div>
+      <div class="gfc"><div class="gfc-num">$5.6B</div><div class="gfc-label">Lost to cryptocurrency fraud in the US in 2023</div><div class="gfc-src">FBI IC3 2024</div></div>
+      <div class="gfc"><div class="gfc-num">$3.4B</div><div class="gfc-label">Stolen from Americans over 60 in 2023 alone</div><div class="gfc-src">FBI IC3 2024</div></div>
+      <div class="gfc"><div class="gfc-num">$2.9B</div><div class="gfc-label">Lost to Business Email Compromise fraud in 2023</div><div class="gfc-src">FBI IC3 2024</div></div>
+      <div class="gfc"><div class="gfc-num">$924M</div><div class="gfc-label">Stolen via tech support fraud in 2023</div><div class="gfc-src">FBI IC3 2024</div></div>
+      <div class="gfc"><div class="gfc-num">880K+</div><div class="gfc-label">Cybercrime complaints filed with the FBI in 2023</div><div class="gfc-src">FBI IC3 2024</div></div>
+      <div class="gfc"><div class="gfc-num">14%</div><div class="gfc-label">Increase in total fraud losses from 2022 to 2023</div><div class="gfc-src">FTC 2024</div></div>
+      <div class="gfc"><div class="gfc-num">5</div><div class="gfc-label">Years in a row of record-breaking losses</div><div class="gfc-src">FTC 2024</div></div>
+    </div>
+  </div>
+
+  <div class="gf-cta">
+    <a href="https://www.gasa.org" target="_blank" rel="noopener">
+      Read the full GASA 2025 Global Anti-Scam Report
+      <span style="font-size:.9rem">→</span>
+    </a>
+  </div>
+</section>
+
+
+<!-- TEAM NAVY -->
+<!-- ─────────────────────────────────────────── -->
+<section class="team" id="team">
+  <div class="team-inner">
+    <div style="text-align:center;margin-bottom:56px">
+      <div class="sep-line" style="margin:0 auto 18px"></div>
+      <div class="slabel" style="text-align:center">Team</div>
+      <h2 style="margin-bottom:12px">Founders.</h2>
+      <p class="ssub" style="max-width:520px;margin:0 auto">Combined background in monitoring infrastructure, offensive and defensive cyber, and product engineering across the US and Israel.</p>
+    </div>
+    <div class="team-grid">
+
+      <div class="team-card">
+        <img class="team-photo" src="https://randomuser.me/api/portraits/men/32.jpg" alt="Isaac Mendelson"/>
+        <div class="team-name">Isaac Mendelson</div>
+        <div class="team-title">Co-CEO &amp; Co-Founder</div>
+        <p class="team-bio">Engineer and business graduate. 30+ years building monitoring systems and digital platforms across the US and Israel. Started ASPS after watching the response to digital fraud lag behind its scale.</p>
+        <span class="team-linkedin placeholder" aria-label="LinkedIn — coming soon" title="LinkedIn coming soon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        </span>
+      </div>
+
+      <div class="team-card">
+        <img class="team-photo" src="assets/yehuda.png" alt="Yehuda Zazon"/>
+        <div class="team-name">Yehuda Zazon</div>
+        <div class="team-title">Co-CEO &amp; Co-Founder</div>
+        <p class="team-bio">Cyber and infrastructure engineer. 7 years designing IT systems for special missions, with a background in both offensive and defensive cyber tools. Started ASPS to stay one step ahead of how scammers think and adapt.</p>
+        <a href="https://www.linkedin.com/in/yehuda-zazon/" target="_blank" rel="noopener" class="team-linkedin" aria-label="Yehuda Zazon on LinkedIn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        </a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────────────────────────── -->
+<!-- ─────────────────────────────────────────── -->
+<!-- CONTACT -->
+<!-- ─────────────────────────────────────────── -->
+<section class="ctasec" id="contact">
+  <div class="cta-glow"></div>
+  <div class="cta-inner">
+    <div class="cta-label">Contact</div>
+    <div class="cta-h">Talk to us.</div>
+    <div class="cta-sub">We respond to organizations, partners, investors, journalists, and anyone with relevant context. Every inquiry, read and answered directly.</div>
+
+    <div class="contact-row">
+      <a class="contact-card" href="mailto:info@asps.io">
+        <div class="cc-label">General &amp; partnerships</div>
+        <div class="cc-email">info@asps.io</div>
+      </a>
+      <a class="contact-card" href="mailto:investors@asps.io">
+        <div class="cc-label">Investors</div>
+        <div class="cc-email">investors@asps.io</div>
+      </a>
+      <a class="contact-card" href="mailto:stories@asps.io">
+        <div class="cc-label">Share a story</div>
+        <div class="cc-email">stories@asps.io</div>
+      </a>
+    </div>
+
+    <div class="cta-fine">We treat all correspondence as confidential.</div>
+  </div>
+</section>
+
+</main>
+
+<!-- FOOTER -->
+<footer role="contentinfo">
+  <div style="display:flex;flex-direction:column;gap:6px">
+  <svg width="130" height="36" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footBarGrad)"/>
+    <text x="12" y="26" font-family="'Syne', sans-serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+    <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+    <circle cx="20" cy="6" r="4" fill="#1F8B5C" opacity="0.3">
+      <animate attributeName="r" values="4;7;4" dur="2.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.3;0;0.3" dur="2.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+    <text x="13" y="37" font-family="'Instrument Sans', sans-serif" font-weight="500" font-size="7.5" fill="rgba(255,255,255,0.28)" letter-spacing="2">ANTI-SCAM PROTECTION</text>
+    <defs>
+      <linearGradient id="footBarGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#1F8B5C"/>
+        <stop offset="100%" stop-color="#16734C"/>
+      </linearGradient>
+    </defs>
+  </svg>
+  <div style="font-size:.74rem;color:#7A82AA;font-weight:500">Anti-Scam Protected Systems</div>
+  <div style="font-size:.72rem;color:#3FB785;margin-top:3px;font-weight:500">Real-time fraud defense.</div>
+  <div style="font-size:.7rem;color:#5A6090;margin-top:3px">Founded 2026 · US &amp; Israel</div>
+  </div>
+  <div class="f-links">
+    <a href="#vision">Mission</a>
+    <a href="#stats">Numbers</a>
+    <a href="#approach">Approach</a>
+    <a href="#team">Team</a>
+    <a href="#contact">Contact</a>
+    <a href="privacy.html">Privacy</a>
+  </div>
+  <div class="f-copy">© 2026 ASPS. All rights reserved.</div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+<script>
+// RADAR
+(function(){
+  const canvas=document.getElementById('radarCanvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const W=400,H=400,cx=200,cy=200;
+  canvas.width=W;canvas.height=H;
+  const layers=[
+    {r:52,label:'YOU',dash:[]},
+    {r:108,label:'CLIENT AGENT',dash:[5,5]},
+    {r:158,label:'BROWSER SENSORS',dash:[4,6]},
+    {r:192,label:'AI ANALYSIS',dash:[3,7]}
+  ];
+  let sweepAngle=0;
+  const threats=[],blasts=[];
+  // ease-out: starts fast, decelerates as it nears the protection layer
+  function easeOut(t){return 1-Math.pow(1-t,2.4);}
+  function spawnThreat(){
+    const a=Math.random()*Math.PI*2;
+    // Block close to YOU between r=62 and r=118 (right near CLIENT AGENT or just inside)
+    const blockR=62+Math.random()*56;
+    threats.push({angle:a,startR:205,r:205,blockR,progress:0,blocked:false,alpha:1,trail:[]});
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    ctx.beginPath();ctx.arc(cx,cy,194,0,Math.PI*2);ctx.fillStyle='#0D1128';ctx.fill();
+    // Subtle grid spokes
+    for(let i=0;i<12;i++){const a=(i/12)*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(a)*194,cy+Math.sin(a)*194);ctx.strokeStyle='rgba(31,139,92,0.04)';ctx.lineWidth=1;ctx.stroke();}
+    // Rings
+    layers.forEach((l,i)=>{
+      ctx.beginPath();ctx.arc(cx,cy,l.r,0,Math.PI*2);ctx.setLineDash(l.dash);
+      ctx.strokeStyle=i===0?'rgba(31,139,92,0.5)':'rgba(31,139,92,0.15)';ctx.lineWidth=i===0?1.5:1;ctx.stroke();ctx.setLineDash([]);
+      if(i>0){ctx.font=`600 ${i===1?9.5:i===2?8.5:8}px Inter,sans-serif`;ctx.fillStyle='rgba(31,139,92,0.36)';ctx.textAlign='center';ctx.fillText(l.label,cx,cy-l.r-7);}
+    });
+    // YOU center glow
+    const g=ctx.createRadialGradient(cx,cy,0,cx,cy,layers[0].r);g.addColorStop(0,'rgba(31,139,92,0.14)');g.addColorStop(1,'rgba(31,139,92,0)');
+    ctx.beginPath();ctx.arc(cx,cy,layers[0].r,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+    ctx.font='800 13px Syne,sans-serif';ctx.fillStyle='#1F8B5C';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('YOU',cx,cy);ctx.textBaseline='alphabetic';
+    // Sweep trail
+    for(let i=0;i<60;i++){const a=sweepAngle-(i/60)*(Math.PI/2);ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,192,a,a+0.052);ctx.closePath();ctx.fillStyle=`rgba(31,139,92,${(1-i/60)*0.14})`;ctx.fill();}
+    // Sweep line
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(sweepAngle)*192,cy+Math.sin(sweepAngle)*192);ctx.strokeStyle='rgba(31,139,92,0.7)';ctx.lineWidth=1.5;ctx.stroke();
+    // Threats
+    threats.forEach((t,i)=>{
+      if(!t.blocked){
+        t.progress+=0.005;
+        const p=easeOut(Math.min(t.progress,1));
+        t.r=t.startR+(t.blockR-t.startR)*p;
+        if(t.progress>=1){t.blocked=true;t.r=t.blockR;const bx=cx+Math.cos(t.angle)*t.blockR,by=cy+Math.sin(t.angle)*t.blockR;blasts.push({x:bx,y:by,r:0,alpha:0.85});}
+      }
+      const tx=cx+Math.cos(t.angle)*t.r,ty=cy+Math.sin(t.angle)*t.r;
+      // Trail
+      t.trail.push({x:tx,y:ty});
+      if(t.trail.length>9)t.trail.shift();
+      t.trail.forEach((pt,j)=>{
+        ctx.beginPath();ctx.arc(pt.x,pt.y,1.8,0,Math.PI*2);
+        ctx.fillStyle=`rgba(239,68,68,${(j/t.trail.length)*0.16})`;ctx.fill();
+      });
+      if(!t.blocked){
+        // Soft glow
+        const dg=ctx.createRadialGradient(tx,ty,0,tx,ty,8);dg.addColorStop(0,'rgba(239,68,68,0.18)');dg.addColorStop(1,'rgba(239,68,68,0)');
+        ctx.beginPath();ctx.arc(tx,ty,8,0,Math.PI*2);ctx.fillStyle=dg;ctx.fill();
+        ctx.beginPath();ctx.arc(tx,ty,3,0,Math.PI*2);ctx.fillStyle=`rgba(239,68,68,${t.alpha})`;ctx.fill();
+      } else {
+        t.alpha-=0.01;
+        ctx.beginPath();ctx.arc(tx,ty,3,0,Math.PI*2);ctx.fillStyle=`rgba(31,139,92,${t.alpha})`;ctx.fill();
+        if(t.alpha<=0)threats.splice(i,1);
+      }
+    });
+    // Blasts two soft concentric rings
+    blasts.forEach((b,i)=>{
+      b.r+=0.55;b.alpha-=0.022;
+      ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.strokeStyle=`rgba(31,139,92,${b.alpha*0.75})`;ctx.lineWidth=1.5;ctx.stroke();
+      if(b.r>6){ctx.beginPath();ctx.arc(b.x,b.y,b.r*0.48,0,Math.PI*2);ctx.strokeStyle=`rgba(31,139,92,${b.alpha*0.38})`;ctx.lineWidth=1;ctx.stroke();}
+      if(b.alpha<=0||b.r>=20)blasts.splice(i,1);
+    });
+    sweepAngle+=0.014;if(Math.random()<0.009&&threats.length<4)spawnThreat();
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ── HERO SHIELD THREAT ANIMATION
+(function(){
+  const canvas = document.getElementById('heroThreatCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W=460, H=460, cx=230, cy=230;
+  canvas.width=W; canvas.height=H;
+
+  const PULSE_INTERVAL = 2800; // ms matches halo animation
+  const MAX_R = 195;   // outer boundary
+  const MIN_R = 80;    // closest threats can get before repel
+  const threats = [];
+  let lastPulse = performance.now();
+  let pulseFlash = 0; // 0-1 flash intensity
+
+  function spawnThreat() {
+    threats.push({
+      angle: Math.random() * Math.PI * 2,
+      r: MAX_R - 10 + Math.random() * 20,
+      speed: 0.12 + Math.random() * 0.12,
+      size: 2.5 + Math.random() * 1.5,
+      alpha: 0,
+      state: 'approach', // approach | repel | flash
+      repelV: 0,
+    });
+  }
+
+  // Seed threats
+  for (let i = 0; i < 8; i++) spawnThreat();
+
+  function repelAll() {
+    pulseFlash = 1;
+    threats.forEach(t => {
+      t.state = 'repel';
+      t.repelV = 2.5 + Math.random() * 1.5;
+    });
+  }
+
+  function draw(now) {
+    ctx.clearRect(0, 0, W, H);
+
+    // Pulse trigger
+    if (now - lastPulse >= PULSE_INTERVAL) {
+      lastPulse = now;
+      repelAll();
+    }
+
+    // Fade flash ring
+    if (pulseFlash > 0) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, 90 + (1-pulseFlash)*60, 0, Math.PI*2);
+      ctx.strokeStyle = `rgba(31,139,92,${pulseFlash * 0.35})`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      pulseFlash = Math.max(0, pulseFlash - 0.04);
+    }
+
+    threats.forEach((t, i) => {
+      // Fade in
+      if (t.alpha < 1) t.alpha = Math.min(1, t.alpha + 0.03);
+
+      if (t.state === 'approach') {
+        t.r -= t.speed;
+        if (t.r <= MIN_R) {
+          // Too close repel naturally
+          t.state = 'repel';
+          t.repelV = 1.5;
+        }
+      } else if (t.state === 'repel') {
+        t.r += t.repelV;
+        t.repelV *= 0.92; // decelerate
+        if (t.r >= MAX_R) {
+          // Reset to outer edge, new angle
+          t.r = MAX_R + Math.random() * 15;
+          t.angle = Math.random() * Math.PI * 2;
+          t.speed = 0.12 + Math.random() * 0.12;
+          t.state = 'approach';
+          t.alpha = 0;
+        }
+      }
+
+      const x = cx + Math.cos(t.angle) * t.r;
+      const y = cy + Math.sin(t.angle) * t.r;
+
+      // Glow
+      ctx.beginPath();
+      ctx.arc(x, y, t.size + 4, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(239,68,68,${t.alpha * 0.15})`;
+      ctx.fill();
+
+      // Core dot
+      ctx.beginPath();
+      ctx.arc(x, y, t.size, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(239,68,68,${t.alpha * 0.85})`;
+      ctx.fill();
+
+      // Tiny white center
+      ctx.beginPath();
+      ctx.arc(x, y, t.size * 0.35, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(255,255,255,${t.alpha * 0.6})`;
+      ctx.fill();
+
+      // Drift angle slowly
+      t.angle += 0.003 * (i % 2 === 0 ? 1 : -1);
+    });
+
+    // Spawn if below max
+    if (threats.length < 10 && Math.random() < 0.01) spawnThreat();
+
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+})();
+
+// GSAP
+gsap.registerPlugin(ScrollTrigger);
+gsap.from('.hero-eyebrow',{opacity:0,y:20,duration:.6,delay:.3});
+gsap.from('h1',{opacity:0,y:30,duration:.7,delay:.5});
+gsap.from('.hero-sub',{opacity:0,y:20,duration:.6,delay:.75});
+gsap.from('.hero-btns',{opacity:0,y:20,duration:.6,delay:.95});
+gsap.from('.hero-social',{opacity:0,duration:.6,delay:1.15});
+// Per frontend-design skill: prefer one well-orchestrated page load over scattered scroll micro-interactions.
+// Hero stagger above is the page-load moment; no section/card scroll animations.
+// Stats counter animation removed — static numbers read more confident for B2B/investor audience.
+// Preloader
+window.addEventListener('load',()=>{
+  const pl=document.getElementById('preloader');
+  if(pl){setTimeout(()=>{pl.classList.add('hidden');},400);}
+});
+
+// Nav scroll effect
+const nav=document.querySelector('nav');
+function updateNavBg(){
+  const scrolled=window.scrollY>50;
+  nav.style.boxShadow='';
+  nav.style.background=scrolled?'rgba(10,14,32,0.98)':'rgba(22,30,56,0.95)';
+  nav.style.borderBottomColor='rgba(255,255,255,0.12)';
+}
+window.addEventListener('scroll',updateNavBg,{passive:true});
+updateNavBg();
+
+// Smooth scroll for nav links
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',e=>{
+    const href=a.getAttribute('href');
+    if(!href||href==='#')return;
+    const t=document.querySelector(href);
+    if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});}
+  });
+});
+
+// Waitlist form Formspree live (legacy — only runs if form exists)
+const __wlForm = document.getElementById('waitlist-form');
+if(__wlForm){
+__wlForm.addEventListener('submit',function(e){
+  e.preventDefault();
+  const form = this;
+  const data = new FormData(form);
+  fetch(form.action,{method:'POST',body:data,headers:{'Accept':'application/json'}})
+    .then(r=>{
+      if(r.ok){
+        form.style.display='none';
+        document.getElementById('waitlist-success').style.display='block';
+      } else {
+        alert('Something went wrong. Please try again.');
+      }
+    })
+    .catch(()=>alert('Network error. Please try again.'));
+});
+}
+</script>
+<script src="cookie-banner.js"></script>
+</body>
+</html>
