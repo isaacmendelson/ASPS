@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="You're Not Alone - Real stories from people affected by scams. Support, resources, and community for scam survivors."/>
+<title>You're Not Alone - Stories & Support - ASPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg-dark: #070B14;
+  --bg-navy: #0F1238;
+  --bg-navy-2: #161E38;
+  --bg-white: #FFFFFF;
+  --bg-light: #F8F9FC;
+  --bg-warm: #FDF8F6;
+  --bg-warm-pink: #FBF0F3;
+  --bg-warm-purple: #F6F5FF;
+  --green-600: #16734C;
+  --green-500: #1F8B5C;
+  --green-400: #3FB785;
+  --green-dim: rgba(31,139,92,0.12);
+  --purple: #7C3AED;
+  --purple-dim: rgba(124,58,237,0.12);
+  --orange: #FF6B35;
+  --orange-dim: rgba(255,107,53,0.12);
+  --pink: #EC4899;
+  --pink-dim: rgba(236,72,153,0.12);
+  --pink-dark: #BE185D;
+  --rose: #F43F5E;
+  --rose-dim: rgba(244,63,94,0.12);
+  --text-white: #FFFFFF;
+  --text-light: #E2E8F0;
+  --text-muted: #94A3B8;
+  --text-dark: #0F172A;
+  --text-dark-2: #334155;
+  --text-dark-3: #475569;
+  --on-dark-heading: #FFFFFF;
+  --on-dark-body: #94A3B8;
+  --on-dark-muted: #64748B;
+  --on-light-heading: #0F172A;
+  --on-light-body: #475569;
+  --on-light-muted: #94A3B8;
+  --border-dark: rgba(255,255,255,0.08);
+  --border-dark-2: rgba(255,255,255,0.12);
+  --border-light: #E2E8F0;
+  --border-light-2: #CBD5E1;
+  --font-body: 'Instrument Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Syne', Georgia, serif;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg-warm-pink);
+  color: var(--text-dark);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+@media (min-width: 768px) { .container { padding: 0 40px; } }
+@media (min-width: 1024px) { .container { padding: 0 60px; } }
+
+/* Navigation */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  height: 72px;
+  background: rgba(15, 18, 56, 0.97);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.nav-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 40px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.nav-logo { display: flex; align-items: center; flex-shrink: 0; }
+
+.nav-links {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (min-width: 1024px) { .nav-links { display: flex; } }
+
+.nav-link {
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.nav-link:hover { color: var(--text-white); background: rgba(255,255,255,0.05); }
+.nav-link.active { color: var(--pink); }
+
+.nav-actions { display: flex; align-items: center; gap: 12px; }
+
+.nav-btn {
+  padding: 10px 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+  border: none;
+}
+
+.nav-btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-dark-2);
+}
+
+.nav-btn-ghost:hover {
+  color: var(--text-white);
+  border-color: rgba(255,255,255,0.25);
+}
+
+.nav-btn-primary {
+  background: var(--text-white);
+  color: var(--bg-navy);
+}
+
+.nav-btn-primary:hover { background: var(--bg-light); }
+
+/* Hero Section - Warm & Supportive */
+.hero {
+  padding: 160px 0 100px;
+  background: linear-gradient(180deg, var(--bg-warm-pink) 0%, var(--bg-warm-purple) 100%);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-pattern {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 2px 2px, rgba(236,72,153,0.08) 1px, transparent 0);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+.hero-inner {
+  position: relative;
+  z-index: 2;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.hero-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 32px;
+  background: linear-gradient(135deg, var(--pink), var(--purple));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  box-shadow: 0 12px 40px rgba(236,72,153,0.3);
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 5vw, 3.5rem);
+  font-weight: 800;
+  color: var(--on-light-heading);
+  margin-bottom: 20px;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  color: var(--on-light-body);
+  line-height: 1.8;
+  margin-bottom: 40px;
+}
+
+.hero-message {
+  display: inline-block;
+  padding: 16px 32px;
+  background: var(--bg-white);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.08);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--pink-dark);
+}
+
+/* Section Styling */
+.section {
+  padding: 100px 0;
+}
+
+.section-light {
+  background: var(--bg-white);
+}
+
+.section-warm {
+  background: linear-gradient(135deg, var(--bg-warm-pink) 0%, var(--bg-warm-purple) 100%);
+}
+
+.section-header {
+  max-width: 700px;
+  margin-bottom: 60px;
+}
+
+.section-header.center {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--pink-dim);
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--pink);
+  margin-bottom: 20px;
+}
+
+.section-label.purple {
+  background: var(--purple-dim);
+  color: var(--purple);
+}
+
+.section-label.green {
+  background: var(--green-dim);
+  color: var(--green-500);
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: var(--on-light-heading);
+  margin-bottom: 16px;
+}
+
+.section-subtitle {
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  color: var(--on-light-body);
+}
+
+/* Stories Grid */
+.stories-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+}
+
+@media (min-width: 768px) {
+  .stories-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.story-card {
+  padding: 36px;
+  background: var(--bg-white);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  transition: var(--transition);
+  position: relative;
+}
+
+.story-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+}
+
+.story-card::before {
+  content: '"';
+  position: absolute;
+  top: 24px;
+  left: 28px;
+  font-family: Georgia, serif;
+  font-size: 5rem;
+  line-height: 1;
+  color: var(--bg-warm-pink);
+}
+
+.story-content {
+  position: relative;
+  z-index: 2;
+}
+
+.story-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  background: var(--pink-dim);
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--pink);
+  margin-bottom: 20px;
+}
+
+.story-tag.voice { background: var(--purple-dim); color: var(--purple); }
+.story-tag.romance { background: var(--rose-dim); color: var(--rose); }
+.story-tag.impersonation { background: var(--orange-dim); color: var(--orange); }
+
+.story-text {
+  font-size: 1.0625rem;
+  line-height: 1.85;
+  color: var(--on-light-heading);
+  margin-bottom: 24px;
+  padding-top: 16px;
+}
+
+.story-author {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-light);
+}
+
+.story-avatar {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--pink-dim), var(--purple-dim));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.story-author-info p {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--on-light-heading);
+}
+
+.story-author-info span {
+  font-size: 0.8125rem;
+  color: var(--on-light-muted);
+}
+
+/* Support Section */
+.support-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 768px) {
+  .support-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .support-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.support-card {
+  padding: 36px 28px;
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  text-align: center;
+  transition: var(--transition);
+}
+
+.support-card:hover {
+  border-color: var(--pink);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(236,72,153,0.1);
+}
+
+.support-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 24px;
+  background: var(--bg-warm-pink);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+}
+
+.support-card h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--on-light-heading);
+  margin-bottom: 12px;
+}
+
+.support-card p {
+  font-size: 0.9375rem;
+  color: var(--on-light-body);
+  line-height: 1.7;
+  margin-bottom: 20px;
+}
+
+.support-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--pink);
+  transition: var(--transition);
+}
+
+.support-link:hover {
+  gap: 10px;
+  color: var(--pink-dark);
+}
+
+/* Awareness Section */
+.awareness-content {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 48px;
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .awareness-content { grid-template-columns: 1fr 1fr; }
+}
+
+.awareness-text .section-header {
+  margin-bottom: 32px;
+}
+
+.awareness-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.awareness-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  font-size: 1rem;
+  color: var(--on-light-body);
+  line-height: 1.7;
+}
+
+.awareness-list-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  background: var(--green-dim);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+}
+
+.awareness-visual {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.fact-card {
+  padding: 28px;
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+}
+
+.fact-card h4 {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--pink);
+  margin-bottom: 8px;
+}
+
+.fact-card p {
+  font-size: 0.9375rem;
+  color: var(--on-light-body);
+}
+
+/* Share CTA */
+.share-cta {
+  padding: 80px 0;
+  background: linear-gradient(135deg, var(--pink) 0%, var(--purple) 100%);
+  text-align: center;
+}
+
+.share-cta-inner {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.share-cta h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-weight: 800;
+  color: var(--text-white);
+  margin-bottom: 16px;
+}
+
+.share-cta p {
+  font-size: 1.0625rem;
+  color: rgba(255,255,255,0.85);
+  line-height: 1.75;
+  margin-bottom: 32px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: none;
+  transition: var(--transition);
+}
+
+.btn-white {
+  background: var(--text-white);
+  color: var(--pink-dark);
+}
+
+.btn-white:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+}
+
+.share-note {
+  margin-top: 24px;
+  font-size: 0.875rem;
+  color: rgba(255,255,255,0.7);
+}
+
+/* Footer */
+.footer {
+  padding: 80px 0 40px;
+  background: var(--bg-dark);
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 48px;
+  margin-bottom: 64px;
+}
+
+@media (min-width: 768px) {
+  .footer-grid { grid-template-columns: 2fr 1fr 1fr 1fr; }
+}
+
+.footer-brand p {
+  font-size: 0.9375rem;
+  color: var(--on-dark-body);
+  line-height: 1.75;
+  max-width: 320px;
+  margin-top: 20px;
+}
+
+.footer-col h4 {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-light);
+  margin-bottom: 20px;
+}
+
+.footer-col a {
+  display: block;
+  font-size: 0.9375rem;
+  color: var(--on-dark-body);
+  margin-bottom: 14px;
+  transition: var(--transition);
+}
+
+.footer-col a:hover { color: var(--green-400); }
+
+.footer-bottom {
+  padding-top: 32px;
+  border-top: 1px solid var(--border-dark);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.footer-bottom p {
+  font-size: 0.875rem;
+  color: var(--on-dark-muted);
+}
+
+.footer-links { display: flex; gap: 24px; }
+
+.footer-links a {
+  font-size: 0.875rem;
+  color: var(--on-dark-muted);
+  transition: var(--transition);
+}
+
+.footer-links a:hover { color: var(--text-light); }
+/* Language Dropdown */
+.lang-dropdown {
+  position: relative;
+}
+.lang-dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: #E2E8F0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.25s;
+}
+.lang-dropdown-btn:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.25);
+}
+.lang-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 140px;
+  padding: 8px 0;
+  background: #0F1238;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: 0.25s;
+  z-index: 100;
+}
+.lang-dropdown:hover .lang-dropdown-menu,
+.lang-dropdown:focus-within .lang-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.lang-option {
+  display: block;
+  padding: 10px 16px;
+  font-size: 0.875rem;
+  color: #94A3B8;
+  transition: 0.25s;
+  text-decoration: none;
+}
+.lang-option:hover {
+  background: rgba(255,255,255,0.05);
+  color: #FFFFFF;
+}
+.lang-option.active {
+  color: #3FB785;
+  font-weight: 600;
+}
+
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C" opacity="0.4">
+          <animate attributeName="r" values="4;8;4" dur="2.5s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.4;0;0.4" dur="2.5s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs>
+          <linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#1F8B5C"/>
+            <stop offset="100%" stop-color="#16734C"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </a>
+    
+    <div class="nav-links">
+      <a href="index.html#epidemic" class="nav-link">The threat</a>
+      <a href="platform.html" class="nav-link">How it works</a>
+      <a href="knowledge.html" class="nav-link">Knowledge center</a>
+      <a href="stories.html" class="nav-link active">Stories</a>
+      <a href="partners.html" class="nav-link">Partners</a>
+      <a href="about.html" class="nav-link">About</a>
+    </div>
+    
+    <div class="nav-actions">
+      <div class="lang-dropdown">
+        <button class="lang-dropdown-btn" aria-label="Select language">
+          <span class="lang-current">EN</span>
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l4 4 4-4"/></svg>
+        </button>
+        <div class="lang-dropdown-menu">
+          <span class="lang-option active">English</span>
+          <a href="he/stories.html" class="lang-option">עברית</a>
+          <a href="fr/stories.html" class="lang-option">Français</a>
+          <a href="ru/stories.html" class="lang-option">Русский</a>
+          <a href="es/stories.html" class="lang-option">Español</a>
+        </div>
+      </div>
+      <a href="contact.html" class="nav-btn nav-btn-ghost">Partner login</a>
+      <a href="contact.html" class="nav-btn nav-btn-primary">Get protected</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero Section -->
+<section class="hero">
+  <div class="hero-pattern"></div>
+  <div class="container">
+    <div class="hero-inner">
+      <div class="hero-icon">❤️</div>
+      <h1 class="hero-title">You're Not Alone</h1>
+      <p class="hero-subtitle">
+        Millions of people experience scam attempts every day. Many never tell anyone. 
+        There's no shame in being targeted — it can happen to anyone. 
+        Sharing stories helps others stay safe and helps survivors heal.
+      </p>
+      <div class="hero-message">
+        There's nothing to be ashamed of
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Stories Section -->
+<section class="section section-light">
+  <div class="container">
+    <div class="section-header center">
+      <span class="section-label">Real stories</span>
+      <h2 class="section-title">Stories shared to help others</h2>
+      <p class="section-subtitle">These are real experiences shared by people who want to help prevent others from becoming victims. Every story makes a difference.</p>
+    </div>
+    
+    <div class="stories-grid">
+      
+      <div class="story-card">
+        <div class="story-content">
+          <span class="story-tag voice">Voice cloning</span>
+          <p class="story-text">
+            I thought it was my son calling. The voice sounded exactly like him — his tone, his words, everything. 
+            He said he was in trouble and needed money urgently. I was about to transfer the money when my real son walked through the door. 
+            It was an AI-generated voice scam. I still can't believe how real it sounded.
+          </p>
+          <div class="story-author">
+            <div class="story-avatar">👩</div>
+            <div class="story-author-info">
+              <p>Anonymous</p>
+              <span>Parent, 62 years old</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="story-card">
+        <div class="story-content">
+          <span class="story-tag impersonation">Bank impersonation</span>
+          <p class="story-text">
+            They called from what appeared to be my bank's official number. They knew my name, my account details, everything. 
+            They said there was suspicious activity and I needed to verify my identity. I'm a software engineer — I thought I knew better. 
+            But the pressure, the urgency, the professionalism... I gave them my codes.
+          </p>
+          <div class="story-author">
+            <div class="story-avatar">👨</div>
+            <div class="story-author-info">
+              <p>Anonymous</p>
+              <span>Software engineer, 34 years old</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="story-card">
+        <div class="story-content">
+          <span class="story-tag romance">Romance scam</span>
+          <p class="story-text">
+            We talked for months. He was kind, understanding, everything I was looking for. He was working abroad, he said. 
+            When he needed money for an emergency, I didn't hesitate. Then another emergency. And another. 
+            By the time I realized, I had lost my savings. But worse than the money was the betrayal of trust.
+          </p>
+          <div class="story-author">
+            <div class="story-avatar">👩</div>
+            <div class="story-author-info">
+              <p>Anonymous</p>
+              <span>Teacher, 45 years old</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="story-card">
+        <div class="story-content">
+          <span class="story-tag">Tech support</span>
+          <p class="story-text">
+            A popup on my computer said I had a virus. It looked exactly like a Windows alert. 
+            I called the number and they walked me through "fixing" the problem — which meant giving them remote access to my computer. 
+            They were very professional. My daughter, who works in IT, stopped it just in time.
+          </p>
+          <div class="story-author">
+            <div class="story-avatar">👴</div>
+            <div class="story-author-info">
+              <p>Anonymous</p>
+              <span>Retired, 71 years old</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+</section>
+
+<!-- Support Section -->
+<section id="support" class="section section-warm">
+  <div class="container">
+    <div class="section-header center">
+      <span class="section-label purple">Get support</span>
+      <h2 class="section-title">Resources to help you recover</h2>
+      <p class="section-subtitle">If you've been affected by a scam, you're not alone. Here are resources that can help you recover — financially, emotionally, and legally.</p>
+    </div>
+    
+    <div class="support-grid">
+      
+      <div class="support-card">
+        <div class="support-icon">📞</div>
+        <h3>Report the scam</h3>
+        <p>Report the scam to your local authorities and financial institutions. Early reporting can help stop the scammers and potentially recover funds.</p>
+        <a href="contact.html" class="support-link">Learn how to report →</a>
+      </div>
+      
+      <div class="support-card">
+        <div class="support-icon">💳</div>
+        <h3>Financial recovery</h3>
+        <p>Contact your bank immediately. Many financial institutions have fraud protection and may be able to help recover lost funds or prevent further loss.</p>
+        <a href="contact.html" class="support-link">Financial resources →</a>
+      </div>
+      
+      <div class="support-card">
+        <div class="support-icon">💬</div>
+        <h3>Emotional support</h3>
+        <p>Being scammed can be traumatic. It's okay to seek help. Talk to someone you trust, or reach out to professional support services.</p>
+        <a href="contact.html" class="support-link">Find support →</a>
+      </div>
+      
+      <div class="support-card">
+        <div class="support-icon">⚖️</div>
+        <h3>Legal assistance</h3>
+        <p>Understanding your legal options can help. Some jurisdictions have victim assistance programs and legal resources for fraud victims.</p>
+        <a href="contact.html" class="support-link">Legal resources →</a>
+      </div>
+      
+      <div class="support-card">
+        <div class="support-icon">🛡️</div>
+        <h3>Prevent future scams</h3>
+        <p>Learn how to protect yourself going forward. Understanding scam tactics is the best defense against becoming a target again.</p>
+        <a href="knowledge.html" class="support-link">Knowledge center →</a>
+      </div>
+      
+      <div class="support-card">
+        <div class="support-icon">👥</div>
+        <h3>Community support</h3>
+        <p>Connect with others who have been through similar experiences. Sharing can help with recovery and help others avoid the same traps.</p>
+        <a href="contact.html" class="support-link">Join the community →</a>
+      </div>
+      
+    </div>
+  </div>
+</section>
+
+<!-- Awareness Section -->
+<section class="section section-light">
+  <div class="container">
+    <div class="awareness-content">
+      <div class="awareness-text">
+        <div class="section-header">
+          <span class="section-label green">Breaking the stigma</span>
+          <h2 class="section-title">Why we share these stories</h2>
+          <p class="section-subtitle">Scams thrive on silence and shame. When people don't talk about their experiences, scammers win. By sharing stories openly, we break the cycle.</p>
+        </div>
+        
+        <ul class="awareness-list">
+          <li>
+            <span class="awareness-list-icon">✓</span>
+            <span><strong>Awareness prevents victims.</strong> Every story shared helps someone recognize a scam before it's too late.</span>
+          </li>
+          <li>
+            <span class="awareness-list-icon">✓</span>
+            <span><strong>Shame protects scammers.</strong> When victims stay silent, scammers can keep using the same tactics.</span>
+          </li>
+          <li>
+            <span class="awareness-list-icon">✓</span>
+            <span><strong>Anyone can be targeted.</strong> Doctors, lawyers, engineers, and cybersecurity experts have all fallen victim.</span>
+          </li>
+          <li>
+            <span class="awareness-list-icon">✓</span>
+            <span><strong>Community heals.</strong> Knowing you're not alone helps survivors recover and move forward.</span>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="awareness-visual">
+        <div class="fact-card">
+          <h4>$400B+</h4>
+          <p>Lost to scams globally each year</p>
+        </div>
+        <div class="fact-card">
+          <h4>1 in 3</h4>
+          <p>People have been targeted by scam attempts</p>
+        </div>
+        <div class="fact-card">
+          <h4>70%</h4>
+          <p>Of victims never report the scam</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Share Your Story CTA -->
+<section class="share-cta">
+  <div class="container">
+    <div class="share-cta-inner">
+      <h2>Your story can help someone else</h2>
+      <p>If you've experienced a scam attempt — successful or not — sharing your story can help protect others. Every story matters.</p>
+      <a href="share-story.html" class="btn btn-white">
+        Share your story
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+      <p class="share-note">All stories are anonymous. We'll never share identifying information.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerLogoGrad)"/>
+          <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs>
+            <linearGradient id="footerLogoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#1F8B5C"/>
+              <stop offset="100%" stop-color="#16734C"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <p>Real-time AI protection against fraud, scams, and social engineering. Protecting people at the moment it matters most.</p>
+      </div>
+      
+      <div class="footer-col">
+        <h4>Platform</h4>
+        <a href="platform.html">How it works</a>
+        <a href="individuals.html#individuals">For individuals</a>
+        <a href="individuals.html#families">For families</a>
+        <a href="partners.html">For partners</a>
+      </div>
+      
+      <div class="footer-col">
+        <h4>Resources</h4>
+        <a href="knowledge.html">Knowledge center</a>
+        <a href="knowledge.html">Scam intelligence</a>
+        <a href="#support">Get support</a>
+        <a href="stories.html">Stories</a>
+      </div>
+      
+      <div class="footer-col">
+        <h4>Company</h4>
+        <a href="about.html">About us</a>
+        <a href="about.html#mission">Our mission</a>
+        <a href="about.html">Ethics & trust</a>
+        <a href="contact.html">Contact</a>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <p>© 2026 ASPS. All rights reserved.</p>
+      <div class="footer-links">
+        <a href="privacy.html">Privacy</a>
+        <a href="privacy.html#terms">Terms</a>
+        <a href="privacy.html#cookies">Cookies</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="cookie-banner.js"></script>
+</body>
+</html>

@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="Partner with ASPS - Real-time fraud prevention for financial institutions, insurers, and organizations protecting their customers from scams."/>
+<title>Partners - ASPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg-dark: #070B14;
+  --bg-navy: #0F1238;
+  --bg-navy-2: #161E38;
+  --bg-navy-3: #1A2255;
+  --bg-white: #FFFFFF;
+  --bg-light: #F8F9FC;
+  --bg-light-2: #F3F4F8;
+  --green-600: #16734C;
+  --green-500: #1F8B5C;
+  --green-400: #3FB785;
+  --green-dim: rgba(31,139,92,0.12);
+  --purple: #7C3AED;
+  --purple-dim: rgba(124,58,237,0.12);
+  --cyan: #00D4FF;
+  --cyan-dim: rgba(0,212,255,0.12);
+  --orange: #FF6B35;
+  --blue: #3B82F6;
+  --blue-dim: rgba(59,130,246,0.12);
+  --text-white: #FFFFFF;
+  --text-light: #E2E8F0;
+  --text-muted: #94A3B8;
+  --text-dark: #0F172A;
+  --text-dark-2: #334155;
+  --text-dark-3: #475569;
+  --on-dark-heading: #FFFFFF;
+  --on-dark-body: #94A3B8;
+  --on-dark-muted: #64748B;
+  --on-light-heading: #0F172A;
+  --on-light-body: #475569;
+  --on-light-muted: #94A3B8;
+  --border-dark: rgba(255,255,255,0.08);
+  --border-dark-2: rgba(255,255,255,0.12);
+  --border-light: #E2E8F0;
+  --font-body: 'Instrument Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Syne', Georgia, serif;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg-white);
+  color: var(--text-dark);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+@media (min-width: 768px) { .container { padding: 0 40px; } }
+@media (min-width: 1024px) { .container { padding: 0 60px; } }
+
+/* Navigation */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  height: 72px;
+  background: rgba(15, 18, 56, 0.97);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.nav-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 40px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.nav-logo { display: flex; align-items: center; }
+.nav-links { display: none; align-items: center; gap: 8px; }
+@media (min-width: 1024px) { .nav-links { display: flex; } }
+
+.nav-link {
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+.nav-link:hover { color: var(--text-white); background: rgba(255,255,255,0.05); }
+.nav-link.active { color: var(--green-400); }
+
+.nav-actions { display: flex; align-items: center; gap: 12px; }
+.nav-btn {
+  padding: 10px 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+  border: none;
+}
+.nav-btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-dark-2);
+}
+.nav-btn-ghost:hover { color: var(--text-white); border-color: rgba(255,255,255,0.25); }
+.nav-btn-primary { background: var(--text-white); color: var(--bg-navy); }
+.nav-btn-primary:hover { background: var(--bg-light); }
+
+/* Hero - Professional B2B */
+.hero {
+  padding: 160px 0 100px;
+  background: linear-gradient(145deg, var(--bg-navy-3) 0%, var(--bg-navy) 60%, #0B0F24 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-grid-pattern {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(31,139,92,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(31,139,92,0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+}
+
+.hero-glow {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  filter: blur(100px);
+  pointer-events: none;
+}
+.hero-glow-1 { top: -200px; right: -100px; background: rgba(31,139,92,0.12); }
+.hero-glow-2 { bottom: -200px; left: -100px; background: rgba(59,130,246,0.08); }
+
+.hero-inner {
+  position: relative;
+  z-index: 2;
+  max-width: 800px;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: var(--blue-dim);
+  border: 1px solid rgba(59,130,246,0.25);
+  border-radius: var(--radius-full);
+  margin-bottom: 28px;
+}
+.hero-badge-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--blue);
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 5vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--text-white);
+  margin-bottom: 24px;
+}
+.hero-title-accent { color: var(--green-400); }
+
+.hero-subtitle {
+  font-size: 1.1875rem;
+  line-height: 1.8;
+  color: var(--on-dark-body);
+  margin-bottom: 40px;
+  max-width: 600px;
+}
+
+.hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: none;
+  transition: var(--transition);
+}
+.btn-primary { background: var(--text-white); color: var(--bg-navy); }
+.btn-primary:hover { background: var(--bg-light); transform: translateY(-2px); }
+.btn-secondary {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1.5px solid var(--border-dark-2);
+}
+.btn-secondary:hover { color: var(--text-white); border-color: rgba(255,255,255,0.3); }
+.btn-green {
+  background: linear-gradient(135deg, var(--green-500), var(--green-400));
+  color: var(--text-white);
+  box-shadow: 0 4px 20px rgba(31,139,92,0.35);
+}
+.btn-green:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(31,139,92,0.45); }
+
+/* Section Styling */
+.section { padding: 100px 0; }
+.section-dark { background: linear-gradient(180deg, var(--bg-navy) 0%, var(--bg-navy-2) 100%); }
+.section-light { background: var(--bg-white); }
+.section-gray { background: var(--bg-light); }
+
+.section-header { max-width: 700px; margin-bottom: 60px; }
+.section-header.center { text-align: center; margin-left: auto; margin-right: auto; }
+
+.section-label {
+  display: inline-flex;
+  padding: 8px 16px;
+  background: var(--green-dim);
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--green-500);
+  margin-bottom: 20px;
+}
+.section-label.blue { background: var(--blue-dim); color: var(--blue); }
+.section-label.purple { background: var(--purple-dim); color: var(--purple); }
+.section-label.light { background: rgba(255,255,255,0.1); color: var(--green-400); }
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: var(--on-light-heading);
+  margin-bottom: 16px;
+}
+.section-title.light { color: var(--text-white); }
+
+.section-subtitle {
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  color: var(--on-light-body);
+}
+.section-subtitle.light { color: var(--on-dark-body); }
+
+/* Partner Types */
+.partner-types {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+@media (min-width: 768px) { .partner-types { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .partner-types { grid-template-columns: repeat(3, 1fr); } }
+
+.partner-type-card {
+  padding: 40px 32px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-xl);
+  transition: var(--transition);
+}
+.partner-type-card:hover {
+  background: rgba(31,139,92,0.06);
+  border-color: rgba(31,139,92,0.3);
+  transform: translateY(-4px);
+}
+
+.partner-type-icon {
+  width: 64px;
+  height: 64px;
+  background: var(--green-dim);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  margin-bottom: 24px;
+}
+
+.partner-type-card h3 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-white);
+  margin-bottom: 12px;
+}
+
+.partner-type-card p {
+  font-size: 0.9375rem;
+  color: var(--on-dark-body);
+  line-height: 1.7;
+  margin-bottom: 24px;
+}
+
+.partner-type-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.partner-type-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+  color: var(--text-light);
+}
+
+.partner-type-list li::before {
+  content: '✓';
+  color: var(--green-400);
+  font-weight: 700;
+}
+
+/* Benefits Grid */
+.benefits-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+@media (min-width: 768px) { .benefits-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .benefits-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.benefit-card {
+  padding: 32px 24px;
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  transition: var(--transition);
+}
+.benefit-card:hover {
+  border-color: var(--green-500);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+}
+
+.benefit-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 20px;
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.benefit-card h3 {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--on-light-heading);
+  margin-bottom: 8px;
+}
+
+.benefit-card p {
+  font-size: 0.875rem;
+  color: var(--on-light-body);
+  line-height: 1.6;
+}
+
+/* Integration Section */
+.integration-content {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 60px;
+  align-items: center;
+}
+@media (min-width: 1024px) { .integration-content { grid-template-columns: 1fr 1fr; } }
+
+.integration-visual {
+  background: var(--bg-light);
+  border-radius: var(--radius-xl);
+  padding: 40px;
+  position: relative;
+}
+
+.code-block {
+  background: var(--bg-navy);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  overflow-x: auto;
+}
+
+.code-block pre {
+  font-family: 'SF Mono', Monaco, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  color: var(--text-light);
+  margin: 0;
+}
+
+.code-block .comment { color: var(--on-dark-muted); }
+.code-block .keyword { color: var(--purple); }
+.code-block .string { color: var(--green-400); }
+.code-block .function { color: var(--cyan); }
+
+.integration-features {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 32px;
+}
+
+.integration-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.integration-features-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  background: var(--green-dim);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.integration-features li div h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--on-light-heading);
+  margin-bottom: 4px;
+}
+
+.integration-features li div p {
+  font-size: 0.9375rem;
+  color: var(--on-light-body);
+  line-height: 1.6;
+}
+
+/* Process Steps */
+.process-steps {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+}
+@media (min-width: 768px) { .process-steps { grid-template-columns: repeat(4, 1fr); } }
+
+.process-step {
+  text-align: center;
+  position: relative;
+}
+
+.process-step-num {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 20px;
+  background: linear-gradient(135deg, var(--green-500), var(--green-400));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-white);
+}
+
+.process-step h3 {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--on-light-heading);
+  margin-bottom: 8px;
+}
+
+.process-step p {
+  font-size: 0.9375rem;
+  color: var(--on-light-body);
+  line-height: 1.6;
+}
+
+.process-step-arrow {
+  display: none;
+  position: absolute;
+  right: -20px;
+  top: 24px;
+  color: var(--border-light-2);
+  font-size: 1.5rem;
+}
+@media (min-width: 768px) {
+  .process-step:not(:last-child) .process-step-arrow { display: block; }
+}
+
+/* CTA Section */
+.cta-section {
+  padding: 100px 0;
+  background: linear-gradient(135deg, var(--bg-navy-3) 0%, var(--bg-navy) 100%);
+  text-align: center;
+  position: relative;
+}
+
+.cta-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(31,139,92,0.15) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.cta-inner {
+  position: relative;
+  z-index: 2;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.cta-inner h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-weight: 800;
+  color: var(--text-white);
+  margin-bottom: 16px;
+}
+
+.cta-inner p {
+  font-size: 1.0625rem;
+  color: var(--on-dark-body);
+  line-height: 1.75;
+  margin-bottom: 40px;
+}
+
+.cta-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+}
+
+/* Footer */
+.footer {
+  padding: 80px 0 40px;
+  background: var(--bg-dark);
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 48px;
+  margin-bottom: 64px;
+}
+@media (min-width: 768px) { .footer-grid { grid-template-columns: 2fr 1fr 1fr 1fr; } }
+
+.footer-brand p {
+  font-size: 0.9375rem;
+  color: var(--on-dark-body);
+  line-height: 1.75;
+  max-width: 320px;
+  margin-top: 20px;
+}
+
+.footer-col h4 {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-light);
+  margin-bottom: 20px;
+}
+.footer-col a {
+  display: block;
+  font-size: 0.9375rem;
+  color: var(--on-dark-body);
+  margin-bottom: 14px;
+  transition: var(--transition);
+}
+.footer-col a:hover { color: var(--green-400); }
+
+.footer-bottom {
+  padding-top: 32px;
+  border-top: 1px solid var(--border-dark);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.footer-bottom p { font-size: 0.875rem; color: var(--on-dark-muted); }
+.footer-links { display: flex; gap: 24px; }
+.footer-links a { font-size: 0.875rem; color: var(--on-dark-muted); transition: var(--transition); }
+.footer-links a:hover { color: var(--text-light); }
+/* Language Dropdown */
+.lang-dropdown {
+  position: relative;
+}
+.lang-dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: #E2E8F0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.25s;
+}
+.lang-dropdown-btn:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.25);
+}
+.lang-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 140px;
+  padding: 8px 0;
+  background: #0F1238;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: 0.25s;
+  z-index: 100;
+}
+.lang-dropdown:hover .lang-dropdown-menu,
+.lang-dropdown:focus-within .lang-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.lang-option {
+  display: block;
+  padding: 10px 16px;
+  font-size: 0.875rem;
+  color: #94A3B8;
+  transition: 0.25s;
+  text-decoration: none;
+}
+.lang-option:hover {
+  background: rgba(255,255,255,0.05);
+  color: #FFFFFF;
+}
+.lang-option.active {
+  color: #3FB785;
+  font-weight: 600;
+}
+
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C" opacity="0.4">
+          <animate attributeName="r" values="4;8;4" dur="2.5s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.4;0;0.4" dur="2.5s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs>
+          <linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#1F8B5C"/>
+            <stop offset="100%" stop-color="#16734C"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </a>
+    
+    <div class="nav-links">
+      <a href="index.html#epidemic" class="nav-link">The threat</a>
+      <a href="platform.html" class="nav-link">How it works</a>
+      <a href="knowledge.html" class="nav-link">Knowledge center</a>
+      <a href="stories.html" class="nav-link">Stories</a>
+      <a href="partners.html" class="nav-link active">Partners</a>
+      <a href="about.html" class="nav-link">About</a>
+    </div>
+    
+    <div class="nav-actions">
+      <div class="lang-dropdown">
+        <button class="lang-dropdown-btn" aria-label="Select language">
+          <span class="lang-current">EN</span>
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l4 4 4-4"/></svg>
+        </button>
+        <div class="lang-dropdown-menu">
+          <span class="lang-option active">English</span>
+          <a href="he/partners.html" class="lang-option">עברית</a>
+          <a href="fr/partners.html" class="lang-option">Français</a>
+          <a href="ru/partners.html" class="lang-option">Русский</a>
+          <a href="es/partners.html" class="lang-option">Español</a>
+        </div>
+      </div>
+      <a href="contact.html" class="nav-btn nav-btn-ghost">Partner login</a>
+      <a href="contact.html" class="nav-btn nav-btn-primary">Get protected</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-grid-pattern"></div>
+  <div class="hero-glow hero-glow-1"></div>
+  <div class="hero-glow hero-glow-2"></div>
+  
+  <div class="container">
+    <div class="hero-inner">
+      <div class="hero-badge">
+        <span class="hero-badge-text">🤝 Partnership program</span>
+      </div>
+      <h1 class="hero-title">Protect your customers from scams — <span class="hero-title-accent">together.</span></h1>
+      <p class="hero-subtitle">Partner with ASPS to deliver real-time fraud prevention to your customers. Reduce losses, increase trust, and lead the fight against scams.</p>
+      <div class="hero-cta">
+        <a href="contact.html" class="btn btn-primary">
+          Become a partner
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="contact.html" class="btn btn-secondary">Request a demo</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Partner Types -->
+<section class="section section-dark">
+  <div class="container">
+    <div class="section-header center">
+      <span class="section-label light">Who we work with</span>
+      <h2 class="section-title light">Built for organizations that protect people.</h2>
+      <p class="section-subtitle light">From financial institutions to advocacy organizations, ASPS partners with those committed to consumer protection.</p>
+    </div>
+    
+    <div class="partner-types">
+      <div class="partner-type-card">
+        <div class="partner-type-icon">🏦</div>
+        <h3>Banks & Financial Services</h3>
+        <p>Protect customers from fraud while meeting regulatory requirements and reducing reimbursement costs.</p>
+        <ul class="partner-type-list">
+          <li>Real-time transaction protection</li>
+          <li>APP fraud prevention</li>
+          <li>Regulatory compliance support</li>
+          <li>Customer experience integration</li>
+        </ul>
+      </div>
+      
+      <div class="partner-type-card">
+        <div class="partner-type-icon">🛡️</div>
+        <h3>Insurance Companies</h3>
+        <p>Reduce claims from fraud-related losses and offer scam protection as a differentiating benefit.</p>
+        <ul class="partner-type-list">
+          <li>Claims reduction</li>
+          <li>Value-added protection</li>
+          <li>Risk assessment tools</li>
+          <li>Policyholder engagement</li>
+        </ul>
+      </div>
+      
+      <div class="partner-type-card">
+        <div class="partner-type-icon">📱</div>
+        <h3>Telecom & Tech</h3>
+        <p>Protect users across communication channels and digital platforms from scam attacks.</p>
+        <ul class="partner-type-list">
+          <li>Voice scam detection</li>
+          <li>SMS/messaging protection</li>
+          <li>Platform integration</li>
+          <li>User trust enhancement</li>
+        </ul>
+      </div>
+      
+      <div class="partner-type-card">
+        <div class="partner-type-icon">🌍</div>
+        <h3>NGOs & Advocacy</h3>
+        <p>Work together to protect vulnerable populations and raise awareness about scam prevention.</p>
+        <ul class="partner-type-list">
+          <li>Consumer protection programs</li>
+          <li>Educational initiatives</li>
+          <li>Research collaboration</li>
+          <li>Policy advocacy</li>
+        </ul>
+      </div>
+      
+      <div class="partner-type-card">
+        <div class="partner-type-icon">🏛️</div>
+        <h3>Government & Public Sector</h3>
+        <p>Support public anti-fraud initiatives and protect citizens from increasingly sophisticated scams.</p>
+        <ul class="partner-type-list">
+          <li>Citizen protection programs</li>
+          <li>Intelligence sharing</li>
+          <li>Public awareness campaigns</li>
+          <li>Cross-agency coordination</li>
+        </ul>
+      </div>
+      
+      <div class="partner-type-card">
+        <div class="partner-type-icon">🔬</div>
+        <h3>Research Institutions</h3>
+        <p>Collaborate on advancing anti-scam technology and understanding fraud psychology.</p>
+        <ul class="partner-type-list">
+          <li>Joint research projects</li>
+          <li>Data collaboration</li>
+          <li>Academic partnerships</li>
+          <li>Publication support</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Benefits -->
+<section class="section section-light">
+  <div class="container">
+    <div class="section-header center">
+      <span class="section-label">Why partner with ASPS</span>
+      <h2 class="section-title">The business case for scam prevention.</h2>
+      <p class="section-subtitle">Beyond protecting customers, partnership delivers measurable business value.</p>
+    </div>
+    
+    <div class="benefits-grid">
+      <div class="benefit-card">
+        <div class="benefit-icon">💰</div>
+        <h3>Reduce losses</h3>
+        <p>Prevent fraud before it happens, reducing direct losses and reimbursement costs.</p>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon">⚖️</div>
+        <h3>Meet regulations</h3>
+        <p>Stay ahead of evolving fraud liability requirements like UK APP reimbursement rules.</p>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon">❤️</div>
+        <h3>Build trust</h3>
+        <p>Demonstrate commitment to customer protection and strengthen relationships.</p>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon">🏆</div>
+        <h3>Differentiate</h3>
+        <p>Offer protection competitors don't, creating a compelling market advantage.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Integration -->
+<section class="section section-gray">
+  <div class="container">
+    <div class="integration-content">
+      <div class="integration-text">
+        <div class="section-header">
+          <span class="section-label blue">Integration</span>
+          <h2 class="section-title">Simple, flexible integration.</h2>
+          <p class="section-subtitle">ASPS integrates with your existing systems through modern APIs and SDKs. Deploy protection without disrupting your infrastructure.</p>
+        </div>
+        
+        <ul class="integration-features">
+          <li>
+            <span class="integration-features-icon">🔌</span>
+            <div>
+              <h4>RESTful API</h4>
+              <p>Clean, well-documented APIs for seamless backend integration.</p>
+            </div>
+          </li>
+          <li>
+            <span class="integration-features-icon">📱</span>
+            <div>
+              <h4>Mobile SDKs</h4>
+              <p>Native iOS and Android SDKs for in-app protection.</p>
+            </div>
+          </li>
+          <li>
+            <span class="integration-features-icon">🌐</span>
+            <div>
+              <h4>Web integration</h4>
+              <p>JavaScript SDK for browser-based protection.</p>
+            </div>
+          </li>
+          <li>
+            <span class="integration-features-icon">📊</span>
+            <div>
+              <h4>Analytics dashboard</h4>
+              <p>Real-time insights into threats and protection metrics.</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="integration-visual">
+        <div class="code-block">
+<pre><span class="comment">// Initialize ASPS protection</span>
+<span class="keyword">const</span> asps = <span class="keyword">new</span> <span class="function">ASPS</span>({
+  apiKey: <span class="string">'your-api-key'</span>,
+  environment: <span class="string">'production'</span>
+});
+
+<span class="comment">// Check transaction for scam risk</span>
+<span class="keyword">const</span> result = <span class="keyword">await</span> asps.<span class="function">analyzeTransaction</span>({
+  type: <span class="string">'payment'</span>,
+  amount: <span class="string">'5000'</span>,
+  recipient: recipientData,
+  context: transactionContext
+});
+
+<span class="keyword">if</span> (result.riskLevel === <span class="string">'high'</span>) {
+  <span class="comment">// Show warning to user</span>
+  <span class="function">showScamWarning</span>(result.warnings);
+}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Process -->
+<section class="section section-light">
+  <div class="container">
+    <div class="section-header center">
+      <span class="section-label purple">How it works</span>
+      <h2 class="section-title">Getting started is simple.</h2>
+      <p class="section-subtitle">From initial conversation to full deployment, we make partnership seamless.</p>
+    </div>
+    
+    <div class="process-steps">
+      <div class="process-step">
+        <div class="process-step-num">1</div>
+        <h3>Discovery call</h3>
+        <p>We learn about your needs, challenges, and goals for scam prevention.</p>
+        <span class="process-step-arrow">→</span>
+      </div>
+      <div class="process-step">
+        <div class="process-step-num">2</div>
+        <h3>Pilot program</h3>
+        <p>Deploy ASPS in a controlled environment to measure impact and refine integration.</p>
+        <span class="process-step-arrow">→</span>
+      </div>
+      <div class="process-step">
+        <div class="process-step-num">3</div>
+        <h3>Full rollout</h3>
+        <p>Scale protection across your customer base with ongoing support.</p>
+        <span class="process-step-arrow">→</span>
+      </div>
+      <div class="process-step">
+        <div class="process-step-num">4</div>
+        <h3>Continuous improvement</h3>
+        <p>Regular reviews, updates, and optimization based on evolving threats.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-glow"></div>
+  <div class="container">
+    <div class="cta-inner">
+      <h2>Ready to protect your customers?</h2>
+      <p>Join the growing network of organizations fighting scams together. Let's start with a conversation about your needs.</p>
+      <div class="cta-buttons">
+        <a href="contact.html" class="btn btn-green">
+          Schedule a call
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="contact.html" class="btn btn-secondary">Download partnership overview</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerLogoGrad)"/>
+          <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs>
+            <linearGradient id="footerLogoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#1F8B5C"/>
+              <stop offset="100%" stop-color="#16734C"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <p>Real-time AI protection against fraud, scams, and social engineering. Protecting people at the moment it matters most.</p>
+      </div>
+      
+      <div class="footer-col">
+        <h4>Platform</h4>
+        <a href="platform.html">How it works</a>
+        <a href="individuals.html#individuals">For individuals</a>
+        <a href="individuals.html#families">For families</a>
+        <a href="partners.html">For partners</a>
+      </div>
+      
+      <div class="footer-col">
+        <h4>Resources</h4>
+        <a href="knowledge.html">Knowledge center</a>
+        <a href="knowledge.html">Scam intelligence</a>
+        <a href="stories.html#support">Get support</a>
+        <a href="stories.html">Stories</a>
+      </div>
+      
+      <div class="footer-col">
+        <h4>Company</h4>
+        <a href="about.html">About us</a>
+        <a href="about.html#mission">Our mission</a>
+        <a href="about.html#ethics">Ethics & trust</a>
+        <a href="contact.html">Contact</a>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <p>© 2026 ASPS. All rights reserved.</p>
+      <div class="footer-links">
+        <a href="privacy.html">Privacy</a>
+        <a href="privacy.html#terms">Terms</a>
+        <a href="privacy.html#cookies">Cookies</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="cookie-banner.js"></script>
+</body>
+</html>

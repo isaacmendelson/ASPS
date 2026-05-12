@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="ASPS — privacy policy, terms of service, cookies policy and data residency. Plain language, written by humans."/>
+<title>Privacy · Terms · Cookies — ASPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;0,16..72,700;1,16..72,400;1,16..72,500;1,16..72,600&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-dark:#070B14; --bg-paper:#FAF7F2; --bg-paper-2:#F3EFE8;
+  --accent:#BE3A4B; --accent-strong:#8E1A2A;
+  --ink:#1A1814; --ink-2:#4A4640; --ink-3:#6B655C;
+  --rule:#E4DDD2; --rule-2:#D7CFC2;
+  --font-body:'Instrument Sans',-apple-system,sans-serif;
+  --font-serif:'Newsreader',Georgia,serif;
+  --font-display:'Syne',Georgia,serif;
+  --transition:0.25s cubic-bezier(0.4,0,0.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--bg-paper);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+@media(min-width:768px){.container{padding:0 40px}}
+@media(min-width:1024px){.container{padding:0 60px}}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:1000;height:72px;background:rgba(15,18,56,0.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08)}
+.nav-inner{max-width:1400px;margin:0 auto;padding:0 40px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:32px}
+.nav-links{display:none;align-items:center;gap:8px}
+@media(min-width:1024px){.nav-links{display:flex}}
+.nav-link{padding:8px 16px;font-size:.875rem;font-weight:500;color:#94A3B8;border-radius:8px;transition:var(--transition)}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,0.05)}
+.nav-actions{display:flex;align-items:center;gap:12px}
+.nav-btn{padding:10px 20px;font-size:.875rem;font-weight:600;border-radius:8px;border:none;transition:var(--transition)}
+.nav-btn-ghost{background:transparent;color:#94A3B8;border:1px solid rgba(255,255,255,0.12)}
+.nav-btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.25)}
+.nav-btn-primary{background:#fff;color:#0F1238}
+.nav-btn-primary:hover{background:#EEF0FF}
+
+/* TAB SWITCHER */
+.tabs-bar{position:sticky;top:72px;z-index:50;background:rgba(250,247,242,0.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
+.tabs-inner{display:flex;gap:6px;flex-wrap:wrap;padding:14px 0;justify-content:space-between;align-items:center}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{padding:8px 4px;margin:0 10px;font-family:var(--font-display);font-weight:700;font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:var(--transition)}
+.tab:hover{color:var(--ink)}
+.tab.active{color:var(--ink);border-bottom-color:var(--accent)}
+.tabs-meta{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+
+/* MASTHEAD */
+.masthead{padding:80px 0 60px;background:var(--bg-paper);border-bottom:1px solid var(--rule)}
+.masthead-top{display:flex;justify-content:space-between;align-items:baseline;gap:20px;padding-bottom:18px;border-bottom:1px solid var(--rule-2);margin-bottom:36px;font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+.masthead-top .right{color:var(--accent)}
+.masthead h1{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2.4rem,5.5vw,4.2rem);line-height:1.08;letter-spacing:-.03em;color:var(--ink);margin-bottom:32px;max-width:18ch}
+.masthead h1 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.masthead-lede{font-family:var(--font-serif);font-size:1.1875rem;line-height:1.6;color:var(--ink-2);max-width:680px}
+
+/* PRINCIPLES STRIP — at-a-glance */
+.summary{padding:64px 0;background:var(--bg-paper-2);border-bottom:1px solid var(--rule-2)}
+.summary-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:32px;padding-bottom:18px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.summary-head h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:1.875rem;color:var(--ink)}
+.summary-grid{display:grid;grid-template-columns:1fr;gap:0;border-top:1px solid var(--rule)}
+@media(min-width:700px){.summary-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1024px){.summary-grid{grid-template-columns:repeat(4,1fr)}}
+.summary-cell{padding:24px 24px 24px 0;border-bottom:1px solid var(--rule)}
+@media(min-width:700px){.summary-cell{padding:24px}.summary-cell:nth-child(odd){padding-left:0}.summary-cell:nth-child(even){border-left:1px solid var(--rule)}}
+@media(min-width:1024px){.summary-cell{padding:24px 28px;border-left:1px solid var(--rule);border-bottom:none}.summary-cell:first-child{padding-left:0;border-left:0}}
+.summary-cell .num{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.18em;color:var(--accent);margin-bottom:14px}
+.summary-cell h3{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:1.25rem;line-height:1.2;color:var(--ink);margin-bottom:10px}
+.summary-cell h3 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.summary-cell p{font-family:var(--font-body);font-size:.92rem;line-height:1.5;color:var(--ink-2)}
+
+/* LAYOUT */
+.legal{padding:80px 0 110px;background:var(--bg-paper)}
+.legal-grid{display:grid;grid-template-columns:1fr;gap:64px}
+@media(min-width:900px){.legal-grid{grid-template-columns:240px 1fr;gap:80px;align-items:start}}
+.toc{position:sticky;top:140px;align-self:start;display:flex;flex-direction:column;gap:4px}
+.toc-label{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+.toc a{display:flex;align-items:baseline;gap:10px;padding:7px 0 7px 14px;margin-left:-14px;font-family:var(--font-display);font-weight:700;font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);border-left:2px solid transparent;transition:var(--transition)}
+.toc a:hover{color:var(--ink)}
+.toc a.active{color:var(--accent);border-left-color:var(--accent)}
+.toc a span{font-size:.62rem;color:inherit;opacity:.55;letter-spacing:.06em}
+
+.doc{display:none}
+.doc.active{display:block}
+.doc h2.doc-title{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,4vw,2.8rem);line-height:1.05;letter-spacing:-.02em;color:var(--ink);margin-bottom:8px}
+.doc h2.doc-title .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.doc .doc-meta{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);padding-bottom:24px;border-bottom:1px solid var(--rule);margin-bottom:32px;display:flex;flex-wrap:wrap;gap:20px}
+.doc .doc-meta strong{color:var(--ink);margin-left:6px}
+
+.legal-section{padding:32px 0;border-bottom:1px solid var(--rule)}
+.legal-section:last-child{border-bottom:none}
+.legal-section .sec-num{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.18em;color:var(--accent);margin-bottom:10px;display:block}
+.legal-section h3{font-family:var(--font-serif);font-weight:500;font-size:1.625rem;line-height:1.15;color:var(--ink);margin-bottom:18px;letter-spacing:-.01em}
+.legal-section h3 .em{font-style:italic;font-weight:500;color:var(--accent-strong)}
+.legal-section p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.65;color:var(--ink-2);margin-bottom:14px;max-width:780px}
+.legal-section p strong{color:var(--ink);font-weight:600}
+.legal-section p em{font-style:normal;color:var(--accent-strong);font-weight:600}
+.legal-section a.inline{color:var(--accent-strong);border-bottom:1px solid currentColor}
+.legal-section ul{list-style:none;display:flex;flex-direction:column;gap:10px;margin:14px 0;padding:14px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);max-width:780px}
+.legal-section ul li{font-family:var(--font-serif);font-size:1.0625rem;color:var(--ink);padding-left:24px;position:relative;line-height:1.55}
+.legal-section ul li::before{content:'';position:absolute;left:0;top:.65em;width:14px;height:1px;background:var(--accent)}
+.legal-section ul li strong{color:var(--accent-strong);font-weight:600}
+
+.callout{margin:24px 0;padding:24px 26px;background:var(--bg-paper-2);border-left:3px solid var(--accent);max-width:780px}
+.callout .label{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+.callout p{font-family:var(--font-serif);font-style:italic;font-size:1.0625rem;color:var(--ink);margin-bottom:0;line-height:1.55}
+
+/* DATA TABLE */
+.data-table{margin:20px 0;border-top:2px solid var(--ink);max-width:780px}
+.data-row{display:grid;grid-template-columns:1fr;gap:8px;padding:18px 0;border-bottom:1px solid var(--rule)}
+@media(min-width:600px){.data-row{grid-template-columns:140px 1fr 140px;gap:24px;align-items:start}}
+.data-row .kind{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.data-row .what{font-family:var(--font-serif);font-size:1rem;color:var(--ink);line-height:1.5}
+.data-row .where{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);text-align:right}
+.data-row.heading{padding:10px 0;border-bottom:1px solid var(--ink)}
+.data-row.heading span{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+
+/* FOOT line */
+.lastfoot{padding:48px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule-2);text-align:center}
+.lastfoot p{font-family:var(--font-serif);font-style:italic;font-size:1.125rem;color:var(--ink-2);max-width:680px;margin:0 auto;line-height:1.55}
+.lastfoot p strong{font-style:normal;font-weight:600;color:var(--accent-strong)}
+
+/* FOOTER */
+.footer{padding:80px 0 40px;background:var(--bg-dark);color:#94A3B8}
+.footer-grid{display:grid;grid-template-columns:1fr;gap:48px;margin-bottom:64px}
+@media(min-width:768px){.footer-grid{grid-template-columns:2fr 1fr 1fr 1fr}}
+.footer-brand p{font-size:.9375rem;line-height:1.7;max-width:320px;margin-top:20px}
+.footer-col h4{font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#E2E8F0;margin-bottom:20px}
+.footer-col a{display:block;font-size:.9375rem;margin-bottom:14px;transition:var(--transition)}
+.footer-col a:hover{color:var(--accent)}
+.footer-bottom{padding-top:32px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px;font-size:.84rem;color:#64748B}
+.footer-links{display:flex;gap:24px}
+.footer-links a:hover{color:#E2E8F0}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" aria-label="ASPS home">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+      </svg>
+    </a>
+    <div class="nav-links">
+      <a href="platform.html" class="nav-link">How it works</a>
+      <a href="knowledge.html" class="nav-link">Knowledge center</a>
+      <a href="stories.html" class="nav-link">Stories</a>
+      <a href="partners.html" class="nav-link">Partners</a>
+      <a href="about.html" class="nav-link">About</a>
+      <a href="faq.html" class="nav-link">FAQ</a>
+    </div>
+    <div class="nav-actions">
+      <a href="contact.html" class="nav-btn nav-btn-ghost">Contact</a>
+      <a href="individuals.html#pricing" class="nav-btn nav-btn-primary">Get protected</a>
+    </div>
+  </div>
+</nav>
+
+<!-- MASTHEAD -->
+<header class="masthead">
+  <div class="container">
+    <div class="masthead-top">
+      <span>Legal · Vol. 06</span>
+      <span class="right">Edition 3.1 · 12 May 2026</span>
+    </div>
+    <h1>The boring pages — written <span class="em">like they matter.</span></h1>
+    <p class="masthead-lede">Privacy, terms and cookies — in plain English, by people who actually read them. The legal version exists in the audit; this is the version we'd want our parents to read.</p>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="tabs-bar">
+  <div class="container">
+    <div class="tabs-inner">
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="privacy" role="tab">01 / Privacy policy</button>
+        <button class="tab" data-tab="terms" role="tab">02 / Terms of service</button>
+        <button class="tab" data-tab="cookies" role="tab">03 / Cookies policy</button>
+      </div>
+      <span class="tabs-meta">Reading time · 8 min</span>
+    </div>
+  </div>
+</div>
+
+<!-- AT-A-GLANCE -->
+<section class="summary">
+  <div class="container">
+    <div class="summary-head">
+      <h2>The whole thing, at a glance.</h2>
+      <span style="font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)">Read in 40 seconds</span>
+    </div>
+    <div class="summary-grid">
+      <div class="summary-cell">
+        <span class="num">01 / On-device</span>
+        <h3>Audio &amp; messages stay <span class="em">on your phone.</span></h3>
+        <p>Voice analysis happens locally. Call audio and message bodies are not stored or sent to our servers.</p>
+      </div>
+      <div class="summary-cell">
+        <span class="num">02 / Region-pinned</span>
+        <h3>Your data <span class="em">lives where you do.</span></h3>
+        <p>EU users in the EU. UK in the UK. Israel in Israel. No cross-region transfers without lawful cause.</p>
+      </div>
+      <div class="summary-cell">
+        <span class="num">03 / Never sold</span>
+        <h3>Behavioural data is <span class="em">not for sale.</span></h3>
+        <p>Not for ads, not for partners, not for any reason. Written into our terms, not a marketing promise.</p>
+      </div>
+      <div class="summary-cell">
+        <span class="num">04 / Yours to delete</span>
+        <h3>Export or delete it <span class="em">in two taps.</span></h3>
+        <p>Account → Export or Delete. Full data export within 24h; deletion confirmed within 30 days.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LEGAL DOCS -->
+<section class="legal">
+  <div class="container">
+    <div class="legal-grid">
+
+      <aside class="toc" id="toc">
+        <p class="toc-label">In this document</p>
+      </aside>
+
+      <div>
+        <!-- PRIVACY -->
+        <article class="doc active" id="doc-privacy">
+          <h2 class="doc-title">Privacy <span class="em">policy.</span></h2>
+          <div class="doc-meta">
+            <span>Edition<strong>3.1</strong></span>
+            <span>Effective<strong>12 May 2026</strong></span>
+            <span>Last audit<strong>Mar 2026 · BDO</strong></span>
+            <span>Controller<strong>ASPS Ltd · Tel Aviv</strong></span>
+          </div>
+
+          <div class="legal-section" id="p-1">
+            <span class="sec-num">§ 01</span>
+            <h3>What this policy <span class="em">covers.</span></h3>
+            <p>This policy applies to every product and service ASPS Ltd ("we", "ASPS") offers — the mobile apps, the browser extensions, the family-loop service, the partner deployments and this website. If your relationship with ASPS is through a bank or telco, their privacy policy <strong>also</strong> applies, but never replaces the protections below.</p>
+            <p>Written in plain English. The legal-counsel version lives in the appendix and is identical in effect.</p>
+          </div>
+
+          <div class="legal-section" id="p-2">
+            <span class="sec-num">§ 02</span>
+            <h3>What we collect — <span class="em">and what we don't.</span></h3>
+            <p>The shortest possible answer: pattern data and verdicts, yes; the contents of your conversations, no. The longer version, by category:</p>
+
+            <div class="data-table">
+              <div class="data-row heading"><span>Kind</span><span>What it is</span><span>Where it lives</span></div>
+              <div class="data-row"><span class="kind">Call audio</span><span class="what">Live audio of calls while ASPS is active. Analysed for synthetic-voice signatures.</span><span class="where">On-device · not stored</span></div>
+              <div class="data-row"><span class="kind">Message bodies</span><span class="what">The text of SMS, email and messenger content scanned for phishing patterns.</span><span class="where">On-device · not stored</span></div>
+              <div class="data-row"><span class="kind">Verdicts</span><span class="what">"This call had 96% synthetic-voice probability" — the model's output, not its input.</span><span class="where">Region-pinned · 24 months</span></div>
+              <div class="data-row"><span class="kind">Pattern data</span><span class="what">Numbers, sender IDs, URLs and scripts seen across users — fully de-identified.</span><span class="where">Region-pinned · indefinite</span></div>
+              <div class="data-row"><span class="kind">Account</span><span class="what">Your email, billing identifier, region and the devices you've activated.</span><span class="where">Region-pinned · until deletion</span></div>
+              <div class="data-row"><span class="kind">Diagnostics</span><span class="what">Crash reports and aggregated performance — opt-in, anonymous, off by default.</span><span class="where">EU · 90 days</span></div>
+            </div>
+          </div>
+
+          <div class="legal-section" id="p-3">
+            <span class="sec-num">§ 03</span>
+            <h3>Why we hold what we <span class="em">hold.</span></h3>
+            <p>Three reasons, and only three:</p>
+            <ul>
+              <li><strong>To run the service you signed up for</strong> — show alerts, sync across devices, bill you for the plan you chose.</li>
+              <li><strong>To improve detection</strong> — pattern data (not your content) makes the model better at catching the next call.</li>
+              <li><strong>To comply with applicable law</strong> — tax records, fraud-prevention obligations, lawfully valid orders.</li>
+            </ul>
+            <p>That's the entire list. We don't hold data for marketing, partner enrichment, or speculative future products.</p>
+          </div>
+
+          <div class="legal-section" id="p-4">
+            <span class="sec-num">§ 04</span>
+            <h3>Where your data <span class="em">lives.</span></h3>
+            <p>Your data is pinned to the region you signed up in. Practically:</p>
+            <ul>
+              <li><strong>EU users</strong> — stored in our Frankfurt and Dublin regions. Never leaves the EU outside lawful transfer scenarios with appropriate safeguards.</li>
+              <li><strong>UK users</strong> — stored in London. Same rules under the UK GDPR.</li>
+              <li><strong>Israeli users</strong> — stored in Tel Aviv, subject to the Privacy Protection Law.</li>
+              <li><strong>APAC users</strong> — stored in Singapore or Tokyo depending on jurisdiction.</li>
+            </ul>
+            <p>The full data-residency map, including which regional Cloud provider holds which slice, is published on the <a href="about.html#ethics" class="inline">ethics page</a>.</p>
+          </div>
+
+          <div class="legal-section" id="p-5">
+            <span class="sec-num">§ 05</span>
+            <h3>Your rights, <span class="em">in writing.</span></h3>
+            <p>Under GDPR, UK GDPR and equivalent laws, you have the right to:</p>
+            <ul>
+              <li><strong>Access</strong> everything we hold about you (Account → Export).</li>
+              <li><strong>Correct</strong> anything inaccurate.</li>
+              <li><strong>Delete</strong> everything we hold (Account → Delete).</li>
+              <li><strong>Object</strong> to specific processing, including pattern-data contribution.</li>
+              <li><strong>Take it elsewhere</strong> — portable JSON, no friction.</li>
+              <li><strong>Complain to your DPA</strong> — we'll never make you go through us first.</li>
+            </ul>
+            <div class="callout">
+              <p class="label">In short</p>
+              <p>You can export everything, delete everything, or pause data collection — from the same screen, in your account. We don't gatekeep your data behind a support ticket.</p>
+            </div>
+          </div>
+
+          <div class="legal-section" id="p-6">
+            <span class="sec-num">§ 06</span>
+            <h3>Who we share it <span class="em">with — and who we don't.</span></h3>
+            <p>Our service runs on a handful of vendors: cloud infrastructure, billing, email delivery, security monitoring. Each one is bound by a DPA, audited annually, and listed by name on the sub-processor page (linked in your account settings).</p>
+            <p>We <em>do not</em> share, sell, license, swap or trade your data with advertisers, data brokers, marketing networks, "partner" insights programmes, or anyone whose business model is data.</p>
+          </div>
+
+          <div class="legal-section" id="p-7">
+            <span class="sec-num">§ 07</span>
+            <h3>Government &amp; legal <span class="em">requests.</span></h3>
+            <p>We respond only to lawfully valid requests in the relevant jurisdiction. We push back on overbroad ones. We publish a transparency report every six months listing the number, scope and outcome of requests.</p>
+            <p>Because most of your content never leaves your device, the surface area available to a compelled request is small by design — not by accident.</p>
+          </div>
+
+          <div class="legal-section" id="p-8">
+            <span class="sec-num">§ 08</span>
+            <h3>If something goes <span class="em">wrong.</span></h3>
+            <p>We commit to disclosing material incidents that affect user data within 72 hours of confirmed scope, regardless of jurisdictional minimums. Disclosure is sent by email and posted on the trust page; if we ever miss a deadline, that fact is itself disclosed.</p>
+            <p>For routine privacy questions, write to <a href="contact.html" class="inline">privacy@asps.security</a>. Our Data Protection Officer reads every message.</p>
+          </div>
+        </article>
+
+        <!-- TERMS -->
+        <article class="doc" id="doc-terms">
+          <h2 class="doc-title">Terms of <span class="em">service.</span></h2>
+          <div class="doc-meta">
+            <span>Edition<strong>3.1</strong></span>
+            <span>Effective<strong>12 May 2026</strong></span>
+            <span>Governing law<strong>Israel · with EU consumer-rights add-on</strong></span>
+          </div>
+
+          <div class="legal-section" id="t-1">
+            <span class="sec-num">§ 01</span>
+            <h3>What you get, what we <span class="em">promise.</span></h3>
+            <p>You get access to the ASPS platform — alerts, dashboards, family-loop, the features described on your plan. We promise to keep them running, keep them honest, and tell you when something changes.</p>
+            <p>Service-level commitments (uptime, alert latency, support response times) are published per plan on the <a href="individuals.html#pricing" class="inline">pricing page</a>.</p>
+          </div>
+
+          <div class="legal-section" id="t-2">
+            <span class="sec-num">§ 02</span>
+            <h3>What we ask of <span class="em">you.</span></h3>
+            <ul>
+              <li><strong>Use it for yourself</strong> — or for people who have consented (e.g. family members).</li>
+              <li><strong>Don't try to break it</strong> — exploits should go through responsible disclosure, not production.</li>
+              <li><strong>Don't resell or wrap it</strong> — without an enterprise agreement (which we're happy to talk about).</li>
+              <li><strong>Be over 16</strong>, or have a parent set it up for you.</li>
+            </ul>
+          </div>
+
+          <div class="legal-section" id="t-3">
+            <span class="sec-num">§ 03</span>
+            <h3>Honest limits of what <span class="em">software can do.</span></h3>
+            <p>ASPS detects patterns; it does not guarantee outcomes. No detector is 100%, and scams evolve. We do everything we can to catch them; you remain responsible for your final decisions.</p>
+            <p>Where ASPS issues an alert that you confirm and act on, and the alert turns out to be wrong, our <em>false-positive credit</em> may apply — see your plan's terms.</p>
+          </div>
+
+          <div class="legal-section" id="t-4">
+            <span class="sec-num">§ 04</span>
+            <h3>Money, refunds, <span class="em">cancellation.</span></h3>
+            <ul>
+              <li>Monthly billing, prorated to the day on upgrade or downgrade.</li>
+              <li>Cancel anytime from the app — no retention calls, no exit fees.</li>
+              <li>EU consumer-rights withdrawal: 14 days, full refund, no questions.</li>
+              <li>Annual plans: prorated refund on cancellation, minus services rendered.</li>
+            </ul>
+          </div>
+
+          <div class="legal-section" id="t-5">
+            <span class="sec-num">§ 05</span>
+            <h3>If we end it, or you <span class="em">end it.</span></h3>
+            <p>You can leave at any time. We can terminate accounts only for clearly listed reasons (abuse, fraud, sustained non-payment) and with reasonable notice except in safety cases. Your data export remains available for 30 days after termination.</p>
+          </div>
+
+          <div class="legal-section" id="t-6">
+            <span class="sec-num">§ 06</span>
+            <h3>Disputes &amp; the <span class="em">grown-up section.</span></h3>
+            <p>For EU/UK consumers, the consumer protection regime in your country always applies and overrides any choice-of-law clause that would weaken it. For everyone else, Israeli law governs and Tel Aviv courts have jurisdiction.</p>
+            <p>Before anything escalates, we promise a real human reply to any complaint within 5 working days. Most things end there.</p>
+          </div>
+        </article>
+
+        <!-- COOKIES -->
+        <article class="doc" id="doc-cookies">
+          <h2 class="doc-title">Cookies <span class="em">policy.</span></h2>
+          <div class="doc-meta">
+            <span>Scope<strong>This website only</strong></span>
+            <span>Effective<strong>12 May 2026</strong></span>
+            <span>Tracking cookies<strong>None</strong></span>
+          </div>
+
+          <div class="legal-section" id="c-1">
+            <span class="sec-num">§ 01</span>
+            <h3>What we set, <span class="em">and what we don't.</span></h3>
+            <p>This website sets only the cookies it needs to remember your language, your consent choices and your session. We do not use third-party advertising, social or tracking cookies — including Google Analytics, Meta Pixel, LinkedIn Insight, or any equivalent.</p>
+            <p>The mobile apps don't set cookies in the web sense; the data they hold is described in the privacy policy above.</p>
+          </div>
+
+          <div class="legal-section" id="c-2">
+            <span class="sec-num">§ 02</span>
+            <h3>The list, <span class="em">in full.</span></h3>
+            <div class="data-table">
+              <div class="data-row heading"><span>Cookie</span><span>What it does</span><span>Lifetime</span></div>
+              <div class="data-row"><span class="kind">asps_lang</span><span class="what">Remembers the language you chose (EN, HE, FR, ES, RU, etc.) so you don't have to set it on every visit.</span><span class="where">12 months</span></div>
+              <div class="data-row"><span class="kind">asps_session</span><span class="what">Keeps you logged in if you've signed in to your account dashboard. Strict-Same-Site.</span><span class="where">Session</span></div>
+              <div class="data-row"><span class="kind">asps_consent</span><span class="what">Remembers your cookie-consent answer so we don't ask again every visit.</span><span class="where">12 months</span></div>
+            </div>
+            <p>That's the entire list. If it ever changes, this page changes first.</p>
+          </div>
+
+          <div class="legal-section" id="c-3">
+            <span class="sec-num">§ 03</span>
+            <h3>Analytics — <span class="em">privacy-respecting.</span></h3>
+            <p>We use a self-hosted analytics tool (Plausible, EU-hosted) that does <em>not</em> set cookies and does <em>not</em> fingerprint visitors. It tells us "X pages were viewed today from the UK" — not "this person from this IP did these things". The full configuration is published in our open-source repo.</p>
+          </div>
+
+          <div class="legal-section" id="c-4">
+            <span class="sec-num">§ 04</span>
+            <h3>How to turn things <span class="em">off.</span></h3>
+            <p>Every browser lets you clear or block cookies for any site — including this one. Doing so will mean you have to re-choose your language and log in again on each visit, but the site otherwise works fine. We do not, and will not, gate content behind cookie acceptance.</p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LAST -->
+<section class="lastfoot">
+  <div class="container">
+    <p>If anything on this page is unclear, write to <strong>privacy@asps.security</strong>. A human reads every message — usually back to you within 24 hours.</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerLogoGrad)"/>
+          <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs><linearGradient id="footerLogoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+        </svg>
+        <p>Real-time AI protection against fraud, scams and social engineering. Protecting people at the moment it matters most.</p>
+      </div>
+      <div class="footer-col"><h4>Platform</h4><a href="platform.html">How it works</a><a href="individuals.html#individuals">For individuals</a><a href="individuals.html#families">For families</a><a href="partners.html">For partners</a></div>
+      <div class="footer-col"><h4>Resources</h4><a href="knowledge.html">Knowledge center</a><a href="faq.html">FAQ</a><a href="stories.html#support">Get support</a><a href="stories.html">Stories</a></div>
+      <div class="footer-col"><h4>Company</h4><a href="about.html">About us</a><a href="about.html#mission">Our mission</a><a href="about.html#ethics">Ethics &amp; trust</a><a href="contact.html">Contact</a></div>
+    </div>
+    <div class="footer-bottom"><p>© 2026 ASPS. All rights reserved.</p><div class="footer-links"><a href="privacy.html">Privacy</a><a href="privacy.html#terms">Terms</a><a href="privacy.html#cookies">Cookies</a></div></div>
+  </div>
+</footer>
+
+<script>
+const tocMap = {
+  privacy:[
+    ['p-1','§01 Scope'],['p-2','§02 What we collect'],['p-3','§03 Why we hold it'],
+    ['p-4','§04 Where it lives'],['p-5','§05 Your rights'],['p-6','§06 Who we share with'],
+    ['p-7','§07 Legal requests'],['p-8','§08 Incidents']
+  ],
+  terms:[
+    ['t-1','§01 What you get'],['t-2','§02 What we ask'],['t-3','§03 Honest limits'],
+    ['t-4','§04 Money & refunds'],['t-5','§05 Termination'],['t-6','§06 Disputes']
+  ],
+  cookies:[
+    ['c-1','§01 What we set'],['c-2','§02 Full list'],['c-3','§03 Analytics'],['c-4','§04 Turning off']
+  ]
+};
+function renderToc(key){
+  const toc=document.getElementById('toc');
+  toc.innerHTML='<p class="toc-label">In this document</p>'+
+    tocMap[key].map(([id,label],i)=>`<a href="#${id}"${i===0?' class="active"':''}>${label}</a>`).join('');
+}
+function setTab(key){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===key));
+  document.querySelectorAll('.doc').forEach(d=>d.classList.toggle('active',d.id==='doc-'+key));
+  renderToc(key);
+  // honour the URL hash if it targets the chosen doc
+  if(location.hash){
+    const el=document.querySelector(location.hash);
+    if(el && el.closest('.doc.active')){window.scrollTo({top:el.getBoundingClientRect().top+window.scrollY-140});}
+  }
+}
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{setTab(tab.dataset.tab);history.replaceState(null,'','#'+tab.dataset.tab==='#privacy'?'':'#'+tab.dataset.tab);});
+});
+// initial state from hash
+const initialKey=location.hash==='#terms'?'terms':(location.hash==='#cookies'?'cookies':'privacy');
+setTab(initialKey);
+
+// active TOC on scroll
+window.addEventListener('scroll',()=>{
+  const active=document.querySelector('.doc.active'); if(!active) return;
+  const sections=[...active.querySelectorAll('.legal-section')];
+  const y=window.scrollY+200;
+  let cur=sections[0]; for(const s of sections){if(s.offsetTop<=y) cur=s;}
+  document.querySelectorAll('#toc a').forEach(a=>{
+    a.classList.toggle('active', a.getAttribute('href')==='#'+cur.id);
+  });
+});
+</script>
+
+</body>
+</html>
