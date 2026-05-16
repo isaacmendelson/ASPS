@@ -715,7 +715,7 @@ namespace Business.RealtimeAnalysis.UserDomain
                             this._immediateDangers = new();
                         }
                         //if (alertKey is not null && !this._immediateDangers.OfType<ImmediateDangerByRemoteAccessDto>().Any(i => i.DeviceAlertKey == alertKey && i.EndTime == null && i.RemoteAccessApp == remoteAccessApp && i.DeviceUid == deviceUid && i.SensitiveUrl?.ToLower() == sUrl))
-                        if (alertKey is not null && !this._immediateDangers.OfType<ImmediateDangerByRemoteAccessDto>().Any(i => i.EndTime == null && i.RemoteAccessApp == remoteAccessApp && i.DeviceUid == deviceUid && i.SensitiveUrl?.ToLower() == sUrl))
+                        if (alertKey is not null && !this._immediateDangers.OfType<ImmediateDangerByRemoteAccessDto>().Any(i => i.EndTime == null && i.RemoteAccessApp == remoteAccessApp && i.DeviceUid == deviceUid && i.SensitiveUrl?.ToLower() == sUrl.ToLower()))
                         {
                             // Create new immediate danger instance and add to the list
                             var immediateDanger = new ImmediateDangerByRemoteAccessDto(new Key(nameof(ImmediateDangerByRemoteAccess), Guid.NewGuid().ToString()), remoteAccessApp, sUrl, deviceUid, this.UDUser.Key.Value,
