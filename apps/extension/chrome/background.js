@@ -819,6 +819,76 @@ chrome.tabs.onRemoved.addListener((tabId /*, removeInfo */) => {
   _sendTabClosedAlert(tabId, prev.url);
 });
 
+// ─── Cookie-driven loggedIn re-evaluation ─────────────────────────────
+// `chrome.tabs.onUpdated` doesn't fire when a bank's logout is implemented
+// purely client-side (XHR → cookie removal → DOM update, no navigation).
+// Bridge that gap by listening to chrome.cookies.onChanged: whenever an
+// auth-shaped cookie on a sensitive domain is added/removed, re-evaluate
+// loggedIn for every open tab on that root domain and emit
+// TabChangedAlert when the verdict actually changed.
+//
+// Coalescing: a single logout can fire many cookie events. We debounce per
+// root domain so the heavy cookie+DOM scan runs at most once per ~400ms.
+const _cookieCoalesceTimers = new Map(); // rootDomain -> timeoutId
+const _COOKIE_DEBOUNCE_MS = 400;
+
+function _cookieDomainToRoot(rawDomain) {
+  if (!rawDomain) return '';
+  // Leading dot is convention for cookies set on a parent domain
+  let h = rawDomain.toLowerCase();
+  if (h.startsWith('.')) h = h.slice(1);
+  return getRootDomain(h);
+}
+
+async function _reevaluateLoggedInForRoot(root) {
+  // Find every open tab on this root and re-run the loggedIn pipeline.
+  // Fire TabChangedAlert only when the snapshot changed AND we're under
+  // remote control (extension's gate is the same as for URL events).
+  for (const [tabId, prev] of tabControls) {
+    if (prev.root !== root) continue;
+    let tab;
+    try { tab = await chrome.tabs.get(tabId); } catch { continue; }
+    if (!tab || !tab.url) continue;
+
+    const snap = await _refreshTabControl(tabId, tab.url);
+    const loggedInChanged = prev.isLoggedIn !== snap.isLoggedIn;
+    if (!loggedInChanged) continue;
+    if (!isDeviceRemoteControlled) continue;
+    if (snap.isSensitiveWebsite !== true) continue;
+
+    _sendTabChangedAlert(tabId, snap);
+  }
+}
+
+chrome.cookies.onChanged.addListener((info) => {
+  try {
+    const cookie = info && info.cookie;
+    if (!cookie) return;
+
+    // Only care about auth-shaped cookies (same filter as the loggedIn detector).
+    if (!AUTH_COOKIE_NAME_PATTERN.test(cookie.name)) return;
+
+    const root = _cookieDomainToRoot(cookie.domain);
+    if (!root) return;
+
+    // Only care about domains we've classified as sensitive.
+    if (sensitiveDomainCache.get(root) !== true) return;
+
+    // Coalesce: many cookie events can fire in quick succession during
+    // login/logout; we want one scan per burst.
+    const existing = _cookieCoalesceTimers.get(root);
+    if (existing) clearTimeout(existing);
+    const tid = setTimeout(() => {
+      _cookieCoalesceTimers.delete(root);
+      _reevaluateLoggedInForRoot(root).catch(e =>
+        console.warn('[Background] cookie-driven re-eval failed:', e));
+    }, _COOKIE_DEBOUNCE_MS);
+    _cookieCoalesceTimers.set(root, tid);
+  } catch (e) {
+    console.warn('[Background] cookies.onChanged handler error:', e);
+  }
+});
+
 // TrackMode enum - matches backend Common.Enums.TrackMode
 const TrackMode = {
   None: 0,    // No tracking

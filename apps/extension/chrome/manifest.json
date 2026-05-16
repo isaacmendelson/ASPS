@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AntiScam Protection",
-  "version": "0.0.1.2",
+  "version": "0.0.1.3",
   "description": "Protection against online scams and fraud",
   "permissions": [
     "activeTab",

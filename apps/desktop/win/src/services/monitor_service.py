@@ -296,8 +296,10 @@ class MonitorService:
                     target = (app_name, status)
                     break
         if target is None:
-            if DEBUG_MODE:
-                print("[MONITOR] ImmediateDanger tick: no active RA session — skipping")
+            # Always print — this is the periodic loop the user relies on to
+            # see logout events ≤10s after they happen. Silent mode used to
+            # hide the case "loop ticks but found no session".
+            print("[MONITOR] ImmediateDanger tick: no active RA session — skipping")
             return
 
         app_name, status = target
@@ -311,6 +313,17 @@ class MonitorService:
                 browser_tabs = self._apply_browser_tabs_filter(tabs)
             except Exception as e:
                 logger.warning(f"ImmediateDanger tab query failed: {e}")
+
+        # Visible periodic-tick log — helps the user see logout events being
+        # captured by the 10s loop even when the extension's cookie listener
+        # didn't already fire a TabChangedAlert. Lists every tab with its
+        # loggedIn verdict so logout shows up as `loggedIn=False`.
+        tab_summary = ", ".join(
+            f"{(t.get('url') or '')[:60]}(loggedIn={t.get('loggedIn')})"
+            for t in browser_tabs
+        ) or "<no tabs>"
+        print(f"[MONITOR] ImmediateDanger tick → {app_name} dir={status.direction} "
+              f"tabs={len(browser_tabs)} [{tab_summary}]")
 
         await self._send_remote_access_alert_with_retry(
             device_uid=self.device_id,

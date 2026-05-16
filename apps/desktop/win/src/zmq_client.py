@@ -8,6 +8,7 @@ import zmq
 import json
 import logging
 import socket
+import threading
 import uuid
 from typing import Optional, Dict, Any, List
 from datetime import datetime
@@ -127,6 +128,14 @@ class ZMQClient:
         self.server_public_key: Optional[bytes] = None  # Z85-encoded server key
         # Context is expensive — create once and reuse across all requests
         self.context = zmq.Context()
+        # Serializes the connect→send→close lifecycle across threads.
+        # Multiple coroutines (RA monitor poll, ImmediateDanger periodic loop,
+        # extension URL forwards) all dispatch send_*_alert via asyncio.to_thread
+        # to the default thread pool. Without this lock, two threads can
+        # simultaneously assign self.socket / call .send() / .close() and
+        # trigger libzmq assertion "Socket operation on non-socket [10038]"
+        # in signaler.cpp (race on the socket FD).
+        self._send_lock = threading.Lock()
 
         print(f"[ZMQ] Client initialized")
         print(f"[ZMQ] Server: tcp://{self.host}:{self.port}")
@@ -304,13 +313,14 @@ class ZMQClient:
             "TabId": tab_id
         }
 
-        if not self.connect():
-            return None
+        with self._send_lock:
+            if not self.connect():
+                return None
 
-        try:
-            return self.send_alert(alert)
-        finally:
-            self.close()
+            try:
+                return self.send_alert(alert)
+            finally:
+                self.close()
 
     def send_track_url_alert(
         self,
@@ -375,13 +385,14 @@ class ZMQClient:
             "Timezone": timezone
         }
 
-        if not self.connect():
-            return None
+        with self._send_lock:
+            if not self.connect():
+                return None
 
-        try:
-            return self.send_alert(alert)
-        finally:
-            self.close()
+            try:
+                return self.send_alert(alert)
+            finally:
+                self.close()
 
     def send_remote_access_alert(
         self,
@@ -495,13 +506,14 @@ class ZMQClient:
             alert["BrowserTabs"] = browser_tabs
             print(f"[ZMQ] Including {len(browser_tabs)} browser tab(s) in alert")
 
-        if not self.connect():
-            return None
+        with self._send_lock:
+            if not self.connect():
+                return None
 
-        try:
-            return self.send_alert(alert)
-        finally:
-            self.close()
+            try:
+                return self.send_alert(alert)
+            finally:
+                self.close()
 
     def send_tab_closed_alert(
         self,
@@ -544,12 +556,13 @@ class ZMQClient:
             "Url": url,
         }
 
-        if not self.connect():
-            return None
-        try:
-            return self.send_alert(alert)
-        finally:
-            self.close()
+        with self._send_lock:
+            if not self.connect():
+                return None
+            try:
+                return self.send_alert(alert)
+            finally:
+                self.close()
 
     def send_tab_changed_alert(
         self,
@@ -596,12 +609,13 @@ class ZMQClient:
             "IsLoggedIn": is_logged_in,
         }
 
-        if not self.connect():
-            return None
-        try:
-            return self.send_alert(alert)
-        finally:
-            self.close()
+        with self._send_lock:
+            if not self.connect():
+                return None
+            try:
+                return self.send_alert(alert)
+            finally:
+                self.close()
 
     def send_request_token(self, device_uid: str, email: str = "") -> Optional[Dict[str, Any]]:
         """
@@ -616,27 +630,28 @@ class ZMQClient:
             "Email": email,
         }
 
-        if not self.connect():
-            return None
+        with self._send_lock:
+            if not self.connect():
+                return None
 
-        try:
-            message_json = json.dumps(message)
-            print(f"[ZMQ] Sending RequestToken for device: {device_uid}")
-            self.socket.send(message_json.encode('utf-8'))
+            try:
+                message_json = json.dumps(message)
+                print(f"[ZMQ] Sending RequestToken for device: {device_uid}")
+                self.socket.send(message_json.encode('utf-8'))
 
-            response_bytes = self.socket.recv()
-            response = json.loads(response_bytes.decode('utf-8'))
-            print(f"[ZMQ] RequestToken response: {response.get('status', 'unknown')}")
-            return response
+                response_bytes = self.socket.recv()
+                response = json.loads(response_bytes.decode('utf-8'))
+                print(f"[ZMQ] RequestToken response: {response.get('status', 'unknown')}")
+                return response
 
-        except zmq.Again:
-            print(f"[ZMQ] WARNING: RequestToken timeout after {self.timeout}ms")
-            return None
-        except Exception as e:
-            print(f"[ZMQ] ERROR: RequestToken error: {e}")
-            return None
-        finally:
-            self.close()
+            except zmq.Again:
+                print(f"[ZMQ] WARNING: RequestToken timeout after {self.timeout}ms")
+                return None
+            except Exception as e:
+                print(f"[ZMQ] ERROR: RequestToken error: {e}")
+                return None
+            finally:
+                self.close()
 
     def send_refresh_token(self, device_uid: str, old_token: str) -> Optional[Dict[str, Any]]:
         """
@@ -652,27 +667,28 @@ class ZMQClient:
             "Timestamp": datetime.utcnow().isoformat() + "Z",
         }
 
-        if not self.connect():
-            return None
+        with self._send_lock:
+            if not self.connect():
+                return None
 
-        try:
-            message_json = json.dumps(message)
-            print(f"[ZMQ] Sending RefreshToken for device: {device_uid}")
-            self.socket.send(message_json.encode('utf-8'))
+            try:
+                message_json = json.dumps(message)
+                print(f"[ZMQ] Sending RefreshToken for device: {device_uid}")
+                self.socket.send(message_json.encode('utf-8'))
 
-            response_bytes = self.socket.recv()
-            response = json.loads(response_bytes.decode('utf-8'))
-            print(f"[ZMQ] RefreshToken response: {response.get('status', 'unknown')}")
-            return response
+                response_bytes = self.socket.recv()
+                response = json.loads(response_bytes.decode('utf-8'))
+                print(f"[ZMQ] RefreshToken response: {response.get('status', 'unknown')}")
+                return response
 
-        except zmq.Again:
-            print(f"[ZMQ] WARNING: RefreshToken timeout after {self.timeout}ms")
-            return None
-        except Exception as e:
-            print(f"[ZMQ] ERROR: RefreshToken error: {e}")
-            return None
-        finally:
-            self.close()
+            except zmq.Again:
+                print(f"[ZMQ] WARNING: RefreshToken timeout after {self.timeout}ms")
+                return None
+            except Exception as e:
+                print(f"[ZMQ] ERROR: RefreshToken error: {e}")
+                return None
+            finally:
+                self.close()
 
 
 # Standalone test
