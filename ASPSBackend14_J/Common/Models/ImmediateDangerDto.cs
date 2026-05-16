@@ -65,7 +65,7 @@ namespace Common.Models
         public bool IsClosed()
         {
 
-            return this.EndTime is null;
+            return this.EndTime is not null && this.EndTime >= this.Timestamp;
         }
 
     }
