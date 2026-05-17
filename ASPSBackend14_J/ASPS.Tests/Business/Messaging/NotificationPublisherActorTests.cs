@@ -8,6 +8,7 @@ using Business.DomainEvents;
 using Business.RealtimeAnalysis.UserDomain;
 using Business.RealtimeAnalysis;
 using Business.RealtimeAnalysis.Indicators;
+using Business.Views;
 using Common.Interfaces;
 using Common.Models;
 using Common.Enums;
@@ -24,10 +25,18 @@ public class NotificationPublisherActorTests : IDisposable
     private NotificationPublisherActor? _actor;
     private readonly List<Mock<NotificationPublisher>> _publisherMocks = new();
     private static int _portCounter = 50200;
+    private readonly ASView _asView;
 
     public NotificationPublisherActorTests()
     {
         _logger = NullLogger<NotificationPublisherActor>.Instance;
+
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        var configurationMock = new Mock<IConfiguration>();
+        _asView = new Mock<ASView>(
+            serviceProviderMock.Object,
+            NullLogger<ASView>.Instance,
+            configurationMock.Object).Object;
     }
 
     private Mock<NotificationPublisher> CreateMockNotificationPublisher()
@@ -78,7 +87,8 @@ public class NotificationPublisherActorTests : IDisposable
         // Act
         _actor = new NotificationPublisherActor(
             mockPublisher.Object,
-            _logger);
+            _logger,
+            _asView);
 
         // Assert
         Assert.NotNull(_actor);
@@ -88,7 +98,7 @@ public class NotificationPublisherActorTests : IDisposable
     public void Constructor_WithNullNotificationPublisher_CreatesActor()
     {
         // Act & Assert
-        var actor = new NotificationPublisherActor(null!, _logger);
+        var actor = new NotificationPublisherActor(null!, _logger, _asView);
         Assert.NotNull(actor);
     }
 
@@ -99,7 +109,7 @@ public class NotificationPublisherActorTests : IDisposable
         var mockPublisher = CreateMockNotificationPublisher();
         
         // Act & Assert
-        var actor = new NotificationPublisherActor(mockPublisher.Object, null!);
+        var actor = new NotificationPublisherActor(mockPublisher.Object, null!, _asView);
         Assert.NotNull(actor);
     }
 
@@ -114,7 +124,8 @@ public class NotificationPublisherActorTests : IDisposable
         var mockPublisher = CreateMockNotificationPublisher();
         _actor = new NotificationPublisherActor(
             mockPublisher.Object,
-            _logger);
+            _logger,
+            _asView);
 
         // Act
         var handleableEvents = _actor.GetHandleableEvents();
@@ -132,7 +143,8 @@ public class NotificationPublisherActorTests : IDisposable
         var mockPublisher = CreateMockNotificationPublisher();
         _actor = new NotificationPublisherActor(
             mockPublisher.Object,
-            _logger);
+            _logger,
+            _asView);
 
         // Act
         var handleableEvents = _actor.GetHandleableEvents();
@@ -152,7 +164,8 @@ public class NotificationPublisherActorTests : IDisposable
         var mockPublisher = CreateMockNotificationPublisher();
         _actor = new NotificationPublisherActor(
             mockPublisher.Object,
-            _logger);
+            _logger,
+            _asView);
 
         var analysisEvent = CreateValidAnalysisResultReceivedEvent();
 
@@ -175,7 +188,8 @@ public class NotificationPublisherActorTests : IDisposable
         var mockPublisher = CreateMockNotificationPublisher();
         _actor = new NotificationPublisherActor(
             mockPublisher.Object,
-            _logger);
+            _logger,
+            _asView);
 
         var analysisEvent = CreateValidAnalysisResultReceivedEvent();
 
@@ -192,7 +206,8 @@ public class NotificationPublisherActorTests : IDisposable
         var mockPublisher = CreateMockNotificationPublisher();
         _actor = new NotificationPublisherActor(
             mockPublisher.Object,
-            _logger);
+            _logger,
+            _asView);
 
         var deviceUid = "test-device-123";
         var analysisEvent = CreateValidAnalysisResultReceivedEvent(deviceUid: deviceUid);
@@ -216,7 +231,8 @@ public class NotificationPublisherActorTests : IDisposable
         var mockPublisher = CreateMockNotificationPublisher();
         _actor = new NotificationPublisherActor(
             mockPublisher.Object,
-            _logger);
+            _logger,
+            _asView);
 
         var userKey = "user-key-456";
         var analysisEvent = CreateValidAnalysisResultReceivedEvent(userKeyField: userKey);
@@ -244,7 +260,8 @@ public class NotificationPublisherActorTests : IDisposable
         var mockPublisher = CreateMockNotificationPublisher();
         _actor = new NotificationPublisherActor(
             mockPublisher.Object,
-            _logger);
+            _logger,
+            _asView);
 
         var analysisEvent = CreateAnalysisResultReceivedEventWithEmptyResults();
 
@@ -267,7 +284,8 @@ public class NotificationPublisherActorTests : IDisposable
         var mockPublisher = CreateMockNotificationPublisher();
         _actor = new NotificationPublisherActor(
             mockPublisher.Object,
-            _logger);
+            _logger,
+            _asView);
 
         var analysisEvent = CreateAnalysisResultReceivedEventWithNullRiskAssessment();
 
@@ -290,7 +308,8 @@ public class NotificationPublisherActorTests : IDisposable
         var mockPublisher = CreateMockNotificationPublisher();
         _actor = new NotificationPublisherActor(
             mockPublisher.Object,
-            _logger);
+            _logger,
+            _asView);
 
         var mockEvent = new Mock<IDomainEvent>();
 
@@ -324,7 +343,8 @@ public class NotificationPublisherActorTests : IDisposable
 
         _actor = new NotificationPublisherActor(
             mockPublisher.Object,
-            _logger);
+            _logger,
+            _asView);
 
         var analysisEvent = CreateValidAnalysisResultReceivedEvent();
 
@@ -348,7 +368,8 @@ public class NotificationPublisherActorTests : IDisposable
 
         _actor = new NotificationPublisherActor(
             mockPublisher.Object,
-            _logger);
+            _logger,
+            _asView);
 
         var analysisEvent = CreateValidAnalysisResultReceivedEvent();
 

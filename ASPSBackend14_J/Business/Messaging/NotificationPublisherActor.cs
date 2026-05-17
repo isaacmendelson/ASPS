@@ -1,5 +1,6 @@
 using Business.DomainEvents;
 using Business.RealtimeAnalysis.UserDomain;
+using Business.Views;
 using Common.Interfaces;
 using Common.Models;
 using Microsoft.Extensions.Logging;
@@ -13,13 +14,16 @@ public class NotificationPublisherActor : IDomainEventHandler
 {
     private readonly NotificationPublisher _notificationPublisher;
     private readonly ILogger<NotificationPublisherActor> _logger;
+    private readonly ASView _asView;
 
     public NotificationPublisherActor(
         NotificationPublisher notificationPublisher,
-        ILogger<NotificationPublisherActor> logger)
+        ILogger<NotificationPublisherActor> logger,
+        ASView asView)
     {
         _notificationPublisher = notificationPublisher;
         _logger = logger;
+        _asView = asView;
     }
 
     public async Task Handle(IDomainEvent evt)
@@ -35,6 +39,9 @@ public class NotificationPublisherActor : IDomainEventHandler
             case ImmediateDangerEnded immediateDangerEnded:
                 this.HandleImmediateDangerEnded(immediateDangerEnded);
                 break;
+            case SetTrackedDomains setTrackedDomains:
+                this.HandleSetTrackedDomains(setTrackedDomains);
+                break;
             default:
                 _logger.LogWarning($"[NotificationPublisherActor] Received unhandled event type: {evt.GetType().Name}");
                 break;
@@ -43,7 +50,41 @@ public class NotificationPublisherActor : IDomainEventHandler
 
     public Type[] GetHandleableEvents()
     {
-        return new[] { typeof(AnalysisResultReceived), typeof(ImmediateDangerEvent), typeof(ImmediateDangerEnded) };
+        return new[] { typeof(AnalysisResultReceived), typeof(ImmediateDangerEvent), typeof(ImmediateDangerEnded), typeof(SetTrackedDomains) };
+    }
+
+    private void HandleSetTrackedDomains(SetTrackedDomains evt)
+    {
+        try
+        {
+            // SetTrackedDomains is per-user (cross-device). The agent only
+            // subscribes to "device:{deviceUid}", so resolve every device of
+            // the user and fan the notification out to each device topic.
+            var deviceUids = new List<string>();
+            if (!string.IsNullOrEmpty(evt.UserKeyField))
+            {
+                var devices = _asView.GetUserDevices(new Key("User", evt.UserKeyField));
+                deviceUids = devices
+                    .Select(d => d.DeviceUid)
+                    .Where(u => !string.IsNullOrEmpty(u))
+                    .ToList();
+            }
+
+            if (deviceUids.Count == 0)
+            {
+                _logger.LogWarning(
+                    "[NotificationPublisherActor] SetTrackedDomains for user {UserKey}: no devices resolved — publishing to user topic only",
+                    evt.UserKeyField);
+            }
+
+            _notificationPublisher.PublishSetTrackedDomains(deviceUids, evt.UserKeyField, evt);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "[NotificationPublisherActor] Error publishing SetTrackedDomains for user {UserKey}",
+                evt.UserKeyField);
+        }
     }
 
     private void HandleImmediateDangerEnded(ImmediateDangerEnded immediateDangerEnded)

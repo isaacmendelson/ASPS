@@ -118,6 +118,87 @@ public class NotificationPublisher : IDisposable
 
     }
 
+    /// <summary>
+    /// Publish a SetTrackedDomains event to every device of the user.
+    /// ASPS-371: cross-device tracked-domain sync. The desktop agent
+    /// subscribes only to "device:{deviceUid}", so we fan out to each
+    /// device topic; we also emit "user:{userKeyField}" for any user-level
+    /// subscriber (admin UI). The agent translates this into a
+    /// 'tracked_domains:set' WebSocket message for the Chrome extension.
+    /// </summary>
+    public virtual void PublishSetTrackedDomains(
+        IEnumerable<string> deviceUids, string? userKeyField, SetTrackedDomains? evt)
+    {
+        if (!_isRunning || evt == null)
+        {
+            _logger.LogWarning("NotificationPublisher is not running or notification is null, skipping");
+            return;
+        }
+
+        var deviceList = (deviceUids ?? Enumerable.Empty<string>())
+            .Where(d => !string.IsNullOrEmpty(d))
+            .Distinct()
+            .ToList();
+
+        if (deviceList.Count == 0 && string.IsNullOrEmpty(userKeyField))
+        {
+            _logger.LogWarning("SetTrackedDomains: no target devices and no userKeyField, skipping");
+            return;
+        }
+
+        try
+        {
+            var notification = new
+            {
+                Type = "SetTrackedDomainsNotification",
+                Timestamp = DateTime.UtcNow,
+                Data = new
+                {
+                    evt.UserKeyField,
+                    evt.IsCrossPlatformLock,
+                    evt.Reason,
+                    evt.DistributionTimestamp,
+                    TrackedDomains = evt.TrackedDomains
+                }
+            };
+
+            var jsonSettings = new JsonSerializerSettings
+            {
+                TypeNameHandling = TypeNameHandling.None,
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                NullValueHandling = NullValueHandling.Ignore,
+                Formatting = Formatting.None
+            };
+
+            var json = JsonConvert.SerializeObject(notification, jsonSettings);
+
+            lock (_sendLock)
+            {
+                foreach (var deviceUid in deviceList)
+                {
+                    var deviceTopic = $"device:{deviceUid}";
+                    _publisherSocket.SendMoreFrame(deviceTopic).SendFrame(json);
+                    _logger.LogDebug("Published SetTrackedDomains to topic '{DeviceTopic}'", deviceTopic);
+                }
+
+                if (!string.IsNullOrEmpty(userKeyField))
+                {
+                    var userTopic = $"user:{userKeyField}";
+                    _publisherSocket.SendMoreFrame(userTopic).SendFrame(json);
+                    _logger.LogDebug("Published SetTrackedDomains to topic '{UserTopic}'", userTopic);
+                }
+            }
+
+            _logger.LogInformation(
+                "[NotificationPublisher] SetTrackedDomains published: {DomainCount} domain(s) to {DeviceCount} device(s), user={UserKey}",
+                evt.TrackedDomains?.Count ?? 0, deviceList.Count, userKeyField);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error publishing SetTrackedDomains notification");
+        }
+    }
+
     public virtual void PublishImmediateDangerEvent(string? deviceUid, string? userKeyField, ImmediateDangerEvent? immediateDangerEvent)
     {
         if (!_isRunning || immediateDangerEvent == null)
