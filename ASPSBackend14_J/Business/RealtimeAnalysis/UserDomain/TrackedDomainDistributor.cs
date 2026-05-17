@@ -1,4 +1,5 @@
 using Business.DomainEvents;
+using Common.Enums;
 
 namespace Business.RealtimeAnalysis.UserDomain;
 
@@ -89,19 +90,22 @@ public class TrackedDomainDistributor
     }
 
     /// <summary>
-    /// Determine track mode based on risk score
+    /// Determine track mode based on risk score.
+    /// Maps to the canonical Common.Enums.TrackMode (extension-facing):
+    ///   • risk ≥ 60  → Click  (aggressive — TrackUrlAlert on every navigation)
+    ///   • risk ≥ 40  → Surf   (passive — UrlAlert once per domain)
+    ///   • otherwise  → None   (below the tracking threshold)
+    /// The 40 floor aligns with ProtectiveActionsFactory's trackUrlThreshold.
     /// </summary>
     /// <param name="riskScore">Risk score (0-100)</param>
     /// <returns>Appropriate track mode</returns>
     public TrackMode DetermineTrackMode(double riskScore)
     {
-        if (riskScore >= 80)
-            return TrackMode.Block;
         if (riskScore >= 60)
-            return TrackMode.HighAlert;
+            return TrackMode.Click;
         if (riskScore >= 40)
-            return TrackMode.Warn;
-        return TrackMode.Monitor;
+            return TrackMode.Surf;
+        return TrackMode.None;
     }
 
     /// <summary>

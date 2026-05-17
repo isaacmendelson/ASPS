@@ -1,3 +1,5 @@
+using Common.Enums;
+
 namespace Business.RealtimeAnalysis.UserDomain;
 
 /// <summary>
@@ -34,16 +36,12 @@ public class TrackedDomainCommand
     }
 }
 
-/// <summary>
-/// Tracking mode for domain monitoring
-/// </summary>
-public enum TrackMode
-{
-    Monitor = 0,
-    Warn = 1,
-    Block = 2,
-    HighAlert = 3
-}
+// NOTE: The TrackMode enum is intentionally NOT redefined here.
+// The single source of truth is Common.Enums.TrackMode (None=0, Surf=1,
+// Click=2) which mirrors the Chrome extension's TrackMode. A second
+// divergent enum used to live here (Monitor/Warn/Block/HighAlert) and
+// caused a silent serialization mismatch when SetTrackedDomains reached
+// the extension. Do not reintroduce a local TrackMode.
 
 /// <summary>
 /// Type of report to generate
