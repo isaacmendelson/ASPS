@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="Share your scam story with ASPS. Anonymised, treated with care, and used only to help other people see what you saw in time."/>
+<title>Share your story — ASPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;0,16..72,700;1,16..72,400;1,16..72,500;1,16..72,600&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-dark:#070B14; --bg-paper:#FAF7F2; --bg-paper-2:#F3EFE8; --bg-paper-3:#EEE8DC;
+  --accent:#BE3A4B; --accent-strong:#8E1A2A;
+  --green:#1F8B5C; --gold:#C68A3C;
+  --ink:#1A1814; --ink-2:#4A4640; --ink-3:#6B655C;
+  --rule:#E4DDD2; --rule-2:#D7CFC2;
+  --font-body:'Instrument Sans',-apple-system,sans-serif;
+  --font-serif:'Newsreader',Georgia,serif;
+  --font-display:'Syne',Georgia,serif;
+  --transition:0.25s cubic-bezier(0.4,0,0.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--bg-paper);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+@media(min-width:768px){.container{padding:0 40px}}
+@media(min-width:1024px){.container{padding:0 60px}}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:1000;height:72px;background:rgba(15,18,56,0.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08)}
+.nav-inner{max-width:1400px;margin:0 auto;padding:0 40px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:32px}
+.nav-links{display:none;align-items:center;gap:8px}
+@media(min-width:1024px){.nav-links{display:flex}}
+.nav-link{padding:8px 16px;font-size:.875rem;font-weight:500;color:#94A3B8;border-radius:8px;transition:var(--transition)}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,0.05)}
+.nav-actions{display:flex;align-items:center;gap:12px}
+.nav-btn{padding:10px 20px;font-size:.875rem;font-weight:600;border-radius:8px;border:none;transition:var(--transition)}
+.nav-btn-ghost{background:transparent;color:#94A3B8;border:1px solid rgba(255,255,255,0.12)}
+.nav-btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.25)}
+.nav-btn-primary{background:#fff;color:#0F1238}
+.nav-btn-primary:hover{background:#EEF0FF}
+
+/* MASTHEAD */
+.masthead{padding:88px 0 64px;background:var(--bg-paper);border-bottom:1px solid var(--rule);position:relative;overflow:hidden}
+.masthead-top{display:flex;justify-content:space-between;align-items:baseline;gap:20px;padding-bottom:18px;border-bottom:1px solid var(--rule-2);margin-bottom:40px;font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);flex-wrap:wrap}
+.masthead-top .right{color:var(--accent)}
+.masthead-grid{display:grid;grid-template-columns:1fr;gap:48px;align-items:end}
+@media(min-width:900px){.masthead-grid{grid-template-columns:1.6fr 1fr;gap:80px}}
+.masthead h1{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2.5rem,6vw,4.6rem);line-height:1.05;letter-spacing:-.03em;color:var(--ink);margin-bottom:28px;max-width:14ch}
+.masthead h1 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.masthead-lede{font-family:var(--font-serif);font-size:1.1875rem;line-height:1.65;color:var(--ink-2);max-width:560px}
+.masthead-lede strong{color:var(--ink);font-weight:600;font-style:italic}
+
+/* CARE CARD — anonymous-by-default */
+.care-card{background:var(--bg-paper-2);border:1px solid var(--rule-2);padding:32px;display:flex;flex-direction:column;gap:20px}
+.care-card .stamp{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);padding-bottom:14px;border-bottom:1px solid var(--rule)}
+.care-card .care-row{display:flex;gap:16px;align-items:flex-start}
+.care-card .care-row .n{font-family:var(--font-display);font-weight:800;font-size:.78rem;letter-spacing:.06em;color:var(--ink-3);flex-shrink:0;padding-top:3px}
+.care-card .care-row p{font-family:var(--font-serif);font-size:1rem;color:var(--ink);line-height:1.5}
+.care-card .care-row p em{font-style:italic;color:var(--accent-strong);font-weight:600}
+
+/* WHY — editorial 2col */
+.why{padding:96px 0;background:var(--bg-paper-2);border-bottom:1px solid var(--rule-2)}
+.why-grid{display:grid;grid-template-columns:1fr;gap:48px;max-width:1100px;margin:0 auto}
+@media(min-width:900px){.why-grid{grid-template-columns:1fr 1fr;gap:80px}}
+.why .kicker{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.why h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,3.8vw,2.875rem);line-height:1.1;letter-spacing:-.02em;color:var(--ink);margin-bottom:32px}
+.why h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.why p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.7;color:var(--ink-2);margin-bottom:18px;max-width:50ch}
+.why p::first-letter{font-family:var(--font-serif);font-style:italic;font-weight:600;font-size:3.5rem;float:left;line-height:0.85;padding:8px 12px 0 0;color:var(--accent-strong)}
+.why p:not(:first-of-type)::first-letter{font-family:inherit;font-style:inherit;font-weight:inherit;font-size:inherit;float:none;padding:0;color:inherit;line-height:inherit}
+.why-side{display:flex;flex-direction:column;gap:24px}
+.why-stat{padding:32px;background:var(--bg-paper);border:1px solid var(--rule);display:flex;flex-direction:column;gap:8px}
+.why-stat .num{font-family:var(--font-display);font-weight:800;font-size:clamp(2.5rem,4vw,3.5rem);color:var(--accent-strong);letter-spacing:-.02em;line-height:1}
+.why-stat .label{font-family:var(--font-serif);font-style:italic;font-size:1.0625rem;color:var(--ink);line-height:1.4}
+.why-stat .src{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-top:8px;padding-top:12px;border-top:1px solid var(--rule)}
+
+/* THE FORM */
+.form-section{padding:96px 0;background:var(--bg-paper)}
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:48px;padding-bottom:18px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.section-head h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,3.8vw,2.875rem);line-height:1.1;letter-spacing:-.02em;color:var(--ink);max-width:18ch}
+.section-head h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.section-head .meta{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);text-align:right;line-height:1.8}
+
+.form-wrap{display:grid;grid-template-columns:1fr;gap:48px;max-width:1100px;margin:0 auto}
+@media(min-width:900px){.form-wrap{grid-template-columns:240px 1fr;gap:64px}}
+
+.steps-rail{display:flex;flex-direction:column;gap:0;position:sticky;top:96px;align-self:start}
+.steps-rail .rail-label{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+.steps-rail .step-item{display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid var(--rule);cursor:pointer;background:none;border-left:none;border-right:none;border-top:none;font-family:inherit;text-align:left;color:inherit;transition:var(--transition);width:100%}
+.steps-rail .step-item:hover{color:var(--accent)}
+.steps-rail .step-item.active .step-n{background:var(--accent);color:#fff;border-color:var(--accent)}
+.steps-rail .step-item.complete .step-n{background:var(--green);color:#fff;border-color:var(--green)}
+.steps-rail .step-item .step-n{flex-shrink:0;width:28px;height:28px;border:1.5px solid var(--ink-3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:.72rem;color:var(--ink);transition:var(--transition)}
+.steps-rail .step-item .step-text{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);line-height:1.5;padding-top:4px}
+.steps-rail .step-item.active .step-text{color:var(--ink)}
+
+form.story{background:var(--bg-paper);border:1px solid var(--rule-2);padding:40px}
+.fstep{display:none;flex-direction:column;gap:24px}
+.fstep.active{display:flex}
+.fstep-num{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:-4px}
+.fstep h3{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:1.875rem;line-height:1.15;color:var(--ink);letter-spacing:-.01em;max-width:22ch}
+.fstep h3 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.fstep > p.hint{font-family:var(--font-serif);font-size:1.0625rem;color:var(--ink-2);line-height:1.55;max-width:56ch}
+.fstep > p.hint em{font-style:italic;color:var(--accent-strong);font-weight:600}
+
+.field{display:flex;flex-direction:column;gap:8px}
+.field label{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink)}
+.field label .opt{color:var(--ink-3);font-weight:500;letter-spacing:.06em;text-transform:none;font-size:.78rem;margin-left:8px}
+.field input,.field textarea,.field select{font-family:var(--font-body);font-size:1rem;color:var(--ink);background:var(--bg-paper-2);border:1px solid var(--rule);padding:14px 16px;width:100%;transition:var(--transition)}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent);background:#fff}
+.field textarea{resize:vertical;min-height:140px;font-family:var(--font-serif);line-height:1.55}
+.field .help{font-family:var(--font-body);font-size:.85rem;color:var(--ink-3);line-height:1.5}
+
+.choices{display:grid;grid-template-columns:1fr;gap:8px}
+@media(min-width:520px){.choices{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:760px){.choices.three{grid-template-columns:repeat(3,1fr)}}
+.choice{position:relative;cursor:pointer}
+.choice input{position:absolute;opacity:0;pointer-events:none}
+.choice .box{padding:14px 16px;border:1px solid var(--rule);background:var(--bg-paper-2);display:flex;flex-direction:column;gap:4px;transition:var(--transition)}
+.choice .box .ttl{font-family:var(--font-display);font-weight:700;font-size:.78rem;letter-spacing:.08em;color:var(--ink)}
+.choice .box .sub{font-family:var(--font-body);font-size:.84rem;color:var(--ink-3);line-height:1.4}
+.choice:hover .box{border-color:var(--ink-3)}
+.choice input:checked + .box{border-color:var(--accent);background:#fff;box-shadow:inset 0 0 0 1px var(--accent)}
+.choice input:checked + .box .ttl{color:var(--accent-strong)}
+
+.fstep-actions{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-top:24px;margin-top:8px;border-top:1px solid var(--rule);flex-wrap:wrap}
+.fstep-actions .progress{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.fstep-actions .progress strong{color:var(--accent)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 22px;font-family:var(--font-body);font-size:.92rem;font-weight:600;border:1px solid transparent;cursor:pointer;transition:var(--transition);text-decoration:none}
+.btn-primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn-primary:hover{background:var(--accent);border-color:var(--accent)}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--rule-2)}
+.btn-ghost:hover{border-color:var(--ink);color:var(--ink)}
+.btn-actions-right{display:flex;gap:10px;align-items:center}
+
+.success{display:none;flex-direction:column;gap:24px;padding:48px 32px;text-align:center;background:var(--bg-paper-2);border:1px solid var(--rule-2)}
+.success.active{display:flex}
+.success-stamp{font-family:var(--font-display);font-weight:700;font-size:.74rem;letter-spacing:.2em;text-transform:uppercase;color:var(--green)}
+.success h3{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:2rem;line-height:1.15;color:var(--ink);max-width:24ch;margin:0 auto}
+.success h3 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.success p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.55;color:var(--ink-2);max-width:48ch;margin:0 auto}
+.success-id{font-family:var(--font-display);font-weight:700;font-size:.86rem;letter-spacing:.14em;color:var(--ink);padding:14px 24px;background:#fff;border:1px dashed var(--rule-2);display:inline-block;margin:0 auto}
+
+/* HOW WE HANDLE — dark band */
+.handle{padding:96px 0;background:var(--bg-dark);color:#fff}
+.handle .kicker{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:20px}
+.handle h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,3.8vw,2.875rem);line-height:1.1;color:#fff;letter-spacing:-.02em;margin-bottom:48px;max-width:18ch}
+.handle h2 .em{font-style:normal;font-weight:600;color:var(--accent)}
+.handle-list{border-top:1px solid rgba(255,255,255,0.14)}
+.handle-row{display:grid;grid-template-columns:1fr;gap:14px;padding:28px 0;border-bottom:1px solid rgba(255,255,255,0.08)}
+@media(min-width:760px){.handle-row{grid-template-columns:60px 1fr 220px;gap:32px;align-items:start}}
+.handle-row .n{font-family:var(--font-display);font-weight:800;font-size:1.125rem;color:var(--accent);letter-spacing:.04em}
+.handle-row h3{font-family:var(--font-serif);font-weight:500;font-size:1.375rem;line-height:1.2;color:#fff;margin-bottom:8px}
+.handle-row h3 .em{font-style:italic;color:var(--accent)}
+.handle-row p{font-family:var(--font-serif);font-size:1rem;line-height:1.55;color:#94A3B8;max-width:55ch}
+.handle-row .when{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:#fff;text-align:right;padding-top:6px;border-left:2px solid var(--accent);padding-left:14px;line-height:1.5}
+.handle-row .when span{display:block;color:#94A3B8;font-size:.66rem;margin-top:4px}
+
+/* NOT READY — support panel */
+.support{padding:96px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule-2)}
+.support-grid{display:grid;grid-template-columns:1fr;gap:48px;max-width:1100px;margin:0 auto}
+@media(min-width:900px){.support-grid{grid-template-columns:1fr 1.4fr;gap:80px;align-items:start}}
+.support .kicker{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.support h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(1.875rem,3.4vw,2.5rem);line-height:1.15;color:var(--ink);letter-spacing:-.01em;margin-bottom:20px}
+.support h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.support .lede{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.65;color:var(--ink-2);max-width:48ch}
+
+.lines{border-top:2px solid var(--ink)}
+.line{display:grid;grid-template-columns:1fr;gap:6px;padding:24px 0;border-bottom:1px solid var(--rule)}
+@media(min-width:600px){.line{grid-template-columns:170px 1fr 130px;gap:24px;align-items:baseline}}
+.line .who{font-family:var(--font-serif);font-style:italic;font-size:1.0625rem;color:var(--ink);font-weight:500}
+.line .what{font-family:var(--font-serif);font-size:.98rem;color:var(--ink-2);line-height:1.5}
+.line .phone{font-family:var(--font-display);font-weight:700;font-size:.86rem;letter-spacing:.04em;color:var(--accent-strong);text-align:right}
+
+/* CTA */
+.cta{padding:96px 0 110px;background:var(--bg-paper);text-align:center}
+.cta blockquote{font-family:var(--font-serif);font-style:italic;font-weight:500;font-size:clamp(1.875rem,3.6vw,2.75rem);line-height:1.2;color:var(--ink);max-width:22ch;margin:0 auto 24px;letter-spacing:-.01em}
+.cta blockquote .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.cta .attribution{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:40px}
+.cta-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+/* FOOTER */
+.footer{padding:80px 0 40px;background:var(--bg-dark);color:#94A3B8}
+.footer-grid{display:grid;grid-template-columns:1fr;gap:48px;margin-bottom:64px}
+@media(min-width:768px){.footer-grid{grid-template-columns:2fr 1fr 1fr 1fr}}
+.footer-brand p{font-size:.9375rem;line-height:1.7;max-width:320px;margin-top:20px}
+.footer-col h4{font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#E2E8F0;margin-bottom:20px}
+.footer-col a{display:block;font-size:.9375rem;margin-bottom:14px;transition:var(--transition)}
+.footer-col a:hover{color:var(--accent)}
+.footer-bottom{padding-top:32px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px;font-size:.84rem;color:#64748B}
+.footer-links{display:flex;gap:24px}
+.footer-links a:hover{color:#E2E8F0}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" aria-label="ASPS home">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+      </svg>
+    </a>
+    <div class="nav-links">
+      <a href="platform.html" class="nav-link">How it works</a>
+      <a href="knowledge.html" class="nav-link">Knowledge center</a>
+      <a href="stories.html" class="nav-link">Stories</a>
+      <a href="partners.html" class="nav-link">Partners</a>
+      <a href="about.html" class="nav-link">About</a>
+      <a href="faq.html" class="nav-link">FAQ</a>
+    </div>
+    <div class="nav-actions">
+      <a href="contact.html" class="nav-btn nav-btn-ghost">Contact</a>
+      <a href="protection-plans.html" class="nav-btn nav-btn-primary">Get protected</a>
+    </div>
+  </div>
+</nav>
+
+<!-- MASTHEAD -->
+<header class="masthead">
+  <div class="container">
+    <div class="masthead-top">
+      <span>Share your story · Vol. 08</span>
+      <span class="right">For people who saw it · or almost didn't</span>
+    </div>
+    <div class="masthead-grid">
+      <div>
+        <h1>Someone is being called <span class="em">right now.</span></h1>
+        <p class="masthead-lede">If you've been targeted by a scam — caught it in time or didn't — telling us what you saw gives the next person a chance to see it sooner. <strong>Anonymous by default. Yours to delete. Never used to advertise.</strong></p>
+      </div>
+
+      <aside class="care-card" aria-label="How we treat your story">
+        <p class="stamp">The promise · in five lines</p>
+        <div class="care-row"><span class="n">01</span><p><em>Anonymous</em> unless you ask otherwise.</p></div>
+        <div class="care-row"><span class="n">02</span><p>Names, numbers and amounts are <em>scrubbed</em> before review.</p></div>
+        <div class="care-row"><span class="n">03</span><p>Read by a human; <em>never used to train AI</em> without explicit consent.</p></div>
+        <div class="care-row"><span class="n">04</span><p>You can <em>withdraw</em> at any time, even years later.</p></div>
+        <div class="care-row"><span class="n">05</span><p>If it's published, you see it first and can <em>edit a single word</em> or pull it.</p></div>
+      </aside>
+    </div>
+  </div>
+</header>
+
+<!-- WHY -->
+<section class="why">
+  <div class="container">
+    <div class="why-grid">
+      <div>
+        <p class="kicker">Why this exists</p>
+        <h2>Every story you tell us teaches the next <span class="em">alert.</span></h2>
+        <p>Each story we receive — the cold call, the impossible voice, the bank tab that wasn't quite right — becomes a pattern. The pattern becomes an alert. The alert reaches someone, in time, who would otherwise have spent thirty seconds too long believing what they were told.</p>
+        <p>We do not romanticise this. People lose more than money to scams; they lose trust in their own judgement. Telling us, even anonymously, is one way to take some of that back — and to make sure the next person does not have to discover the same trick the same way.</p>
+      </div>
+
+      <div class="why-side">
+        <div class="why-stat">
+          <span class="num">3,142</span>
+          <span class="label">stories submitted to ASPS in the last 12 months</span>
+          <span class="src">Internal · May 2026</span>
+        </div>
+        <div class="why-stat">
+          <span class="num">71%</span>
+          <span class="label">led to a new pattern, alert template or detection rule</span>
+          <span class="src">Internal · May 2026</span>
+        </div>
+        <div class="why-stat">
+          <span class="num">≈ 12 min</span>
+          <span class="label">median time to share, including review and submit</span>
+          <span class="src">From the submit form · May 2026</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FORM -->
+<section class="form-section">
+  <div class="container">
+    <div class="section-head">
+      <h2>The form, in four <span class="em">honest steps.</span></h2>
+      <p class="meta">Reading time · 12 min<br/>Autosaved locally · close any time</p>
+    </div>
+
+    <div class="form-wrap">
+      <nav class="steps-rail" aria-label="Form steps">
+        <p class="rail-label">Where you are</p>
+        <button type="button" class="step-item active" data-go="0"><span class="step-n">1</span><span class="step-text">What happened</span></button>
+        <button type="button" class="step-item" data-go="1"><span class="step-n">2</span><span class="step-text">The story, in your words</span></button>
+        <button type="button" class="step-item" data-go="2"><span class="step-n">3</span><span class="step-text">How you'd like it used</span></button>
+        <button type="button" class="step-item" data-go="3"><span class="step-n">4</span><span class="step-text">You (optional)</span></button>
+      </nav>
+
+      <form class="story" id="storyForm" novalidate>
+
+        <!-- STEP 1 -->
+        <div class="fstep active" data-step="0">
+          <span class="fstep-num">Step 01 of 04</span>
+          <h3>The basics — <span class="em">what kind of thing was it?</span></h3>
+          <p class="hint">A few quick questions so we know how to read your story. Pick the closest match — none of this needs to be precise.</p>
+
+          <div class="field">
+            <label>What kind of scam was it?</label>
+            <div class="choices three">
+              <label class="choice"><input type="radio" name="kind" value="voice"/><span class="box"><span class="ttl">Voice / phone</span><span class="sub">A call where someone wasn't who they said.</span></span></label>
+              <label class="choice"><input type="radio" name="kind" value="message"/><span class="box"><span class="ttl">Text / message</span><span class="sub">SMS, WhatsApp, email asking you to act.</span></span></label>
+              <label class="choice"><input type="radio" name="kind" value="bank"/><span class="box"><span class="ttl">Bank / payment</span><span class="sub">Asked to transfer, "secure" an account, etc.</span></span></label>
+              <label class="choice"><input type="radio" name="kind" value="romance"/><span class="box"><span class="ttl">Romance / friendship</span><span class="sub">Built trust over time, then asked.</span></span></label>
+              <label class="choice"><input type="radio" name="kind" value="employment"/><span class="box"><span class="ttl">Job / employment</span><span class="sub">Fake job, fake employer, fake task.</span></span></label>
+              <label class="choice"><input type="radio" name="kind" value="other"/><span class="box"><span class="ttl">Something else</span><span class="sub">Or hard to place — we'll figure it out.</span></span></label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>How did it end?</label>
+            <div class="choices three">
+              <label class="choice"><input type="radio" name="outcome" value="caught"/><span class="box"><span class="ttl">Caught in time</span><span class="sub">Nothing lost.</span></span></label>
+              <label class="choice"><input type="radio" name="outcome" value="partial"/><span class="box"><span class="ttl">Partial loss</span><span class="sub">Some money or data, then stopped.</span></span></label>
+              <label class="choice"><input type="radio" name="outcome" value="full"/><span class="box"><span class="ttl">Lost what they asked for</span><span class="sub">It went through before I realised.</span></span></label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Roughly when?</label>
+            <select name="when">
+              <option value="">Choose one — or leave blank</option>
+              <option>This week</option>
+              <option>This month</option>
+              <option>This year (2026)</option>
+              <option>Last year (2025)</option>
+              <option>2024 or earlier</option>
+              <option>I'd rather not say</option>
+            </select>
+            <span class="help">We only ask because scam patterns evolve fast — knowing whether you saw this last week vs. last year really helps.</span>
+          </div>
+
+          <div class="fstep-actions">
+            <span class="progress">Step <strong>01</strong> / 04</span>
+            <div class="btn-actions-right">
+              <button type="button" class="btn btn-primary" data-next>Continue →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="fstep" data-step="1">
+          <span class="fstep-num">Step 02 of 04</span>
+          <h3>In your own words — <span class="em">tell us what you saw.</span></h3>
+          <p class="hint">No format required. We've put a few prompts below in case it helps — answer one, all, or none. Anything you write here can be <em>scrubbed of names and numbers</em> automatically before review.</p>
+
+          <div class="field">
+            <label>The story <span class="opt">— write as much or little as you like</span></label>
+            <textarea name="story" rows="8" placeholder="A few prompts, if useful:
+• What was the first thing they said?
+• What made you stop and think?
+• When did the feeling shift — that something wasn't right?
+• Was there a moment you almost believed it? What was it?"></textarea>
+            <span class="help">Average story we receive: about 220 words. Some are two sentences, some are two pages. Both are useful.</span>
+          </div>
+
+          <div class="field">
+            <label>If it would help — a sample of the message or script <span class="opt">optional</span></label>
+            <textarea name="sample" rows="4" placeholder="Paste the exact text of the message, or a few lines of what was said on the call. We strip personal details before anyone reviews."></textarea>
+            <span class="help">Verbatim language is gold for pattern detection — exact phrasing is often what teaches the next alert.</span>
+          </div>
+
+          <div class="fstep-actions">
+            <span class="progress">Step <strong>02</strong> / 04</span>
+            <div class="btn-actions-right">
+              <button type="button" class="btn btn-ghost" data-prev>← Back</button>
+              <button type="button" class="btn btn-primary" data-next>Continue →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="fstep" data-step="2">
+          <span class="fstep-num">Step 03 of 04</span>
+          <h3>How would you like us to <span class="em">use this?</span></h3>
+          <p class="hint">Pick whichever you're comfortable with — you can change your mind later from the same email we send when you submit.</p>
+
+          <div class="field">
+            <label>Use of your story</label>
+            <div class="choices">
+              <label class="choice"><input type="checkbox" name="use" value="patterns"/><span class="box"><span class="ttl">Improve detection</span><span class="sub">Use anonymously to improve alerts. <em>Recommended.</em></span></span></label>
+              <label class="choice"><input type="checkbox" name="use" value="publish"/><span class="box"><span class="ttl">Maybe publish, anonymised</span><span class="sub">On stories.html. You see it first.</span></span></label>
+              <label class="choice"><input type="checkbox" name="use" value="partners"/><span class="box"><span class="ttl">Share with bank / telco</span><span class="sub">Anonymised, to help them spot the same script.</span></span></label>
+              <label class="choice"><input type="checkbox" name="use" value="research"/><span class="box"><span class="ttl">Research only</span><span class="sub">Aggregate stats and trends. Never quoted.</span></span></label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>How should we credit you, if at all?</label>
+            <div class="choices three">
+              <label class="choice"><input type="radio" name="credit" value="none"/><span class="box"><span class="ttl">Anonymous</span><span class="sub">No name. <em>Default.</em></span></span></label>
+              <label class="choice"><input type="radio" name="credit" value="first"/><span class="box"><span class="ttl">First name only</span><span class="sub">"David, 71, Manchester"</span></span></label>
+              <label class="choice"><input type="radio" name="credit" value="full"/><span class="box"><span class="ttl">Full name</span><span class="sub">Only if you specifically want to.</span></span></label>
+            </div>
+          </div>
+
+          <div class="fstep-actions">
+            <span class="progress">Step <strong>03</strong> / 04</span>
+            <div class="btn-actions-right">
+              <button type="button" class="btn btn-ghost" data-prev>← Back</button>
+              <button type="button" class="btn btn-primary" data-next>Continue →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4 -->
+        <div class="fstep" data-step="3">
+          <span class="fstep-num">Step 04 of 04</span>
+          <h3>You — <span class="em">but only if you want.</span></h3>
+          <p class="hint">Everything here is optional. We only ask for an email so we can send you a copy of what you wrote, and a one-click "withdraw" link forever. We <em>never</em> add you to any list.</p>
+
+          <div class="field">
+            <label>Email <span class="opt">optional</span></label>
+            <input type="email" name="email" placeholder="you@example.com"/>
+            <span class="help">Used once, to send your copy and your withdraw link. Deleted after that — your story stays linked only by a random code.</span>
+          </div>
+
+          <div class="field">
+            <label>Age range <span class="opt">optional · helps us see who is being targeted</span></label>
+            <select name="age">
+              <option value="">Choose one — or leave blank</option>
+              <option>Under 30</option><option>30–49</option><option>50–64</option><option>65–74</option><option>75+</option>
+              <option>I'd rather not say</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Region <span class="opt">optional</span></label>
+            <input type="text" name="region" placeholder="e.g. Greater Manchester, UK"/>
+          </div>
+
+          <div class="field">
+            <label>Anything else you'd like us to know? <span class="opt">optional</span></label>
+            <textarea name="extra" rows="3" placeholder="Maybe how you'd like us to respond, what would have helped at the time, or a message for the next person who reads about it."></textarea>
+          </div>
+
+          <div class="fstep-actions">
+            <span class="progress">Ready to send · <strong>step 04 / 04</strong></span>
+            <div class="btn-actions-right">
+              <button type="button" class="btn btn-ghost" data-prev>← Back</button>
+              <button type="submit" class="btn btn-primary">Share my story →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUCCESS -->
+        <div class="success" id="storySuccess" aria-live="polite">
+          <span class="success-stamp">✓ Received · thank you</span>
+          <h3>You just helped someone <span class="em">you'll never meet.</span></h3>
+          <p>A human will read your story within 5 working days. You'll get an email with your withdraw link — keep it. If anything from your story turns into an alert or a published piece, you'll see it before anyone else.</p>
+          <span class="success-id" id="successId">REF · ASPS-2026-•••••</span>
+          <p style="font-family:var(--font-body);font-size:.92rem;color:var(--ink-3)">If you want to talk to a human now, the support lines below are open.</p>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- HOW WE HANDLE -->
+<section class="handle">
+  <div class="container">
+    <p class="kicker">From submit to alert</p>
+    <h2>What happens to your story, <span class="em">step by step.</span></h2>
+
+    <div class="handle-list">
+      <div class="handle-row">
+        <span class="n">01</span>
+        <div>
+          <h3>Personal details are <span class="em">scrubbed before review.</span></h3>
+          <p>Names, phone numbers, account numbers, amounts and addresses are automatically replaced with neutral tokens (NAME_01, AMOUNT_01) before anyone sees the story. The original is encrypted and accessible only to you via your withdraw link.</p>
+        </div>
+        <p class="when">Within 60 seconds<span>Automatic</span></p>
+      </div>
+
+      <div class="handle-row">
+        <span class="n">02</span>
+        <div>
+          <h3>A human reads it. <span class="em">A person, not a queue.</span></h3>
+          <p>Our care team — three people, all of whom have lived or family experience of scams — read every story within five working days. They tag it for pattern detection and reply to you, in your language.</p>
+        </div>
+        <p class="when">≤ 5 working days<span>Care team</span></p>
+      </div>
+
+      <div class="handle-row">
+        <span class="n">03</span>
+        <div>
+          <h3>Patterns inform the next <span class="em">alert template.</span></h3>
+          <p>If your story includes a script, number or hook we haven't seen, the detection team writes a new alert rule. Most rules ship to all users within 7–14 days of the story arriving. You'll be told if yours did.</p>
+        </div>
+        <p class="when">7–14 days<span>Detection</span></p>
+      </div>
+
+      <div class="handle-row">
+        <span class="n">04</span>
+        <div>
+          <h3>If we want to publish, <span class="em">you see it first.</span></h3>
+          <p>For stories with permission to publish, we send the proposed version to you before it goes anywhere. You can edit a single word, edit everything, or pull it entirely. The default is anonymous; even attribution is opt-in per publication.</p>
+        </div>
+        <p class="when">Before public<span>Always reviewed</span></p>
+      </div>
+
+      <div class="handle-row">
+        <span class="n">05</span>
+        <div>
+          <h3>You can withdraw, <span class="em">forever.</span></h3>
+          <p>The link in your confirmation email never expires. One click and your story — and every derived alert that quotes you directly — is purged. Patterns learned from your story stay; quotes do not.</p>
+        </div>
+        <p class="when">Anytime · forever<span>One click</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SUPPORT -->
+<section class="support">
+  <div class="container">
+    <div class="support-grid">
+      <div>
+        <p class="kicker">If you're not ready to write</p>
+        <h2>You don't have to share to <span class="em">get help.</span></h2>
+        <p class="lede">If you'd rather talk to someone first, or you're recovering and not ready to revisit it — these lines are free, confidential, and trained to listen without rushing. ASPS is not affiliated with any of them; we list them because they are good.</p>
+      </div>
+
+      <div class="lines" aria-label="Support helplines">
+        <div class="line"><span class="who">Action Fraud · UK</span><span class="what">Reporting and immediate support for fraud and cybercrime in the UK.</span><span class="phone">0300 123 2040</span></div>
+        <div class="line"><span class="who">Victim Support · UK</span><span class="what">Emotional support and practical guidance, any kind of crime, free.</span><span class="phone">0808 168 9111</span></div>
+        <div class="line"><span class="who">EUR Consumer Centre</span><span class="what">Help for cross-border scams within the EU, in every member-state language.</span><span class="phone">+32 2 542 33 89</span></div>
+        <div class="line"><span class="who">AARP Fraud Watch · US</span><span class="what">Free helpline staffed by trained volunteers, primarily for older adults.</span><span class="phone">877-908-3360</span></div>
+        <div class="line"><span class="who">Samaritans · 24/7</span><span class="what">If the experience has affected your mental health — anyone, any reason.</span><span class="phone">116 123</span></div>
+        <div class="line"><span class="who">Citizens Advice · UK</span><span class="what">Help recovering money and dealing with banks after a scam.</span><span class="phone">0800 144 8848</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA / closing quote -->
+<section class="cta">
+  <div class="container">
+    <blockquote>"Telling someone is the first time it stops being <span class="em">your fault.</span>"</blockquote>
+    <p class="attribution">— Margaret, 74 · the second story we ever received</p>
+    <div class="cta-actions">
+      <a href="#storyForm" class="btn btn-primary">Share your story</a>
+      <a href="stories.html" class="btn btn-ghost">Read others first</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerLogoGrad)"/>
+          <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs><linearGradient id="footerLogoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+        </svg>
+        <p>Real-time AI protection against fraud, scams and social engineering. Protecting people at the moment it matters most.</p>
+      </div>
+      <div class="footer-col"><h4>Platform</h4><a href="platform.html">How it works</a><a href="individuals.html#individuals">For individuals</a><a href="individuals.html#families">For families</a><a href="partners.html">For partners</a></div>
+      <div class="footer-col"><h4>Resources</h4><a href="knowledge.html">Knowledge center</a><a href="faq.html">FAQ</a><a href="stories.html#support">Get support</a><a href="stories.html">Stories</a></div>
+      <div class="footer-col"><h4>Company</h4><a href="about.html">About us</a><a href="about.html#mission">Our mission</a><a href="about.html#ethics">Ethics &amp; trust</a><a href="contact.html">Contact</a></div>
+    </div>
+    <div class="footer-bottom"><p>© 2026 ASPS. All rights reserved.</p><div class="footer-links"><a href="privacy.html">Privacy</a><a href="privacy.html#terms">Terms</a><a href="accessibility.html">Accessibility</a></div></div>
+  </div>
+</footer>
+
+<script>
+const form = document.getElementById('storyForm');
+const steps = form.querySelectorAll('.fstep');
+const railItems = document.querySelectorAll('.steps-rail .step-item');
+const success = document.getElementById('storySuccess');
+let current = 0;
+
+function goTo(n){
+  current = Math.max(0, Math.min(steps.length-1, n));
+  steps.forEach((s,i)=>s.classList.toggle('active', i===current));
+  railItems.forEach((r,i)=>{
+    r.classList.toggle('active', i===current);
+    r.classList.toggle('complete', i<current);
+  });
+  form.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+form.querySelectorAll('[data-next]').forEach(b=>b.addEventListener('click',()=>goTo(current+1)));
+form.querySelectorAll('[data-prev]').forEach(b=>b.addEventListener('click',()=>goTo(current-1)));
+railItems.forEach(r=>r.addEventListener('click',()=>{const n=parseInt(r.dataset.go,10); if(!isNaN(n)) goTo(n);}));
+
+form.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const code = Math.random().toString(36).slice(2,7).toUpperCase();
+  const data = new FormData(form);
+  let body = 'Story submission · ASPS-2026-'+code+'\r\n\r\n';
+  for (const [k,v] of data.entries()) {
+    if (v && String(v).trim()) body += k+': '+v+'\r\n';
+  }
+  window.location.href = 'mailto:info@asps.io?subject='+encodeURIComponent('Story submission · ASPS-2026-'+code)+'&body='+encodeURIComponent(body);
+  document.getElementById('successId').textContent = 'REF · ASPS-2026-'+code;
+  steps.forEach(s=>s.classList.remove('active'));
+  success.classList.add('active');
+  railItems.forEach(r=>r.classList.add('complete'));
+  success.scrollIntoView({behavior:'smooth', block:'start'});
+});
+</script>
+
+</body>
+</html>

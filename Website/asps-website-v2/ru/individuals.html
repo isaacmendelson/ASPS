@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="ASPS для частных лиц и семей — защита с помощью ИИ в реальном времени от мошеннических звонков, сообщений и выдачи себя за другого. Создано для тех, кто чаще всего становится целью."/>
+<title>Для частных лиц и семей · ASPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;0,16..72,700;1,16..72,400;1,16..72,500;1,16..72,600&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-dark:#070B14; --bg-paper:#FAF7F2; --bg-paper-2:#F3EFE8;
+  --accent:#BE3A4B; --accent-strong:#8E1A2A;
+  --ink:#1A1814; --ink-2:#4A4640; --ink-3:#6B655C;
+  --rule:#E4DDD2; --rule-2:#D7CFC2;
+  --font-body:'Instrument Sans',-apple-system,sans-serif;
+  --font-serif:'Newsreader',Georgia,serif;
+  --font-display:'Syne',Georgia,serif;
+  --transition:0.25s cubic-bezier(0.4,0,0.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--bg-paper);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+@media(min-width:768px){.container{padding:0 40px}}
+@media(min-width:1024px){.container{padding:0 60px}}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:1000;height:72px;background:rgba(15,18,56,0.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08)}
+.nav-inner{max-width:1400px;margin:0 auto;padding:0 40px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:32px}
+.nav-logo{display:flex;align-items:center;flex-shrink:0}
+.nav-links{display:none;align-items:center;gap:8px}
+@media(min-width:1024px){.nav-links{display:flex}}
+.nav-link{padding:8px 16px;font-size:.875rem;font-weight:500;color:#94A3B8;border-radius:8px;transition:var(--transition)}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,0.05)}
+.nav-link.active{color:#fff;position:relative}
+.nav-link.active::after{content:'';position:absolute;left:16px;right:16px;bottom:0;height:2px;background:var(--accent)}
+.nav-actions{display:flex;align-items:center;gap:12px}
+.nav-btn{padding:10px 20px;font-size:.875rem;font-weight:600;border-radius:8px;transition:var(--transition);border:none}
+.nav-btn-ghost{background:transparent;color:#94A3B8;border:1px solid rgba(255,255,255,0.12)}
+.nav-btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.25)}
+.nav-btn-primary{background:#fff;color:#0F1238}
+.nav-btn-primary:hover{background:#EEF0FF}
+.lang-dropdown{position:relative}
+.lang-dropdown-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#E2E8F0;font-size:.8125rem;font-weight:600;cursor:pointer;transition:var(--transition)}
+.lang-dropdown-btn:hover{background:rgba(255,255,255,0.1)}
+.lang-dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:140px;padding:8px 0;background:#0F1238;border:1px solid rgba(255,255,255,0.12);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.3);opacity:0;visibility:hidden;transform:translateY(-8px);transition:var(--transition);z-index:100}
+.lang-dropdown:hover .lang-dropdown-menu,.lang-dropdown:focus-within .lang-dropdown-menu{opacity:1;visibility:visible;transform:translateY(0)}
+.lang-option{display:block;padding:10px 16px;font-size:.875rem;color:#94A3B8;transition:var(--transition)}
+.lang-option:hover{background:rgba(255,255,255,0.05);color:#fff}
+.lang-option.active{color:var(--accent);font-weight:600}
+
+/* Shared typography */
+.section-eyebrow{display:inline-flex;align-items:center;gap:14px;margin-bottom:18px;font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+.section-eyebrow.with-rule::before{content:'';width:32px;height:1px;background:var(--accent);opacity:.5}
+.section-title{font-family:var(--font-serif);font-weight:500;font-size:clamp(2rem,4vw,3rem);line-height:1.05;letter-spacing:-.025em;color:var(--ink)}
+.section-title .em{font-style:italic;font-weight:500;color:var(--accent-strong)}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 28px;font-family:var(--font-display);font-size:.84rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;border:none;transition:var(--transition);cursor:pointer}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-accent:hover{background:var(--accent-strong)}
+.btn-ink{background:transparent;color:var(--ink);border:1px solid var(--rule-2)}
+.btn-ink:hover{border-color:var(--ink)}
+.btn-ghost{background:transparent;color:#F5F0E7;border:1px solid rgba(245,240,231,0.25)}
+.btn-ghost:hover{border-color:rgba(245,240,231,0.55)}
+
+/* HERO */
+.hero{padding:100px 0 80px;background:var(--bg-paper);border-bottom:1px solid var(--rule)}
+.hero-grid{display:grid;grid-template-columns:1fr;gap:64px;align-items:center}
+@media(min-width:1024px){.hero-grid{grid-template-columns:1.2fr 1fr;gap:80px}}
+.hero-title{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2.5rem,5.5vw,4.4rem);line-height:1.05;letter-spacing:-.025em;color:var(--ink);margin-bottom:28px}
+.hero-title .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.hero-lede{font-family:var(--font-serif);font-size:1.1875rem;line-height:1.65;color:var(--ink-2);margin-bottom:36px;max-width:540px}
+.hero-cta{display:flex;flex-wrap:wrap;gap:14px}
+
+/* Phone mock card */
+.phone-card{background:#fff;border:1px solid var(--rule);padding:24px 22px 22px;position:relative;box-shadow:0 1px 0 var(--rule),0 24px 60px -28px rgba(26,24,20,.25);max-width:380px;margin:0 auto}
+.phone-card::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:4px;background:var(--accent)}
+.phone-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;margin-bottom:18px;border-bottom:1px solid var(--rule);font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase}
+.phone-head .live{display:flex;align-items:center;gap:8px;color:var(--accent)}
+.phone-head .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:dotPulse 1.6s ease-in-out infinite}
+@keyframes dotPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+.phone-head .time{color:var(--ink-3);font-weight:600}
+.phone-caller{font-family:var(--font-display);font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
+.phone-name{font-family:var(--font-serif);font-weight:600;font-size:1.5rem;color:var(--ink);margin-bottom:18px;padding-bottom:18px;border-bottom:1px dashed var(--rule-2)}
+.phone-verdict{font-family:var(--font-serif);font-style:italic;font-size:1.125rem;line-height:1.45;color:var(--ink);margin-bottom:20px}
+.phone-verdict strong{font-style:normal;color:var(--accent-strong);font-weight:600}
+.phone-bits{display:grid;grid-template-columns:auto 1fr;gap:10px 14px;font-size:.86rem;margin-bottom:20px}
+.phone-bits dt{font-family:var(--font-display);font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);padding-top:3px}
+.phone-bits dd{color:var(--ink);line-height:1.45}
+.phone-bits dd strong{color:var(--accent-strong);font-weight:600}
+.phone-actions{display:flex;gap:10px}
+.phone-btn{flex:1;padding:11px 12px;font-family:var(--font-display);font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--rule-2);background:transparent;color:var(--ink);cursor:pointer}
+.phone-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* WHO IS THIS FOR — split */
+.who{padding:100px 0;background:var(--bg-paper)}
+.who-grid{display:grid;grid-template-columns:1fr;gap:56px}
+@media(min-width:900px){.who-grid{grid-template-columns:5fr 7fr;gap:96px}}
+.who-meta{position:sticky;top:100px;align-self:start}
+.who-meta .section-title{margin-bottom:20px}
+.who-meta-note{font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);padding-top:18px;border-top:1px solid var(--rule);margin-top:24px}
+.who-body p{font-family:var(--font-serif);font-size:1.1875rem;line-height:1.6;color:var(--ink);margin-bottom:24px}
+.who-body p.lead{font-size:1.5rem;line-height:1.4;font-weight:500;padding-bottom:32px;margin-bottom:32px;border-bottom:1px solid var(--rule)}
+.who-body em{font-style:normal;color:var(--accent-strong);font-weight:600}
+
+/* AUDIENCE — two doors */
+.doors{padding:110px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule-2);border-bottom:1px solid var(--rule-2)}
+.doors-head{max-width:720px;margin-bottom:56px}
+.doors-head p{margin-top:16px;font-family:var(--font-serif);font-size:1.125rem;line-height:1.65;color:var(--ink-2)}
+.doors-grid{display:grid;grid-template-columns:1fr;gap:32px}
+@media(min-width:900px){.doors-grid{grid-template-columns:1fr 1fr;gap:40px}}
+.door{background:#fff;border:1px solid var(--rule);padding:40px 36px 36px;position:relative;display:flex;flex-direction:column}
+.door::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:3px;background:var(--accent)}
+.door-tag{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.door h3{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:2rem;line-height:1.1;color:var(--ink);margin-bottom:16px;letter-spacing:-.01em}
+.door h3 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.door-lede{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.6;color:var(--ink-2);margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--rule)}
+.door-list{list-style:none;display:flex;flex-direction:column;gap:12px;margin-bottom:28px}
+.door-list li{font-size:.95rem;color:var(--ink);padding-left:20px;position:relative;line-height:1.55}
+.door-list li::before{content:'';position:absolute;left:0;top:.65em;width:10px;height:1px;background:var(--accent)}
+.door-list li strong{color:var(--accent-strong);font-weight:600}
+.door-foot{margin-top:auto;padding-top:20px;border-top:1px dashed var(--rule-2);font-family:var(--font-display);font-size:.68rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);display:flex;justify-content:space-between;align-items:center;gap:14px}
+.door-foot a{color:var(--accent);transition:var(--transition)}
+.door-foot a:hover{color:var(--accent-strong)}
+.door-foot a::after{content:' →';font-family:var(--font-body)}
+
+/* PROTECTS — channels (dark band) */
+.protects{background:var(--ink);color:#F5F0E7;padding:110px 0;position:relative;overflow:hidden}
+.protects::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 20% 30%,rgba(190,58,75,.18),transparent 50%),radial-gradient(circle at 80% 80%,rgba(190,58,75,.10),transparent 50%);pointer-events:none}
+.protects-inner{position:relative;max-width:1320px;margin:0 auto;padding:0 40px}
+.protects-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:56px;padding-bottom:24px;border-bottom:1px solid rgba(245,240,231,0.12);flex-wrap:wrap}
+.protects-head .section-title{color:#fff;max-width:640px}
+.protects-head-meta{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:#A19888;padding-bottom:6px}
+.protects-grid{display:grid;grid-template-columns:1fr}
+@media(min-width:700px){.protects-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1024px){.protects-grid{grid-template-columns:repeat(4,1fr)}}
+.protect{padding:36px 28px 36px 0;border-top:1px solid rgba(245,240,231,0.12)}
+@media(min-width:1024px){.protect{padding:0 32px;border-top:none}.protect+.protect{border-left:1px solid rgba(245,240,231,0.12)}.protect:first-child{padding-left:0}}
+.protect-tag{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.protect-title{font-family:var(--font-serif);font-weight:600;font-size:1.5rem;line-height:1.2;color:#fff;margin-bottom:12px}
+.protect-body{font-family:var(--font-serif);font-size:1rem;line-height:1.6;color:#D6CDBE}
+
+/* HOW IT FEELS — three vignettes */
+.feel{padding:110px 0;background:var(--bg-paper);border-bottom:1px solid var(--rule)}
+.feel-head{max-width:720px;margin-bottom:56px}
+.feel-head p{margin-top:16px;font-family:var(--font-serif);font-size:1.125rem;line-height:1.65;color:var(--ink-2)}
+.feel-grid{display:grid;grid-template-columns:1fr;gap:0;border-top:1px solid var(--rule)}
+.feel-row{display:grid;grid-template-columns:1fr;gap:18px;padding:36px 0;border-bottom:1px solid var(--rule)}
+@media(min-width:800px){.feel-row{grid-template-columns:80px 220px 1fr;gap:40px;align-items:start}}
+.feel-num{font-family:var(--font-display);font-weight:700;font-size:.78rem;letter-spacing:.16em;color:var(--accent);padding-top:4px}
+.feel-num::before{content:'01 /';margin-right:4px}
+.feel-row:nth-child(2) .feel-num::before{content:'02 /'}
+.feel-row:nth-child(3) .feel-num::before{content:'03 /'}
+.feel-when{font-family:var(--font-display);font-weight:700;font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.feel-row h3{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:1.5rem;line-height:1.2;color:var(--ink);margin-bottom:10px}
+.feel-row h3 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.feel-row p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.6;color:var(--ink-2)}
+.feel-row p+p{margin-top:10px;color:var(--ink-3);font-size:.95rem;font-family:var(--font-body);line-height:1.55}
+
+/* PRICING */
+.pricing{padding:110px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule-2);border-bottom:1px solid var(--rule-2)}
+.pricing-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:48px;padding-bottom:24px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.pricing-head-meta{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);padding-bottom:6px}
+.tiers{display:grid;grid-template-columns:1fr;gap:24px}
+@media(min-width:800px){.tiers{grid-template-columns:repeat(3,1fr)}}
+.tier{background:#fff;border:1px solid var(--rule);padding:32px 28px 32px;position:relative;display:flex;flex-direction:column}
+.tier.featured{border-color:var(--accent);box-shadow:0 24px 60px -28px rgba(190,58,75,.25)}
+.tier.featured::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:3px;background:var(--accent)}
+.tier-flag{position:absolute;top:-12px;left:24px;padding:5px 10px;background:var(--accent);color:#fff;font-family:var(--font-display);font-weight:700;font-size:.62rem;letter-spacing:.16em;text-transform:uppercase}
+.tier-name{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.tier-price{font-family:var(--font-serif);font-weight:500;font-size:2.4rem;line-height:1;color:var(--ink);margin-bottom:6px;letter-spacing:-.02em}
+.tier-price small{font-size:.95rem;color:var(--ink-3);font-weight:400;margin-left:6px}
+.tier-blurb{font-family:var(--font-serif);font-size:.95rem;line-height:1.5;color:var(--ink-2);padding-bottom:20px;margin-bottom:20px;border-bottom:1px solid var(--rule)}
+.tier-list{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:24px;flex-grow:1}
+.tier-list li{font-size:.92rem;color:var(--ink);padding-left:18px;position:relative;line-height:1.5}
+.tier-list li::before{content:'';position:absolute;left:0;top:.62em;width:8px;height:1px;background:var(--accent)}
+.tier-btn{display:block;text-align:center;padding:12px 18px;font-family:var(--font-display);font-size:.74rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--ink);color:var(--ink);background:transparent;transition:var(--transition)}
+.tier-btn:hover{background:var(--ink);color:#fff}
+.tier-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.tier-btn.primary:hover{background:var(--accent-strong);border-color:var(--accent-strong)}
+
+/* FAQ */
+.faq{padding:110px 0;background:var(--bg-paper)}
+.faq-head{max-width:720px;margin-bottom:48px}
+.faq-list{list-style:none}
+.faq-list>li{border-top:1px solid var(--rule);padding:0}
+.faq-list>li:last-child{border-bottom:1px solid var(--rule)}
+.faq-list details{padding:24px 0}
+.faq-list summary{cursor:pointer;display:flex;justify-content:space-between;align-items:baseline;gap:18px;list-style:none;font-family:var(--font-serif);font-weight:500;font-size:1.25rem;line-height:1.3;color:var(--ink);transition:var(--transition)}
+.faq-list summary::-webkit-details-marker{display:none}
+.faq-list summary:hover{color:var(--accent-strong)}
+.faq-list summary::after{content:'+';font-family:var(--font-display);font-weight:400;font-size:1.5rem;color:var(--accent);flex-shrink:0;transition:var(--transition)}
+.faq-list details[open] summary::after{content:'−'}
+.faq-list details p{margin-top:16px;font-family:var(--font-serif);font-size:1.0625rem;line-height:1.65;color:var(--ink-2);max-width:780px}
+
+/* PULL QUOTE */
+.pullquote-section{padding:100px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule)}
+.pullquote{max-width:980px;margin:0 auto;text-align:center}
+.pullquote::before{content:'';display:block;width:64px;height:2px;background:var(--accent);margin:0 auto 32px}
+.pullquote-text{font-family:var(--font-serif);font-style:italic;font-weight:400;font-size:clamp(1.5rem,3.5vw,2.5rem);line-height:1.25;letter-spacing:-.015em;color:var(--ink)}
+.pullquote-text strong{font-weight:600;font-style:normal;background:linear-gradient(180deg,transparent 62%,rgba(190,58,75,.18) 62%,rgba(190,58,75,.18) 92%,transparent 92%);padding:0 .08em}
+.pullquote-cite{display:block;margin-top:28px;font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+
+/* CTA */
+.cta{padding:110px 0;background:var(--ink);color:#F5F0E7;text-align:center;position:relative;overflow:hidden}
+.cta::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 50% 0%,rgba(190,58,75,.20),transparent 60%);pointer-events:none}
+.cta-inner{max-width:760px;margin:0 auto;position:relative}
+.cta-eyebrow{display:inline-block;margin-bottom:24px;font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+.cta h2{font-family:var(--font-serif);font-style:italic;font-weight:400;font-size:clamp(2rem,4.5vw,3.25rem);line-height:1.1;letter-spacing:-.025em;color:#fff;margin-bottom:24px}
+.cta h2 .em{font-style:normal;font-weight:600;color:var(--accent)}
+.cta p{font-family:var(--font-serif);font-size:1.1875rem;line-height:1.65;color:#D6CDBE;margin-bottom:40px}
+.cta-buttons{display:flex;flex-wrap:wrap;justify-content:center;gap:14px}
+
+/* FOOTER */
+.footer{padding:80px 0 40px;background:var(--bg-dark);color:#94A3B8}
+.footer-grid{display:grid;grid-template-columns:1fr;gap:48px;margin-bottom:64px}
+@media(min-width:768px){.footer-grid{grid-template-columns:2fr 1fr 1fr 1fr}}
+.footer-brand p{font-size:.9375rem;line-height:1.7;max-width:320px;margin-top:20px}
+.footer-col h4{font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#E2E8F0;margin-bottom:20px}
+.footer-col a{display:block;font-size:.9375rem;margin-bottom:14px;transition:var(--transition)}
+.footer-col a:hover{color:var(--accent)}
+.footer-bottom{padding-top:32px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px;font-size:.84rem;color:#64748B}
+.footer-links{display:flex;gap:24px}
+.footer-links a:hover{color:#E2E8F0}
+
+.door-talk { color: var(--accent); font-weight: 600; transition: var(--transition); }
+.door-talk:hover { color: var(--accent-strong); }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo" aria-label="Главная ASPS">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C" opacity="0.4"><animate attributeName="r" values="4;8;4" dur="2.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.4;0;0.4" dur="2.5s" repeatCount="indefinite"/></circle>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+      </svg>
+    </a>
+    <div class="nav-links">
+      <a href="index.html#epidemic" class="nav-link">Угроза</a>
+      <a href="platform.html" class="nav-link">Как это работает</a>
+      <a href="knowledge.html" class="nav-link">Центр знаний</a>
+      <a href="stories.html" class="nav-link">Истории</a>
+      <a href="partners.html" class="nav-link">Партнёры</a>
+      <a href="about.html" class="nav-link">О нас</a>
+    </div>
+    <div class="nav-actions">
+      <div class="lang-dropdown">
+        <button class="lang-dropdown-btn" aria-label="Выбрать язык"><span>RU</span><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l4 4 4-4"/></svg></button>
+        <div class="lang-dropdown-menu">
+          <a href="../individuals.html" class="lang-option">English</a>
+          <a href="../he/individuals.html" class="lang-option">עברית</a>
+          <a href="../fr/individuals.html" class="lang-option">Français</a>
+          <span class="lang-option active">Русский</span>
+          <a href="../es/individuals.html" class="lang-option">Español</a>
+        </div>
+      </div>
+      <a href="contact.html" class="nav-btn nav-btn-ghost">Контакты</a>
+      <a href="protection-plans.html" class="nav-btn nav-btn-primary">Защититься</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="individuals">
+  <div class="container">
+    <div class="hero-grid">
+      <div>
+        <span class="section-eyebrow with-rule">Для вас и вашей семьи</span>
+        <h1 class="hero-title">Защита, которая берёт трубку <span class="em">раньше вас.</span></h1>
+        <p class="hero-lede">Вторая пара ушей на каждом звонке. Вторая пара глаз на каждом сообщении. Создано для тех, кто чаще всего становится целью — и для членов семьи, которые за них переживают.</p>
+        <div class="hero-cta">
+          <a href="protection-plans.html" class="btn btn-accent">Защититься
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+          <a href="#feel" class="btn btn-ink">Посмотреть, как это ощущается</a>
+        </div>
+      </div>
+
+      <aside class="phone-card" aria-label="Пример оповещения о звонке в реальном времени">
+        <div style="display:inline-block;margin-bottom:14px;padding:5px 10px;border:1px solid var(--accent);border-radius:3px;font-family:var(--font-display);font-weight:700;font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);background:rgba(190,58,75,.06)">Иллюстративный пример</div>
+        <div class="phone-head">
+          <span class="live"><span class="dot"></span>Входящий звонок</span>
+          <span class="time">00:09</span>
+        </div>
+        <p class="phone-caller">Идентификатор вызывающего сообщает</p>
+        <p class="phone-name">«Мама»</p>
+        <p class="phone-verdict">Голос <strong>не совпадает с предыдущими звонками мамы</strong>. Вероятно, клон ИИ.</p>
+        <dl class="phone-bits">
+          <dt>Голос</dt><dd><strong>94% синтетический</strong></dd>
+          <dt>Номер</dt><dd>Неизвестен · нет в контактах</dd>
+          <dt>Шаблон</dt><dd>Срочность + просьба о деньгах</dd>
+        </dl>
+        <div class="phone-actions">
+          <button class="phone-btn primary" type="button">Завершить звонок</button>
+          <button class="phone-btn" type="button">Перезвонить маме</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- WHO IS THIS FOR -->
+<section class="who">
+  <div class="container">
+    <div class="who-grid">
+      <div class="who-meta">
+        <span class="section-eyebrow">Для кого это</span>
+        <h2 class="section-title">Если вы когда-либо чувствовали панику — это для вас.</h2>
+        <p class="who-meta-note">Для частных лиц · Для семей · Для опекунов</p>
+      </div>
+      <div class="who-body">
+        <p class="lead">Самый дорогой момент в мошенничестве — не перевод, а тридцать секунд до него, когда трезвомыслящего человека подводят к решению, которое он обычно никогда бы не принял.</p>
+        <p>Вы не слабое звено. Вас атакует сценарий, который сработал на тысячах людей, не считающих себя доверчивыми — потому что дело не в доверчивости, а в <em>времени, давлении и страхе</em>.</p>
+        <p>ASPS находится рядом с вами в этот момент. Не блокирует, не решает — просто показывает вам, что на самом деле на другом конце линии, и возвращает секунды, чтобы выбрать.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TWO DOORS — individuals / families -->
+<section class="doors" id="families">
+  <div class="container">
+    <div class="doors-head">
+      <span class="section-eyebrow with-rule">Два пути входа</span>
+      <h2 class="section-title">Для себя или для того, кого вы любите.</h2>
+      <p>Та же защита, настроенная двумя разными способами в зависимости от того, за кого вы беспокоитесь сегодня.</p>
+    </div>
+
+    <div class="doors-grid">
+      <article class="door">
+        <p class="door-tag">Для себя</p>
+        <h3>Защитите <span class="em">свою собственную линию.</span></h3>
+        <p class="door-lede">Звонки, сообщения, письма и сайты, по которым вы кликаете. Один слой на всём, что доходит до вас, тихо работающий, пока что-то не пойдёт не так.</p>
+        <ul class="door-list">
+          <li>Распознавание голоса ИИ в реальном времени на каждом звонке</li>
+          <li>Проверка SMS, WhatsApp и электронной почты</li>
+          <li><strong>Объяснимые оповещения</strong> — никогда не чёрный ящик</li>
+          <li>Безопасные действия в одно касание: завершить звонок, заморозить транзакцию</li>
+          <li>Приватно по умолчанию — ваши данные, ваше устройство в первую очередь</li>
+        </ul>
+        <div class="door-foot">
+          <span>Частное лицо · От €4.90 / мес</span>
+          <a href="#pricing">Посмотреть тарифы</a>
+          <a href="contact.html?subject=individual" class="door-talk">Связаться с нами →</a>
+        </div>
+      </article>
+
+      <article class="door">
+        <p class="door-tag">Для вашей семьи</p>
+        <h3>Распространите это на <span class="em">людей, за которых вы беспокоитесь.</span></h3>
+        <p class="door-lede">Родители, бабушки и дедушки, дети. Та же защита, но с вашим участием — по согласию, всегда видимая, никогда не тайная слежка.</p>
+        <ul class="door-list">
+          <li>До 6 членов семьи в одном тарифе</li>
+          <li>Вы получаете оповещение, когда оповещён <strong>их</strong> телефон</li>
+          <li>Проверка по кодовому слову, о котором вы можете договориться вместе</li>
+          <li>Упрощённый интерфейс для нетехнических пользователей</li>
+          <li>Сначала согласие — ваш родственник устанавливает и одобряет</li>
+        </ul>
+        <div class="door-foot">
+          <span>Семья · От €9.90 / мес</span>
+          <a href="#pricing">Посмотреть тарифы</a>
+          <a href="contact.html?subject=family" class="door-talk">Связаться с нами →</a>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- PROTECTS — channels -->
+<section class="protects">
+  <div class="protects-inner">
+    <div class="protects-head">
+      <div>
+        <span class="section-eyebrow">Что это защищает</span>
+        <h2 class="section-title">Везде, где мошенник может вас достать.</h2>
+      </div>
+      <span class="protects-head-meta">Четыре поверхности · Один тихий слой</span>
+    </div>
+    <div class="protects-grid">
+      <div class="protect"><p class="protect-tag">01 / Звонки</p><h3 class="protect-title">Телефонные звонки</h3><p class="protect-body">Анализ голоса в реальном времени помечает голоса, клонированные ИИ, имитаторов и сценарии давления — пока идёт звонок.</p></div>
+      <div class="protect"><p class="protect-tag">02 / Сообщения</p><h3 class="protect-title">Текст и чат</h3><p class="protect-body">SMS, WhatsApp и мессенджеры сканируются на фишинговые ссылки, шаблоны срочности и поддельных отправителей.</p></div>
+      <div class="protect"><p class="protect-tag">03 / Почта</p><h3 class="protect-title">Электронная почта</h3><p class="protect-body">Поддельные отправители, опасные вложения и цепочки социальной инженерии — помечаются до того, как вы ответите.</p></div>
+      <div class="protect"><p class="protect-tag">04 / Веб</p><h3 class="protect-title">Браузер</h3><p class="protect-body">Фальшивые банковские страницы, торговые мошенничества и вредоносные загрузки перехватываются в момент клика.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT FEELS -->
+<section class="feel" id="feel">
+  <div class="container">
+    <div class="feel-head">
+      <span class="section-eyebrow with-rule">Как это ощущается</span>
+      <h2 class="section-title">Три момента, одно тихое плечо.</h2>
+      <p>Три ситуации из реальной жизни и что ASPS делает в каждой — описанные так, как они на самом деле происходят, а не так, как выглядят в брошюрах.</p>
+    </div>
+
+    <div class="feel-grid">
+      <div class="feel-row">
+        <span class="feel-num"></span>
+        <span class="feel-when">Вторник · 14:42</span>
+        <div>
+          <h3>«Это <span class="em">служба по борьбе с мошенничеством</span> банка.»</h3>
+          <p>Голос спокойный, официальный и знает последние четыре цифры. Им нужно, чтобы вы перевели деньги на «безопасный счёт» — прямо сейчас.</p>
+          <p>ASPS считывает голос (помечен как синтетический), проверяет номер (не вашего банка) и сценарий (совпадает с известными шаблонами выдачи себя за другого). Вердикт появляется на экране, прежде чем они закончат фразу.</p>
+        </div>
+      </div>
+      <div class="feel-row">
+        <span class="feel-num"></span>
+        <span class="feel-when">Суббота · 21:08</span>
+        <div>
+          <h3>Сообщение от вашего <span class="em">«сына».</span></h3>
+          <p>Новый номер. «Привет, пап, мой телефон сломался, можешь перевести €600 на этот счёт до завтрашнего утра, пожалуйста, не говори маме.»</p>
+          <p>ASPS распознаёт ритм — шаблонный паттерн сообщения, который широко циркулирует в этом месяце. Он выводит предупреждение, альтернативный путь проверки и звонок в одно касание на известный номер вашего настоящего сына.</p>
+        </div>
+      </div>
+      <div class="feel-row">
+        <span class="feel-num"></span>
+        <span class="feel-when">Воскресенье · 11:14</span>
+        <div>
+          <h3>Мама на телефоне — <span class="em">только это не она.</span></h3>
+          <p>Её голос. Её интонация. Плачет. «Я попала в аварию, пожалуйста, не говори папе, мне просто нужны деньги на адвоката.»</p>
+          <p>Вы тоже получаете тихое оповещение на свой телефон — сработал семейный слой. Голосовой профиль не совпадает с её обычной базовой линией. Вы звоните на её настоящий номер, продолжая слушать. Она отвечает. С ней всё в порядке.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div class="container">
+    <div class="pricing-head">
+      <div>
+        <span class="section-eyebrow">Тарифы</span>
+        <h2 class="section-title">Просто, ежемесячно, отмена в любой момент.</h2>
+      </div>
+      <span class="pricing-head-meta">Все цены · НДС включён · ЕС</span>
+    </div>
+
+    <div class="tiers">
+      <div class="tier">
+        <p class="tier-name">Бесплатно</p>
+        <p class="tier-price">€0<small>/ месяц</small></p>
+        <p class="tier-blurb">Знакомство со слоем. Проверка SMS и веб-мошенничества — полезно, но не полная картина.</p>
+        <ul class="tier-list">
+          <li>Проверка SMS и URL-адресов</li>
+          <li>Базовые пометки мошенничества в почте</li>
+          <li>Еженедельная сводка угроз</li>
+          <li>Одно устройство</li>
+        </ul>
+        <a href="contact.html" class="tier-btn">Начать бесплатно</a>
+      </div>
+
+      <div class="tier featured">
+        <span class="tier-flag">Выбирают чаще всего</span>
+        <p class="tier-name">Частное лицо</p>
+        <p class="tier-price">€4.90<small>/ месяц</small></p>
+        <p class="tier-blurb">Полный слой для одного человека. Звонки, сообщения, почта и веб — объяснённые простым языком.</p>
+        <ul class="tier-list">
+          <li>Распознавание голоса ИИ в реальном времени</li>
+          <li>Все каналы: звонки · SMS · почта · веб</li>
+          <li>Безопасные действия в одно касание</li>
+          <li>До 3 устройств</li>
+          <li>Приоритетная поддержка от человека</li>
+        </ul>
+        <a href="protection-plans.html" class="tier-btn primary">Защититься</a>
+      </div>
+
+      <div class="tier">
+        <p class="tier-name">Семья</p>
+        <p class="tier-price">€9.90<small>/ месяц</small></p>
+        <p class="tier-blurb">Та же защита, шесть человек, один счёт. С семейными перекрёстными оповещениями и упрощённым интерфейсом для пожилых.</p>
+        <ul class="tier-list">
+          <li>Всё из тарифа «Частное лицо»</li>
+          <li>До 6 членов семьи</li>
+          <li>Семейные перекрёстные оповещения</li>
+          <li>Проверка по кодовому слову</li>
+          <li>Упрощённый интерфейс для нетехнических пользователей</li>
+        </ul>
+        <a href="contact.html" class="tier-btn">Выбрать «Семья»</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq">
+  <div class="container">
+    <div class="faq-head">
+      <span class="section-eyebrow with-rule">Вопросы, которые задают люди</span>
+      <h2 class="section-title">Честные ответы на то, что важно.</h2>
+    </div>
+
+    <ul class="faq-list">
+      <li><details><summary>Слушает ли ASPS все мои телефонные звонки?</summary><p>Он анализирует аудио на вашем устройстве, пока звонок активен — ищет сигнатуры синтетического голоса, шаблоны выдачи себя за другого и известные мошеннические сценарии. Само аудио не хранится и не отправляется на наши серверы. Вердикты и шаблоны — да; содержание вашего разговора — нет.</p></details></li>
+      <li><details><summary>Заблокирует ли он мой настоящий банк, когда он позвонит?</summary><p>Нет. ASPS не блокирует звонки — он показывает вам, что видит, и позволяет вам решить. Когда номер действительно принадлежит вашему банку, это часть сигнала, а не против него. Последнее слово всегда за вами.</p></details></li>
+      <li><details><summary>Могу ли я настроить это для родителя, который не разбирается в технике?</summary><p>Да — тариф «Семья» создан именно для этого. Вы устанавливаете один раз, ваш родственник подтверждает на своём устройстве (согласие обязательно), и после этого интерфейс сводится к простейшему возможному оповещению. Им никогда не приходится разбираться в панели управления.</p></details></li>
+      <li><details><summary>Что происходит с данными, которые видит ASPS?</summary><p>Данные о шаблонах и вердикты сохраняются; необработанное аудио и тела сообщений — нет. Всё, что покидает ваше устройство, зашифровано, привязано к региону и никогда не продаётся. Полная политика данных — на странице конфиденциальности.</p></details></li>
+      <li><details><summary>Работает ли он на iPhone, Android или на обоих?</summary><p>На обоих. Некоторые каналы (особенно звонки) интегрируются глубже на Android из-за платформенных ограничений на iOS — различия прозрачно перечисляются при настройке каждого устройства.</p></details></li>
+      <li><details><summary>Могу ли я отменить в любой момент?</summary><p>Да — ежемесячная оплата, отмена из приложения, без платы за выход, без звонков с целью «вернуть вас».</p></details></li>
+    </ul>
+  </div>
+</section>
+
+<!-- PULL QUOTE -->
+<section class="pullquote-section">
+  <div class="container">
+    <div class="pullquote">
+      <p class="pullquote-text">Суть не в том, чтобы поймать мошенничество. Суть в <strong>следующих тридцати секундах</strong> — в том, что вы сделаете, прежде чем деньги или доверие перейдут из рук в руки.</p>
+      <span class="pullquote-cite">— Принципы платформы ASPS</span>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="container">
+    <div class="cta-inner">
+      <span class="cta-eyebrow">Защититься</span>
+      <h2>Будьте готовы до того, <span class="em">как поступит звонок.</span></h2>
+      <p>Зарегистрируйтесь за пару минут. Возьмите с собой семью или настройте только для себя — и спите спокойнее сегодня ночью.</p>
+      <div class="cta-buttons">
+        <a href="#pricing" class="btn btn-accent">Посмотреть тарифы
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="stories.html" class="btn btn-ghost">Читать реальные истории</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerLogoGrad)"/>
+          <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs><linearGradient id="footerLogoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+        </svg>
+        <p>ИИ-защита в реальном времени от мошенничества, обмана и социальной инженерии. Защищаем людей в самый важный момент.</p>
+      </div>
+      <div class="footer-col"><h4>Платформа</h4><a href="platform.html">Как это работает</a><a href="individuals.html#individuals">Для частных лиц</a><a href="individuals.html#families">Для семей</a><a href="partners.html">Для партнёров</a></div>
+      <div class="footer-col"><h4>Ресурсы</h4><a href="knowledge.html">Центр знаний</a><a href="knowledge.html#feed">Лента аналитики</a><a href="stories.html#support">Получить поддержку</a><a href="stories.html">Истории</a></div>
+      <div class="footer-col"><h4>Компания</h4><a href="about.html">О нас</a><a href="about.html#mission">Наша миссия</a><a href="about.html#ethics">Этика и доверие</a><a href="contact.html">Контакты</a></div>
+    </div>
+    <div class="footer-bottom"><p>© 2026 ASPS. Все права защищены.</p><div class="footer-links"><a href="privacy.html">Конфиденциальность</a><a href="privacy.html#terms">Условия</a><a href="privacy.html#cookies">Куки</a></div></div>
+  </div>
+</footer>
+
+</body>
+</html>

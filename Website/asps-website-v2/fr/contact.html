@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="Contactez ASPS — pour les particuliers, les partenaires, la presse et les chercheurs. Ou si vous êtes en pleine arnaque en ce moment."/>
+<title>Contact · ASPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;0,16..72,700;1,16..72,400;1,16..72,500;1,16..72,600&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-dark:#070B14; --bg-paper:#FAF7F2; --bg-paper-2:#F3EFE8;
+  --accent:#BE3A4B; --accent-strong:#8E1A2A;
+  --ink:#1A1814; --ink-2:#4A4640; --ink-3:#6B655C;
+  --rule:#E4DDD2; --rule-2:#D7CFC2;
+  --font-body:'Instrument Sans',-apple-system,sans-serif;
+  --font-serif:'Newsreader',Georgia,serif;
+  --font-display:'Syne',Georgia,serif;
+  --transition:0.25s cubic-bezier(0.4,0,0.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--bg-paper);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+input,textarea,select{font-family:inherit;font-size:inherit;color:inherit}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+@media(min-width:768px){.container{padding:0 40px}}
+@media(min-width:1024px){.container{padding:0 60px}}
+
+/* NAV (same as other pages) */
+.nav{position:sticky;top:0;z-index:1000;height:72px;background:rgba(15,18,56,0.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08)}
+.nav-inner{max-width:1400px;margin:0 auto;padding:0 40px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:32px}
+.nav-logo{display:flex;align-items:center;flex-shrink:0}
+.nav-links{display:none;align-items:center;gap:8px}
+@media(min-width:1024px){.nav-links{display:flex}}
+.nav-link{padding:8px 16px;font-size:.875rem;font-weight:500;color:#94A3B8;border-radius:8px;transition:var(--transition)}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,0.05)}
+.nav-link.active{color:#fff;position:relative}
+.nav-link.active::after{content:'';position:absolute;left:16px;right:16px;bottom:0;height:2px;background:var(--accent)}
+.nav-actions{display:flex;align-items:center;gap:12px}
+.nav-btn{padding:10px 20px;font-size:.875rem;font-weight:600;border-radius:8px;transition:var(--transition);border:none}
+.nav-btn-ghost{background:transparent;color:#94A3B8;border:1px solid rgba(255,255,255,0.12)}
+.nav-btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.25)}
+.nav-btn-primary{background:#fff;color:#0F1238}
+.nav-btn-primary:hover{background:#EEF0FF}
+.lang-dropdown{position:relative}
+.lang-dropdown-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#E2E8F0;font-size:.8125rem;font-weight:600;cursor:pointer;transition:var(--transition)}
+.lang-dropdown-btn:hover{background:rgba(255,255,255,0.1)}
+.lang-dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:140px;padding:8px 0;background:#0F1238;border:1px solid rgba(255,255,255,0.12);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.3);opacity:0;visibility:hidden;transform:translateY(-8px);transition:var(--transition);z-index:100}
+.lang-dropdown:hover .lang-dropdown-menu,.lang-dropdown:focus-within .lang-dropdown-menu{opacity:1;visibility:visible;transform:translateY(0)}
+.lang-option{display:block;padding:10px 16px;font-size:.875rem;color:#94A3B8;transition:var(--transition)}
+.lang-option:hover{background:rgba(255,255,255,0.05);color:#fff}
+.lang-option.active{color:var(--accent);font-weight:600}
+
+/* shared */
+.section-eyebrow{display:inline-flex;align-items:center;gap:14px;margin-bottom:18px;font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+.section-eyebrow.with-rule::before{content:'';width:32px;height:1px;background:var(--accent);opacity:.5}
+.section-title{font-family:var(--font-serif);font-weight:500;font-size:clamp(2rem,4vw,3rem);line-height:1.05;letter-spacing:-.025em;color:var(--ink)}
+.section-title .em{font-style:italic;font-weight:500;color:var(--accent-strong)}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 28px;font-family:var(--font-display);font-size:.84rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;border:none;transition:var(--transition);cursor:pointer}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-accent:hover{background:var(--accent-strong)}
+.btn-ink{background:transparent;color:var(--ink);border:1px solid var(--rule-2)}
+.btn-ink:hover{border-color:var(--ink)}
+
+/* EMERGENCY BANNER */
+.emergency{background:var(--accent);color:#fff;padding:14px 0;border-bottom:1px solid var(--accent-strong)}
+.emergency-inner{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;font-family:var(--font-display);font-weight:700;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase}
+.emergency-inner .pulse{width:9px;height:9px;border-radius:50%;background:#fff;animation:pulse 1.6s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.3)}}
+.emergency-inner a{text-decoration:underline;text-underline-offset:3px}
+
+/* MASTHEAD */
+.masthead{padding:80px 0 64px;background:var(--bg-paper);border-bottom:1px solid var(--rule)}
+.masthead-top{display:flex;justify-content:space-between;align-items:baseline;gap:20px;padding-bottom:18px;border-bottom:1px solid var(--rule-2);margin-bottom:36px;font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+.masthead-top .right{color:var(--accent)}
+.masthead h1{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2.6rem,6vw,4.8rem);line-height:1;letter-spacing:-.03em;color:var(--ink);margin-bottom:24px;max-width:18ch}
+.masthead h1 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.masthead-lede{font-family:var(--font-serif);font-size:1.1875rem;line-height:1.6;color:var(--ink-2);max-width:640px}
+
+/* ROUTES — pick a door */
+.routes{padding:80px 0 110px;background:var(--bg-paper)}
+.routes-head{margin-bottom:36px}
+.routes-grid{display:grid;grid-template-columns:1fr;gap:0;border-top:1px solid var(--rule)}
+.route{display:grid;grid-template-columns:1fr;gap:14px;padding:32px 0;border-bottom:1px solid var(--rule);cursor:pointer;transition:var(--transition);text-align:left;width:100%;background:transparent;border-left:0;border-right:0;border-top:0;font:inherit;color:inherit}
+@media(min-width:800px){.route{grid-template-columns:80px 1.3fr 2fr 120px;gap:40px;align-items:center}}
+.route:hover{background:rgba(190,58,75,0.04);padding-left:18px;padding-right:18px}
+.route.active{background:rgba(190,58,75,0.06);padding-left:18px;padding-right:18px;border-color:var(--accent)}
+.route-num{font-family:var(--font-display);font-weight:700;font-size:.78rem;letter-spacing:.16em;color:var(--accent)}
+.route h3{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:1.5rem;line-height:1.15;color:var(--ink);letter-spacing:-.01em}
+.route h3 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.route p{font-family:var(--font-serif);font-size:1rem;line-height:1.5;color:var(--ink-2)}
+.route-arrow{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);text-align:right;display:flex;align-items:center;justify-content:flex-end;gap:8px;white-space:nowrap}
+.route.active .route-arrow{color:var(--accent)}
+
+/* FORM SECTION */
+.form-section{padding:100px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule-2);border-bottom:1px solid var(--rule-2)}
+.form-grid{display:grid;grid-template-columns:1fr;gap:48px}
+@media(min-width:900px){.form-grid{grid-template-columns:5fr 7fr;gap:80px;align-items:start}}
+.form-meta{position:sticky;top:100px;align-self:start}
+.form-meta .section-title{margin-bottom:20px}
+.form-meta-body{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.6;color:var(--ink-2);margin-bottom:24px}
+.form-meta-foot{padding-top:20px;border-top:1px solid var(--rule);font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);display:flex;flex-direction:column;gap:10px}
+.form-meta-foot strong{color:var(--ink);font-weight:700}
+
+.form-card{background:#fff;border:1px solid var(--rule);padding:36px 32px;position:relative}
+.form-card::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:3px;background:var(--accent)}
+.form-card-head{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:18px;margin-bottom:24px;border-bottom:1px solid var(--rule);gap:20px;flex-wrap:wrap}
+.form-card-tag{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+.form-card h3{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:1.5rem;color:var(--ink);line-height:1.2;margin-top:6px}
+.form-card-sla{font-family:var(--font-display);font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);text-align:right}
+.form-card-sla strong{display:block;color:var(--accent-strong);font-size:1rem;letter-spacing:0;margin-top:4px}
+
+.field{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.field-row{display:grid;grid-template-columns:1fr;gap:20px}
+@media(min-width:600px){.field-row{grid-template-columns:1fr 1fr}}
+.field label{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.field label .req{color:var(--accent)}
+.field input,.field textarea,.field select{width:100%;padding:12px 14px;background:var(--bg-paper);border:1px solid var(--rule-2);font-size:1rem;line-height:1.4;color:var(--ink);transition:var(--transition);border-radius:0;font-family:var(--font-serif)}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent);background:#fff}
+.field textarea{min-height:140px;resize:vertical}
+.field-hint{font-family:var(--font-body);font-size:.78rem;color:var(--ink-3);line-height:1.4}
+
+.check-row{display:flex;align-items:flex-start;gap:12px;margin-bottom:24px;font-family:var(--font-serif);font-size:.95rem;line-height:1.5;color:var(--ink-2)}
+.check-row input{margin-top:5px;accent-color:var(--accent)}
+.check-row a{color:var(--accent-strong);text-decoration:underline;text-underline-offset:2px}
+
+.form-foot{display:flex;align-items:center;justify-content:space-between;gap:20px;padding-top:24px;border-top:1px solid var(--rule);flex-wrap:wrap}
+.form-foot-note{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+
+/* CHANNELS — direct lines */
+.channels{padding:110px 0;background:var(--bg-paper)}
+.channels-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:48px;padding-bottom:24px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.channels-grid{display:grid;grid-template-columns:1fr;gap:24px}
+@media(min-width:700px){.channels-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1024px){.channels-grid{grid-template-columns:repeat(4,1fr)}}
+.channel-card{padding:24px 22px 22px;border-top:2px solid var(--ink);display:flex;flex-direction:column;gap:10px}
+.channel-card .num{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.16em;color:var(--accent)}
+.channel-card h4{font-family:var(--font-serif);font-weight:500;font-size:1.25rem;color:var(--ink);line-height:1.2}
+.channel-card .line{font-family:var(--font-serif);font-style:italic;font-size:1.0625rem;color:var(--accent-strong);word-break:break-all}
+.channel-card p{font-family:var(--font-body);font-size:.875rem;color:var(--ink-3);line-height:1.55;margin-top:auto;padding-top:14px;border-top:1px dashed var(--rule-2)}
+
+/* OFFICES — dark band */
+.offices{background:var(--ink);color:#F5F0E7;padding:100px 0;position:relative;overflow:hidden}
+.offices::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 30% 50%,rgba(190,58,75,.12),transparent 50%);pointer-events:none}
+.offices-inner{position:relative;max-width:1320px;margin:0 auto;padding:0 40px}
+.offices-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:48px;padding-bottom:24px;border-bottom:1px solid rgba(245,240,231,0.12);flex-wrap:wrap}
+.offices-head .section-title{color:#fff}
+.offices-head-meta{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:#A19888;padding-bottom:6px}
+.offices-grid{display:grid;grid-template-columns:1fr}
+@media(min-width:700px){.offices-grid{grid-template-columns:repeat(3,1fr)}}
+.office{padding:24px 0}
+@media(min-width:700px){.office{padding:0 32px;border-left:1px solid rgba(245,240,231,0.12)}.office:first-child{padding-left:0;border-left:0}}
+.office .city-tag{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+.office h3{font-family:var(--font-serif);font-weight:500;font-size:1.875rem;color:#fff;margin-bottom:16px;letter-spacing:-.015em}
+.office .addr{font-family:var(--font-serif);font-size:1rem;line-height:1.55;color:#D6CDBE;margin-bottom:16px}
+.office .hours{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#A19888;padding-top:14px;border-top:1px dashed rgba(245,240,231,0.16)}
+
+/* EMERGENCY CHECKLIST (replaces pullquote) */
+.emergency-section{padding:100px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.emergency-head{max-width:780px;margin-bottom:56px}
+.emergency-badge{display:inline-flex;align-items:center;gap:10px;padding:8px 14px;background:var(--accent);color:#fff;font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;margin-bottom:24px}
+.emergency-badge .pulse{width:8px;height:8px;border-radius:50%;background:#fff;animation:pulse 1.6s ease-in-out infinite}
+.emergency-title{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,4.5vw,3rem);line-height:1.05;letter-spacing:-.025em;color:var(--ink);margin-bottom:18px}
+.emergency-title .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.emergency-lede{font-family:var(--font-serif);font-size:1.125rem;line-height:1.6;color:var(--ink-2);max-width:620px}
+.emergency-steps{list-style:none;display:flex;flex-direction:column;gap:0;border-top:1px solid var(--rule);max-width:880px}
+.emergency-steps li{display:grid;grid-template-columns:64px 1fr;gap:24px;padding:32px 0;border-bottom:1px solid var(--rule);align-items:start}
+@media(min-width:700px){.emergency-steps li{grid-template-columns:88px 1fr;gap:36px}}
+.step-num{font-family:var(--font-display);font-weight:700;font-size:1.5rem;color:var(--accent);letter-spacing:.04em;padding-top:2px}
+.emergency-steps h3{font-family:var(--font-serif);font-weight:500;font-size:1.375rem;line-height:1.25;color:var(--ink);margin-bottom:10px;letter-spacing:-.01em}
+.emergency-steps p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.6;color:var(--ink-2);max-width:680px}
+.emergency-numbers{display:grid;grid-template-columns:1fr;gap:10px;margin-top:18px;max-width:600px}
+@media(min-width:600px){.emergency-numbers{grid-template-columns:repeat(3,1fr)}}
+.emergency-numbers a{display:flex;flex-direction:column;gap:4px;padding:14px 16px;background:#fff;border:1px solid var(--rule-2);transition:var(--transition)}
+.emergency-numbers a:hover{border-color:var(--accent);background:rgba(190,58,75,.04)}
+.emergency-numbers .reg{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+.emergency-numbers strong{font-family:var(--font-serif);font-weight:600;font-size:1.5rem;color:var(--accent-strong);line-height:1;letter-spacing:-.01em}
+.emergency-numbers .lbl{font-family:var(--font-body);font-size:.78rem;color:var(--ink-3);line-height:1.3}
+.emergency-footnote{margin-top:32px;font-family:var(--font-serif);font-style:italic;font-size:1rem;line-height:1.55;color:var(--ink-3);max-width:780px;padding-top:24px;border-top:1px dashed var(--rule-2)}
+
+/* PULL QUOTE */
+.pullquote-section{padding:100px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule)}
+.pullquote{max-width:980px;margin:0 auto;text-align:center}
+.pullquote::before{content:'';display:block;width:64px;height:2px;background:var(--accent);margin:0 auto 32px}
+.pullquote-text{font-family:var(--font-serif);font-style:italic;font-weight:400;font-size:clamp(1.4rem,3.2vw,2.2rem);line-height:1.3;letter-spacing:-.015em;color:var(--ink)}
+.pullquote-text strong{font-weight:600;font-style:normal;background:linear-gradient(180deg,transparent 62%,rgba(190,58,75,.18) 62%,rgba(190,58,75,.18) 92%,transparent 92%);padding:0 .08em}
+.pullquote-cite{display:block;margin-top:28px;font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+
+/* FOOTER */
+.footer{padding:80px 0 40px;background:var(--bg-dark);color:#94A3B8}
+.footer-grid{display:grid;grid-template-columns:1fr;gap:48px;margin-bottom:64px}
+@media(min-width:768px){.footer-grid{grid-template-columns:2fr 1fr 1fr 1fr}}
+.footer-brand p{font-size:.9375rem;line-height:1.7;max-width:320px;margin-top:20px}
+.footer-col h4{font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#E2E8F0;margin-bottom:20px}
+.footer-col a{display:block;font-size:.9375rem;margin-bottom:14px;transition:var(--transition)}
+.footer-col a:hover{color:var(--accent)}
+.footer-bottom{padding-top:32px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px;font-size:.84rem;color:#64748B}
+.footer-links{display:flex;gap:24px}
+.footer-links a:hover{color:#E2E8F0}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo" aria-label="ASPS accueil">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C" opacity="0.4"><animate attributeName="r" values="4;8;4" dur="2.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.4;0;0.4" dur="2.5s" repeatCount="indefinite"/></circle>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+      </svg>
+    </a>
+    <div class="nav-links">
+      <a href="index.html#epidemic" class="nav-link">La menace</a>
+      <a href="platform.html" class="nav-link">Comment ça marche</a>
+      <a href="knowledge.html" class="nav-link">Centre de connaissances</a>
+      <a href="stories.html" class="nav-link">Témoignages</a>
+      <a href="partners.html" class="nav-link">Partenaires</a>
+      <a href="about.html" class="nav-link">À propos</a>
+    </div>
+    <div class="nav-actions">
+      <div class="lang-dropdown">
+        <button class="lang-dropdown-btn" aria-label="Choisir la langue"><span>FR</span><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l4 4 4-4"/></svg></button>
+        <div class="lang-dropdown-menu">
+          <a href="../contact.html" class="lang-option">English</a>
+          <a href="../he/contact.html" class="lang-option">עברית</a>
+          <span class="lang-option active">Français</span>
+          <a href="../ru/contact.html" class="lang-option">Русский</a>
+          <a href="../es/contact.html" class="lang-option">Español</a>
+        </div>
+      </div>
+      <a href="partners.html" class="nav-btn nav-btn-ghost">Partenaires</a>
+      <a href="protection-plans.html" class="nav-btn nav-btn-primary">Se protéger</a>
+    </div>
+  </div>
+</nav>
+
+<!-- EMERGENCY -->
+<div class="emergency" role="alert">
+  <div class="container">
+    <div class="emergency-inner">
+      <span class="pulse"></span>
+      <span>En pleine arnaque en ce moment ?</span>
+      <a href="#emergency">Obtenez de l'aide dans les 60 prochaines secondes →</a>
+    </div>
+  </div>
+</div>
+
+<!-- MASTHEAD -->
+<header class="masthead">
+  <div class="container">
+    <div class="masthead-top">
+      <span>Contact · Vol. 03</span>
+      <span class="right">Presse &amp; partenaires ≤ 4 h · tout le monde ≤ 24 h</span>
+    </div>
+    <h1>Dites-nous ce qui est <span class="em">en jeu.</span></h1>
+    <p class="masthead-lede">Six portes, une seule équipe. Choisissez celle qui convient — urgence, support client, partenariat, presse, recherche, ou un signalement d'arnaque dont nous devrions avoir connaissance.</p>
+  </div>
+</header>
+
+<!-- ROUTES -->
+<section class="routes">
+  <div class="container">
+    <div class="routes-head">
+      <span class="section-eyebrow">Choisissez une porte</span>
+      <h2 class="section-title">Où cela doit-il aller ?</h2>
+    </div>
+
+    <div class="routes-grid" role="tablist" id="routes">
+      <button class="route active" type="button" data-route="general" role="tab" aria-selected="true">
+        <span class="route-num">01 /</span>
+        <h3>Demande <span class="em">générale</span></h3>
+        <p>Vous avez une question, un commentaire ou vous ne savez pas trop où le mettre. Nous le lirons et l'orienterons.</p>
+        <span class="route-arrow">Sélectionné →</span>
+      </button>
+      <button class="route" type="button" data-route="partner" role="tab" aria-selected="false">
+        <span class="route-num">02 /</span>
+        <h3>Partenariat &amp; <span class="em">entreprise</span></h3>
+        <p>Banque, opérateur télécom, assureur, organisme du secteur public. Vous voulez un pilote, un appel d'intégration ou une proposition de déploiement.</p>
+        <span class="route-arrow">Sélectionner →</span>
+      </button>
+      <button class="route" type="button" data-route="press" role="tab" aria-selected="false">
+        <span class="route-num">03 /</span>
+        <h3>Presse &amp; <span class="em">médias</span></h3>
+        <p>Vous êtes un journaliste sous pression d'un bouclage, un rédacteur qui commande un article, ou un chercheur qui écrit sur le sujet.</p>
+        <span class="route-arrow">Sélectionner →</span>
+      </button>
+      <button class="route" type="button" data-route="research" role="tab" aria-selected="false">
+        <span class="route-num">04 /</span>
+        <h3>Recherche &amp; <span class="em">monde académique</span></h3>
+        <p>Vous étudiez la fraude par IA vocale, l'ingénierie sociale, la réglementation ou les schémas de menace et souhaitez nos données ou notre expertise.</p>
+        <span class="route-arrow">Sélectionner →</span>
+      </button>
+      <button class="route" type="button" data-route="tip" role="tab" aria-selected="false">
+        <span class="route-num">05 /</span>
+        <h3>Signaler une <span class="em">arnaque</span></h3>
+        <p>Vous avez vu un nouveau schéma d'arnaque, une tentative qui a presque réussi, ou un scénario que nous devrions suivre. Dites-le-nous.</p>
+        <span class="route-arrow">Sélectionner →</span>
+      </button>
+      <button class="route" type="button" data-route="support" role="tab" aria-selected="false">
+        <span class="route-num">06 /</span>
+        <h3>Support <span class="em">client</span></h3>
+        <p>Vous êtes un utilisateur existant — facturation, appareils, configuration, boucle familiale, ou tout ce qui n'est pas urgent.</p>
+        <span class="route-arrow">Sélectionner →</span>
+      </button>
+      <button class="route" type="button" data-route="individual" role="tab" aria-selected="false">
+        <span class="route-num">07 /</span>
+        <h3>Formule <span class="em">particulier</span></h3>
+        <p>Vous voulez une protection en temps réel pour vous-même — appels, messages, liens, voix deepfake. Dites-nous un peu comment vous vivez et nous reviendrons avec la bonne formule.</p>
+        <span class="route-arrow">Sélectionner →</span>
+      </button>
+      <button class="route" type="button" data-route="family" role="tab" aria-selected="false">
+        <span class="route-num">08 /</span>
+        <h3>Formule <span class="em">famille</span></h3>
+        <p>Couvrez tout le foyer sous une seule protection — parents, conjoint, enfants. La plupart des arnaques frappent d'abord la personne la plus vulnérable ; ceci comble cette faille.</p>
+        <span class="route-arrow">Sélectionner →</span>
+      </button>
+      <button class="route" type="button" data-route="organizations" role="tab" aria-selected="false">
+        <span class="route-num">09 /</span>
+        <h3>Pour les <span class="em">organisations</span></h3>
+        <p>Banque, opérateur télécom, employeur, prestataire de soins. Déployez ASPS comme un avantage, une intégration ou un service géré — et protégez chaque personne de votre équipe.</p>
+        <span class="route-arrow">Sélectionner →</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- FORM -->
+<section class="form-section" id="form">
+  <div class="container">
+    <div class="form-grid">
+      <aside class="form-meta">
+        <span class="section-eyebrow with-rule">Nous écrire</span>
+        <h2 class="section-title">De vraies personnes, <span class="em">de vraies réponses.</span></h2>
+        <p class="form-meta-body">Un humain lit chaque message que nous recevons. Pas de purgatoire de tickets, pas de réponses automatiques par IA — à part une seule confirmation que nous l'avons bien reçu.</p>
+        <p class="form-meta-body">Les messages presse et partenariat reçoivent une première réponse sous 4 heures pendant les heures ouvrées UE/IL. Tout le reste : une réponse utile sous 24 heures, 7 jours sur 7.</p>
+        <div class="form-meta-foot">
+          <span>Réponses en<strong>EN · HE · FR · ES · RU</strong></span>
+          <span>Chiffré<strong>TLS 1.3 · rattaché à la région</strong></span>
+          <span>Jamais vendu<strong>Votre message reste chez nous</strong></span>
+        </div>
+      </aside>
+
+      <form class="form-card" id="formCard" onsubmit="event.preventDefault();var n=document.getElementById('name').value,em=document.getElementById('email').value,o=document.getElementById('org').value,r=document.getElementById('region').value,s=document.getElementById('subj').value,m=document.getElementById('msg').value;var to=window.getRouteEmail();var routeTitle=window.getRouteTitle();var body='Nom : '+n+'%0D%0AEmail : '+em+'%0D%0AOrganisation : '+o+'%0D%0AR&eacute;gion : '+r+'%0D%0AObjet : '+routeTitle+'%0D%0A%0D%0A'+encodeURIComponent(m);window.location.href='mailto:'+to+'?subject='+encodeURIComponent(s||'ASPS '+routeTitle.toLowerCase())+'&body='+body;setTimeout(function(){document.getElementById('formCard').innerHTML='<div style=\'padding:60px 0;text-align:center\'><p style=\'font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:18px\'>Envoy&eacute; · Merci</p><h3 style=\'font-family:var(--font-serif);font-style:italic;font-weight:500;font-size:2rem;color:var(--ink);margin-bottom:14px\'>V&eacute;rifiez votre messagerie.</h3><p style=\'font-family:var(--font-serif);font-size:1.0625rem;color:var(--ink-2);max-width:380px;margin:0 auto;line-height:1.55\'>Nous avons ouvert un brouillon vers '+to+' avec votre message. Appuyez sur envoyer l&agrave; et un humain vous r&eacute;pondra bient&ocirc;t.</p></div>';},300);">
+        <div class="form-card-head">
+          <div>
+            <span class="form-card-tag" id="formTag">01 / Demande générale</span>
+            <h3 id="formTitle">Dites-nous ce que vous avez en tête.</h3>
+          </div>
+          <div class="form-card-sla">SLA<strong>≤ 24 h</strong></div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="name">Votre nom <span class="req">*</span></label>
+            <input type="text" id="name" required placeholder="Prénom &amp; nom"/>
+          </div>
+          <div class="field">
+            <label for="email">E-mail <span class="req">*</span></label>
+            <input type="email" id="email" required placeholder="vous@domaine.com"/>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="org">Organisation <span style="color:var(--ink-3);font-weight:400;text-transform:none;letter-spacing:0">(facultatif)</span></label>
+            <input type="text" id="org" placeholder="Banque, opérateur télécom, rédaction, université..."/>
+          </div>
+          <div class="field">
+            <label for="region">Région <span class="req">*</span></label>
+            <select id="region" required>
+              <option value="">Choisir...</option>
+              <option>UE</option>
+              <option>Royaume-Uni</option>
+              <option>Israël</option>
+              <option>Amérique du Nord</option>
+              <option>APAC</option>
+              <option>Amérique latine</option>
+              <option>Autre</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="subj">Objet <span class="req">*</span></label>
+          <input type="text" id="subj" required placeholder="Une courte ligne — de quoi s'agit-il ?"/>
+        </div>
+
+        <div class="field">
+          <label for="msg">Votre message <span class="req">*</span></label>
+          <textarea id="msg" required placeholder="Plus vous êtes concret — noms de produits, régions, délais, ce que vous attendez de nous — plus vite nous pourrons répondre utilement."></textarea>
+          <span class="field-hint">N'incluez pas de mots de passe, de numéros de compte complets ni de copies scannées de pièce d'identité. Si nous en avons besoin, nous vous le demanderons via un canal sécurisé.</span>
+        </div>
+
+        <label class="check-row">
+          <input type="checkbox" required/>
+          <span>J'ai lu la <a href="privacy.html">politique de confidentialité</a> et je comprends qu'ASPS utilisera ce message pour répondre, et uniquement pour répondre.</span>
+        </label>
+
+        <div class="form-foot">
+          <span class="form-foot-note">Vos données restent dans les régions UE/IL</span>
+          <button type="submit" class="btn btn-accent">Envoyer le message
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- CHANNELS -->
+<section class="channels">
+  <div class="container">
+    <div class="channels-head">
+      <div>
+        <span class="section-eyebrow">Lignes directes</span>
+        <h2 class="section-title">Passez le formulaire, écrivez-nous directement.</h2>
+      </div>
+      <span style="font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);padding-bottom:6px">Pour quand vous savez à qui vous adresser</span>
+    </div>
+
+    <div class="channels-grid">
+      <div class="channel-card">
+        <span class="num">01 / Presse</span>
+        <h4>Demandes de la rédaction</h4>
+        <span class="line"><a href="mailto:press@asps.io" style="color:inherit">press@asps.io</a></span>
+        <p>Première réponse sous 4 heures pendant les heures ouvrées, UE/IL. Ligne hors heures disponible sur demande.</p>
+      </div>
+      <div class="channel-card">
+        <span class="num">02 / Partenariat</span>
+        <h4>Banques · opérateurs · assureurs</h4>
+        <span class="line"><a href="mailto:partners@asps.io" style="color:inherit">partners@asps.io</a></span>
+        <p>Achemine directement vers nos responsables de déploiement. Appel de cadrage généralement planifié sous 48 h.</p>
+      </div>
+      <div class="channel-card">
+        <span class="num">03 / Recherche</span>
+        <h4>Académique &amp; politiques publiques</h4>
+        <span class="line"><a href="mailto:research@asps.io" style="color:inherit">research@asps.io</a></span>
+        <p>Demandes de données, articles communs, collaboration sur les schémas de menace. Examiné chaque semaine par notre équipe de renseignement sur les menaces.</p>
+      </div>
+      <div class="channel-card">
+        <span class="num">04 / Sécurité</span>
+        <h4>Divulgation responsable</h4>
+        <span class="line"><a href="mailto:security@asps.io" style="color:inherit">security@asps.io</a></span>
+        <p>Clé PGP disponible. Détails du programme de primes et périmètre dans la politique de divulgation.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EMERGENCY CHECKLIST -->
+<section class="emergency-section" id="emergency">
+  <div class="container">
+    <div class="emergency-head">
+      <span class="emergency-badge"><span class="pulse"></span>Si cela se produit maintenant</span>
+      <h2 class="emergency-title">Les <span class="em">cinq prochaines minutes</span> comptent le plus.</h2>
+      <p class="emergency-lede">Faites-les dans l'ordre. Ne vous souciez de rien d'autre pour l'instant — écrivez-nous ensuite, une fois que vous et votre argent êtes en sécurité.</p>
+    </div>
+
+    <ol class="emergency-steps">
+      <li>
+        <span class="step-num">01</span>
+        <div>
+          <h3>Raccrochez. Ne transférez pas d'argent.</h3>
+          <p>Chaque arnaque repose sur le fait que vous restiez en ligne et agissiez vite. Mettre fin à l'appel ne coûte rien et casse le scénario. Aucune banque, aucune police et aucun proche ne perdra jamais confiance parce que vous les avez rappelés.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">02</span>
+        <div>
+          <h3>Appelez votre banque au numéro figurant au dos de votre carte.</h3>
+          <p>Pas le numéro que l'appelant vous a donné. Pas un numéro issu d'un SMS récent. La carte elle-même. Dites-leur que vous avez peut-être été ciblé ; ils ont une équipe anti-fraude formée pour exactement ce moment.</p>
+          <div class="emergency-numbers">
+            <a href="tel:159"><span class="reg">Royaume-Uni</span><strong>159</strong><span class="lbl">Ligne directe Stop Scams</span></a>
+            <a href="tel:+97235999"><span class="reg">Israël</span><strong>105</strong><span class="lbl">Unité cyber de la police</span></a>
+            <a href="tel:116006"><span class="reg">UE</span><strong>116 006</strong><span class="lbl">Aide aux victimes</span></a>
+          </div>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">03</span>
+        <div>
+          <h3>Changez d'abord le mot de passe de votre e-mail.</h3>
+          <p>L'e-mail est la clé maîtresse. Si un escroc a accès à votre e-mail, il peut réinitialiser tous les autres comptes. Faites ceci avant de changer quoi que ce soit d'autre.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">04</span>
+        <div>
+          <h3>Déposez un signalement — même si aucun argent n'a bougé.</h3>
+          <p>Cela crée la trace écrite dont vous aurez besoin pour le remboursement, et cela alimente les schémas que nous suivons tous. Royaume-Uni : Action Fraud (0300 123 2040). Israël : police 105. UE : votre autorité nationale anti-fraude.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">05</span>
+        <div>
+          <h3>Ensuite — et seulement ensuite — écrivez-nous.</h3>
+          <p>Envoyez le scénario, le numéro, l'heure, tout ce dont vous vous souvenez. Cela alimente notre base de données de schémas de menace. La prochaine personne qui entendra la même phrase d'accroche recevra un avertissement grâce à vous.</p>
+          <a href="mailto:info@asps.io?subject=Signalement%20d%27arnaque%20%E2%80%94%20vient%20d%27arriver" class="btn btn-accent" style="margin-top:8px">Signaler une arnaque
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+      </li>
+    </ol>
+
+    <p class="emergency-footnote">Vous n'êtes pas dans l'une de ces régions ? Le numéro vérifié de votre banque, la ligne non urgente de votre police nationale, et le mot de passe de votre e-mail — dans cet ordre. Le principe fonctionne partout.</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerLogoGrad)"/>
+          <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs><linearGradient id="footerLogoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+        </svg>
+        <p>Protection IA en temps réel contre la fraude, les arnaques et l'ingénierie sociale. Protéger les personnes au moment où ça compte le plus.</p>
+      </div>
+      <div class="footer-col"><h4>Plateforme</h4><a href="platform.html">Comment ça marche</a><a href="individuals.html#individuals">Pour les particuliers</a><a href="individuals.html#families">Pour les familles</a><a href="partners.html">Pour les partenaires</a></div>
+      <div class="footer-col"><h4>Ressources</h4><a href="knowledge.html">Centre de connaissances</a><a href="knowledge.html#feed">Flux de renseignements</a><a href="stories.html#support">Obtenir de l'aide</a><a href="stories.html">Témoignages</a></div>
+      <div class="footer-col"><h4>Entreprise</h4><a href="about.html">À propos</a><a href="about.html#mission">Notre mission</a><a href="about.html#ethics">Éthique &amp; confiance</a><a href="contact.html">Contact</a></div>
+    </div>
+    <div class="footer-bottom"><p>© 2026 ASPS. Tous droits réservés.</p><div class="footer-links"><a href="privacy.html">Confidentialité</a><a href="privacy.html#terms">Conditions</a><a href="privacy.html#cookies">Cookies</a></div></div>
+  </div>
+</footer>
+
+<script>
+const routeMeta = {
+  general: {num:'01', title:'Demande générale', sub:"Dites-nous ce que vous avez en tête.", sla:'≤ 24 h', email:'info@asps.io'},
+  partner: {num:'02', title:'Partenariat & entreprise', sub:"Parlez-nous de votre organisation.", sla:'≤ 4 h', email:'partners@asps.io'},
+  press:   {num:'03', title:'Presse & médias',     sub:"Parlez-nous de l'article.",      sla:'≤ 4 h', email:'press@asps.io'},
+  research:{num:'04', title:'Recherche & monde académique',sub:"Parlez-nous de vos travaux.",      sla:'≤ 72 h', email:'research@asps.io'},
+  tip:     {num:'05', title:'Signalement d\'arnaque',          sub:"Dites-nous ce que vous avez vu.",     sla:'≤ 24 h', email:'info@asps.io'},
+  support:       {num:'06', title:'Support client',           sub:"Dites-nous ce qui ne fonctionne pas.",            sla:'≤ 24 h', email:'info@asps.io'},
+  individual:    {num:'07', title:'Formule particulier',             sub:"Parlez-nous un peu de vous.",              sla:'≤ 24 h', email:'info@asps.io'},
+  family:        {num:'08', title:'Formule famille',                 sub:"Parlez-nous de votre foyer.",            sla:'≤ 24 h', email:'info@asps.io'},
+  organizations: {num:'09', title:'Protection pour les organisations',sub:"Parlez-nous de votre organisation.",         sla:'≤ 24 h', email:'partners@asps.io'}
+};
+let activeRoute = 'general';
+document.querySelectorAll('.route').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.route').forEach(b=>{
+      b.classList.remove('active');
+      b.setAttribute('aria-selected','false');
+      b.querySelector('.route-arrow').textContent='Sélectionner →';
+    });
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected','true');
+    btn.querySelector('.route-arrow').textContent='Sélectionné →';
+    const key=btn.dataset.route, m=routeMeta[key];
+    activeRoute = key;
+    const tag=document.getElementById('formTag');
+    const title=document.getElementById('formTitle');
+    const sla=document.querySelector('.form-card-sla strong');
+    if(tag) tag.textContent=`${m.num} / ${m.title}`;
+    if(title) title.textContent=m.sub;
+    if(sla) sla.textContent=m.sla;
+    const f=document.getElementById('form'); if(f){window.scrollTo({top:f.getBoundingClientRect().top+window.scrollY-80,behavior:'smooth'});}
+  });
+});
+window.getRouteEmail = function(){ return routeMeta[activeRoute].email; };
+window.getRouteTitle = function(){ return routeMeta[activeRoute].title; };
+
+// Deep-link: ?subject=individual|family|organizations|... activates the matching route on load.
+(function () {
+  try {
+    const params  = new URLSearchParams(window.location.search);
+    const aliases = { personal: "individual" };
+    let subject   = (params.get("subject") || "").toLowerCase();
+    if (aliases[subject]) subject = aliases[subject];
+    if (routeMeta[subject]) {
+      const btn = document.querySelector('.route[data-route="' + subject + '"]');
+      if (btn) btn.click();
+    }
+  } catch (e) { /* no-op */ }
+})();
+</script>
+
+<script src="cookie-banner.js"></script>
+</body>
+</html>

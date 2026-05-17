@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="ASPS Protection for Organizations — give your employees real-time protection against scams, fraud and social engineering as a workplace benefit."/>
+<title>Protection pour les Organisations — ASPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;0,16..72,700;1,16..72,400;1,16..72,500;1,16..72,600&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-dark:#070B14; --bg-paper:#FAF7F2; --bg-paper-2:#F3EFE8;
+  --accent:#BE3A4B; --accent-strong:#8E1A2A;
+  --green:#1F8B5C; --gold:#C68A3C;
+  --ink:#1A1814; --ink-2:#4A4640; --ink-3:#6B655C;
+  --rule:#E4DDD2; --rule-2:#D7CFC2;
+  --font-body:'Instrument Sans',-apple-system,sans-serif;
+  --font-serif:'Newsreader',Georgia,serif;
+  --font-display:'Syne',Georgia,serif;
+  --transition:0.25s cubic-bezier(0.4,0,0.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--bg-paper);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+@media(min-width:768px){.container{padding:0 40px}}
+@media(min-width:1024px){.container{padding:0 60px}}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:1000;height:72px;background:rgba(15,18,56,0.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08)}
+.nav-inner{max-width:1400px;margin:0 auto;padding:0 40px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:32px}
+.nav-links{display:none;align-items:center;gap:8px}
+@media(min-width:1024px){.nav-links{display:flex}}
+.nav-link{padding:8px 16px;font-size:.875rem;font-weight:500;color:#94A3B8;border-radius:8px;transition:var(--transition)}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,0.05)}
+.nav-actions{display:flex;align-items:center;gap:12px}
+.nav-btn{padding:10px 20px;font-size:.875rem;font-weight:600;border-radius:8px;border:none;transition:var(--transition)}
+.nav-btn-ghost{background:transparent;color:#94A3B8;border:1px solid rgba(255,255,255,0.12)}
+.nav-btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.25)}
+.nav-btn-primary{background:#fff;color:#0F1238}
+.nav-btn-primary:hover{background:#EEF0FF}
+
+.skip{position:absolute;left:-9999px;top:8px;background:#fff;color:var(--ink);padding:10px 16px;font-weight:600;border:2px solid var(--accent);z-index:10000}
+.skip:focus{left:8px}
+
+/* MASTHEAD */
+.masthead{padding:80px 0 60px;background:var(--bg-paper);border-bottom:1px solid var(--rule)}
+.masthead-top{display:flex;justify-content:space-between;align-items:baseline;gap:20px;padding-bottom:18px;border-bottom:1px solid var(--rule-2);margin-bottom:36px;font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);flex-wrap:wrap}
+.masthead-top .right{color:var(--accent)}
+.masthead-grid{display:grid;grid-template-columns:1fr;gap:48px}
+@media(min-width:900px){.masthead-grid{grid-template-columns:1.4fr 1fr;gap:80px;align-items:end}}
+.masthead h1{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2.4rem,5.5vw,4rem);line-height:1.08;letter-spacing:-.03em;color:var(--ink);margin-bottom:24px}
+.masthead h1 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.masthead-lede{font-family:var(--font-serif);font-size:1.1875rem;line-height:1.6;color:var(--ink-2);max-width:600px}
+.masthead-cta{display:flex;flex-wrap:wrap;gap:14px;margin-top:32px}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 26px;font-family:var(--font-display);font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;border-radius:4px;transition:var(--transition);cursor:pointer;border:none}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-accent:hover{background:var(--accent-strong)}
+.btn-ink{background:transparent;color:var(--ink);border:1px solid var(--ink)}
+.btn-ink:hover{background:var(--ink);color:#fff}
+
+/* Hero stats */
+.numbers{background:#fff;border:1px solid var(--rule-2);padding:28px}
+.numbers .stamp{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);padding-bottom:14px;border-bottom:1px solid var(--rule);margin-bottom:12px}
+.numbers-row{display:flex;flex-direction:column;gap:4px;padding:14px 0;border-bottom:1px solid var(--rule)}
+.numbers-row:last-child{border-bottom:none;padding-bottom:0}
+.numbers-num{font-family:var(--font-serif);font-weight:500;font-size:2rem;color:var(--ink);line-height:1;letter-spacing:-.02em}
+.numbers-num .em{font-style:italic;color:var(--accent-strong);font-weight:600}
+.numbers-lbl{font-size:.875rem;color:var(--ink-2);line-height:1.4}
+.numbers-src{font-family:var(--font-display);font-weight:700;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-top:6px}
+
+/* Section base */
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:40px;padding-bottom:18px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.section-head h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,3.6vw,2.625rem);color:var(--ink);max-width:22ch;letter-spacing:-.01em;line-height:1.1}
+.section-head h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.section-head .meta{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);text-align:right}
+
+/* WHY - the case */
+.case{padding:96px 0;background:var(--bg-paper)}
+.case-intro{max-width:740px;margin-bottom:48px}
+.case-intro p{font-family:var(--font-serif);font-size:1.0625rem;color:var(--ink-2);line-height:1.6}
+
+.threat-row{display:grid;grid-template-columns:1fr;gap:0;border-top:2px solid var(--ink);margin-bottom:64px}
+@media(min-width:760px){.threat-row{grid-template-columns:repeat(3,1fr)}}
+.threat-cell{padding:32px 0;border-bottom:1px solid var(--rule)}
+@media(min-width:760px){.threat-cell{padding:32px 32px 32px 0}.threat-cell:nth-child(2){padding-left:32px;border-left:1px solid var(--rule)}.threat-cell:nth-child(3){padding-left:32px;border-left:1px solid var(--rule);padding-right:0}}
+.threat-num{font-family:var(--font-serif);font-weight:500;font-size:2.6rem;color:var(--accent-strong);line-height:1;letter-spacing:-.02em;font-style:italic;margin-bottom:14px}
+.threat-cell p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.55;color:var(--ink-2);margin-bottom:12px}
+.threat-cell .src{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);padding-top:12px;border-top:1px solid var(--rule)}
+
+/* Benefits two-up */
+.benefits{display:grid;grid-template-columns:1fr;gap:28px}
+@media(min-width:900px){.benefits{grid-template-columns:1fr 1fr;gap:40px}}
+.benefit{background:#fff;border:1px solid var(--rule-2);padding:36px 32px 36px;display:flex;flex-direction:column}
+.benefit .tag{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.benefit h3{font-family:var(--font-serif);font-weight:500;font-size:1.625rem;line-height:1.2;color:var(--ink);margin-bottom:12px;letter-spacing:-.01em}
+.benefit h3 .em{font-style:italic;color:var(--accent-strong)}
+.benefit-divider{width:36px;height:2px;background:var(--accent);margin:8px 0 22px}
+.benefit > p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.6;color:var(--ink-2);margin-bottom:22px}
+.benefit-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px}
+.benefit-list li{display:flex;align-items:flex-start;gap:12px;font-family:var(--font-body);font-size:.9375rem;color:var(--ink);line-height:1.5}
+.benefit-list li::before{content:'';flex-shrink:0;width:18px;height:18px;margin-top:2px;border-radius:50%;background:rgba(31,139,92,0.12) url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1.5 5L4 7.5L8.5 2.5' stroke='%231F8B5C' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center no-repeat}
+
+/* Steps */
+.steps{padding:96px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule-2);border-bottom:1px solid var(--rule-2)}
+.steps-grid{display:grid;grid-template-columns:1fr;gap:0;border-top:2px solid var(--ink)}
+@media(min-width:760px){.steps-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1100px){.steps-grid{grid-template-columns:repeat(4,1fr)}}
+.step{padding:36px 0;border-bottom:1px solid var(--rule);position:relative}
+@media(min-width:760px){.step{padding:36px 24px 36px 24px}.step:nth-child(2n){border-left:1px solid var(--rule)}}
+@media(min-width:1100px){.step{padding:36px 30px}.step:nth-child(n+2){border-left:1px solid var(--rule)}}
+.step .num{font-family:var(--font-display);font-weight:800;font-size:1.5rem;color:var(--accent);letter-spacing:.02em;line-height:1;margin-bottom:14px}
+.step h3{font-family:var(--font-serif);font-weight:500;font-size:1.375rem;line-height:1.2;color:var(--ink);margin-bottom:12px;letter-spacing:-.01em}
+.step h3 .em{font-style:italic;color:var(--accent-strong)}
+.step p{font-family:var(--font-serif);font-size:1rem;line-height:1.55;color:var(--ink-2)}
+
+/* Industries */
+.industries-section{padding:96px 0;background:var(--bg-paper)}
+.industries-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:8px}
+@media(min-width:720px){.industries-grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:1024px){.industries-grid{grid-template-columns:repeat(6,1fr)}}
+.industry{background:#fff;padding:26px 16px;text-align:center;font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);transition:var(--transition)}
+.industry:hover{background:var(--bg-paper-2);color:var(--accent-strong)}
+
+/* Quote */
+.quote-section{padding:88px 0;background:var(--bg-dark);color:#fff}
+.quote-inner{max-width:920px;margin:0 auto;text-align:center}
+.quote-stamp{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:#F0A8B4;margin-bottom:24px;display:inline-block}
+.quote-text{font-family:var(--font-serif);font-style:italic;font-weight:500;font-size:clamp(1.5rem,2.6vw,2rem);line-height:1.35;letter-spacing:-.01em;color:#fff;margin-bottom:24px}
+.quote-cite{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:#A19888}
+
+/* FAQ */
+.faq{padding:96px 0;background:var(--bg-paper)}
+.faq-list{max-width:880px;margin:0 auto;border-top:1px solid var(--rule)}
+.faq-item{padding:28px 0;border-bottom:1px solid var(--rule)}
+.faq-item h3{font-family:var(--font-serif);font-weight:500;font-size:1.25rem;color:var(--ink);margin-bottom:10px;letter-spacing:-.005em;line-height:1.3}
+.faq-item h3 .em{font-style:italic;color:var(--accent-strong)}
+.faq-item p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.6;color:var(--ink-2)}
+
+/* CTA */
+.cta-band{padding:110px 0;background:var(--bg-paper-2);text-align:center;border-top:1px solid var(--rule-2)}
+.cta-band-inner{max-width:720px;margin:0 auto}
+.cta-eyebrow{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;display:inline-block}
+.cta-band h2{font-family:var(--font-serif);font-weight:500;font-size:clamp(2rem,4vw,2.75rem);line-height:1.1;letter-spacing:-.02em;color:var(--ink);margin-bottom:18px}
+.cta-band h2 .em{font-style:italic;color:var(--accent-strong)}
+.cta-band p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.6;color:var(--ink-2);margin-bottom:32px}
+.cta-buttons{display:flex;flex-wrap:wrap;justify-content:center;gap:14px}
+
+/* Footer */
+.footer{padding:64px 0 32px;background:var(--bg-dark);color:#94A3B8}
+.footer-grid{display:grid;grid-template-columns:1fr;gap:40px;margin-bottom:48px}
+@media(min-width:768px){.footer-grid{grid-template-columns:2fr 1fr 1fr 1fr}}
+.footer-brand p{font-size:.9375rem;line-height:1.6;margin-top:18px;max-width:320px}
+.footer-col h4{color:#E2E8F0;font-size:.875rem;font-weight:700;margin-bottom:18px}
+.footer-col a{display:block;font-size:.9375rem;margin-bottom:12px;color:#94A3B8;transition:var(--transition)}
+.footer-col a:hover{color:var(--accent)}
+.footer-bottom{padding-top:28px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px}
+.footer-bottom p{font-size:.85rem;color:#64748B}
+.footer-links{display:flex;gap:22px}
+.footer-links a{color:#64748B;font-size:.85rem}
+.footer-links a:hover{color:#E2E8F0}
+
+.lang-dropdown{position:relative}
+.lang-dropdown-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#E2E8F0;font-size:.8125rem;font-weight:600;cursor:pointer;transition:var(--transition)}
+.lang-dropdown-btn:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.25)}
+.lang-dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:140px;padding:8px 0;background:#0F1238;border:1px solid rgba(255,255,255,0.12);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.3);opacity:0;visibility:hidden;transform:translateY(-8px);transition:var(--transition);z-index:100}
+.lang-dropdown:hover .lang-dropdown-menu,.lang-dropdown:focus-within .lang-dropdown-menu{opacity:1;visibility:visible;transform:translateY(0)}
+.lang-option{display:block;padding:10px 16px;font-size:.875rem;color:#94A3B8;transition:var(--transition);text-decoration:none}
+.lang-option:hover{background:rgba(255,255,255,0.05);color:#fff}
+.lang-option.active{color:var(--accent);font-weight:600}
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip">Aller au contenu</a>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" aria-label="ASPS home">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+      </svg>
+    </a>
+    <div class="nav-links">
+      <a href="index.html#epidemic" class="nav-link">La menace</a>
+      <a href="platform.html" class="nav-link">Comment ça marche</a>
+      <a href="knowledge.html" class="nav-link">Centre de connaissances</a>
+      <a href="stories.html" class="nav-link">Témoignages</a>
+      <a href="partners.html" class="nav-link">Partenaires</a>
+      <a href="about.html" class="nav-link">À propos</a>
+      <a href="faq.html" class="nav-link active">Questions fréquentes</a>
+    </div>
+    <div class="nav-actions">
+            <div class="lang-dropdown">
+        <button class="lang-dropdown-btn" aria-label="Select language">
+          <span>FR</span>
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l4 4 4-4"/></svg>
+        </button>
+        <div class="lang-dropdown-menu">
+          <a href="../protection-for-organizations.html" class="lang-option">English</a>
+          <a href="../he/protection-for-organizations.html" class="lang-option">עברית</a>
+          <span class="lang-option active">Français</span>
+          <a href="../ru/protection-for-organizations.html" class="lang-option">Русский</a>
+          <a href="../es/protection-for-organizations.html" class="lang-option">Español</a>
+        </div>
+      </div><a href="contact.html" class="nav-btn nav-btn-ghost">Contact</a>
+      <a href="protection-plans.html" class="nav-btn nav-btn-primary">Se protéger</a>
+    </div>
+  </div>
+</nav>
+
+<main id="main">
+
+<!-- MASTHEAD -->
+<header class="masthead">
+  <div class="container">
+    <div class="masthead-top">
+      <span>Pour les organisations · Vol. 01</span>
+      <span class="right">La protection au travail comme avantage</span>
+    </div>
+    <div class="masthead-grid">
+      <div>
+        <h1>Prenez soin de vos <span class="em">collaborateurs</span> &mdash; y compris ce qui se passe en dehors du travail.</h1>
+        <p class="masthead-lede">Scams don&rsquo;t stop at the office door. Voice cloning, AI phishing and social engineering reach your employees through their personal phones, inboxes and family calls &mdash; and the fallout lands on your help desk, your reputation and your bottom line. ASPS gives you a way to extend real‑time protection to every person on your team.</p>
+        <div class="masthead-cta">
+          <a href="contact.html?subject=organizations" class="btn btn-accent">Parler à notre équipe &rarr;</a>
+          <a href="#how" class="btn btn-ink">Comment ça marche</a>
+        </div>
+      </div>
+
+      <aside class="numbers" aria-label="Why this matters">
+        <p class="stamp">Pourquoi c'est important</p>
+        <div class="numbers-row">
+          <span class="numbers-num"><span class="em">$1.03T</span></span>
+          <span class="numbers-lbl">Lost to scams globally in the past year</span>
+          <span class="numbers-src">Source · GASA 2024</span>
+        </div>
+        <div class="numbers-row">
+          <span class="numbers-num"><span class="em">1,210%</span></span>
+          <span class="numbers-lbl">Rise in AI‑powered scams in 2025</span>
+          <span class="numbers-src">Source · Vectra AI</span>
+        </div>
+        <div class="numbers-row">
+          <span class="numbers-num"><span class="em">75%</span></span>
+          <span class="numbers-lbl">Of cybercrime traces back to scams &amp; social engineering</span>
+          <span class="numbers-src">Source · House testimony, 2025</span>
+        </div>
+      </aside>
+    </div>
+  </div>
+</header>
+
+<!-- WHY / THE CASE -->
+<section class="case">
+  <div class="container">
+    <div class="section-head">
+      <h2>Un avantage social qui protège le reste de <span class="em">leur vie.</span></h2>
+      <p class="meta">The case for the workplace</p>
+    </div>
+
+    <div class="case-intro">
+      <p>Most workplace benefits stop at health, retirement and a wellness app or two. Meanwhile, the threats your people face every day &mdash; a deepfake of their CEO, a cloned voice of their daughter, an AI‑generated phishing call from &ldquo;the bank&rdquo; &mdash; live in the gap between work and home. ASPS lives in that gap.</p>
+    </div>
+
+    <div class="threat-row">
+      <div class="threat-cell">
+        <div class="threat-num">$680K</div>
+        <p>Average enterprise loss per successful voice‑fraud incident.</p>
+        <div class="src">Source · SQ Magazine, 2026</div>
+      </div>
+      <div class="threat-cell">
+        <div class="threat-num">$25M</div>
+        <p>Single deepfake call cost engineering firm Arup in a wire‑transfer scam.</p>
+        <div class="src">Source · Vectra AI</div>
+      </div>
+      <div class="threat-cell">
+        <div class="threat-num">1 in 127</div>
+        <p>Calls to corporate contact centers is now fraudulent.</p>
+        <div class="src">Source · SQ Magazine, 2026</div>
+      </div>
+    </div>
+
+    <div class="benefits">
+      <article class="benefit">
+        <span class="tag">Pour l'organisation</span>
+        <h3>Reduce risk you can&rsquo;t <span class="em">firewall away.</span></h3>
+        <div class="benefit-divider"></div>
+        <p>Your employees are the front line of social‑engineering attacks &mdash; whether the target is them personally, their family, or your business. Protecting them protects you.</p>
+        <ul class="benefit-list">
+          <li>Fewer compromised credentials and BEC incidents</li>
+          <li>Lower exposure to deepfake &amp; voice‑cloning attacks</li>
+          <li>Measurable reduction in help‑desk &amp; IR load</li>
+          <li>Compliance‑grade reporting &amp; audit trail</li>
+        </ul>
+      </article>
+      <article class="benefit">
+        <span class="tag">Pour vos collaborateurs</span>
+        <h3>A benefit they&rsquo;ll <span class="em">actually use.</span></h3>
+        <div class="benefit-divider"></div>
+        <p>Coverage that follows them home, onto their phones, into their parents&rsquo; lives. No security training to sit through &mdash; just real‑time backup at the moment a scam call or message hits.</p>
+        <ul class="benefit-list">
+          <li>Protection on personal &amp; work devices</li>
+          <li>Optional coverage for spouse &amp; aging parents</li>
+          <li>Quiet by default &mdash; only speaks up when it matters</li>
+          <li>Private. We process signals, not content.</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- STEPS -->
+<section class="steps" id="how">
+  <div class="container">
+    <div class="section-head">
+      <h2>Quatre étapes du contrat à <span class="em">une équipe protégée.</span></h2>
+      <p class="meta">Opérationnel en moins de 2 semaines</p>
+    </div>
+
+    <div class="steps-grid">
+      <article class="step">
+        <span class="num">01 /</span>
+        <h3>Scope the <span class="em">rollout.</span></h3>
+        <p>We size your seat count, decide which employee groups get coverage, and whether to extend to family members.</p>
+      </article>
+      <article class="step">
+        <span class="num">02 /</span>
+        <h3>Invite <span class="em">employees.</span></h3>
+        <p>Each employee gets a private invite to activate ASPS on their devices &mdash; opt‑in, never automatic, never tied to a work account.</p>
+      </article>
+      <article class="step">
+        <span class="num">03 /</span>
+        <h3>Live <span class="em">protection.</span></h3>
+        <p>Real‑time scam detection runs on calls, messages and links across personal and work surfaces &mdash; quietly, in the background.</p>
+      </article>
+      <article class="step">
+        <span class="num">04 /</span>
+        <h3>Aggregate <span class="em">reporting.</span></h3>
+        <p>You see anonymized rollup metrics &mdash; threats blocked, exposure trends, regional spikes &mdash; without ever seeing an individual employee&rsquo;s data.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- INDUSTRIES -->
+<section class="industries-section">
+  <div class="container">
+    <div class="section-head">
+      <h2>Conçu pour les organisations où <span class="em">la confiance est le produit.</span></h2>
+      <p class="meta">Six core verticals</p>
+    </div>
+    <div class="industries-grid">
+      <div class="industry">Services financiers</div>
+      <div class="industry">Santé</div>
+      <div class="industry">Télécoms</div>
+      <div class="industry">Gouvernement</div>
+      <div class="industry">Enseignement supérieur</div>
+      <div class="industry">Entreprise et RH</div>
+    </div>
+  </div>
+</section>
+
+<!-- QUOTE -->
+<section class="quote-section">
+  <div class="container">
+    <div class="quote-inner">
+      <span class="quote-stamp">A field note</span>
+      <p class="quote-text">&ldquo;Cybersecurity has spent twenty years defending the network. The next twenty are about defending the human on the other end of the call &mdash; and that&rsquo;s a workplace responsibility now, not just a personal one.&rdquo;</p>
+      <div class="quote-cite">&mdash; ASPS deployment team</div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq">
+  <div class="container">
+    <div class="section-head">
+      <h2>Ce que les organisations <span class="em">demandent d'abord.</span></h2>
+      <p class="meta">Questions courantes</p>
+    </div>
+
+    <div class="faq-list">
+      <div class="faq-item">
+        <h3>Will employees feel like we&rsquo;re <span class="em">surveilling them?</span></h3>
+        <p>No. ASPS processes signals &mdash; never the content of conversations &mdash; and the employer never sees individual activity. Enrollment is opt‑in and revocable at any time. The benefit lives on the employee&rsquo;s device, not in your HR system.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Can we extend coverage to <span class="em">spouses, kids or elderly parents?</span></h3>
+        <p>Yes. Family extensions are the most‑used feature. Most scams targeting your employees actually hit a parent or partner first &mdash; covering them closes the loop.</p>
+      </div>
+      <div class="faq-item">
+        <h3>How is this <span class="em">priced?</span></h3>
+        <p>Per protected seat, with volume tiers and discounted bundles for family extensions. We&rsquo;ll quote on the call once we understand your headcount.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Do we need an <span class="em">SDK or integration?</span></h3>
+        <p>Not for the benefit model. Employees install ASPS on their own devices and the rollup dashboard is hosted. For institutions that want native integration &mdash; banks, telecoms &mdash; we offer SDK and API paths too.</p>
+      </div>
+      <div class="faq-item">
+        <h3>What about <span class="em">compliance and data residency?</span></h3>
+        <p>ASPS supports regional data residency, SOC 2 controls and audit‑grade reporting. The full security &amp; compliance package is available under NDA on request.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="cta-band">
+  <div class="container">
+    <div class="cta-band-inner">
+      <span class="cta-eyebrow">Let&rsquo;s scope this for your team</span>
+      <h2>Protection réelle, déployée comme <span class="em">vos collaborateurs vivent vraiment.</span></h2>
+      <p>Tell us roughly how many people you&rsquo;d cover, what your biggest scam pain points look like today, and we&rsquo;ll come back with a proposal within a few business days.</p>
+      <div class="cta-buttons">
+        <a href="contact.html?subject=organizations" class="btn btn-accent">Nous contacter sur les organisations &rarr;</a>
+        <a href="protection-plans.html" class="btn btn-ink">Retour aux plans</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerLogoGrad)"/>
+          <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs><linearGradient id="footerLogoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+        </svg>
+        <p>Protection IA en temps réel contre la fraude, les arnaques et l'ingénierie sociale. Protéger les personnes au moment où ça compte le plus.</p>
+      </div>
+      <div class="footer-col"><h4>Plateforme</h4><a href="platform.html">Comment ça marche</a><a href="individuals.html#individuals">Pour les particuliers</a><a href="individuals.html#families">Pour les familles</a><a href="protection-for-organizations.html">Pour les organisations</a><a href="partners.html">Pour les partenaires</a></div>
+      <div class="footer-col"><h4>Ressources</h4><a href="knowledge.html">Centre de connaissances</a><a href="faq.html">FAQ</a><a href="stories.html#support">Obtenir de l'aide</a><a href="stories.html">Témoignages</a></div>
+      <div class="footer-col"><h4>Entreprise</h4><a href="about.html">À propos</a><a href="about.html#mission">Notre mission</a><a href="about.html#ethics">Éthique &amp; confiance</a><a href="contact.html">Contact</a></div>
+    </div>
+    <div class="footer-bottom"><p>© 2026 ASPS. Tous droits réservés.</p><div class="footer-links"><a href="privacy.html">Confidentialité</a><a href="privacy.html#terms">Conditions</a><a href="accessibility.html">Accessibilité</a></div></div>
+  </div>
+</footer>
+
+<script src="../cookie-banner.js"></script>
+</body>
+</html>

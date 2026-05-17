@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="ASPS Partner Portal — secure login for banks, telcos, insurers and institutional partners."/>
+<title>Partner login — ASPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;0,16..72,700;1,16..72,400;1,16..72,500;1,16..72,600&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-dark:#070B14; --bg-paper:#FAF7F2; --bg-paper-2:#F3EFE8;
+  --accent:#BE3A4B; --accent-strong:#8E1A2A;
+  --green:#1F8B5C;
+  --ink:#1A1814; --ink-2:#4A4640; --ink-3:#6B655C;
+  --rule:#E4DDD2; --rule-2:#D7CFC2;
+  --font-body:'Instrument Sans',-apple-system,sans-serif;
+  --font-serif:'Newsreader',Georgia,serif;
+  --font-display:'Syne',Georgia,serif;
+  --transition:0.25s cubic-bezier(0.4,0,0.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--bg-paper);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+input,textarea,select{font-family:inherit;font-size:inherit;color:inherit}
+
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+@media(min-width:768px){.container{padding:0 40px}}
+@media(min-width:1024px){.container{padding:0 60px}}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:1000;height:72px;background:rgba(15,18,56,0.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08)}
+.nav-inner{max-width:1400px;margin:0 auto;padding:0 40px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:32px}
+.nav-links{display:none;align-items:center;gap:8px}
+@media(min-width:1024px){.nav-links{display:flex}}
+.nav-link{padding:8px 16px;font-size:.875rem;font-weight:500;color:#94A3B8;border-radius:8px;transition:var(--transition)}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,0.05)}
+.nav-actions{display:flex;align-items:center;gap:12px}
+.nav-btn{padding:10px 20px;font-size:.875rem;font-weight:600;border-radius:8px;border:none;transition:var(--transition)}
+.nav-btn-ghost{background:transparent;color:#94A3B8;border:1px solid rgba(255,255,255,0.12)}
+.nav-btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.25)}
+.nav-btn-primary{background:#fff;color:#0F1238}
+.nav-btn-primary:hover{background:#EEF0FF}
+.nav-btn-ghost.active{color:var(--accent);border-color:rgba(190,58,75,0.30);background:rgba(190,58,75,0.08)}
+.lang-dropdown{position:relative}
+.lang-dropdown-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#E2E8F0;font-size:.8125rem;font-weight:600;cursor:pointer;transition:var(--transition)}
+.lang-dropdown-btn:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.25)}
+.lang-dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:140px;padding:8px 0;background:#0F1238;border:1px solid rgba(255,255,255,0.12);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.3);opacity:0;visibility:hidden;transform:translateY(-8px);transition:var(--transition);z-index:100}
+.lang-dropdown:hover .lang-dropdown-menu,.lang-dropdown:focus-within .lang-dropdown-menu{opacity:1;visibility:visible;transform:translateY(0)}
+.lang-option{display:block;padding:10px 16px;font-size:.875rem;color:#94A3B8;transition:var(--transition);text-decoration:none}
+.lang-option:hover{background:rgba(255,255,255,0.05);color:#fff}
+.lang-option.active{color:var(--accent);font-weight:600}
+
+/* PAGE */
+main.login{flex:1;display:flex;align-items:flex-start;padding:64px 24px 80px}
+.login-wrap{max-width:1100px;margin:0 auto;width:100%;display:grid;grid-template-columns:1fr;gap:48px;align-items:stretch}
+@media(min-width:900px){.login-wrap{grid-template-columns:1.05fr .95fr;gap:64px}}
+
+/* Editorial intro */
+.login-intro{display:flex;flex-direction:column;justify-content:center;max-width:540px}
+.login-intro .stamp{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);margin-bottom:24px}
+.login-intro h1{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2.4rem,5vw,3.4rem);line-height:1.05;letter-spacing:-.025em;color:var(--ink);margin-bottom:22px}
+.login-intro h1 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.login-intro p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.6;color:var(--ink-2);margin-bottom:32px;max-width:480px}
+.login-intro .who{display:flex;flex-direction:column;gap:14px;border-top:1px solid var(--rule);padding-top:24px}
+.login-intro .who .who-label{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
+.login-intro .who-row{display:flex;justify-content:space-between;gap:16px;font-family:var(--font-serif);font-size:.95rem;color:var(--ink);padding:6px 0}
+.login-intro .who-row span:last-child{color:var(--ink-2);font-size:.9rem;text-align:right}
+
+/* Card */
+.login-card{background:#fff;border:1px solid var(--rule-2);padding:36px 32px;display:flex;flex-direction:column;gap:18px;align-self:start;box-shadow:0 1px 0 rgba(26,24,20,0.04)}
+.login-card .card-stamp{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);padding-bottom:14px;border-bottom:1px solid var(--rule)}
+.login-card h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:1.6rem;line-height:1.15;color:var(--ink);letter-spacing:-.01em}
+.login-card h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.field input{padding:12px 14px;font-family:var(--font-body);font-size:1rem;background:#FFFEFB;color:var(--ink);border:1px solid var(--rule-2);border-radius:0;transition:var(--transition)}
+.field input:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(190,58,75,0.10)}
+
+.row-between{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.remember{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-body);font-size:.9rem;color:var(--ink-2)}
+.remember input{appearance:none;width:16px;height:16px;border:1.5px solid var(--rule-2);background:#fff;cursor:pointer;display:inline-block;position:relative}
+.remember input:checked{background:var(--accent);border-color:var(--accent)}
+.remember input:checked::after{content:'\2713';color:#fff;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700}
+.forgot{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);border-bottom:1px solid rgba(190,58,75,0.30);padding-bottom:1px;transition:var(--transition)}
+.forgot:hover{color:var(--accent-strong);border-bottom-color:var(--accent-strong)}
+
+/* CAPTCHA */
+.captcha{position:relative;min-height:64px;background:#F8F5EE;border:1px solid var(--rule-2);overflow:hidden}
+.captcha[data-state="verified"]{background:rgba(31,139,92,0.06);border-color:rgba(31,139,92,0.30)}
+.captcha[data-state="verified"] .turnstile-spinner{border-color:var(--green);animation:none}
+.captcha[data-state="verified"] .turnstile-spinner::after{content:"\2713";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.95rem;font-weight:700;color:var(--green)}
+.captcha[data-state="verified"] .turnstile-label{color:var(--green);font-weight:600}
+.turnstile-placeholder{display:flex;align-items:center;gap:14px;padding:16px 18px}
+.turnstile-spinner{position:relative;width:20px;height:20px;border:2px solid var(--rule-2);border-top-color:var(--accent);border-radius:50%;animation:cap-spin .9s linear infinite;flex-shrink:0}
+@keyframes cap-spin{to{transform:rotate(360deg)}}
+.turnstile-label{font-size:.9rem;color:var(--ink);flex-grow:1}
+.turnstile-brand{font-family:var(--font-display);font-weight:700;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+
+/* Honeypot */
+.honeypot{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+
+/* Submit + footer */
+.submit{padding:14px 24px;font-family:var(--font-display);font-size:.82rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;background:var(--accent);color:#fff;border:none;border-radius:0;transition:var(--transition);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:10px}
+.submit:hover{background:var(--accent-strong)}
+.submit[aria-disabled="true"], .submit:disabled{background:#C4B5A8;cursor:not-allowed}
+
+.login-message{font-family:var(--font-body);font-size:.85rem;line-height:1.45;padding:2px;min-height:1em}
+.login-message.error{color:#B91C1C}
+.login-message.success{color:var(--green)}
+
+.card-foot{padding-top:18px;border-top:1px solid var(--rule);display:flex;flex-direction:column;gap:6px;font-family:var(--font-body);font-size:.875rem;color:var(--ink-2)}
+.card-foot a{color:var(--accent);border-bottom:1px solid rgba(190,58,75,0.30);padding-bottom:1px}
+.card-foot a:hover{color:var(--accent-strong)}
+
+.card-secure{display:flex;align-items:center;gap:8px;font-family:var(--font-display);font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);padding-top:8px}
+.card-secure svg{width:12px;height:12px}
+
+/* Footer */
+.footer{padding:36px 0;background:var(--bg-dark);color:#94A3B8}
+.footer-inner{max-width:1200px;margin:0 auto;padding:0 24px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px}
+.footer-inner p{font-size:.85rem;color:#64748B}
+.footer-links{display:flex;gap:22px}
+.footer-links a{color:#64748B;font-size:.85rem}
+.footer-links a:hover{color:#E2E8F0}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" aria-label="ASPS home">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+      </svg>
+    </a>
+    <div class="nav-links">
+      <a href="platform.html" class="nav-link">How it works</a>
+      <a href="knowledge.html" class="nav-link">Knowledge center</a>
+      <a href="stories.html" class="nav-link">Stories</a>
+      <a href="partners.html" class="nav-link">Partners</a>
+      <a href="about.html" class="nav-link">About</a>
+      <a href="faq.html" class="nav-link">FAQ</a>
+    </div>
+    <div class="nav-actions">
+      <div class="lang-dropdown">
+        <button class="lang-dropdown-btn" aria-label="Select language"><span>EN</span><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l4 4 4-4"/></svg></button>
+        <div class="lang-dropdown-menu">
+          <span class="lang-option active">English</span>
+          <a href="he/partner-login.html" class="lang-option">עברית</a>
+          <a href="fr/partner-login.html" class="lang-option">Français</a>
+          <a href="ru/partner-login.html" class="lang-option">Русский</a>
+          <a href="es/partner-login.html" class="lang-option">Español</a>
+        </div>
+      </div>
+      <a href="partner-login.html" class="nav-btn nav-btn-ghost active">Partner login</a>
+      <a href="protection-plans.html" class="nav-btn nav-btn-primary">Get protected</a>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="login">
+  <div class="login-wrap">
+
+    <!-- Editorial intro -->
+    <section class="login-intro" aria-label="Partner portal context">
+      <span class="stamp">Partner portal · v2.6</span>
+      <h1>The <span class="em">partner</span> side of ASPS.</h1>
+      <p>Secure access for banks, telcos, insurers and institutional partners. The portal holds your deployment dashboards, threat-intelligence feed, compliance reports and SDK keys &mdash; the operational side of the protection your customers see.</p>
+
+      <div class="who">
+        <span class="who-label">Who logs in here</span>
+        <div class="who-row"><span>Banks &amp; FinTechs</span><span>Fraud-ops, IR, compliance</span></div>
+        <div class="who-row"><span>Telecoms</span><span>Voice-fraud, abuse desks</span></div>
+        <div class="who-row"><span>Insurers</span><span>Claims &amp; cyber lines</span></div>
+        <div class="who-row"><span>Public sector</span><span>National anti-scam programs</span></div>
+        <div class="who-row"><span>Enterprise HR</span><span>Workforce protection rollouts</span></div>
+      </div>
+    </section>
+
+    <!-- Login card -->
+    <section class="login-card" aria-label="Partner login">
+      <span class="card-stamp">Partner sign-in · TLS 1.3</span>
+      <h2>Sign in to your <span class="em">partner console.</span></h2>
+
+      <form id="partner-login-form" novalidate autocomplete="on">
+
+        <!-- Honeypot — bots tend to fill every field -->
+        <div class="honeypot" aria-hidden="true">
+          <label for="pl-website">Website (leave blank)</label>
+          <input type="text" id="pl-website" name="website" tabindex="-1" autocomplete="off"/>
+        </div>
+
+        <div class="field" style="margin-bottom:14px">
+          <label for="pl-email">Work email</label>
+          <input type="email" id="pl-email" name="email" required autocomplete="email" placeholder="you@institution.com"/>
+        </div>
+
+        <div class="field" style="margin-bottom:14px">
+          <label for="pl-password">Password</label>
+          <input type="password" id="pl-password" name="password" required autocomplete="current-password" placeholder="Your partner-portal password"/>
+        </div>
+
+        <div class="row-between" style="margin-bottom:18px">
+          <label class="remember">
+            <input type="checkbox" id="pl-remember" name="remember"/>
+            <span>Keep me signed in (24h)</span>
+          </label>
+          <a href="contact.html?subject=partner_password_reset" class="forgot">Forgot password?</a>
+        </div>
+
+        <!-- Cloudflare Turnstile CAPTCHA placeholder.
+             To activate (free, ~5 min):
+               1. Sign up at https://www.cloudflare.com/products/turnstile/
+               2. Replace data-sitekey="PLACEHOLDER" with your sitekey
+               3. Uncomment the Turnstile <script> at the bottom of <body>
+             Until then, a styled placeholder fills the slot. -->
+        <div class="cf-turnstile captcha" id="pl-captcha"
+             data-sitekey="PLACEHOLDER"
+             data-callback="onPartnerCaptchaSuccess"
+             data-theme="light"
+             style="margin-bottom:14px">
+          <div class="turnstile-placeholder" role="status" aria-live="polite">
+            <span class="turnstile-spinner" aria-hidden="true"></span>
+            <span class="turnstile-label">Verifying you&rsquo;re human&hellip;</span>
+            <span class="turnstile-brand">Protected by ASPS</span>
+          </div>
+        </div>
+
+        <button type="submit" class="submit" id="pl-submit" aria-disabled="true">
+          Sign in
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+
+        <div class="login-message" id="pl-message" role="status" aria-live="polite"></div>
+      </form>
+
+      <div class="card-foot">
+        <span>Don&rsquo;t have a partner account yet?
+          <a href="contact.html?subject=partner_account">Request access &rarr;</a>
+        </span>
+        <span>Account issues?
+          <a href="contact.html?subject=partner_support">Contact partner support &rarr;</a>
+        </span>
+      </div>
+
+      <div class="card-secure">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a5 5 0 0 1 10 0v2M3 7h10v7H3V7z"/></svg>
+        SOC 2 Type II · TLS 1.3 · MFA enforced
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-inner">
+    <p>© 2026 ASPS. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="privacy.html">Privacy</a>
+      <a href="privacy.html#terms">Terms</a>
+      <a href="accessibility.html">Accessibility</a>
+      <a href="contact.html">Contact</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  const form = document.getElementById('partner-login-form');
+  if (!form) return;
+  const emailInput  = document.getElementById('pl-email');
+  const passInput   = document.getElementById('pl-password');
+  const honeypot    = document.getElementById('pl-website');
+  const captchaBox  = document.getElementById('pl-captcha');
+  const captchaLbl  = captchaBox.querySelector('.turnstile-label');
+  const submitBtn   = document.getElementById('pl-submit');
+  const msg         = document.getElementById('pl-message');
+
+  let captchaToken = null;
+
+  function showMsg(text, kind) {
+    msg.textContent = text || '';
+    msg.className = 'login-message' + (kind ? ' ' + kind : '');
+  }
+
+  // Real Turnstile success callback
+  window.onPartnerCaptchaSuccess = function (token) {
+    captchaToken = token || 'verified';
+    captchaBox.setAttribute('data-state', 'verified');
+    if (captchaLbl) captchaLbl.textContent = 'Verified \u2014 you\'re human';
+    submitBtn.removeAttribute('aria-disabled');
+  };
+
+  // Placeholder mode — simulate verify after ~1.6s when no real sitekey is set.
+  const sitekey = captchaBox.getAttribute('data-sitekey');
+  if (!sitekey || sitekey === 'PLACEHOLDER') {
+    setTimeout(function () {
+      if (!captchaToken) window.onPartnerCaptchaSuccess('placeholder-token');
+    }, 1600);
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    const email = (emailInput.value || '').trim();
+    const pass  = passInput.value || '';
+
+    // Honeypot trip → silently swallow
+    if (honeypot && honeypot.value) {
+      showMsg('Signed in.', 'success');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showMsg('Please enter a valid work email.', 'error');
+      emailInput.focus();
+      return;
+    }
+    if (!pass) {
+      showMsg('Please enter your password.', 'error');
+      passInput.focus();
+      return;
+    }
+    if (!captchaToken) {
+      showMsg('Hang on \u2014 still verifying you\'re human.', 'error');
+      return;
+    }
+
+    // Demo success — a real backend would POST {email, password, captchaToken} here.
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Signing in\u2026';
+    showMsg('Authenticating against partner identity provider\u2026', 'success');
+
+    setTimeout(function () {
+      showMsg('This is a demo. The partner backend is not connected in this preview.', 'error');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Sign in <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+    }, 1400);
+  });
+})();
+</script>
+
+<!-- To activate real Cloudflare Turnstile, uncomment the line below AND set a real sitekey on #pl-captcha:
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+-->
+
+</body>
+</html>

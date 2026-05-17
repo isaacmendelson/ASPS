@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="À propos d'ASPS — Notre mission, nos valeurs et notre engagement à protéger les personnes contre les arnaques grâce à une IA éthique et une conception centrée sur l'humain."/>
+<title>À propos — ASPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;0,16..72,700;1,16..72,400;1,16..72,500;1,16..72,600&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-dark:#070B14; --bg-paper:#FAF7F2; --bg-paper-2:#F3EFE8;
+  --accent:#BE3A4B; --accent-strong:#8E1A2A;
+  --ink:#1A1814; --ink-2:#4A4640; --ink-3:#6B655C;
+  --rule:#E4DDD2; --rule-2:#D7CFC2;
+  --font-body:'Instrument Sans',-apple-system,sans-serif;
+  --font-serif:'Newsreader',Georgia,serif;
+  --font-display:'Syne',Georgia,serif;
+  --transition:0.25s cubic-bezier(0.4,0,0.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--bg-paper);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+@media(min-width:768px){.container{padding:0 40px}}
+@media(min-width:1024px){.container{padding:0 60px}}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:1000;height:72px;background:rgba(15,18,56,0.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08)}
+.nav-inner{max-width:1400px;margin:0 auto;padding:0 40px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:32px}
+.nav-logo{display:flex;align-items:center;flex-shrink:0}
+.nav-links{display:none;align-items:center;gap:8px}
+@media(min-width:1024px){.nav-links{display:flex}}
+.nav-link{padding:8px 16px;font-size:.875rem;font-weight:500;color:#94A3B8;border-radius:8px;transition:var(--transition)}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,0.05)}
+.nav-link.active{color:#fff;position:relative}
+.nav-link.active::after{content:'';position:absolute;left:16px;right:16px;bottom:0;height:2px;background:var(--accent)}
+.nav-actions{display:flex;align-items:center;gap:12px}
+.nav-btn{padding:10px 20px;font-size:.875rem;font-weight:600;border-radius:8px;transition:var(--transition);border:none}
+.nav-btn-ghost{background:transparent;color:#94A3B8;border:1px solid rgba(255,255,255,0.12)}
+.nav-btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.25)}
+.nav-btn-primary{background:#fff;color:#0F1238}
+.nav-btn-primary:hover{background:#EEF0FF}
+.lang-dropdown{position:relative}
+.lang-dropdown-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#E2E8F0;font-size:.8125rem;font-weight:600;cursor:pointer;transition:var(--transition)}
+.lang-dropdown-btn:hover{background:rgba(255,255,255,0.1)}
+.lang-dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:140px;padding:8px 0;background:#0F1238;border:1px solid rgba(255,255,255,0.12);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.3);opacity:0;visibility:hidden;transform:translateY(-8px);transition:var(--transition);z-index:100}
+.lang-dropdown:hover .lang-dropdown-menu,.lang-dropdown:focus-within .lang-dropdown-menu{opacity:1;visibility:visible;transform:translateY(0)}
+.lang-option{display:block;padding:10px 16px;font-size:.875rem;color:#94A3B8;transition:var(--transition)}
+.lang-option:hover{background:rgba(255,255,255,0.05);color:#fff}
+.lang-option.active{color:var(--accent);font-weight:600}
+
+/* Shared */
+.section-eyebrow{display:inline-flex;align-items:center;gap:14px;margin-bottom:18px;font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+.section-eyebrow.with-rule::before{content:'';width:32px;height:1px;background:var(--accent);opacity:.5}
+.section-title{font-family:var(--font-serif);font-weight:500;font-size:clamp(2rem,4vw,3rem);line-height:1.05;letter-spacing:-.025em;color:var(--ink)}
+.section-title .em{font-style:italic;font-weight:500;color:var(--accent-strong)}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 28px;font-family:var(--font-display);font-size:.84rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;border:none;transition:var(--transition);cursor:pointer}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-accent:hover{background:var(--accent-strong)}
+.btn-ink{background:transparent;color:var(--ink);border:1px solid var(--rule-2)}
+.btn-ink:hover{border-color:var(--ink)}
+.btn-ghost{background:transparent;color:#F5F0E7;border:1px solid rgba(245,240,231,0.25)}
+.btn-ghost:hover{border-color:rgba(245,240,231,0.55)}
+
+/* MASTHEAD */
+.masthead{padding:80px 0 60px;background:var(--bg-paper);border-bottom:1px solid var(--rule)}
+.masthead-top{display:flex;justify-content:space-between;align-items:baseline;gap:20px;padding-bottom:18px;border-bottom:1px solid var(--rule-2);margin-bottom:36px;font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+.masthead-top .right{color:var(--accent)}
+.masthead h1{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(3rem,7vw,5.5rem);line-height:.98;letter-spacing:-.03em;color:var(--ink);margin-bottom:24px}
+.masthead h1 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.masthead-lede{font-family:var(--font-serif);font-size:1.25rem;line-height:1.55;color:var(--ink-2);max-width:720px}
+.masthead-byline{display:flex;flex-wrap:wrap;gap:32px;margin-top:36px;padding-top:24px;border-top:1px solid var(--rule);font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase}
+.masthead-byline span{color:var(--ink-3)}
+.masthead-byline strong{color:var(--ink);font-weight:700;margin-left:6px}
+
+/* ORIGIN — editorial 2col */
+.origin{padding:100px 0;background:var(--bg-paper)}
+.origin-grid{display:grid;grid-template-columns:1fr;gap:56px}
+@media(min-width:900px){.origin-grid{grid-template-columns:5fr 7fr;gap:96px}}
+.origin-meta{position:sticky;top:100px;align-self:start}
+.origin-meta .section-title{margin-bottom:20px}
+.origin-meta-note{font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);padding-top:18px;border-top:1px solid var(--rule);margin-top:24px}
+.origin-body p{font-family:var(--font-serif);font-size:1.1875rem;line-height:1.6;color:var(--ink);margin-bottom:24px}
+.origin-body p.lead{font-size:1.5rem;line-height:1.4;font-weight:500;padding-bottom:32px;margin-bottom:32px;border-bottom:1px solid var(--rule)}
+.origin-body em{font-style:normal;color:var(--accent-strong);font-weight:600}
+.dropcap::first-letter{font-family:var(--font-serif);font-style:italic;font-weight:500;font-size:5rem;float:left;line-height:.85;padding:6px 14px 0 0;color:var(--accent-strong)}
+
+/* MISSION — pull statement */
+.mission{padding:100px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule-2);border-bottom:1px solid var(--rule-2)}
+.mission-inner{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:48px;align-items:start}
+@media(min-width:900px){.mission-inner{grid-template-columns:1fr 2fr;gap:80px}}
+.mission-stamp{display:flex;flex-direction:column;gap:18px;border:1px solid var(--rule-2);padding:24px;background:#fff;position:relative}
+.mission-stamp::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:3px;background:var(--accent)}
+.mission-stamp .label{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+.mission-stamp .name{font-family:var(--font-serif);font-style:italic;font-weight:500;font-size:1.5rem;line-height:1.15;color:var(--ink)}
+.mission-stamp dl{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:.84rem;padding-top:16px;border-top:1px dashed var(--rule-2)}
+.mission-stamp dt{font-family:var(--font-display);font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);padding-top:3px}
+.mission-stamp dd{color:var(--ink);line-height:1.45}
+.mission-statement{font-family:var(--font-serif);font-weight:400;font-size:clamp(1.6rem,3vw,2.4rem);line-height:1.25;letter-spacing:-.015em;color:var(--ink)}
+.mission-statement .em{font-style:italic;font-weight:500;color:var(--accent-strong)}
+.mission-statement .hl{background:linear-gradient(180deg,transparent 60%,rgba(190,58,75,.18) 60%,rgba(190,58,75,.18) 92%,transparent 92%);padding:0 .08em;font-weight:500}
+.mission-cite{display:block;margin-top:32px;font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+
+/* PRINCIPLES — editorial numbered list */
+.princ{padding:110px 0;background:var(--bg-paper)}
+.princ-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:56px;padding-bottom:24px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.princ-head-meta{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);padding-bottom:6px}
+.princ-list{list-style:none;border-top:1px solid var(--rule)}
+.princ-list li{display:grid;grid-template-columns:1fr;gap:14px;padding:32px 0;border-bottom:1px solid var(--rule)}
+@media(min-width:800px){.princ-list li{grid-template-columns:88px 1.2fr 2fr;gap:48px;align-items:start}}
+.princ-num{font-family:var(--font-display);font-weight:700;font-size:.78rem;letter-spacing:.16em;color:var(--accent);padding-top:4px}
+.princ-list li:nth-child(1) .princ-num::before{content:'01 /'}
+.princ-list li:nth-child(2) .princ-num::before{content:'02 /'}
+.princ-list li:nth-child(3) .princ-num::before{content:'03 /'}
+.princ-list li:nth-child(4) .princ-num::before{content:'04 /'}
+.princ-list li:nth-child(5) .princ-num::before{content:'05 /'}
+.princ-title{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:1.5rem;line-height:1.2;color:var(--ink)}
+.princ-title .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.princ-body{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.6;color:var(--ink-2)}
+
+/* TIMELINE — dark band */
+.timeline{background:var(--ink);color:#F5F0E7;padding:110px 0;position:relative;overflow:hidden}
+.timeline::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 80% 20%,rgba(190,58,75,.16),transparent 50%);pointer-events:none}
+.timeline-inner{position:relative;max-width:1320px;margin:0 auto;padding:0 40px}
+.timeline-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:56px;padding-bottom:24px;border-bottom:1px solid rgba(245,240,231,0.12);flex-wrap:wrap}
+.timeline-head .section-title{color:#fff;max-width:620px}
+.timeline-head-meta{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:#A19888;padding-bottom:6px}
+.t-row{display:grid;grid-template-columns:1fr;gap:14px;padding:28px 0;border-bottom:1px solid rgba(245,240,231,0.12)}
+@media(min-width:800px){.t-row{grid-template-columns:140px 220px 1fr;gap:48px;align-items:start}}
+.t-year{font-family:var(--font-display);font-weight:700;font-size:1.5rem;color:var(--accent);letter-spacing:.04em}
+.t-mark{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:#D6CDBE;padding-top:8px}
+.t-body{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.55;color:#D6CDBE}
+.t-body strong{color:#fff;font-weight:500}
+
+/* TEAM — directors page */
+.team{padding:110px 0;background:var(--bg-paper)}
+.team-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:48px;padding-bottom:24px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.team-grid{display:grid;grid-template-columns:1fr;gap:24px}
+@media(min-width:700px){.team-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1024px){.team-grid{grid-template-columns:repeat(3,1fr)}}
+.member{padding:28px 0 24px;border-top:2px solid var(--ink)}
+.member-mono{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+.member-name{font-family:var(--font-serif);font-weight:500;font-size:1.5rem;line-height:1.15;color:var(--ink);margin-bottom:6px;letter-spacing:-.01em}
+.member-role{font-family:var(--font-body);font-size:.92rem;color:var(--ink-3);margin-bottom:16px;padding-bottom:14px;border-bottom:1px dashed var(--rule-2)}
+.member-bio{font-family:var(--font-serif);font-size:1rem;line-height:1.55;color:var(--ink-2)}
+
+/* ETHICS — split */
+.ethics{padding:110px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule-2);border-bottom:1px solid var(--rule-2)}
+.ethics-grid{display:grid;grid-template-columns:1fr;gap:48px}
+@media(min-width:900px){.ethics-grid{grid-template-columns:5fr 7fr;gap:80px;align-items:start}}
+.ethics-left .section-title{margin-bottom:24px}
+.ethics-left p{font-family:var(--font-serif);font-size:1.125rem;line-height:1.6;color:var(--ink-2);margin-bottom:20px}
+.ethics-card{background:#fff;border:1px solid var(--rule);padding:36px 32px 32px;position:relative}
+.ethics-card::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:3px;background:var(--accent)}
+.ethics-card h3{font-family:var(--font-serif);font-weight:600;font-size:1.4rem;color:var(--ink);margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--rule)}
+.ethics-card ul{list-style:none;display:flex;flex-direction:column;gap:14px}
+.ethics-card ul li{font-family:var(--font-serif);font-size:1rem;color:var(--ink);padding-left:22px;position:relative;line-height:1.55}
+.ethics-card ul li::before{content:'';position:absolute;left:0;top:.6em;width:12px;height:1px;background:var(--accent)}
+.ethics-card ul li strong{color:var(--accent-strong);font-weight:600}
+.ethics-card .foot{margin-top:24px;padding-top:20px;border-top:1px dashed var(--rule-2);font-family:var(--font-display);font-size:.68rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);display:flex;justify-content:space-between;align-items:center;gap:14px}
+.ethics-card .foot a{color:var(--accent)}
+
+/* TRUST strip */
+.trust{padding:64px 0;background:var(--bg-paper);border-bottom:1px solid var(--rule)}
+.trust-inner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:32px}
+.trust-label{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+.trust-marks{display:flex;flex-wrap:wrap;gap:36px;align-items:center}
+.trust-mark{font-family:var(--font-display);font-weight:700;font-size:.84rem;letter-spacing:.08em;color:var(--ink);padding:8px 14px;border:1px solid var(--ink);background:transparent}
+.trust-mark.alt{background:var(--ink);color:#F5F0E7;border-color:var(--ink)}
+
+/* PULL QUOTE */
+.pullquote-section{padding:100px 0;background:var(--bg-paper)}
+.pullquote{max-width:980px;margin:0 auto;text-align:center}
+.pullquote::before{content:'';display:block;width:64px;height:2px;background:var(--accent);margin:0 auto 32px}
+.pullquote-text{font-family:var(--font-serif);font-style:italic;font-weight:400;font-size:clamp(1.5rem,3.5vw,2.5rem);line-height:1.25;letter-spacing:-.015em;color:var(--ink)}
+.pullquote-text strong{font-weight:600;font-style:normal;background:linear-gradient(180deg,transparent 62%,rgba(190,58,75,.18) 62%,rgba(190,58,75,.18) 92%,transparent 92%);padding:0 .08em}
+.pullquote-cite{display:block;margin-top:28px;font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+
+/* CTA */
+.cta{padding:110px 0;background:var(--ink);color:#F5F0E7;text-align:center;position:relative;overflow:hidden}
+.cta::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 50% 0%,rgba(190,58,75,.20),transparent 60%);pointer-events:none}
+.cta-inner{max-width:760px;margin:0 auto;position:relative}
+.cta-eyebrow{display:inline-block;margin-bottom:24px;font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+.cta h2{font-family:var(--font-serif);font-style:italic;font-weight:400;font-size:clamp(2rem,4.5vw,3.25rem);line-height:1.1;letter-spacing:-.025em;color:#fff;margin-bottom:24px}
+.cta h2 .em{font-style:normal;font-weight:600;color:var(--accent)}
+.cta p{font-family:var(--font-serif);font-size:1.1875rem;line-height:1.65;color:#D6CDBE;margin-bottom:40px}
+.cta-buttons{display:flex;flex-wrap:wrap;justify-content:center;gap:14px}
+
+/* FOOTER */
+.footer{padding:80px 0 40px;background:var(--bg-dark);color:#94A3B8}
+.footer-grid{display:grid;grid-template-columns:1fr;gap:48px;margin-bottom:64px}
+@media(min-width:768px){.footer-grid{grid-template-columns:2fr 1fr 1fr 1fr}}
+.footer-brand p{font-size:.9375rem;line-height:1.7;max-width:320px;margin-top:20px}
+.footer-col h4{font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#E2E8F0;margin-bottom:20px}
+.footer-col a{display:block;font-size:.9375rem;margin-bottom:14px;transition:var(--transition)}
+.footer-col a:hover{color:var(--accent)}
+.footer-bottom{padding-top:32px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px;font-size:.84rem;color:#64748B}
+.footer-links{display:flex;gap:24px}
+.footer-links a:hover{color:#E2E8F0}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo" aria-label="ASPS accueil">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C" opacity="0.4"><animate attributeName="r" values="4;8;4" dur="2.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.4;0;0.4" dur="2.5s" repeatCount="indefinite"/></circle>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+      </svg>
+    </a>
+    <div class="nav-links">
+      <a href="index.html#epidemic" class="nav-link">La menace</a>
+      <a href="platform.html" class="nav-link">Comment ça marche</a>
+      <a href="knowledge.html" class="nav-link">Centre de connaissances</a>
+      <a href="stories.html" class="nav-link">Témoignages</a>
+      <a href="partners.html" class="nav-link">Partenaires</a>
+      <a href="about.html" class="nav-link active">À propos</a>
+    </div>
+    <div class="nav-actions">
+      <div class="lang-dropdown">
+        <button class="lang-dropdown-btn" aria-label="Choisir la langue"><span>FR</span><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l4 4 4-4"/></svg></button>
+        <div class="lang-dropdown-menu">
+          <a href="../about.html" class="lang-option">English</a>
+          <a href="../he/about.html" class="lang-option">עברית</a>
+          <span class="lang-option active">Français</span>
+          <a href="../ru/about.html" class="lang-option">Русский</a>
+          <a href="../es/about.html" class="lang-option">Español</a>
+        </div>
+      </div>
+      <a href="contact.html" class="nav-btn nav-btn-ghost">Contact</a>
+      <a href="protection-plans.html" class="nav-btn nav-btn-primary">Se protéger</a>
+    </div>
+  </div>
+</nav>
+
+<!-- MASTHEAD -->
+<header class="masthead">
+  <div class="container">
+    <div class="masthead-top">
+      <span>À propos · Notre mission</span>
+      <span class="right">Protéger les personnes, pas les systèmes</span>
+    </div>
+    <h1>Protéger les personnes de la <span class="em">manipulation.</span></h1>
+        <p class="masthead-lede">Nous construisons une technologie qui aide les personnes à reconnaître et à résister aux arnaques — non pas après les dégâts, mais au moment qui compte le plus. Une protection en temps réel au moment de la décision, pendant que la manipulation se produit.</p>
+    <div class="masthead-byline">
+      <span>Pertes annuelles<strong>442 G$+</strong></span>
+      <span>Personnes à risque<strong>5 Md+ dans le monde</strong></span>
+      <span>Solutions en temps réel avant ASPS<strong>Zéro</strong></span>
+    </div>
+  </div>
+</header>
+
+<!-- WHY -->
+<section class="origin" id="why">
+  <div class="container">
+    <div class="origin-grid">
+      <div class="origin-meta">
+        <span class="section-eyebrow">Pourquoi ASPS existe</span>
+        <h2 class="section-title">Une protection en temps réel <span class="em">pour tous.</span></h2>
+        <p class="origin-meta-note">Une observation simple qui a tout déclenché</p>
+      </div>
+      <div class="origin-body">
+        <p class="lead dropcap">Les arnaques sont une épidémie mondiale qui touche des milliards de personnes. Pourtant, jusqu'à présent, il n'existait aucune solution réelle qui protège les personnes pendant l'arnaque elle-même.</p>
+        <p>Les outils anti-fraude traditionnels se concentrent sur la protection des systèmes — détecter les transactions frauduleuses, bloquer les e-mails suspects, filtrer le spam. Mais les arnaques modernes n'attaquent pas les systèmes. <em>Elles attaquent les personnes.</em></p>
+        <p>Les escrocs exploitent la psychologie, l'urgence, la peur et de plus en plus l'IA pour manipuler les victimes et les pousser à des actions qu'elles ne feraient pas autrement. Lorsqu'une transaction est signalée, les dégâts sont souvent déjà faits.</p>
+        <p>ASPS est différent. Nous protégeons les personnes <em>au moment de la décision</em> — lorsqu'elles sont au téléphone avec un escroc, lorsqu'elles s'apprêtent à cliquer sur un lien malveillant, lorsqu'elles sont manipulées en temps réel. Nous donnons aux personnes les informations dont elles ont besoin pour faire le bon choix.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MISSION -->
+<section class="mission" id="mission">
+  <div class="container">
+    <div class="mission-inner">
+      <div class="mission-stamp">
+        <span class="label">Notre mission</span>
+        <p class="name">Une protection en temps réel pour tous.</p>
+        <dl>
+          <dt>Pertes annuelles</dt><dd>442 G$+ dans le monde</dd>
+          <dt>Personnes à risque</dt><dd>5 Md+ dans le monde</dd>
+          <dt>Solutions en temps réel avant ASPS</dt><dd>Zéro</dd>
+        </dl>
+      </div>
+      <div>
+        <p class="mission-statement">Nous existons pour protéger les personnes <span class="hl">au moment de la décision</span> — pas après les dégâts, pas avant la menace, mais <span class="em">à la seconde exacte où une personne est manipulée.</span> Tant que la protection ne vit pas à ce moment-là, le reste n'a pas d'importance.</p>
+        <span class="mission-cite">— Notre mission fondatrice, en une ligne</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRINCIPLES — original 5 ethics principles -->
+<section class="princ" id="ethics">
+  <div class="container">
+    <div class="princ-head">
+      <div>
+        <span class="section-eyebrow">Nos engagements éthiques</span>
+        <h2 class="section-title">Cinq principes, <span class="em">par écrit.</span></h2>
+      </div>
+      <span class="princ-head-meta">Construire la protection s'accompagne de responsabilités</span>
+    </div>
+
+    <ol class="princ-list">
+      <li>
+        <span class="princ-num"></span>
+        <h3 class="princ-title">Transparence dans la <span class="em">détection.</span></h3>
+        <p class="princ-body">Lorsque nous signalons quelque chose comme une arnaque potentielle, nous expliquons pourquoi. Les utilisateurs doivent comprendre notre raisonnement et être en mesure de prendre leurs propres décisions — jamais invités à faire confiance à une boîte noire.</p>
+      </li>
+      <li>
+        <span class="princ-num"></span>
+        <h3 class="princ-title">Aucune exploitation de la <span class="em">peur.</span></h3>
+        <p class="princ-body">Nous n'utiliserons jamais de marketing fondé sur la peur ni n'exagérerons les menaces pour favoriser l'adoption. La protection doit donner du pouvoir, pas effrayer. L'histoire est déjà assez difficile sans que nous en rajoutions.</p>
+      </li>
+      <li>
+        <span class="princ-num"></span>
+        <h3 class="princ-title">Minimisation des <span class="em">données.</span></h3>
+        <p class="princ-body">Nous collectons le minimum de données nécessaire pour assurer la protection. Ce que nous ne collectons pas, nous ne pouvons ni le perdre ni en faire un mauvais usage. La confidentialité est une contrainte de conception, pas une fonctionnalité.</p>
+      </li>
+      <li>
+        <span class="princ-num"></span>
+        <h3 class="princ-title">Aucun capitalisme de <span class="em">surveillance.</span></h3>
+        <p class="princ-body">Nous ne vendrons jamais les données des utilisateurs ni ne les utiliserons à des fins publicitaires. Notre modèle économique, c'est la protection, pas la surveillance. Nous sommes payés par les personnes que nous protégeons — jamais par quiconque cherchant à les observer.</p>
+      </li>
+      <li>
+        <span class="princ-num"></span>
+        <h3 class="princ-title">Vigilance face aux <span class="em">biais.</span></h3>
+        <p class="princ-body">Nous travaillons activement à identifier et à éliminer les biais dans nos systèmes de détection. La protection doit fonctionner aussi bien pour tout le monde — chaque accent, chaque âge, chaque région. Tout le reste serait un échec de la mission.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- RESPONSIBLE AI -->
+<section class="ethics">
+  <div class="container">
+    <div class="ethics-grid">
+      <div class="ethics-left">
+        <span class="section-eyebrow with-rule">IA responsable</span>
+        <h2 class="section-title">Un outil puissant, <span class="em">utilisé avec soin.</span></h2>
+        <p>Nous reconnaissons que l'IA est un outil puissant qui peut être utilisé à la fois pour la protection et la manipulation. Nous nous engageons à n'utiliser l'IA que pour la protection, avec une transparence totale sur le fonctionnement de nos systèmes.</p>
+        <p>Nous croyons que les mêmes technologies utilisées par les escrocs — clonage vocal, deepfakes, contenu généré par IA — peuvent et doivent être utilisées pour protéger les personnes. Mais cela exige une vigilance constante et une réflexion éthique.</p>
+      </div>
+
+      <div class="ethics-card">
+        <h3>Nos six valeurs.</h3>
+        <ul>
+          <li><strong>La protection avant le profit</strong> — nous mesurons le succès au préjudice évité, pas seulement au chiffre d'affaires.</li>
+          <li><strong>Confidentialité dès la conception</strong> — un droit fondamental, pas une fonctionnalité ajoutée plus tard.</li>
+          <li><strong>IA responsable</strong> — transparente, explicable, toujours sous supervision humaine.</li>
+          <li><strong>Conversation publique</strong> — faire émerger la fraude dans les foyers, les lieux de travail, les médias et les politiques publiques.</li>
+          <li><strong>Expérience vécue</strong> — nous apprenons des personnes qui ont été ciblées, et cela façonne tout.</li>
+          <li><strong>Défense collaborative</strong> — aucune organisation seule n'arrête les arnaques.</li>
+        </ul>
+        <div class="foot">
+          <span>Dernière révision · Avr. 2026</span>
+          <a href="privacy.html">Lire la politique complète →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW WE GOT HERE -->
+<section class="timeline" id="story">
+  <div class="timeline-inner">
+    <div class="timeline-head">
+      <div>
+        <span class="section-eyebrow" style="color:#F0A8B4">Notre histoire</span>
+        <h2 class="section-title">Comment nous <span class="em">sommes arrivés là.</span></h2>
+      </div>
+      <span class="timeline-head-meta">De l'observation au mouvement</span>
+    </div>
+
+    <div class="t-row">
+      <div class="t-num" style="font-family:var(--font-display);font-weight:800;font-size:2.2rem;color:#F0A8B4;letter-spacing:.02em;line-height:1">01 /</div>
+      <h3 class="t-stage" style="font-family:var(--font-serif);font-style:italic;font-weight:500;font-size:1.5rem;line-height:1.2;color:#fff;letter-spacing:-.01em">Le <span style="font-style:normal;font-weight:600;color:#F0A8B4">problème.</span></h3>
+      <p class="t-body" style="font-family:var(--font-serif);font-size:1.0625rem;line-height:1.65;color:#D8CFC2">Nous avons vu des amis et des proches devenir victimes d'arnaques — des personnes intelligentes et prudentes, manipulées par des attaques de plus en plus sophistiquées. Les solutions traditionnelles ne fonctionnaient pas. Toute la pile de défense visait les réseaux et les comptes, tandis que l'attaque passait directement à côté.</p>
+    </div>
+
+    <div class="t-row">
+      <div class="t-num" style="font-family:var(--font-display);font-weight:800;font-size:2.2rem;color:#F0A8B4;letter-spacing:.02em;line-height:1">02 /</div>
+      <h3 class="t-stage" style="font-family:var(--font-serif);font-style:italic;font-weight:500;font-size:1.5rem;line-height:1.2;color:#fff;letter-spacing:-.01em">L'<span style="font-style:normal;font-weight:600;color:#F0A8B4">intuition.</span></h3>
+      <p class="t-body" style="font-family:var(--font-serif);font-size:1.0625rem;line-height:1.65;color:#D8CFC2">Nous avons compris que les arnaques réussissent non pas parce que les personnes sont naïves, mais parce que les attaquants exploitent une psychologie humaine universelle. La protection doit fonctionner en temps réel, au moment de la manipulation — pas à la banque, pas chez l'opérateur, mais auprès de la personne, sur le moment.</p>
+    </div>
+
+    <div class="t-row">
+      <div class="t-num" style="font-family:var(--font-display);font-weight:800;font-size:2.2rem;color:#F0A8B4;letter-spacing:.02em;line-height:1">03 /</div>
+      <h3 class="t-stage" style="font-family:var(--font-serif);font-style:italic;font-weight:500;font-size:1.5rem;line-height:1.2;color:#fff;letter-spacing:-.01em">La <span style="font-style:normal;font-weight:600;color:#F0A8B4">solution.</span></h3>
+      <p class="t-body" style="font-family:var(--font-serif);font-size:1.0625rem;line-height:1.65;color:#D8CFC2">Nous avons conçu ASPS pour être la couche de protection qui n'existait pas — analyser les communications en temps réel, détecter les tactiques de manipulation et avertir les utilisateurs avant qu'ils ne prennent des décisions irréversibles.</p>
+    </div>
+
+    <div class="t-row">
+      <div class="t-num" style="font-family:var(--font-display);font-weight:800;font-size:2.2rem;color:#F0A8B4;letter-spacing:.02em;line-height:1">04 /</div>
+      <h3 class="t-stage" style="font-family:var(--font-serif);font-style:italic;font-weight:500;font-size:1.5rem;line-height:1.2;color:#fff;letter-spacing:-.01em">Le <span style="font-style:normal;font-weight:600;color:#F0A8B4">mouvement.</span></h3>
+      <p class="t-body" style="font-family:var(--font-serif);font-size:1.0625rem;line-height:1.65;color:#D8CFC2">Au-delà de la technologie, nous construisons un mouvement. Briser la stigmatisation autour des arnaques, partager les témoignages ouvertement et créer un monde où être ciblé n'est plus une honte.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PULL QUOTE -->
+<section class="pullquote-section">
+  <div class="container">
+    <div class="pullquote">
+      <p class="pullquote-text">La technologie doit protéger la capacité d'agir des personnes, pas la compromettre. Chaque système que nous construisons est conçu pour <strong>aider les personnes à prendre de meilleures décisions</strong> — jamais pour décider à leur place.</p>
+      <span class="pullquote-cite">— Notre engagement pour une IA responsable</span>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="container">
+    <div class="cta-inner">
+      <span class="cta-eyebrow">Travailler avec nous</span>
+      <h2>Rejoignez-nous pour <span class="em">protéger les personnes.</span></h2>
+      <p>Que vous soyez un partenaire potentiel, un chercheur ou quelqu'un qui souhaite aider — nous serions ravis d'avoir de vos nouvelles.</p>
+      <div class="cta-buttons">
+        <a href="contact.html" class="btn btn-accent">Contactez-nous
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="partners.html" class="btn btn-ghost">Devenir partenaire</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerLogoGrad)"/>
+          <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs><linearGradient id="footerLogoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+        </svg>
+        <p>Protection IA en temps réel contre la fraude, les arnaques et l'ingénierie sociale. Protéger les personnes au moment où ça compte le plus.</p>
+      </div>
+      <div class="footer-col"><h4>Plateforme</h4><a href="platform.html">Comment ça marche</a><a href="individuals.html#individuals">Pour les particuliers</a><a href="individuals.html#families">Pour les familles</a><a href="partners.html">Pour les partenaires</a></div>
+      <div class="footer-col"><h4>Ressources</h4><a href="knowledge.html">Centre de connaissances</a><a href="knowledge.html#feed">Flux de renseignements</a><a href="stories.html#support">Obtenir de l'aide</a><a href="stories.html">Témoignages</a></div>
+      <div class="footer-col"><h4>Entreprise</h4><a href="about.html">À propos</a><a href="about.html#mission">Notre mission</a><a href="about.html#ethics">Éthique &amp; confiance</a><a href="contact.html">Contact</a></div>
+    </div>
+    <div class="footer-bottom"><p>© 2026 ASPS. Tous droits réservés.</p><div class="footer-links"><a href="privacy.html">Confidentialité</a><a href="privacy.html#terms">Conditions</a><a href="privacy.html#cookies">Cookies</a></div></div>
+  </div>
+</footer>
+
+<script src="cookie-banner.js"></script>
+</body>
+</html>

@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="אתם לא לבד. חוויות אמיתיות שאנשים חולקים כדי לעזור למנוע מאחרים להפוך לקורבנות של הונאות ורמאויות."/>
+<title>סיפורים — ASPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;0,16..72,700;1,16..72,400;1,16..72,500;1,16..72,600&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-dark:#070B14; --bg-paper:#FAF7F2; --bg-paper-2:#F3EFE8;
+  --accent:#BE3A4B; --accent-strong:#8E1A2A;
+  --ink:#1A1814; --ink-2:#4A4640; --ink-3:#6B655C;
+  --rule:#E4DDD2; --rule-2:#D7CFC2;
+  --font-body:'Instrument Sans',-apple-system,sans-serif;
+  --font-serif:'Newsreader',Georgia,serif;
+  --font-display:'Syne',Georgia,serif;
+  --transition:0.25s cubic-bezier(0.4,0,0.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--bg-paper);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+@media(min-width:768px){.container{padding:0 40px}}
+@media(min-width:1024px){.container{padding:0 60px}}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:1000;height:72px;background:rgba(15,18,56,0.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08)}
+.nav-inner{max-width:1400px;margin:0 auto;padding:0 40px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:32px}
+.nav-logo{display:flex;align-items:center;flex-shrink:0}
+.nav-links{display:none;align-items:center;gap:8px}
+@media(min-width:1024px){.nav-links{display:flex}}
+.nav-link{padding:8px 16px;font-size:.875rem;font-weight:500;color:#94A3B8;border-radius:8px;transition:var(--transition)}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,0.05)}
+.nav-link.active{color:#fff;position:relative}
+.nav-link.active::after{content:'';position:absolute;left:16px;right:16px;bottom:0;height:2px;background:var(--accent)}
+.nav-actions{display:flex;align-items:center;gap:12px}
+.nav-btn{padding:10px 20px;font-size:.875rem;font-weight:600;border-radius:8px;transition:var(--transition);border:none}
+.nav-btn-ghost{background:transparent;color:#94A3B8;border:1px solid rgba(255,255,255,0.12)}
+.nav-btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.25)}
+.nav-btn-primary{background:#fff;color:#0F1238}
+.nav-btn-primary:hover{background:#EEF0FF}
+.lang-dropdown{position:relative}
+.lang-dropdown-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#E2E8F0;font-size:.8125rem;font-weight:600;cursor:pointer;transition:var(--transition)}
+.lang-dropdown-btn:hover{background:rgba(255,255,255,0.1)}
+.lang-dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:140px;padding:8px 0;background:#0F1238;border:1px solid rgba(255,255,255,0.12);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.3);opacity:0;visibility:hidden;transform:translateY(-8px);transition:var(--transition);z-index:100}
+.lang-dropdown:hover .lang-dropdown-menu,.lang-dropdown:focus-within .lang-dropdown-menu{opacity:1;visibility:visible;transform:translateY(0)}
+.lang-option{display:block;padding:10px 16px;font-size:.875rem;color:#94A3B8;transition:var(--transition)}
+.lang-option:hover{background:rgba(255,255,255,0.05);color:#fff}
+.lang-option.active{color:var(--accent);font-weight:600}
+
+/* shared */
+.section-eyebrow{display:inline-flex;align-items:center;gap:14px;margin-bottom:18px;font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+.section-eyebrow.with-rule::before{content:'';width:32px;height:1px;background:var(--accent);opacity:.5}
+.section-title{font-family:var(--font-serif);font-weight:500;font-size:clamp(2rem,4vw,3rem);line-height:1.05;letter-spacing:-.025em;color:var(--ink)}
+.section-title .em{font-style:italic;font-weight:500;color:var(--accent-strong)}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 28px;font-family:var(--font-display);font-size:.84rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;border:none;transition:var(--transition);cursor:pointer}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-accent:hover{background:var(--accent-strong)}
+.btn-ink{background:transparent;color:var(--ink);border:1px solid var(--rule-2)}
+.btn-ink:hover{border-color:var(--ink)}
+.btn-ghost{background:transparent;color:#F5F0E7;border:1px solid rgba(245,240,231,0.25)}
+.btn-ghost:hover{border-color:rgba(245,240,231,0.55)}
+
+/* MASTHEAD */
+.masthead{padding:80px 0 64px;background:var(--bg-paper);border-bottom:1px solid var(--rule)}
+.masthead-top{display:flex;justify-content:space-between;align-items:baseline;gap:20px;padding-bottom:18px;border-bottom:1px solid var(--rule-2);margin-bottom:36px;font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+.masthead-top .right{color:var(--accent)}
+.masthead h1{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2.6rem,6vw,4.8rem);line-height:1;letter-spacing:-.03em;color:var(--ink);margin-bottom:24px;max-width:20ch}
+.masthead h1 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.masthead-lede{font-family:var(--font-serif);font-size:1.1875rem;line-height:1.6;color:var(--ink-2);max-width:680px}
+.masthead-note{margin-top:28px;padding-top:20px;border-top:1px solid var(--rule);font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);max-width:680px}
+
+/* FILTER */
+.filter{position:sticky;top:72px;z-index:50;padding:18px 0;background:rgba(250,247,242,0.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
+.filter-inner{display:flex;flex-wrap:wrap;align-items:center;gap:24px;justify-content:space-between}
+.filter-tabs{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.filter-label{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-right:8px}
+.filter-tab{padding:6px 4px;font-family:var(--font-display);font-weight:700;font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:var(--transition);margin:0 6px}
+.filter-tab:hover{color:var(--ink)}
+.filter-tab.active{color:var(--ink);border-bottom-color:var(--accent)}
+.filter-count{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.filter-count strong{color:var(--accent);font-weight:700}
+
+/* FEATURE STORY */
+.feature{padding:80px 0;background:var(--bg-paper);border-bottom:1px solid var(--rule)}
+.feature-grid{display:grid;grid-template-columns:1fr;gap:48px}
+@media(min-width:900px){.feature-grid{grid-template-columns:7fr 5fr;gap:80px;align-items:start}}
+.feature-meta{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;display:flex;gap:14px;flex-wrap:wrap}
+.feature-meta::before{content:'Featured ·';color:var(--accent)}
+.feature h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,4.6vw,3.4rem);line-height:1.05;letter-spacing:-.02em;color:var(--ink);margin-bottom:24px}
+.feature h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.feature-byline{display:flex;gap:24px;flex-wrap:wrap;font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);padding-bottom:20px;margin-bottom:24px;border-bottom:1px solid var(--rule)}
+.feature-byline strong{color:var(--ink);margin-left:6px}
+.feature-deck{font-family:var(--font-serif);font-size:1.25rem;line-height:1.5;color:var(--ink-2);margin-bottom:18px}
+.feature-body{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.65;color:var(--ink)}
+.feature-body p{margin-bottom:16px}
+.feature-body em{font-style:normal;color:var(--accent-strong);font-weight:600}
+.feature-body .dropcap::first-letter{font-family:var(--font-serif);font-style:italic;font-weight:500;font-size:4.5rem;float:left;line-height:.85;padding:4px 12px 0 0;color:var(--accent-strong)}
+.feature-cta{margin-top:20px;display:inline-flex;align-items:center;gap:8px;font-family:var(--font-display);font-weight:700;font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);border-bottom:1px solid var(--accent);padding-bottom:3px}
+
+.feature-side{display:flex;flex-direction:column;gap:24px}
+.outcome-card{background:#fff;border:1px solid var(--rule);padding:28px 26px 26px;position:relative}
+.outcome-card::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:3px;background:var(--accent)}
+.outcome-card-tag{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.outcome-card h3{font-family:var(--font-serif);font-weight:600;font-size:1.25rem;color:var(--ink);margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--rule)}
+.outcome-card dl{display:grid;grid-template-columns:auto 1fr;gap:10px 18px;font-size:.92rem}
+.outcome-card dt{font-family:var(--font-display);font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);padding-top:3px}
+.outcome-card dd{color:var(--ink);line-height:1.45}
+.outcome-card dd strong{color:var(--accent-strong);font-weight:600}
+
+.alsoread{padding:24px 24px;background:var(--bg-paper-2);border:1px solid var(--rule-2)}
+.alsoread-label{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+.alsoread ol{list-style:none;counter-reset:also;display:flex;flex-direction:column;gap:14px}
+.alsoread li{counter-increment:also;padding-left:32px;position:relative;font-family:var(--font-serif);font-size:1rem;line-height:1.4;color:var(--ink);cursor:pointer;transition:var(--transition)}
+.alsoread li::before{content:counter(also,decimal-leading-zero);position:absolute;left:0;top:1px;font-family:var(--font-display);font-weight:700;font-size:.72rem;color:var(--accent);letter-spacing:.06em}
+.alsoread li:hover{color:var(--accent-strong)}
+.alsoread li span{display:block;font-family:var(--font-body);font-size:.75rem;color:var(--ink-3);margin-top:2px;text-transform:uppercase;letter-spacing:.1em}
+
+/* STORIES LIST */
+.stories{padding:110px 0;background:var(--bg-paper)}
+.stories-head{margin-bottom:48px;display:flex;align-items:flex-end;justify-content:space-between;gap:40px;padding-bottom:24px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.stories-head-meta{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);padding-bottom:6px}
+.story-row{display:grid;grid-template-columns:1fr;gap:16px;padding:36px 0;border-bottom:1px solid var(--rule)}
+@media(min-width:900px){.story-row{grid-template-columns:100px 4fr 3fr;gap:48px;align-items:start}}
+.story-num{font-family:var(--font-display);font-weight:700;font-size:.78rem;letter-spacing:.16em;color:var(--accent);padding-top:4px}
+.story-meta-line{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:12px;display:flex;flex-wrap:wrap;gap:14px}
+.story-meta-line .cat{color:var(--accent)}
+.story-row h3{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:1.625rem;line-height:1.15;color:var(--ink);margin-bottom:12px;letter-spacing:-.01em}
+.story-row h3 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.story-row p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.55;color:var(--ink-2)}
+.story-row .pull{font-family:var(--font-serif);font-style:italic;font-weight:400;font-size:1.0625rem;line-height:1.5;color:var(--ink);padding:16px 18px;border-left:2px solid var(--accent);background:var(--bg-paper-2)}
+.story-row .pull strong{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.story-row .pull cite{display:block;margin-top:8px;font-style:normal;font-family:var(--font-display);font-size:.66rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+
+/* INTERRUPT — band of saves */
+.interrupt{background:var(--ink);color:#F5F0E7;padding:110px 0;position:relative;overflow:hidden}
+.interrupt::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 20% 30%,rgba(190,58,75,.18),transparent 50%),radial-gradient(circle at 80% 80%,rgba(190,58,75,.10),transparent 50%);pointer-events:none}
+.interrupt-inner{position:relative;max-width:1320px;margin:0 auto;padding:0 40px}
+.interrupt-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:56px;padding-bottom:24px;border-bottom:1px solid rgba(245,240,231,0.12);flex-wrap:wrap}
+.interrupt-head .section-title{color:#fff;max-width:640px}
+.interrupt-head-meta{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:#A19888;padding-bottom:6px}
+.interrupts-grid{display:grid;grid-template-columns:1fr;gap:0}
+@media(min-width:800px){.interrupts-grid{grid-template-columns:repeat(2,1fr);gap:0}}@media(min-width:1100px){.interrupts-grid{grid-template-columns:repeat(4,1fr)}}
+.inter{padding:32px 0;border-top:1px solid rgba(245,240,231,0.12)}
+@media(min-width:800px){.inter{padding:32px 28px;border-top:1px solid rgba(245,240,231,0.12)}.inter:nth-child(odd){border-right:1px solid rgba(245,240,231,0.12)}}@media(min-width:1100px){.inter{padding:0 28px;border-top:none;border-right:none !important}.inter+.inter{border-left:1px solid rgba(245,240,231,0.12)}.inter:first-child{padding-left:0}.inter:last-child{padding-right:0}}
+.inter-stat{font-family:var(--font-display);font-weight:800;font-size:clamp(3rem,5vw,4.4rem);line-height:1;color:#fff;letter-spacing:-.025em;margin-bottom:14px}
+.inter-stat span{color:var(--accent)}
+.inter-label{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(245,240,231,0.16)}
+.inter-body{font-family:var(--font-serif);font-size:1rem;line-height:1.55;color:#D6CDBE}
+
+/* SUPPORT */
+.support{padding:110px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule-2);border-bottom:1px solid var(--rule-2)}
+.support-grid{display:grid;grid-template-columns:1fr;gap:48px}
+@media(min-width:900px){.support-grid{grid-template-columns:5fr 7fr;gap:80px;align-items:start}}
+.support-left .section-title{margin-bottom:24px}
+.support-left p{font-family:var(--font-serif);font-size:1.125rem;line-height:1.6;color:var(--ink-2);margin-bottom:20px}
+.support-list{display:flex;flex-direction:column;gap:14px}
+.support-row{display:grid;grid-template-columns:auto 1fr auto;gap:20px;padding:20px 22px;background:#fff;border:1px solid var(--rule);align-items:center;transition:var(--transition)}
+.support-row:hover{border-color:var(--accent)}
+.support-row .num{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.16em;color:var(--accent)}
+.support-row h4{font-family:var(--font-serif);font-weight:500;font-size:1.125rem;color:var(--ink);margin-bottom:4px}
+.support-row p{font-family:var(--font-body);font-size:.875rem;color:var(--ink-3);line-height:1.5}
+.support-row .go{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);white-space:nowrap}
+
+/* SHARE STORY */
+.share{padding:110px 0;background:var(--bg-paper)}
+.share-grid{display:grid;grid-template-columns:1fr;gap:48px}
+@media(min-width:900px){.share-grid{grid-template-columns:1.1fr 1fr;gap:80px;align-items:center}}
+.share-left h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,4.5vw,3.2rem);line-height:1.05;letter-spacing:-.02em;color:var(--ink);margin-bottom:24px}
+.share-left h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.share-left p{font-family:var(--font-serif);font-size:1.125rem;line-height:1.6;color:var(--ink-2);margin-bottom:20px;max-width:520px}
+.share-promises{background:var(--bg-paper-2);border:1px solid var(--rule-2);padding:32px 28px;position:relative}
+.share-promises::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:3px;background:var(--accent)}
+.share-promises h3{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.share-promises ul{list-style:none;display:flex;flex-direction:column;gap:14px;margin-bottom:24px}
+.share-promises li{font-family:var(--font-serif);font-size:1rem;color:var(--ink);padding-left:22px;position:relative;line-height:1.5}
+.share-promises li::before{content:'';position:absolute;left:0;top:.62em;width:12px;height:1px;background:var(--accent)}
+.share-promises li strong{color:var(--accent-strong);font-weight:600}
+
+/* PULL QUOTE */
+.pullquote-section{padding:100px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule)}
+.pullquote{max-width:980px;margin:0 auto;text-align:center}
+.pullquote::before{content:'';display:block;width:64px;height:2px;background:var(--accent);margin:0 auto 32px}
+.pullquote-text{font-family:var(--font-serif);font-style:italic;font-weight:400;font-size:clamp(1.5rem,3.5vw,2.5rem);line-height:1.25;letter-spacing:-.015em;color:var(--ink)}
+.pullquote-text strong{font-weight:600;font-style:normal;background:linear-gradient(180deg,transparent 62%,rgba(190,58,75,.18) 62%,rgba(190,58,75,.18) 92%,transparent 92%);padding:0 .08em}
+.pullquote-cite{display:block;margin-top:28px;font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+
+/* CTA */
+.cta{padding:110px 0;background:var(--ink);color:#F5F0E7;text-align:center;position:relative;overflow:hidden}
+.cta::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 50% 0%,rgba(190,58,75,.20),transparent 60%);pointer-events:none}
+.cta-inner{max-width:760px;margin:0 auto;position:relative}
+.cta-eyebrow{display:inline-block;margin-bottom:24px;font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+.cta h2{font-family:var(--font-serif);font-style:italic;font-weight:400;font-size:clamp(2rem,4.5vw,3.25rem);line-height:1.1;letter-spacing:-.025em;color:#fff;margin-bottom:24px}
+.cta h2 .em{font-style:normal;font-weight:600;color:var(--accent)}
+.cta p{font-family:var(--font-serif);font-size:1.1875rem;line-height:1.65;color:#D6CDBE;margin-bottom:40px}
+.cta-buttons{display:flex;flex-wrap:wrap;justify-content:center;gap:14px}
+
+/* FOOTER */
+.footer{padding:80px 0 40px;background:var(--bg-dark);color:#94A3B8}
+.footer-grid{display:grid;grid-template-columns:1fr;gap:48px;margin-bottom:64px}
+@media(min-width:768px){.footer-grid{grid-template-columns:2fr 1fr 1fr 1fr}}
+.footer-brand p{font-size:.9375rem;line-height:1.7;max-width:320px;margin-top:20px}
+.footer-col h4{font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#E2E8F0;margin-bottom:20px}
+.footer-col a{display:block;font-size:.9375rem;margin-bottom:14px;transition:var(--transition)}
+.footer-col a:hover{color:var(--accent)}
+.footer-bottom{padding-top:32px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px;font-size:.84rem;color:#64748B}
+.footer-links{display:flex;gap:24px}
+.footer-links a:hover{color:#E2E8F0}
+
+.inter-src{display:block;margin-top:14px;padding-top:12px;border-top:1px solid rgba(245,240,231,0.10);font-family:var(--font-display);font-weight:700;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:#A19888}
+.inter-src a{color:inherit;border-bottom:1px solid rgba(161,152,136,0.45);transition:color .2s,border-color .2s}
+.inter-src a:hover{color:var(--accent);border-bottom-color:var(--accent)}
+body{font-family:"Heebo","Newsreader",sans-serif !important}h1,h2,h3,h4,h5,.section-title,.masthead h1,.mission-statement,.pullquote-text{font-family:"Heebo","Frank Ruhl Libre","Newsreader",serif !important}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo" aria-label="ASPS home">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C" opacity="0.4"><animate attributeName="r" values="4;8;4" dur="2.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.4;0;0.4" dur="2.5s" repeatCount="indefinite"/></circle>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+      </svg>
+    </a>
+    <div class="nav-links">
+      <a href="index.html#epidemic" class="nav-link">האיום</a>
+      <a href="platform.html" class="nav-link">איך זה עובד</a>
+      <a href="knowledge.html" class="nav-link">מרכז הידע</a>
+      <a href="stories.html" class="nav-link active">סיפורים</a>
+      <a href="partners.html" class="nav-link">שותפים</a>
+      <a href="about.html" class="nav-link">אודות</a>
+      <a href="faq.html" class="nav-link">שאלות נפוצות</a>
+      
+    </div>
+    <div class="nav-actions">
+      <div class="lang-dropdown">
+        <button class="lang-dropdown-btn" aria-label="Select language"><span>HE</span><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l4 4 4-4"/></svg></button>
+        <div class="lang-dropdown-menu">
+          <a href="../stories.html" class="lang-option">English</a>
+          <span class="lang-option active">עברית</span>
+          <a href="../fr/stories.html" class="lang-option">Français</a>
+          <a href="../ru/stories.html" class="lang-option">Русский</a>
+          <a href="../es/stories.html" class="lang-option">Español</a>
+        </div>
+      </div>
+      <a href="#share" class="nav-btn nav-btn-ghost">Share yours</a>
+      <a href="protection-plans.html" class="nav-btn nav-btn-primary">קבלו הגנה</a>
+    </div>
+  </div>
+</nav>
+
+<!-- MASTHEAD -->
+<header class="masthead">
+  <div class="container">
+    <div class="masthead-top">
+      <span>סיפורים · חוויות אמיתיות</span>
+      <span class="right">שותפו כדי לעזור לאחרים</span>
+    </div>
+    <h1>אתם <span class="em">לא לבד.</span></h1>
+    <p class="masthead-lede">מיליוני אנשים חווים ניסיונות הונאה מדי יום. רבים לעולם לא מספרים לאף אחד. אלה חוויות אמיתיות שאנשים חולקים כדי לעזור למנוע מאחרים להפוך לקורבנות. כל סיפור עושה הבדל.</p>
+    <p class="masthead-note">אנונימי כברירת מחדל · שותף בהסכמה · כל סיפור יכול לעזור למישהו אחר לזהות הונאה בזמן</p>
+  </div>
+</header>
+
+<!-- FILTER -->
+<div class="filter">
+  <div class="container">
+    <div class="filter-inner">
+      <div class="filter-tabs">
+        <span class="filter-label">סנן</span>
+        <button class="filter-tab active" data-filter="all">הכל</button>
+        <button class="filter-tab" data-filter="voice">שיבוט קול</button>
+        <button class="filter-tab" data-filter="bank">התחזות לבנק</button>
+        <button class="filter-tab" data-filter="romance">רומנטיקה</button>
+        <button class="filter-tab" data-filter="tech">תמיכה טכנית</button>
+      </div>
+      <span class="filter-count"><strong id="storyCount">4</strong> סיפורים</span>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURE -->
+<section class="feature">
+  <div class="container">
+    <div class="feature-grid">
+      <article>
+        <div class="feature-meta"><span>שיבוט קול</span><span>·</span><span>משפחה</span></div>
+        <h2>"חשבתי שזה הבן שלי. הקול נשמע <span class="em">בדיוק כמוהו.</span>"</h2>
+        <div class="feature-byline">
+          <span>מספר<strong>אנונימי</strong></span>
+          <span>גיל<strong>62</strong></span>
+          <span>תוצאה<strong>לא נשלח כסף</strong></span>
+        </div>
+        <p class="feature-deck">שיחה בקולו — הטון שלו, המילים שלו, הכל. היא עמדה להעביר את הכסף כשהבן האמיתי שלה נכנס דרך הדלת.</p>
+
+        <div class="feature-body">
+          <p class="dropcap">חשבתי שזה הבן שלי מתקשר. הקול נשמע בדיוק כמוהו — הטון שלו, המילים שלו, הכל. הוא אמר שהוא בצרה וצריך כסף בדחיפות.</p>
+          <p>עמדתי להעביר את הכסף כשהבן האמיתי שלי נכנס דרך הדלת. זו הייתה הונאת קול שנוצרה על ידי AI. אני עדיין לא יכולה להאמין כמה זה נשמע אמיתי.</p>
+          <p>אתה חושב שתדע. אתה חושב שאם מכירה את קול הילד שלה. ואת מכירה. אבל מה שהיה להם בטלפון היה הקול הזה — בדיוק מספיק ממנו, מוקלט מאיפשהו, מושמע על ידי מכונה שמילאה את השאר.</p>
+          <p>אם הוא לא היה נכנס מתי שנכנס, הייתי שולחת את הכסף. והייתי חושבת שאני עוזרת לבן שלי.</p>
+        </div>
+      </article>
+
+      <aside class="feature-side">
+        <div class="outcome-card">
+          <span class="outcome-card-tag">הלקח</span>
+          <h3>למה הסיפור הזה כאן.</h3>
+          <p style="font-family:var(--font-serif);font-size:1.0625rem;line-height:1.65;color:var(--ink-2);margin-bottom:18px">היא שיתפה את זה כדי שההורה הבא לא ישלח את הכסף. כדי שהאדם הבא ששומע "ילד" בוכה בקו יעצור לנשימה אחת נוספת.</p>
+          <p style="font-family:var(--font-serif);font-size:1.0625rem;line-height:1.65;color:var(--ink-2)">נוכלים משגשגים בשתיקה ובושה. כשאנשים לא מדברים על מה שקרה להם, הנוכלים מנצחים גם בסיבוב הבא.</p>
+        </div>
+
+        <div class="alsoread">
+          <p class="alsoread-label">שווה גם לקרוא</p>
+          <ol>
+            <li>הקודים שנתתי להם<span>התחזות לבנק · 5 דק׳</span></li>
+            <li>שישה חודשים של הודעות<span>הונאת רומנטיקה · 7 דק׳</span></li>
+            <li>הקופץ שלא היה מ‑Windows<span>תמיכה טכנית · 4 דק׳</span></li>
+            <li>למה אנחנו חולקים את הסיפורים האלה<span>מערכת · 3 דק׳</span></li>
+          </ol>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- STORIES LIST -->
+<section class="stories">
+  <div class="container">
+    <div class="stories-head">
+      <div>
+        <span class="section-eyebrow">עוד סיפורים אמיתיים</span>
+        <h2 class="section-title">שלושה סיפורים, חולקו כדי <span class="em">לעזור לאחרים.</span></h2>
+      </div>
+      <span class="stories-head-meta">אנונימי כברירת מחדל · נערך רק לאורך</span>
+    </div>
+
+    <article class="story-row" data-cat="bank">
+      <span class="story-num">01 /</span>
+      <div>
+        <div class="story-meta-line"><span class="cat">התחזות לבנק</span><span>אנונימי · 34</span></div>
+        <h3>"אני מהנדס תוכנה. חשבתי <span class="em">שאדע יותר טוב.</span>"</h3>
+        <p>הם התקשרו ממה שנראה כמספר הרשמי של הבנק שלי. הם ידעו את שמי, את פרטי החשבון שלי, הכל. הם אמרו שיש פעילות חשודה ושאני צריך לאמת את זהותי. אבל הלחץ, הדחיפות, המקצועיות... נתתי להם את הקודים שלי.</p>
+      </div>
+      <blockquote class="pull">"אני מהנדס תוכנה — חשבתי שאני יודע יותר טוב. הדחיפות הייתה החלק שזלזלתי בו."<cite>— אנונימי, 34</cite></blockquote>
+    </article>
+
+    <article class="story-row" data-cat="romance">
+      <span class="story-num">02 /</span>
+      <div>
+        <div class="story-meta-line"><span class="cat">הונאת רומנטיקה</span><span>אנונימי · 45</span></div>
+        <h3>חודשים של <span class="em">אמון.</span> ואז החירום הראשון.</h3>
+        <p>דיברנו חודשים. הוא היה אדיב, מבין, כל מה שחיפשתי. הוא עבד בחו"ל, הוא אמר. כשהוא נזקק לכסף לחירום, לא היססתי. ואז עוד חירום. ועוד אחד. עד שהבנתי, איבדתי את החסכונות שלי. אבל גרוע יותר מהכסף הייתה הבגידה באמון.</p>
+      </div>
+      <blockquote class="pull">"הכסף משנה. הבגידה באמון משנה יותר."<cite>— אנונימי, מורה, 45</cite></blockquote>
+    </article>
+
+    <article class="story-row" data-cat="tech">
+      <span class="story-num">03 /</span>
+      <div>
+        <div class="story-meta-line"><span class="cat">תמיכה טכנית</span><span>אנונימי · 71</span></div>
+        <h3>הקופץ שנראה <span class="em">בדיוק כמו Windows.</span></h3>
+        <p>קופץ במחשב שלי אמר שיש לי וירוס. זה נראה בדיוק כמו התראת Windows. התקשרתי למספר והם הדריכו אותי ב"תיקון" הבעיה — מה שאומר לתת להם גישה מרחוק למחשב שלי. הם היו מאוד מקצועיים. הבת שלי, שעובדת ב‑IT, עצרה את זה בזמן.</p>
+      </div>
+      <blockquote class="pull">"הם היו מאוד מקצועיים. הבת שלי, שעובדת ב‑IT, עצרה את זה בזמן."<cite>— אנונימי, גמלאי, 71</cite></blockquote>
+    </article>
+
+  </div>
+</section>
+
+<!-- WHY WE SHARE -->
+<section class="interrupt">
+  <div class="interrupt-inner">
+    <div class="interrupt-head">
+      <div>
+        <span class="section-eyebrow">שבירת הסטיגמה</span>
+        <h2 class="section-title">למה אנחנו חולקים את הסיפורים האלה.</h2>
+      </div>
+      <span class="interrupt-head-meta">הונאות משגשגות בשתיקה</span>
+    </div>
+    <div class="interrupts-grid">
+      <div class="inter">
+        <p class="inter-label">מודעות</p>
+        <p class="inter-stat" style="font-size:2.4rem;line-height:1.15">מונעת קורבנות.</p>
+        <p class="inter-body">כל סיפור שנחלק עוזר למישהו לזהות הונאה לפני שמאוחר מדי. הסימנים הופכים לקלים יותר לזיהוי ברגע ששמעת אותם נקראים בשם.</p>
+      </div>
+      <div class="inter">
+        <p class="inter-label">שתיקה</p>
+        <p class="inter-stat" style="font-size:2.4rem;line-height:1.15">היא מה שהם צריכים.</p>
+        <p class="inter-body">כשאנשים לא מדברים על מה שקרה, נוכלים מנצחים גם את הסיבוב הבא. שיתוף הוא איך שהמעגל נשבר.</p>
+      </div>
+      <div class="inter">
+        <p class="inter-label">זו לא אשמתכם</p>
+        <p class="inter-stat" style="font-size:2.4rem;line-height:1.15">כל אחד יכול להיות מטרה.</p>
+        <p class="inter-body">רופאים, עורכי דין, מהנדסים, מומחי סייבר — כל קבוצה דמוגרפית נתפסה בהונאה שעבדה עליהם בדקה החלשה ביותר שלהם.</p>
+      </div>
+      <div class="inter">
+        <p class="inter-label">לשתף זה משחרר</p>
+        <p class="inter-stat" style="font-size:2.4rem;line-height:1.15">זה מאיץ החלמה.</p>
+        <p class="inter-body">מחקרים על חשיפת טראומה מראים שלדבר על חוויה קשה — עם אדם מהימן, מטפל, או קהילה של ניצולים אחרים — מפחית מצוקה באופן מדיד ותומך בהחלמה פסיכולוגית. כפי שמדריך ההחלמה של AARP מנסח זאת, ההחלמה &ldquo;לעיתים קרובות מתחילה בכך שמספרים לאחרים על החוויה שלכם.&rdquo;</p>
+        <span class="inter-src">מקורות · <a href="https://www.aarp.org/money/scams-fraud/mental-health-impact/" target="_blank" rel="noopener">AARP — Mental health impact</a> · <a href="https://www.washingtonpost.com/business/interactive/2024/scam-victim-support-group-aarp/" target="_blank" rel="noopener">Washington Post — קבוצות תמיכה</a></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SUPPORT -->
+<section class="support" id="support">
+  <div class="container">
+    <div class="support-grid">
+      <div class="support-left">
+        <span class="section-eyebrow with-rule">אם זה כבר קרה</span>
+        <h2 class="section-title">עזרה, בצעדים פשוטים.</h2>
+        <p>אם אתם או מישהו קרוב לכם בדיוק נופלתם להונאה — או חושבים שאולי כן — השעה הבאה משנה יותר מהשבוע הבא. התחילו כאן.</p>
+        <p>אף אחד מאלה לא דורש את ASPS. אלה הדברים לעשות בכל מקרה. שמרנו אותם קצרים.</p>
+      </div>
+
+      <div class="support-list">
+        <div class="support-row">
+          <span class="num">01 /</span>
+          <div>
+            <h4>Call your bank's verified line — now.</h4>
+            <p>The number on the back of your card, not any number from the call or message. Tell them what happened. They can freeze, recall and flag faster than you think.</p>
+          </div>
+          <span class="go">First →</span>
+        </div>
+        <div class="support-row">
+          <span class="num">02 /</span>
+          <div>
+            <h4>Change passwords on anything they may have seen.</h4>
+            <p>Especially banking, email and any account whose name came up during the call or message. Email first — it's the master key.</p>
+          </div>
+          <span class="go">Within 1h →</span>
+        </div>
+        <div class="support-row">
+          <span class="num">03 /</span>
+          <div>
+            <h4>File a report — even if you didn't lose money.</h4>
+            <p>Police, national cyber-crime line, and your bank's fraud report form. Attempts that didn't succeed are just as useful — they help warn the next person.</p>
+          </div>
+          <span class="go">Today →</span>
+        </div>
+        <div class="support-row">
+          <span class="num">04 /</span>
+          <div>
+            <h4>Tell someone you trust.</h4>
+            <p>Out loud, in person if possible. Scam shame is its own second harm — talking about it shrinks it, and it helps you remember details that matter.</p>
+          </div>
+          <span class="go">This week →</span>
+        </div>
+        <div class="support-row">
+          <span class="num">05 /</span>
+          <div>
+            <h4>Tell us, when you're ready.</h4>
+            <p>Even months later. Patterns we learn from your story help us catch the next ones earlier. Send a tip via the contact page — anonymous, if you prefer.</p>
+          </div>
+          <span class="go">Anytime →</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SHARE -->
+<section class="share" id="share">
+  <div class="container">
+    <div class="share-grid">
+      <div class="share-left">
+        <span class="section-eyebrow">שתפו את הסיפור</span>
+        <h2>הסיפור שלכם יכול <span class="em">לעזור למישהו אחר.</span></h2>
+        <p>אם חוויתם ניסיון הונאה — מוצלח או לא — שיתוף הסיפור שלכם יכול לעזור להגן על אחרים. כל סיפור משנה.</p>
+        <p>You decide every detail. Names changed by default. Nothing published without your sign-off. No story posted ever has the subject's address, employer or any identifying number.</p>
+        <a href="share-story.html" class="btn btn-accent">שתפו את הסיפור
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+
+      <div class="share-promises">
+        <h3>What we promise.</h3>
+        <ul>
+          <li><strong>Anonymity by default</strong> — you only get named if you ask.</li>
+          <li><strong>You see the draft</strong> — and sign off before anything goes public.</li>
+          <li><strong>You can withdraw</strong> — at any time, for any reason, no questions.</li>
+          <li><strong>No commercial use</strong> — stories aren't ads, they're not used in pitch decks.</li>
+          <li><strong>Edited by people, not models</strong> — by Mateus, in writing.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PULL QUOTE -->
+<section class="pullquote-section">
+  <div class="container">
+    <div class="pullquote">
+      <p class="pullquote-text">הונאות משגשגות בשתיקה ובושה. כשאנשים לא מדברים על החוויות שלהם, <strong>נוכלים מנצחים.</strong> על ידי שיתוף סיפורים בגלוי, אנחנו שוברים את המעגל.</p>
+      <span class="pullquote-cite">— ASPS</span>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="container">
+    <div class="cta-inner">
+      <span class="cta-eyebrow">התכוננו לפני הבאה</span>
+      <h2>השיחה הבאה יכולה להיות <span class="em">עליכם</span> — או על מישהו שאתם אוהבים.</h2>
+      <p>הגדירו את ASPS בכמה דקות לעצמכם, להורים שלכם, או לילדים שלכם. כדי שהסיפור הבא בארכיון הזה יהיה אחד מהשקטים.</p>
+      <div class="cta-buttons">
+        <a href="individuals.html#pricing" class="btn btn-accent">קבלו הגנה
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="knowledge.html" class="btn btn-ghost">קראו את נוף האיומים</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerLogoGrad)"/>
+          <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs><linearGradient id="footerLogoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+        </svg>
+        <p>הגנת AI בזמן אמת מפני הונאות, רמאויות והנדסה חברתית. הגנה על אנשים ברגע הקריטי ביותר.</p>
+      </div>
+      <div class="footer-col"><h4>פלטפורמה</h4><a href="platform.html">איך זה עובד</a><a href="individuals.html#individuals">ליחידים</a><a href="individuals.html#families">למשפחות</a><a href="partners.html">לשותפים</a></div>
+      <div class="footer-col"><h4>משאבים</h4><a href="knowledge.html">מרכז הידע</a><a href="knowledge.html#feed">הזנת מודיעין</a><a href="stories.html#support">קבלו תמיכה</a><a href="stories.html">סיפורים</a></div>
+      <div class="footer-col"><h4>חברה</h4><a href="about.html">עלינו</a><a href="about.html#mission">המשימה שלנו</a><a href="about.html#ethics">אתיקה ואמון</a><a href="contact.html">צור קשר</a></div>
+    </div>
+    <div class="footer-bottom"><p>© 2026 ASPS. כל הזכויות שמורות.</p><div class="footer-links"><a href="privacy.html">פרטיות</a><a href="privacy.html#terms">תנאים</a><a href="privacy.html#cookies">עוגיות</a></div></div>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.filter-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    const f=tab.dataset.filter;
+    let shown=0;
+    document.querySelectorAll('.story-row').forEach(row=>{
+      const cats=(row.dataset.cat||'').split(' ');
+      const show=f==='all'||cats.includes(f);
+      row.style.display=show?'':'none';
+      if(show) shown++;
+    });
+    document.getElementById('storyCount').textContent=shown;
+  });
+});
+</script>
+
+</body>
+</html>

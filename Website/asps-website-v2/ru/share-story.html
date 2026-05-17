@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="Поделитесь своей историей мошенничества с ASPS. Анонимно, с заботой и используется только чтобы помочь другим людям вовремя увидеть то, что увидели вы."/>
+<title>Поделитесь своей историей — ASPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;0,16..72,700;1,16..72,400;1,16..72,500;1,16..72,600&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-dark:#070B14; --bg-paper:#FAF7F2; --bg-paper-2:#F3EFE8; --bg-paper-3:#EEE8DC;
+  --accent:#BE3A4B; --accent-strong:#8E1A2A;
+  --green:#1F8B5C; --gold:#C68A3C;
+  --ink:#1A1814; --ink-2:#4A4640; --ink-3:#6B655C;
+  --rule:#E4DDD2; --rule-2:#D7CFC2;
+  --font-body:'Instrument Sans',-apple-system,sans-serif;
+  --font-serif:'Newsreader',Georgia,serif;
+  --font-display:'Syne',Georgia,serif;
+  --transition:0.25s cubic-bezier(0.4,0,0.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--bg-paper);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+@media(min-width:768px){.container{padding:0 40px}}
+@media(min-width:1024px){.container{padding:0 60px}}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:1000;height:72px;background:rgba(15,18,56,0.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08)}
+.nav-inner{max-width:1400px;margin:0 auto;padding:0 40px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:32px}
+.nav-links{display:none;align-items:center;gap:8px}
+@media(min-width:1024px){.nav-links{display:flex}}
+.nav-link{padding:8px 16px;font-size:.875rem;font-weight:500;color:#94A3B8;border-radius:8px;transition:var(--transition)}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,0.05)}
+.nav-actions{display:flex;align-items:center;gap:12px}
+.nav-btn{padding:10px 20px;font-size:.875rem;font-weight:600;border-radius:8px;border:none;transition:var(--transition)}
+.nav-btn-ghost{background:transparent;color:#94A3B8;border:1px solid rgba(255,255,255,0.12)}
+.nav-btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.25)}
+.nav-btn-primary{background:#fff;color:#0F1238}
+.nav-btn-primary:hover{background:#EEF0FF}
+.lang-dropdown{position:relative}
+.lang-dropdown-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#E2E8F0;font-size:.8125rem;font-weight:600;cursor:pointer;transition:var(--transition)}
+.lang-dropdown-btn:hover{background:rgba(255,255,255,0.1)}
+.lang-dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:140px;padding:8px 0;background:#0F1238;border:1px solid rgba(255,255,255,0.12);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.3);opacity:0;visibility:hidden;transform:translateY(-8px);transition:var(--transition);z-index:100}
+.lang-dropdown:hover .lang-dropdown-menu,.lang-dropdown:focus-within .lang-dropdown-menu{opacity:1;visibility:visible;transform:translateY(0)}
+.lang-option{display:block;padding:10px 16px;font-size:.875rem;color:#94A3B8;transition:var(--transition)}
+.lang-option:hover{background:rgba(255,255,255,0.05);color:#fff}
+.lang-option.active{color:var(--accent);font-weight:600}
+
+/* MASTHEAD */
+.masthead{padding:88px 0 64px;background:var(--bg-paper);border-bottom:1px solid var(--rule);position:relative;overflow:hidden}
+.masthead-top{display:flex;justify-content:space-between;align-items:baseline;gap:20px;padding-bottom:18px;border-bottom:1px solid var(--rule-2);margin-bottom:40px;font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);flex-wrap:wrap}
+.masthead-top .right{color:var(--accent)}
+.masthead-grid{display:grid;grid-template-columns:1fr;gap:48px;align-items:end}
+@media(min-width:900px){.masthead-grid{grid-template-columns:1.6fr 1fr;gap:80px}}
+.masthead h1{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2.5rem,6vw,4.6rem);line-height:1.05;letter-spacing:-.03em;color:var(--ink);margin-bottom:28px;max-width:14ch}
+.masthead h1 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.masthead-lede{font-family:var(--font-serif);font-size:1.1875rem;line-height:1.65;color:var(--ink-2);max-width:560px}
+.masthead-lede strong{color:var(--ink);font-weight:600;font-style:italic}
+
+/* CARE CARD — anonymous-by-default */
+.care-card{background:var(--bg-paper-2);border:1px solid var(--rule-2);padding:32px;display:flex;flex-direction:column;gap:20px}
+.care-card .stamp{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);padding-bottom:14px;border-bottom:1px solid var(--rule)}
+.care-card .care-row{display:flex;gap:16px;align-items:flex-start}
+.care-card .care-row .n{font-family:var(--font-display);font-weight:800;font-size:.78rem;letter-spacing:.06em;color:var(--ink-3);flex-shrink:0;padding-top:3px}
+.care-card .care-row p{font-family:var(--font-serif);font-size:1rem;color:var(--ink);line-height:1.5}
+.care-card .care-row p em{font-style:italic;color:var(--accent-strong);font-weight:600}
+
+/* WHY — editorial 2col */
+.why{padding:96px 0;background:var(--bg-paper-2);border-bottom:1px solid var(--rule-2)}
+.why-grid{display:grid;grid-template-columns:1fr;gap:48px;max-width:1100px;margin:0 auto}
+@media(min-width:900px){.why-grid{grid-template-columns:1fr 1fr;gap:80px}}
+.why .kicker{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.why h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,3.8vw,2.875rem);line-height:1.1;letter-spacing:-.02em;color:var(--ink);margin-bottom:32px}
+.why h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.why p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.7;color:var(--ink-2);margin-bottom:18px;max-width:50ch}
+.why p::first-letter{font-family:var(--font-serif);font-style:italic;font-weight:600;font-size:3.5rem;float:left;line-height:0.85;padding:8px 12px 0 0;color:var(--accent-strong)}
+.why p:not(:first-of-type)::first-letter{font-family:inherit;font-style:inherit;font-weight:inherit;font-size:inherit;float:none;padding:0;color:inherit;line-height:inherit}
+.why-side{display:flex;flex-direction:column;gap:24px}
+.why-stat{padding:32px;background:var(--bg-paper);border:1px solid var(--rule);display:flex;flex-direction:column;gap:8px}
+.why-stat .num{font-family:var(--font-display);font-weight:800;font-size:clamp(2.5rem,4vw,3.5rem);color:var(--accent-strong);letter-spacing:-.02em;line-height:1}
+.why-stat .label{font-family:var(--font-serif);font-style:italic;font-size:1.0625rem;color:var(--ink);line-height:1.4}
+.why-stat .src{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-top:8px;padding-top:12px;border-top:1px solid var(--rule)}
+
+/* THE FORM */
+.form-section{padding:96px 0;background:var(--bg-paper)}
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:48px;padding-bottom:18px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.section-head h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,3.8vw,2.875rem);line-height:1.1;letter-spacing:-.02em;color:var(--ink);max-width:18ch}
+.section-head h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.section-head .meta{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);text-align:right;line-height:1.8}
+
+.form-wrap{display:grid;grid-template-columns:1fr;gap:48px;max-width:1100px;margin:0 auto}
+@media(min-width:900px){.form-wrap{grid-template-columns:240px 1fr;gap:64px}}
+
+.steps-rail{display:flex;flex-direction:column;gap:0;position:sticky;top:96px;align-self:start}
+.steps-rail .rail-label{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+.steps-rail .step-item{display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid var(--rule);cursor:pointer;background:none;border-left:none;border-right:none;border-top:none;font-family:inherit;text-align:left;color:inherit;transition:var(--transition);width:100%}
+.steps-rail .step-item:hover{color:var(--accent)}
+.steps-rail .step-item.active .step-n{background:var(--accent);color:#fff;border-color:var(--accent)}
+.steps-rail .step-item.complete .step-n{background:var(--green);color:#fff;border-color:var(--green)}
+.steps-rail .step-item .step-n{flex-shrink:0;width:28px;height:28px;border:1.5px solid var(--ink-3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:.72rem;color:var(--ink);transition:var(--transition)}
+.steps-rail .step-item .step-text{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);line-height:1.5;padding-top:4px}
+.steps-rail .step-item.active .step-text{color:var(--ink)}
+
+form.story{background:var(--bg-paper);border:1px solid var(--rule-2);padding:40px}
+.fstep{display:none;flex-direction:column;gap:24px}
+.fstep.active{display:flex}
+.fstep-num{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:-4px}
+.fstep h3{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:1.875rem;line-height:1.15;color:var(--ink);letter-spacing:-.01em;max-width:22ch}
+.fstep h3 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.fstep > p.hint{font-family:var(--font-serif);font-size:1.0625rem;color:var(--ink-2);line-height:1.55;max-width:56ch}
+.fstep > p.hint em{font-style:italic;color:var(--accent-strong);font-weight:600}
+
+.field{display:flex;flex-direction:column;gap:8px}
+.field label{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink)}
+.field label .opt{color:var(--ink-3);font-weight:500;letter-spacing:.06em;text-transform:none;font-size:.78rem;margin-left:8px}
+.field input,.field textarea,.field select{font-family:var(--font-body);font-size:1rem;color:var(--ink);background:var(--bg-paper-2);border:1px solid var(--rule);padding:14px 16px;width:100%;transition:var(--transition)}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent);background:#fff}
+.field textarea{resize:vertical;min-height:140px;font-family:var(--font-serif);line-height:1.55}
+.field .help{font-family:var(--font-body);font-size:.85rem;color:var(--ink-3);line-height:1.5}
+
+.choices{display:grid;grid-template-columns:1fr;gap:8px}
+@media(min-width:520px){.choices{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:760px){.choices.three{grid-template-columns:repeat(3,1fr)}}
+.choice{position:relative;cursor:pointer}
+.choice input{position:absolute;opacity:0;pointer-events:none}
+.choice .box{padding:14px 16px;border:1px solid var(--rule);background:var(--bg-paper-2);display:flex;flex-direction:column;gap:4px;transition:var(--transition)}
+.choice .box .ttl{font-family:var(--font-display);font-weight:700;font-size:.78rem;letter-spacing:.08em;color:var(--ink)}
+.choice .box .sub{font-family:var(--font-body);font-size:.84rem;color:var(--ink-3);line-height:1.4}
+.choice:hover .box{border-color:var(--ink-3)}
+.choice input:checked + .box{border-color:var(--accent);background:#fff;box-shadow:inset 0 0 0 1px var(--accent)}
+.choice input:checked + .box .ttl{color:var(--accent-strong)}
+
+.fstep-actions{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-top:24px;margin-top:8px;border-top:1px solid var(--rule);flex-wrap:wrap}
+.fstep-actions .progress{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.fstep-actions .progress strong{color:var(--accent)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 22px;font-family:var(--font-body);font-size:.92rem;font-weight:600;border:1px solid transparent;cursor:pointer;transition:var(--transition);text-decoration:none}
+.btn-primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn-primary:hover{background:var(--accent);border-color:var(--accent)}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--rule-2)}
+.btn-ghost:hover{border-color:var(--ink);color:var(--ink)}
+.btn-actions-right{display:flex;gap:10px;align-items:center}
+
+.success{display:none;flex-direction:column;gap:24px;padding:48px 32px;text-align:center;background:var(--bg-paper-2);border:1px solid var(--rule-2)}
+.success.active{display:flex}
+.success-stamp{font-family:var(--font-display);font-weight:700;font-size:.74rem;letter-spacing:.2em;text-transform:uppercase;color:var(--green)}
+.success h3{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:2rem;line-height:1.15;color:var(--ink);max-width:24ch;margin:0 auto}
+.success h3 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.success p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.55;color:var(--ink-2);max-width:48ch;margin:0 auto}
+.success-id{font-family:var(--font-display);font-weight:700;font-size:.86rem;letter-spacing:.14em;color:var(--ink);padding:14px 24px;background:#fff;border:1px dashed var(--rule-2);display:inline-block;margin:0 auto}
+
+/* HOW WE HANDLE — dark band */
+.handle{padding:96px 0;background:var(--bg-dark);color:#fff}
+.handle .kicker{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:20px}
+.handle h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,3.8vw,2.875rem);line-height:1.1;color:#fff;letter-spacing:-.02em;margin-bottom:48px;max-width:18ch}
+.handle h2 .em{font-style:normal;font-weight:600;color:var(--accent)}
+.handle-list{border-top:1px solid rgba(255,255,255,0.14)}
+.handle-row{display:grid;grid-template-columns:1fr;gap:14px;padding:28px 0;border-bottom:1px solid rgba(255,255,255,0.08)}
+@media(min-width:760px){.handle-row{grid-template-columns:60px 1fr 220px;gap:32px;align-items:start}}
+.handle-row .n{font-family:var(--font-display);font-weight:800;font-size:1.125rem;color:var(--accent);letter-spacing:.04em}
+.handle-row h3{font-family:var(--font-serif);font-weight:500;font-size:1.375rem;line-height:1.2;color:#fff;margin-bottom:8px}
+.handle-row h3 .em{font-style:italic;color:var(--accent)}
+.handle-row p{font-family:var(--font-serif);font-size:1rem;line-height:1.55;color:#94A3B8;max-width:55ch}
+.handle-row .when{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:#fff;text-align:right;padding-top:6px;border-left:2px solid var(--accent);padding-left:14px;line-height:1.5}
+.handle-row .when span{display:block;color:#94A3B8;font-size:.66rem;margin-top:4px}
+
+/* NOT READY — support panel */
+.support{padding:96px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule-2)}
+.support-grid{display:grid;grid-template-columns:1fr;gap:48px;max-width:1100px;margin:0 auto}
+@media(min-width:900px){.support-grid{grid-template-columns:1fr 1.4fr;gap:80px;align-items:start}}
+.support .kicker{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.support h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(1.875rem,3.4vw,2.5rem);line-height:1.15;color:var(--ink);letter-spacing:-.01em;margin-bottom:20px}
+.support h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.support .lede{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.65;color:var(--ink-2);max-width:48ch}
+
+.lines{border-top:2px solid var(--ink)}
+.line{display:grid;grid-template-columns:1fr;gap:6px;padding:24px 0;border-bottom:1px solid var(--rule)}
+@media(min-width:600px){.line{grid-template-columns:170px 1fr 130px;gap:24px;align-items:baseline}}
+.line .who{font-family:var(--font-serif);font-style:italic;font-size:1.0625rem;color:var(--ink);font-weight:500}
+.line .what{font-family:var(--font-serif);font-size:.98rem;color:var(--ink-2);line-height:1.5}
+.line .phone{font-family:var(--font-display);font-weight:700;font-size:.86rem;letter-spacing:.04em;color:var(--accent-strong);text-align:right}
+
+/* CTA */
+.cta{padding:96px 0 110px;background:var(--bg-paper);text-align:center}
+.cta blockquote{font-family:var(--font-serif);font-style:italic;font-weight:500;font-size:clamp(1.875rem,3.6vw,2.75rem);line-height:1.2;color:var(--ink);max-width:22ch;margin:0 auto 24px;letter-spacing:-.01em}
+.cta blockquote .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.cta .attribution{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:40px}
+.cta-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+/* FOOTER */
+.footer{padding:80px 0 40px;background:var(--bg-dark);color:#94A3B8}
+.footer-grid{display:grid;grid-template-columns:1fr;gap:48px;margin-bottom:64px}
+@media(min-width:768px){.footer-grid{grid-template-columns:2fr 1fr 1fr 1fr}}
+.footer-brand p{font-size:.9375rem;line-height:1.7;max-width:320px;margin-top:20px}
+.footer-col h4{font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#E2E8F0;margin-bottom:20px}
+.footer-col a{display:block;font-size:.9375rem;margin-bottom:14px;transition:var(--transition)}
+.footer-col a:hover{color:var(--accent)}
+.footer-bottom{padding-top:32px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px;font-size:.84rem;color:#64748B}
+.footer-links{display:flex;gap:24px}
+.footer-links a:hover{color:#E2E8F0}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" aria-label="Главная ASPS">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+      </svg>
+    </a>
+    <div class="nav-links">
+      <a href="platform.html" class="nav-link">Как это работает</a>
+      <a href="knowledge.html" class="nav-link">Центр знаний</a>
+      <a href="stories.html" class="nav-link">Истории</a>
+      <a href="partners.html" class="nav-link">Партнёры</a>
+      <a href="about.html" class="nav-link">О нас</a>
+      <a href="faq.html" class="nav-link">Вопросы и ответы</a>
+    </div>
+    <div class="nav-actions">
+      <div class="lang-dropdown">
+        <button class="lang-dropdown-btn" aria-label="Выбрать язык"><span>RU</span><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l4 4 4-4"/></svg></button>
+        <div class="lang-dropdown-menu">
+          <a href="../share-story.html" class="lang-option">English</a>
+          <a href="../he/share-story.html" class="lang-option">עברית</a>
+          <a href="../fr/share-story.html" class="lang-option">Français</a>
+          <span class="lang-option active">Русский</span>
+          <a href="../es/share-story.html" class="lang-option">Español</a>
+        </div>
+      </div>
+      <a href="contact.html" class="nav-btn nav-btn-ghost">Контакты</a>
+      <a href="protection-plans.html" class="nav-btn nav-btn-primary">Защититься</a>
+    </div>
+  </div>
+</nav>
+
+<!-- MASTHEAD -->
+<header class="masthead">
+  <div class="container">
+    <div class="masthead-top">
+      <span>Поделитесь своей историей · Вып. 08</span>
+      <span class="right">Для людей, которые это увидели · или почти не увидели</span>
+    </div>
+    <div class="masthead-grid">
+      <div>
+        <h1>Кому-то звонят <span class="em">прямо сейчас.</span></h1>
+        <p class="masthead-lede">Если вы стали целью мошенничества — поймали это вовремя или нет — рассказ о том, что вы увидели, даёт следующему человеку шанс увидеть это раньше. <strong>Анонимно по умолчанию. Вам решать, удалять ли. Никогда не используется для рекламы.</strong></p>
+      </div>
+
+      <aside class="care-card" aria-label="Как мы обращаемся с вашей историей">
+        <p class="stamp">Обещание · в пяти строках</p>
+        <div class="care-row"><span class="n">01</span><p><em>Анонимно</em>, если вы не попросите иначе.</p></div>
+        <div class="care-row"><span class="n">02</span><p>Имена, номера и суммы <em>вычищаются</em> до рассмотрения.</p></div>
+        <div class="care-row"><span class="n">03</span><p>Читает человек; <em>никогда не используется для обучения ИИ</em> без явного согласия.</p></div>
+        <div class="care-row"><span class="n">04</span><p>Вы можете <em>отозвать</em> в любой момент, даже спустя годы.</p></div>
+        <div class="care-row"><span class="n">05</span><p>Если это опубликовано, вы видите это первыми и можете <em>изменить хоть одно слово</em> или убрать это.</p></div>
+      </aside>
+    </div>
+  </div>
+</header>
+
+<!-- WHY -->
+<section class="why">
+  <div class="container">
+    <div class="why-grid">
+      <div>
+        <p class="kicker">Зачем это существует</p>
+        <h2>Каждая история, которую вы нам рассказываете, учит следующее <span class="em">оповещение.</span></h2>
+        <p>Каждая история, которую мы получаем — холодный звонок, невозможный голос, вкладка банка, которая была не совсем правильной — становится шаблоном. Шаблон становится оповещением. Оповещение достигает кого-то вовремя, кто иначе провёл бы на тридцать секунд дольше, веря тому, что ему сказали.</p>
+        <p>Мы это не романтизируем. Люди теряют от мошенничеств больше, чем деньги; они теряют доверие к собственному суждению. Рассказать нам, даже анонимно — это один из способов вернуть часть этого обратно — и убедиться, что следующему человеку не придётся открывать тот же трюк тем же способом.</p>
+      </div>
+
+      <div class="why-side">
+        <div class="why-stat">
+          <span class="num">3 142</span>
+          <span class="label">истории, отправленные в ASPS за последние 12 месяцев</span>
+          <span class="src">Внутренние данные · Май 2026</span>
+        </div>
+        <div class="why-stat">
+          <span class="num">71%</span>
+          <span class="label">привели к новому шаблону, шаблону оповещения или правилу обнаружения</span>
+          <span class="src">Внутренние данные · Май 2026</span>
+        </div>
+        <div class="why-stat">
+          <span class="num">≈ 12 мин</span>
+          <span class="label">медианное время на рассказ, включая проверку и отправку</span>
+          <span class="src">Из формы отправки · Май 2026</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FORM -->
+<section class="form-section">
+  <div class="container">
+    <div class="section-head">
+      <h2>Форма, в четыре <span class="em">честных шага.</span></h2>
+      <p class="meta">Время чтения · 12 мин<br/>Автосохранение локально · закройте в любой момент</p>
+    </div>
+
+    <div class="form-wrap">
+      <nav class="steps-rail" aria-label="Шаги формы">
+        <p class="rail-label">Где вы находитесь</p>
+        <button type="button" class="step-item active" data-go="0"><span class="step-n">1</span><span class="step-text">Что произошло</span></button>
+        <button type="button" class="step-item" data-go="1"><span class="step-n">2</span><span class="step-text">История, вашими словами</span></button>
+        <button type="button" class="step-item" data-go="2"><span class="step-n">3</span><span class="step-text">Как вы хотели бы это использовать</span></button>
+        <button type="button" class="step-item" data-go="3"><span class="step-n">4</span><span class="step-text">Вы (необязательно)</span></button>
+      </nav>
+
+      <form class="story" id="storyForm" novalidate>
+
+        <!-- STEP 1 -->
+        <div class="fstep active" data-step="0">
+          <span class="fstep-num">Шаг 01 из 04</span>
+          <h3>Основное — <span class="em">что это было за дело?</span></h3>
+          <p class="hint">Несколько быстрых вопросов, чтобы мы знали, как читать вашу историю. Выберите ближайшее совпадение — ничего из этого не должно быть точным.</p>
+
+          <div class="field">
+            <label>Какого рода это было мошенничество?</label>
+            <div class="choices three">
+              <label class="choice"><input type="radio" name="kind" value="voice"/><span class="box"><span class="ttl">Голос / телефон</span><span class="sub">Звонок, где кто-то был не тем, кем себя называл.</span></span></label>
+              <label class="choice"><input type="radio" name="kind" value="message"/><span class="box"><span class="ttl">Текст / сообщение</span><span class="sub">SMS, WhatsApp, email с просьбой действовать.</span></span></label>
+              <label class="choice"><input type="radio" name="kind" value="bank"/><span class="box"><span class="ttl">Банк / платёж</span><span class="sub">Просили перевести, «обезопасить» счёт и т.д.</span></span></label>
+              <label class="choice"><input type="radio" name="kind" value="romance"/><span class="box"><span class="ttl">Романтика / дружба</span><span class="sub">Выстраивали доверие со временем, потом просили.</span></span></label>
+              <label class="choice"><input type="radio" name="kind" value="employment"/><span class="box"><span class="ttl">Работа / трудоустройство</span><span class="sub">Фальшивая работа, фальшивый работодатель, фальшивое задание.</span></span></label>
+              <label class="choice"><input type="radio" name="kind" value="other"/><span class="box"><span class="ttl">Что-то другое</span><span class="sub">Или трудно определить — мы разберёмся.</span></span></label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Чем это закончилось?</label>
+            <div class="choices three">
+              <label class="choice"><input type="radio" name="outcome" value="caught"/><span class="box"><span class="ttl">Поймано вовремя</span><span class="sub">Ничего не потеряно.</span></span></label>
+              <label class="choice"><input type="radio" name="outcome" value="partial"/><span class="box"><span class="ttl">Частичная потеря</span><span class="sub">Немного денег или данных, потом остановилось.</span></span></label>
+              <label class="choice"><input type="radio" name="outcome" value="full"/><span class="box"><span class="ttl">Потеряно то, что просили</span><span class="sub">Прошло до того, как я понял(а).</span></span></label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Примерно когда?</label>
+            <select name="when">
+              <option value="">Выберите одно — или оставьте пустым</option>
+              <option>На этой неделе</option>
+              <option>В этом месяце</option>
+              <option>В этом году (2026)</option>
+              <option>В прошлом году (2025)</option>
+              <option>2024 или раньше</option>
+              <option>Предпочту не говорить</option>
+            </select>
+            <span class="help">Мы спрашиваем только потому, что шаблоны мошенничества развиваются быстро — знание того, видели ли вы это на прошлой неделе или в прошлом году, действительно помогает.</span>
+          </div>
+
+          <div class="fstep-actions">
+            <span class="progress">Шаг <strong>01</strong> / 04</span>
+            <div class="btn-actions-right">
+              <button type="button" class="btn btn-primary" data-next>Продолжить →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="fstep" data-step="1">
+          <span class="fstep-num">Шаг 02 из 04</span>
+          <h3>Своими словами — <span class="em">расскажите, что вы видели.</span></h3>
+          <p class="hint">Формат не требуется. Мы добавили несколько подсказок ниже на случай, если это поможет — ответьте на одну, на все или ни на одну. Всё, что вы здесь напишете, может быть автоматически <em>очищено от имён и номеров</em> до рассмотрения.</p>
+
+          <div class="field">
+            <label>История <span class="opt">— пишите столько, сколько хотите</span></label>
+            <textarea name="story" rows="8" placeholder="Несколько подсказок, если полезно:
+• Что было первым, что они сказали?
+• Что заставило вас остановиться и задуматься?
+• Когда ощущение изменилось — что что-то не так?
+• Был ли момент, когда вы почти поверили? Что это было?"></textarea>
+            <span class="help">Средняя история, которую мы получаем: около 220 слов. Некоторые в два предложения, некоторые в две страницы. Обе полезны.</span>
+          </div>
+
+          <div class="field">
+            <label>Если это поможет — образец сообщения или сценария <span class="opt">необязательно</span></label>
+            <textarea name="sample" rows="4" placeholder="Вставьте точный текст сообщения или несколько строк того, что было сказано по звонку. Мы удаляем личные данные, прежде чем кто-либо это просмотрит."></textarea>
+            <span class="help">Дословный язык — золото для обнаружения шаблонов — точные формулировки часто и учат следующее оповещение.</span>
+          </div>
+
+          <div class="fstep-actions">
+            <span class="progress">Шаг <strong>02</strong> / 04</span>
+            <div class="btn-actions-right">
+              <button type="button" class="btn btn-ghost" data-prev>← Назад</button>
+              <button type="button" class="btn btn-primary" data-next>Продолжить →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="fstep" data-step="2">
+          <span class="fstep-num">Шаг 03 из 04</span>
+          <h3>Как бы вы хотели, чтобы мы <span class="em">это использовали?</span></h3>
+          <p class="hint">Выберите то, с чем вам комфортно — вы можете передумать позже из того же письма, которое мы отправляем при отправке.</p>
+
+          <div class="field">
+            <label>Использование вашей истории</label>
+            <div class="choices">
+              <label class="choice"><input type="checkbox" name="use" value="patterns"/><span class="box"><span class="ttl">Улучшить обнаружение</span><span class="sub">Использовать анонимно для улучшения оповещений. <em>Рекомендуется.</em></span></span></label>
+              <label class="choice"><input type="checkbox" name="use" value="publish"/><span class="box"><span class="ttl">Возможно, опубликовать анонимно</span><span class="sub">На stories.html. Вы видите это первыми.</span></span></label>
+              <label class="choice"><input type="checkbox" name="use" value="partners"/><span class="box"><span class="ttl">Поделиться с банком / телекомом</span><span class="sub">Анонимно, чтобы помочь им заметить тот же сценарий.</span></span></label>
+              <label class="choice"><input type="checkbox" name="use" value="research"/><span class="box"><span class="ttl">Только исследования</span><span class="sub">Сводная статистика и тренды. Никогда не цитируется.</span></span></label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Как нам указать вас, если вообще?</label>
+            <div class="choices three">
+              <label class="choice"><input type="radio" name="credit" value="none"/><span class="box"><span class="ttl">Анонимно</span><span class="sub">Без имени. <em>По умолчанию.</em></span></span></label>
+              <label class="choice"><input type="radio" name="credit" value="first"/><span class="box"><span class="ttl">Только имя</span><span class="sub">«Давид, 71, Манчестер»</span></span></label>
+              <label class="choice"><input type="radio" name="credit" value="full"/><span class="box"><span class="ttl">Полное имя</span><span class="sub">Только если вы специально этого хотите.</span></span></label>
+            </div>
+          </div>
+
+          <div class="fstep-actions">
+            <span class="progress">Шаг <strong>03</strong> / 04</span>
+            <div class="btn-actions-right">
+              <button type="button" class="btn btn-ghost" data-prev>← Назад</button>
+              <button type="button" class="btn btn-primary" data-next>Продолжить →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4 -->
+        <div class="fstep" data-step="3">
+          <span class="fstep-num">Шаг 04 из 04</span>
+          <h3>Вы — <span class="em">но только если хотите.</span></h3>
+          <p class="hint">Всё здесь необязательно. Мы просим email только чтобы отправить вам копию того, что вы написали, и постоянную ссылку «отозвать» в один клик. Мы <em>никогда</em> не добавляем вас ни в какой список.</p>
+
+          <div class="field">
+            <label>Email <span class="opt">необязательно</span></label>
+            <input type="email" name="email" placeholder="you@example.com"/>
+            <span class="help">Используется один раз, чтобы отправить вашу копию и ссылку на отзыв. После этого удаляется — ваша история остаётся связанной только случайным кодом.</span>
+          </div>
+
+          <div class="field">
+            <label>Возрастной диапазон <span class="opt">необязательно · помогает нам видеть, кого выбирают целью</span></label>
+            <select name="age">
+              <option value="">Выберите одно — или оставьте пустым</option>
+              <option>До 30</option><option>30–49</option><option>50–64</option><option>65–74</option><option>75+</option>
+              <option>Предпочту не говорить</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Регион <span class="opt">необязательно</span></label>
+            <input type="text" name="region" placeholder="напр. Большой Манчестер, Великобритания"/>
+          </div>
+
+          <div class="field">
+            <label>Что-нибудь ещё, что вы хотели бы нам сообщить? <span class="opt">необязательно</span></label>
+            <textarea name="extra" rows="3" placeholder="Может быть, как бы вы хотели, чтобы мы ответили, что помогло бы тогда, или сообщение для следующего человека, который прочитает об этом."></textarea>
+          </div>
+
+          <div class="fstep-actions">
+            <span class="progress">Готово к отправке · <strong>шаг 04 / 04</strong></span>
+            <div class="btn-actions-right">
+              <button type="button" class="btn btn-ghost" data-prev>← Назад</button>
+              <button type="submit" class="btn btn-primary">Поделиться моей историей →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUCCESS -->
+        <div class="success" id="storySuccess" aria-live="polite">
+          <span class="success-stamp">✓ Получено · спасибо</span>
+          <h3>Вы только что помогли человеку, <span class="em">которого никогда не встретите.</span></h3>
+          <p>Человек прочитает вашу историю в течение 5 рабочих дней. Вы получите письмо со ссылкой на отзыв — сохраните её. Если что-то из вашей истории превратится в оповещение или опубликованный материал, вы увидите это раньше всех.</p>
+          <span class="success-id" id="successId">REF · ASPS-2026-•••••</span>
+          <p style="font-family:var(--font-body);font-size:.92rem;color:var(--ink-3)">Если вы хотите поговорить с человеком сейчас, линии поддержки ниже открыты.</p>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- HOW WE HANDLE -->
+<section class="handle">
+  <div class="container">
+    <p class="kicker">От отправки до оповещения</p>
+    <h2>Что происходит с вашей историей, <span class="em">шаг за шагом.</span></h2>
+
+    <div class="handle-list">
+      <div class="handle-row">
+        <span class="n">01</span>
+        <div>
+          <h3>Личные данные <span class="em">вычищаются до рассмотрения.</span></h3>
+          <p>Имена, номера телефонов, номера счетов, суммы и адреса автоматически заменяются нейтральными токенами (NAME_01, AMOUNT_01) до того, как кто-либо увидит историю. Оригинал зашифрован и доступен только вам через вашу ссылку на отзыв.</p>
+        </div>
+        <p class="when">В течение 60 секунд<span>Автоматически</span></p>
+      </div>
+
+      <div class="handle-row">
+        <span class="n">02</span>
+        <div>
+          <h3>Человек читает это. <span class="em">Человек, а не очередь.</span></h3>
+          <p>Наша команда заботы — три человека, у всех есть личный или семейный опыт мошенничеств — читает каждую историю в течение пяти рабочих дней. Они помечают её для обнаружения шаблонов и отвечают вам на вашем языке.</p>
+        </div>
+        <p class="when">≤ 5 рабочих дней<span>Команда заботы</span></p>
+      </div>
+
+      <div class="handle-row">
+        <span class="n">03</span>
+        <div>
+          <h3>Шаблоны информируют следующий <span class="em">шаблон оповещения.</span></h3>
+          <p>Если ваша история включает сценарий, номер или приманку, которых мы не видели, команда обнаружения пишет новое правило оповещения. Большинство правил доходит до всех пользователей в течение 7–14 дней после прихода истории. Вам сообщат, если ваше дошло.</p>
+        </div>
+        <p class="when">7–14 дней<span>Обнаружение</span></p>
+      </div>
+
+      <div class="handle-row">
+        <span class="n">04</span>
+        <div>
+          <h3>Если мы захотим опубликовать, <span class="em">вы видите это первыми.</span></h3>
+          <p>Для историй с разрешением на публикацию мы отправляем вам предлагаемую версию до того, как она куда-либо пойдёт. Вы можете изменить одно слово, изменить всё или убрать это полностью. По умолчанию анонимно; даже указание авторства — по согласию для каждой публикации.</p>
+        </div>
+        <p class="when">До публикации<span>Всегда проверяется</span></p>
+      </div>
+
+      <div class="handle-row">
+        <span class="n">05</span>
+        <div>
+          <h3>Вы можете отозвать, <span class="em">навсегда.</span></h3>
+          <p>Ссылка в вашем письме-подтверждении никогда не истекает. Один клик — и ваша история — и каждое производное оповещение, которое цитирует вас напрямую — удаляется. Шаблоны, изученные из вашей истории, остаются; цитаты — нет.</p>
+        </div>
+        <p class="when">В любой момент · навсегда<span>Один клик</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SUPPORT -->
+<section class="support">
+  <div class="container">
+    <div class="support-grid">
+      <div>
+        <p class="kicker">Если вы не готовы писать</p>
+        <h2>Вам не обязательно делиться, чтобы <span class="em">получить помощь.</span></h2>
+        <p class="lede">Если вы предпочли бы сначала поговорить с кем-то или вы восстанавливаетесь и не готовы возвращаться к этому — эти линии бесплатны, конфиденциальны и обучены слушать без спешки. ASPS не связан ни с одной из них; мы перечисляем их потому, что они хорошие.</p>
+      </div>
+
+      <div class="lines" aria-label="Линии поддержки">
+        <div class="line"><span class="who">Action Fraud · Великобритания</span><span class="what">Сообщение и немедленная поддержка по мошенничеству и киберпреступности в Великобритании.</span><span class="phone">0300 123 2040</span></div>
+        <div class="line"><span class="who">Victim Support · Великобритания</span><span class="what">Эмоциональная поддержка и практические рекомендации, любой вид преступления, бесплатно.</span><span class="phone">0808 168 9111</span></div>
+        <div class="line"><span class="who">Европейский потребительский центр</span><span class="what">Помощь при трансграничных мошенничествах в ЕС, на каждом языке стран-членов.</span><span class="phone">+32 2 542 33 89</span></div>
+        <div class="line"><span class="who">AARP Fraud Watch · США</span><span class="what">Бесплатная линия с обученными волонтёрами, преимущественно для пожилых людей.</span><span class="phone">877-908-3360</span></div>
+        <div class="line"><span class="who">Samaritans · 24/7</span><span class="what">Если опыт повлиял на ваше психическое здоровье — кто угодно, по любой причине.</span><span class="phone">116 123</span></div>
+        <div class="line"><span class="who">Citizens Advice · Великобритания</span><span class="what">Помощь в возврате денег и взаимодействии с банками после мошенничества.</span><span class="phone">0800 144 8848</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA / closing quote -->
+<section class="cta">
+  <div class="container">
+    <blockquote>«Рассказать кому-то — это первый раз, когда это перестаёт быть <span class="em">вашей виной.</span>»</blockquote>
+    <p class="attribution">— Маргарет, 74 · вторая история, которую мы когда-либо получили</p>
+    <div class="cta-actions">
+      <a href="#storyForm" class="btn btn-primary">Поделиться своей историей</a>
+      <a href="stories.html" class="btn btn-ghost">Сначала прочитать другие</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerLogoGrad)"/>
+          <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs><linearGradient id="footerLogoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+        </svg>
+        <p>ИИ-защита в реальном времени от мошенничества, обмана и социальной инженерии. Защищаем людей в самый важный момент.</p>
+      </div>
+      <div class="footer-col"><h4>Платформа</h4><a href="platform.html">Как это работает</a><a href="individuals.html#individuals">Для частных лиц</a><a href="individuals.html#families">Для семей</a><a href="partners.html">Для партнёров</a></div>
+      <div class="footer-col"><h4>Ресурсы</h4><a href="knowledge.html">Центр знаний</a><a href="faq.html">Вопросы и ответы</a><a href="stories.html#support">Получить поддержку</a><a href="stories.html">Истории</a></div>
+      <div class="footer-col"><h4>Компания</h4><a href="about.html">О нас</a><a href="about.html#mission">Наша миссия</a><a href="about.html#ethics">Этика и доверие</a><a href="contact.html">Контакты</a></div>
+    </div>
+    <div class="footer-bottom"><p>© 2026 ASPS. Все права защищены.</p><div class="footer-links"><a href="privacy.html">Конфиденциальность</a><a href="privacy.html#terms">Условия</a><a href="accessibility.html">Доступность</a></div></div>
+  </div>
+</footer>
+
+<script>
+const form = document.getElementById('storyForm');
+const steps = form.querySelectorAll('.fstep');
+const railItems = document.querySelectorAll('.steps-rail .step-item');
+const success = document.getElementById('storySuccess');
+let current = 0;
+
+function goTo(n){
+  current = Math.max(0, Math.min(steps.length-1, n));
+  steps.forEach((s,i)=>s.classList.toggle('active', i===current));
+  railItems.forEach((r,i)=>{
+    r.classList.toggle('active', i===current);
+    r.classList.toggle('complete', i<current);
+  });
+  form.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+form.querySelectorAll('[data-next]').forEach(b=>b.addEventListener('click',()=>goTo(current+1)));
+form.querySelectorAll('[data-prev]').forEach(b=>b.addEventListener('click',()=>goTo(current-1)));
+railItems.forEach(r=>r.addEventListener('click',()=>{const n=parseInt(r.dataset.go,10); if(!isNaN(n)) goTo(n);}));
+
+form.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const code = Math.random().toString(36).slice(2,7).toUpperCase();
+  const data = new FormData(form);
+  let body = 'Story submission · ASPS-2026-'+code+'\r\n\r\n';
+  for (const [k,v] of data.entries()) {
+    if (v && String(v).trim()) body += k+': '+v+'\r\n';
+  }
+  window.location.href = 'mailto:info@asps.io?subject='+encodeURIComponent('Story submission · ASPS-2026-'+code)+'&body='+encodeURIComponent(body);
+  document.getElementById('successId').textContent = 'REF · ASPS-2026-'+code;
+  steps.forEach(s=>s.classList.remove('active'));
+  success.classList.add('active');
+  railItems.forEach(r=>r.classList.add('complete'));
+  success.scrollIntoView({behavior:'smooth', block:'start'});
+});
+</script>
+
+</body>
+</html>

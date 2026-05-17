@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="ASPS accessibility — our standards, our public roadmap, and how we test with the people who use ASPS."/>
+<title>Accessibility — ASPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;0,16..72,700;1,16..72,400;1,16..72,500;1,16..72,600&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-dark:#070B14; --bg-paper:#FAF7F2; --bg-paper-2:#F3EFE8;
+  --accent:#BE3A4B; --accent-strong:#8E1A2A;
+  --green:#1F8B5C; --gold:#C68A3C;
+  --ink:#1A1814; --ink-2:#4A4640; --ink-3:#6B655C;
+  --rule:#E4DDD2; --rule-2:#D7CFC2;
+  --font-body:'Instrument Sans',-apple-system,sans-serif;
+  --font-serif:'Newsreader',Georgia,serif;
+  --font-display:'Syne',Georgia,serif;
+  --transition:0.25s cubic-bezier(0.4,0,0.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--bg-paper);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+@media(min-width:768px){.container{padding:0 40px}}
+@media(min-width:1024px){.container{padding:0 60px}}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:1000;height:72px;background:rgba(15,18,56,0.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08)}
+.nav-inner{max-width:1400px;margin:0 auto;padding:0 40px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:32px}
+.nav-links{display:none;align-items:center;gap:8px}
+@media(min-width:1024px){.nav-links{display:flex}}
+.nav-link{padding:8px 16px;font-size:.875rem;font-weight:500;color:#94A3B8;border-radius:8px;transition:var(--transition)}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,0.05)}
+.nav-actions{display:flex;align-items:center;gap:12px}
+.nav-btn{padding:10px 20px;font-size:.875rem;font-weight:600;border-radius:8px;border:none;transition:var(--transition)}
+.nav-btn-ghost{background:transparent;color:#94A3B8;border:1px solid rgba(255,255,255,0.12)}
+.nav-btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.25)}
+.nav-btn-primary{background:#fff;color:#0F1238}
+.nav-btn-primary:hover{background:#EEF0FF}
+
+/* SKIP LINK */
+.skip{position:absolute;left:-9999px;top:8px;background:#fff;color:var(--ink);padding:10px 16px;font-weight:600;border:2px solid var(--accent);z-index:10000}
+.skip:focus{left:8px}
+
+/* MASTHEAD */
+.masthead{padding:80px 0 60px;background:var(--bg-paper);border-bottom:1px solid var(--rule)}
+.masthead-top{display:flex;justify-content:space-between;align-items:baseline;gap:20px;padding-bottom:18px;border-bottom:1px solid var(--rule-2);margin-bottom:36px;font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);flex-wrap:wrap}
+.masthead-top .right{color:var(--accent)}
+.masthead-grid{display:grid;grid-template-columns:1fr;gap:48px}
+@media(min-width:900px){.masthead-grid{grid-template-columns:1.4fr 1fr;gap:80px;align-items:end}}
+.masthead h1{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2.4rem,5.5vw,4.2rem);line-height:1.08;letter-spacing:-.03em;color:var(--ink);margin-bottom:24px;max-width:14ch}
+.masthead h1 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.masthead-lede{font-family:var(--font-serif);font-size:1.1875rem;line-height:1.6;color:var(--ink-2);max-width:560px}
+
+/* STATUS CARD */
+.status{background:#fff;border:1px solid var(--rule-2);padding:28px;display:flex;flex-direction:column;gap:18px}
+.status .stamp{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);padding-bottom:14px;border-bottom:1px solid var(--rule)}
+.status-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding-bottom:14px;border-bottom:1px solid var(--rule)}
+.status-row:last-child{border-bottom:none;padding-bottom:0}
+.status-row .k{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.status-row .v{font-family:var(--font-serif);font-size:1rem;color:var(--ink);text-align:right;font-weight:500}
+.status-row .v .em{font-style:italic;color:var(--accent-strong);font-weight:600}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:8px;vertical-align:middle}
+
+/* COMMITMENTS */
+.principles{padding:88px 0;background:var(--bg-paper-2);border-bottom:1px solid var(--rule-2)}
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:40px;padding-bottom:18px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.section-head h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,3.6vw,2.625rem);color:var(--ink);max-width:18ch;letter-spacing:-.01em;line-height:1.1}
+.section-head h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.section-head .meta{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);text-align:right}
+
+.principles-list{border-top:1px solid var(--rule)}
+.principle{display:grid;grid-template-columns:1fr;gap:18px;padding:36px 0;border-bottom:1px solid var(--rule)}
+@media(min-width:760px){.principle{grid-template-columns:80px 1fr 280px;gap:48px;align-items:start}}
+.principle .num{font-family:var(--font-display);font-weight:800;font-size:1.5rem;color:var(--accent);letter-spacing:.02em;line-height:1}
+.principle h3{font-family:var(--font-serif);font-weight:500;font-size:1.5rem;line-height:1.2;color:var(--ink);margin-bottom:10px;letter-spacing:-.01em}
+.principle h3 .em{font-style:italic;color:var(--accent-strong)}
+.principle p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.6;color:var(--ink-2);max-width:60ch}
+.principle .proof{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);border-left:2px solid var(--accent);padding:6px 14px;line-height:1.6}
+.principle .proof strong{display:block;color:var(--ink);font-size:.8rem;margin-bottom:4px}
+
+/* STANDARDS — newspaper grid */
+.standards{padding:96px 0;background:var(--bg-paper)}
+.standards-grid{display:grid;grid-template-columns:1fr;gap:0;border-top:2px solid var(--ink)}
+@media(min-width:760px){.standards-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1100px){.standards-grid{grid-template-columns:repeat(3,1fr)}}
+.std{padding:32px 0;border-bottom:1px solid var(--rule)}
+@media(min-width:760px){.std{padding:32px 32px 32px 0}.std:nth-child(2n){padding-left:32px;border-left:1px solid var(--rule);padding-right:0}}
+@media(min-width:1100px){.std{padding:32px}.std:nth-child(2n){padding-left:32px;border-left:1px solid var(--rule)}.std:nth-child(3n){border-left:1px solid var(--rule)}.std:first-child{padding-left:0}.std:nth-child(3n+1){padding-left:0;border-left:0}}
+.std .badge{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;padding:6px 10px;border:1px solid var(--rule-2);background:var(--bg-paper-2);color:var(--ink);margin-bottom:18px}
+.std .badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green)}
+.std .badge.partial::before{background:var(--gold)}
+.std h3{font-family:var(--font-serif);font-weight:500;font-size:1.375rem;line-height:1.2;color:var(--ink);margin-bottom:12px;letter-spacing:-.01em}
+.std h3 .em{font-style:italic;color:var(--accent-strong)}
+.std p{font-family:var(--font-serif);font-size:1rem;line-height:1.55;color:var(--ink-2);margin-bottom:14px}
+.std .meta{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);padding-top:14px;border-top:1px solid var(--rule);display:flex;justify-content:space-between}
+
+/* SETTINGS — assistive features list */
+.assistive{padding:96px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule-2);border-bottom:1px solid var(--rule-2)}
+.assistive-grid{display:grid;grid-template-columns:1fr;gap:48px}
+@media(min-width:900px){.assistive-grid{grid-template-columns:1fr 1.4fr;gap:80px;align-items:start}}
+.assistive-intro h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(1.875rem,3.2vw,2.5rem);line-height:1.15;color:var(--ink);letter-spacing:-.01em;margin-bottom:20px}
+.assistive-intro h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.assistive-intro p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.6;color:var(--ink-2);margin-bottom:18px}
+.assistive-intro .label{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+
+.feat-table{border-top:2px solid var(--ink)}
+.feat{display:grid;grid-template-columns:1fr;gap:6px;padding:22px 0;border-bottom:1px solid var(--rule)}
+@media(min-width:600px){.feat{grid-template-columns:1fr 100px;gap:24px;align-items:start}}
+.feat-key{font-family:var(--font-serif);font-size:1.0625rem;color:var(--ink);font-weight:500}
+.feat-key span{display:block;font-family:var(--font-body);font-weight:400;font-size:.92rem;color:var(--ink-3);margin-top:4px;line-height:1.5}
+.feat-where{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);text-align:right;padding-top:4px}
+.feat-where .on{color:var(--green)}
+
+/* TESTING — pull quote band */
+.testing{padding:96px 0;background:var(--bg-dark);color:#fff}
+.testing-inner{display:grid;grid-template-columns:1fr;gap:56px;max-width:1100px;margin:0 auto}
+@media(min-width:900px){.testing-inner{grid-template-columns:1.3fr 1fr;gap:80px;align-items:start}}
+.testing .kicker{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:20px}
+.testing h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,3.6vw,2.75rem);line-height:1.15;color:#fff;letter-spacing:-.01em;margin-bottom:24px}
+.testing h2 .em{font-style:normal;font-weight:600;color:var(--accent)}
+.testing p{font-family:var(--font-serif);font-size:1.125rem;line-height:1.65;color:#94A3B8;margin-bottom:18px;max-width:60ch}
+.testing p strong{color:#fff;font-weight:500;font-style:italic}
+
+.testers{border-top:1px solid rgba(255,255,255,0.14)}
+.tester{padding:20px 0;border-bottom:1px solid rgba(255,255,255,0.08);display:grid;grid-template-columns:60px 1fr}
+.tester .n{font-family:var(--font-display);font-weight:700;font-size:.74rem;letter-spacing:.14em;color:var(--accent)}
+.tester .who{font-family:var(--font-serif);font-size:1rem;color:#fff;line-height:1.4}
+.tester .who span{display:block;font-family:var(--font-body);font-size:.875rem;color:#94A3B8;margin-top:4px}
+
+/* ROADMAP */
+.roadmap{padding:96px 0;background:var(--bg-paper)}
+.roadmap-list{border-top:2px solid var(--ink)}
+.rm{display:grid;grid-template-columns:1fr;gap:14px;padding:28px 0;border-bottom:1px solid var(--rule)}
+@media(min-width:760px){.rm{grid-template-columns:140px 110px 1fr 130px;gap:32px;align-items:baseline}}
+.rm .q{font-family:var(--font-display);font-weight:800;font-size:1rem;letter-spacing:.06em;color:var(--ink)}
+.rm .tag{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;padding:5px 10px;border:1px solid var(--rule-2);background:var(--bg-paper-2);color:var(--ink-2);justify-self:start}
+.rm .tag.shipped{background:var(--green);color:#fff;border-color:var(--green)}
+.rm .tag.progress{background:var(--gold);color:#fff;border-color:var(--gold)}
+.rm .desc{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.55;color:var(--ink-2)}
+.rm .desc strong{color:var(--ink);font-weight:600}
+.rm .owner{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);text-align:right}
+
+/* CONTACT */
+.contact-cta{padding:96px 0 110px;background:var(--bg-paper-2)}
+.contact-grid{display:grid;grid-template-columns:1fr;gap:48px}
+@media(min-width:900px){.contact-grid{grid-template-columns:1.2fr 1fr;gap:80px}}
+.contact-text h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(1.875rem,3.4vw,2.625rem);line-height:1.1;color:var(--ink);letter-spacing:-.01em;margin-bottom:24px;max-width:18ch}
+.contact-text h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.contact-text p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.6;color:var(--ink-2);margin-bottom:18px;max-width:54ch}
+
+.contact-card{background:#fff;border:1px solid var(--rule-2);padding:32px;display:flex;flex-direction:column;gap:20px}
+.contact-card h3{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);padding-bottom:14px;border-bottom:1px solid var(--rule)}
+.contact-row{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:14px;border-bottom:1px solid var(--rule);gap:14px}
+.contact-row:last-of-type{border-bottom:none;padding-bottom:0}
+.contact-row .k{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.contact-row .v{font-family:var(--font-serif);font-size:1rem;color:var(--ink);text-align:right;font-weight:500}
+.contact-row .v a{color:var(--accent-strong);border-bottom:1px solid currentColor}
+
+/* FOOTER */
+.footer{padding:80px 0 40px;background:var(--bg-dark);color:#94A3B8}
+.footer-grid{display:grid;grid-template-columns:1fr;gap:48px;margin-bottom:64px}
+@media(min-width:768px){.footer-grid{grid-template-columns:2fr 1fr 1fr 1fr}}
+.footer-brand p{font-size:.9375rem;line-height:1.7;max-width:320px;margin-top:20px}
+.footer-col h4{font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#E2E8F0;margin-bottom:20px}
+.footer-col a{display:block;font-size:.9375rem;margin-bottom:14px;transition:var(--transition)}
+.footer-col a:hover{color:var(--accent)}
+.footer-bottom{padding-top:32px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px;font-size:.84rem;color:#64748B}
+.footer-links{display:flex;gap:24px}
+.footer-links a:hover{color:#E2E8F0}
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip">Skip to content</a>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" aria-label="ASPS home">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+      </svg>
+    </a>
+    <div class="nav-links">
+      <a href="#epidemic" class="nav-link">La amenaza</a>
+      <a href="platform.html" class="nav-link">Cómo funciona</a>
+      <a href="knowledge.html" class="nav-link">Centro de conocimiento</a>
+      <a href="stories.html" class="nav-link">Historias</a>
+      <a href="partners.html" class="nav-link">Socios</a>
+      <a href="about.html" class="nav-link">Acerca de</a>
+      <a href="faq.html" class="nav-link">Preguntas frecuentes</a>
+    </div>
+    <div class="nav-actions">
+      <a href="contact.html" class="nav-btn nav-btn-ghost">Contact</a>
+      <a href="individuals.html#pricing" class="nav-btn nav-btn-primary">Get protected</a>
+    </div>
+  </div>
+</nav>
+
+<main id="main">
+
+<!-- MASTHEAD -->
+<header class="masthead">
+  <div class="container">
+    <div class="masthead-top">
+      <span>Accessibility · Vol. 07</span>
+      <span class="right">Status report · 12 May 2026</span>
+    </div>
+    <div class="masthead-grid">
+      <div>
+        <h1>Useful to people we <span class="em">haven't met yet.</span></h1>
+        <p class="masthead-lede">A scam alert that nobody can read is not an alert. Accessibility isn't a feature we ship — it's the floor under everything else we ship. Here is exactly where we stand, what we've shipped, what we haven't, and what's next.</p>
+      </div>
+
+      <aside class="status" aria-label="Conformance status">
+        <p class="stamp">Conformance · Q2 2026</p>
+        <div class="status-row"><span class="k">WCAG 2.2</span><span class="v"><span class="status-dot"></span>Level AA <span class="em">conformant</span></span></div>
+        <div class="status-row"><span class="k">EN 301 549</span><span class="v"><span class="status-dot"></span>Conformant (v3.2.1)</span></div>
+        <div class="status-row"><span class="k">EAA 2025</span><span class="v"><span class="status-dot"></span>Ready · audited Mar 2026</span></div>
+        <div class="status-row"><span class="k">Audited by</span><span class="v">TetraLogical · annual</span></div>
+        <div class="status-row"><span class="k">Next audit</span><span class="v">November 2026</span></div>
+      </aside>
+    </div>
+  </div>
+</header>
+
+<!-- COMMITMENTS -->
+<section class="principles">
+  <div class="container">
+    <div class="section-head">
+      <h2>Five commitments, <span class="em">written down.</span></h2>
+      <p class="meta">Updated quarterly · open issues tracked publicly</p>
+    </div>
+    <div class="principles-list">
+
+      <article class="principle">
+        <span class="num">01</span>
+        <div>
+          <h3>Every alert is <span class="em">multi-channel.</span></h3>
+          <p>An alert is never just a colour, never just a tone, never just a haptic. Every alert ships visual + audible + haptic + plain-language text. If you can perceive any one of those four, you can perceive the alert.</p>
+        </div>
+        <p class="proof"><strong>Proof</strong>Tested across 7 channels, including silent-mode and watch-only.</p>
+      </article>
+
+      <article class="principle">
+        <span class="num">02</span>
+        <div>
+          <h3>Speech-first, <span class="em">touch-second.</span></h3>
+          <p>You can complete every primary task — accept, decline, mute, request human help — by voice alone. We test with VoiceOver and TalkBack on every release, not just before audits.</p>
+        </div>
+        <p class="proof"><strong>Proof</strong>Screen-reader users complete 100% of critical paths in our test suite.</p>
+      </article>
+
+      <article class="principle">
+        <span class="num">03</span>
+        <div>
+          <h3>Readable at <span class="em">200% zoom.</span></h3>
+          <p>No text under 16px in primary surfaces. No fixed heights that cut off zoomed content. Line lengths stay between 45–75 characters at any setting. Reflow tested down to 320px.</p>
+        </div>
+        <p class="proof"><strong>Proof</strong>Zero zoom-related defects in last three audit reports.</p>
+      </article>
+
+      <article class="principle">
+        <span class="num">04</span>
+        <div>
+          <h3>Plain language, <span class="em">not legal language.</span></h3>
+          <p>Every alert is rewritten by a copywriter, not a translator. Average reading age across in-app text: 11. We never put unexplained scores, percentages or technical model names in front of a person making a decision under stress.</p>
+        </div>
+        <p class="proof"><strong>Proof</strong>Hemingway grade 5–7 across 96% of alert strings.</p>
+      </article>
+
+      <article class="principle">
+        <span class="num">05</span>
+        <div>
+          <h3>Tested with the people <span class="em">we built it for.</span></h3>
+          <p>Every release ships only after a usability run with disabled users — paid, recruited through partner organisations, not employees. We publish what we learned, not just that we tested.</p>
+        </div>
+        <p class="proof"><strong>Proof</strong>34 unique testers in 2025, paid above market rate.</p>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- STANDARDS -->
+<section class="standards">
+  <div class="container">
+    <div class="section-head">
+      <h2>Standards we <span class="em">conform to.</span></h2>
+      <p class="meta">Independent audit · TetraLogical · annual</p>
+    </div>
+
+    <div class="standards-grid">
+      <article class="std">
+        <span class="badge">Conformant</span>
+        <h3>WCAG 2.2 <span class="em">Level AA</span></h3>
+        <p>The international standard for accessible web and mobile interfaces. Our consumer apps, partner consoles and this website meet all Level AA success criteria, plus several Level AAA where feasible.</p>
+        <div class="meta"><span>Last verified</span><span>Mar 2026</span></div>
+      </article>
+
+      <article class="std">
+        <span class="badge">Conformant</span>
+        <h3>EN 301 549 <span class="em">v3.2.1</span></h3>
+        <p>The European harmonised standard for ICT accessibility. Required for procurement across the EU and the basis for the European Accessibility Act (EAA) 2025 compliance evaluation.</p>
+        <div class="meta"><span>Last verified</span><span>Mar 2026</span></div>
+      </article>
+
+      <article class="std">
+        <span class="badge">Ready</span>
+        <h3>EAA 2025 <span class="em">— ready ahead of deadline.</span></h3>
+        <p>The European Accessibility Act enters force in June 2025. Our products and customer-facing materials were audited against its requirements in March 2026; the public evaluation report is available on request.</p>
+        <div class="meta"><span>Status</span><span>Compliant</span></div>
+      </article>
+
+      <article class="std">
+        <span class="badge">Conformant</span>
+        <h3>Section 508 <span class="em">— US federal.</span></h3>
+        <p>For partners delivering ASPS through US federal channels. Our VPAT 2.5 (ACR) is current and published in the partner portal; an updated revision follows each major release.</p>
+        <div class="meta"><span>VPAT version</span><span>2.5 — May 2026</span></div>
+      </article>
+
+      <article class="std">
+        <span class="badge">Conformant</span>
+        <h3>ISO/IEC 30071-1 <span class="em">— code of practice.</span></h3>
+        <p>The international standard for building accessibility into the development lifecycle. Our process — research, design, build, test, release — is audited against this framework annually.</p>
+        <div class="meta"><span>Last verified</span><span>Feb 2026</span></div>
+      </article>
+
+      <article class="std">
+        <span class="badge partial">Partial</span>
+        <h3>WCAG 2.2 <span class="em">Level AAA.</span></h3>
+        <p>We meet AAA on contrast, target size, and reading level for alert copy. We have not pursued full AAA on every surface because some criteria conflict with safety-critical patterns (e.g. interruptible audio in active calls).</p>
+        <div class="meta"><span>Surfaces conformant</span><span>62%</span></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ASSISTIVE FEATURES -->
+<section class="assistive">
+  <div class="container">
+    <div class="assistive-grid">
+      <div class="assistive-intro">
+        <p class="label">Features · Built in</p>
+        <h2>The settings that make <span class="em">the biggest difference.</span></h2>
+        <p>Most of these are on by default. The rest are one tap away in <em>Settings → Accessibility</em>. None of them require a separate "accessibility mode" — they're the product.</p>
+        <p style="font-family:var(--font-body);font-size:.95rem;color:var(--ink-3);margin-top:24px">Looking for something not listed? Write to <a href="contact.html" style="color:var(--accent-strong);border-bottom:1px solid currentColor">access@asps.security</a>.</p>
+      </div>
+
+      <div class="feat-table" aria-label="Built-in accessibility features">
+        <div class="feat"><div class="feat-key">Screen-reader optimised<span>Custom VoiceOver and TalkBack labels on every actionable element, including live alerts.</span></div><div class="feat-where"><span class="on">Always on</span></div></div>
+        <div class="feat"><div class="feat-key">Dynamic type<span>Honours iOS / Android system text size up to 200% without cropping or scroll traps.</span></div><div class="feat-where"><span class="on">Always on</span></div></div>
+        <div class="feat"><div class="feat-key">Reduced motion<span>All entrance, exit and emphasis animation respects the OS-level reduced-motion setting.</span></div><div class="feat-where"><span class="on">Always on</span></div></div>
+        <div class="feat"><div class="feat-key">High-contrast theme<span>Triggered by the OS high-contrast switch, or manually under Settings → Display.</span></div><div class="feat-where"><span class="on">Always on</span></div></div>
+        <div class="feat"><div class="feat-key">Larger hit targets<span>All interactive controls are ≥48×48px; alert action buttons ≥56px.</span></div><div class="feat-where"><span class="on">Always on</span></div></div>
+        <div class="feat"><div class="feat-key">Plain-language alerts<span>Every alert string copy-edited for grade-5 to grade-7 reading age in 14 languages.</span></div><div class="feat-where"><span class="on">Always on</span></div></div>
+        <div class="feat"><div class="feat-key">Voice control<span>Accept, decline, mute, snooze and "get me help" can be done by voice alone.</span></div><div class="feat-where">Opt-in</div></div>
+        <div class="feat"><div class="feat-key">Caregiver echo<span>Mirror your alerts to a trusted family member's device, in real time, with their consent.</span></div><div class="feat-where">Opt-in</div></div>
+        <div class="feat"><div class="feat-key">Slow-mode<span>Extends decision time, simplifies language, and reads alerts aloud automatically. Built for users over 70.</span></div><div class="feat-where">Opt-in</div></div>
+        <div class="feat"><div class="feat-key">Captions for calls<span>Live captions on suspect calls, with synthetic-voice segments visually marked.</span></div><div class="feat-where">Beta</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTING / PULL QUOTE -->
+<section class="testing">
+  <div class="container">
+    <div class="testing-inner">
+      <div>
+        <p class="kicker">How we test · Who we test with</p>
+        <h2>The audit tells us what passes. The <span class="em">people</span> tell us what works.</h2>
+        <p>Automated tools catch <strong>about a third</strong> of accessibility defects. The rest only show up when somebody who actually relies on the technology tries to use it. So every release goes to a panel of paid testers before it goes to anyone else.</p>
+        <p>We compensate testers above market rate, in their currency, with no NDA on what they say publicly about us. If we get it wrong, the world should know.</p>
+      </div>
+      <div class="testers" aria-label="Our 2026 testing panel">
+        <div class="tester"><span class="n">01</span><span class="who">7 blind &amp; low-vision testers<span>VoiceOver, TalkBack, BrailleNote</span></span></div>
+        <div class="tester"><span class="n">02</span><span class="who">5 deaf &amp; hard-of-hearing testers<span>Captions, vibration, visual signalling</span></span></div>
+        <div class="tester"><span class="n">03</span><span class="who">6 motor-impairment testers<span>Switch control, voice control, eye tracking</span></span></div>
+        <div class="tester"><span class="n">04</span><span class="who">5 cognitive / dyslexia testers<span>Plain language, slow-mode, attention</span></span></div>
+        <div class="tester"><span class="n">05</span><span class="who">11 older-adult testers (70+)<span>Recruited via Age UK and partner orgs</span></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section class="roadmap">
+  <div class="container">
+    <div class="section-head">
+      <h2>Open roadmap, <span class="em">no embargoes.</span></h2>
+      <p class="meta">Public · updated every two weeks</p>
+    </div>
+
+    <div class="roadmap-list">
+      <div class="rm"><span class="q">Q2 2026</span><span class="tag shipped">Shipped</span><span class="desc"><strong>Live captions on suspect calls.</strong> Synthetic-voice segments are now visually marked in real time inside the caption stream.</span><span class="owner">Calls · iOS / Android</span></div>
+      <div class="rm"><span class="q">Q2 2026</span><span class="tag shipped">Shipped</span><span class="desc"><strong>Switch-control end-to-end.</strong> All primary flows — onboarding, alerts, family-loop — operable with two-switch and single-switch scanning.</span><span class="owner">All surfaces</span></div>
+      <div class="rm"><span class="q">Q3 2026</span><span class="tag progress">In progress</span><span class="desc"><strong>Sign-language explainer videos.</strong> BSL, ASL, ISL and ÖGS versions of every help-centre article. Filmed with Deaf creators, not interpreters.</span><span class="owner">Help centre</span></div>
+      <div class="rm"><span class="q">Q3 2026</span><span class="tag progress">In progress</span><span class="desc"><strong>Cognitive-load profile.</strong> A single setting that simplifies language, removes optional UI, slows transitions, and extends decision time across the app.</span><span class="owner">Mobile</span></div>
+      <div class="rm"><span class="q">Q4 2026</span><span class="tag">Planned</span><span class="desc"><strong>Braille display profiles.</strong> First-class support for refreshable Braille displays in alerts and family-loop summaries.</span><span class="owner">iOS / Android</span></div>
+      <div class="rm"><span class="q">Q4 2026</span><span class="tag">Planned</span><span class="desc"><strong>WCAG 2.2 AAA on alert surfaces.</strong> Push the alert layer specifically to full AAA, while keeping safety-critical interruptions on call surfaces.</span><span class="owner">Alerts</span></div>
+      <div class="rm"><span class="q">2027</span><span class="tag">Researching</span><span class="desc"><strong>Easy-Read alert mode.</strong> Working with Mencap and Inclusion Europe on a fully-Easy-Read variant of every alert template.</span><span class="owner">Research</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section class="contact-cta">
+  <div class="container">
+    <div class="contact-grid">
+      <div class="contact-text">
+        <h2>If we got something wrong, <span class="em">tell us.</span></h2>
+        <p>This page is honest because of the people who write in. If something doesn't work for you, or you have an idea for how it could work better — write. Every message reaches our accessibility lead, every reply comes from a human.</p>
+        <p>We commit to a real reply within 5 working days. If we can't fix something quickly, we'll tell you when we can.</p>
+      </div>
+
+      <div class="contact-card">
+        <h3>How to reach the team</h3>
+        <div class="contact-row"><span class="k">Email</span><span class="v"><a href="mailto:access@asps.io">access@asps.io</a></span></div>
+        <div class="contact-row"><span class="k">In-app</span><span class="v">Settings → Help → Accessibility</span></div>
+        <div class="contact-row"><span class="k">Phone (UK)</span><span class="v">0808 196 2026</span></div>
+        <div class="contact-row"><span class="k">Phone (EU)</span><span class="v">+353 1 691 2026</span></div>
+        <div class="contact-row"><span class="k">Reply target</span><span class="v">≤ 5 working days</span></div>
+        <div class="contact-row"><span class="k">Lead</span><span class="v">Asha Patel · Head of Accessibility</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerLogoGrad)"/>
+          <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs><linearGradient id="footerLogoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+        </svg>
+        <p>Real-time AI protection against fraud, scams and social engineering. Protecting people at the moment it matters most.</p>
+      </div>
+      <div class="footer-col"><h4>Platform</h4><a href="platform.html">How it works</a><a href="individuals.html#individuals">For individuals</a><a href="individuals.html#families">For families</a><a href="partners.html">For partners</a></div>
+      <div class="footer-col"><h4>Resources</h4><a href="knowledge.html">Knowledge center</a><a href="faq.html">FAQ</a><a href="stories.html#support">Get support</a><a href="stories.html">Stories</a></div>
+      <div class="footer-col"><h4>Company</h4><a href="about.html">About us</a><a href="about.html#mission">Our mission</a><a href="about.html#ethics">Ethics &amp; trust</a><a href="contact.html">Contact</a></div>
+    </div>
+    <div class="footer-bottom"><p>© 2026 ASPS. All rights reserved.</p><div class="footer-links"><a href="privacy.html">Privacy</a><a href="privacy.html#terms">Terms</a><a href="accessibility.html">Accessibility</a></div></div>
+  </div>
+</footer>
+
+</body>
+</html>

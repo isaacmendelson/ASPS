@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="Centre de connaissances ASPS — renseignement sur les arnaques, alertes de menace, suivi de la réglementation et recherche sur la fraude à l'ère de l'IA."/>
+<title>Centre de connaissances · ASPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;0,16..72,700;1,16..72,400;1,16..72,500;1,16..72,600&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg-dark: #070B14;
+  --bg-paper: #FAF7F2;
+  --bg-paper-2: #F3EFE8;
+  --bg-paper-3: #ECE5D8;
+
+  --accent: #BE3A4B;
+  --accent-strong: #8E1A2A;
+
+  --ink: #1A1814;
+  --ink-2: #4A4640;
+  --ink-3: #6B655C;
+  --rule: #E4DDD2;
+  --rule-2: #D7CFC2;
+
+  --tag-alert: #BE3A4B;
+  --tag-research: #4A5C8B;
+  --tag-regulation: #6B5938;
+  --tag-guide: #2F6B4A;
+  --tag-news: #4A4640;
+
+  --font-body: 'Instrument Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: 'Newsreader', Georgia, serif;
+  --font-display: 'Syne', Georgia, serif;
+  --transition: 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg-paper);
+  color: var(--ink);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+
+.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+@media (min-width: 768px) { .container { padding: 0 40px; } }
+@media (min-width: 1024px) { .container { padding: 0 60px; } }
+
+/* ───────── NAV ───────── */
+.nav {
+  position: sticky; top: 0; z-index: 1000; height: 72px;
+  background: rgba(15,18,56,0.97);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.nav-inner {
+  max-width: 1400px; margin: 0 auto; padding: 0 40px;
+  height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 32px;
+}
+.nav-logo { display: flex; align-items: center; flex-shrink: 0; }
+.nav-links { display: none; align-items: center; gap: 8px; }
+@media (min-width: 1024px) { .nav-links { display: flex; } }
+.nav-link {
+  padding: 8px 16px; font-size: 0.875rem; font-weight: 500;
+  color: #94A3B8; border-radius: 8px; transition: var(--transition);
+}
+.nav-link:hover { color: #fff; background: rgba(255,255,255,0.05); }
+.nav-link.active { color: #fff; position: relative; }
+.nav-link.active::after {
+  content: ''; position: absolute; left: 16px; right: 16px; bottom: 0;
+  height: 2px; background: var(--accent);
+}
+.nav-actions { display: flex; align-items: center; gap: 12px; }
+.nav-btn {
+  padding: 10px 20px; font-size: 0.875rem; font-weight: 600;
+  border-radius: 8px; transition: var(--transition); border: none;
+}
+.nav-btn-ghost {
+  background: transparent; color: #94A3B8; border: 1px solid rgba(255,255,255,0.12);
+}
+.nav-btn-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.25); }
+.nav-btn-primary { background: #fff; color: #0F1238; }
+.nav-btn-primary:hover { background: #EEF0FF; }
+.lang-dropdown { position: relative; }
+.lang-dropdown-btn {
+  display: flex; align-items: center; gap: 6px; padding: 8px 12px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px; color: #E2E8F0; font-size: 0.8125rem; font-weight: 600;
+  cursor: pointer; transition: var(--transition);
+}
+.lang-dropdown-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); }
+.lang-dropdown-menu {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  min-width: 140px; padding: 8px 0;
+  background: #0F1238; border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  opacity: 0; visibility: hidden; transform: translateY(-8px);
+  transition: var(--transition); z-index: 100;
+}
+.lang-dropdown:hover .lang-dropdown-menu,
+.lang-dropdown:focus-within .lang-dropdown-menu {
+  opacity: 1; visibility: visible; transform: translateY(0);
+}
+.lang-option { display: block; padding: 10px 16px; font-size: 0.875rem; color: #94A3B8; transition: var(--transition); }
+.lang-option:hover { background: rgba(255,255,255,0.05); color: #FFFFFF; }
+.lang-option.active { color: var(--accent); font-weight: 600; }
+
+/* ───────── MASTHEAD (newspaper) ───────── */
+.masthead {
+  background: var(--bg-paper);
+  border-bottom: 1px solid var(--rule);
+  padding: 56px 0 28px;
+}
+.masthead-rule {
+  height: 6px;
+  background: var(--ink);
+  position: relative;
+  margin-bottom: 28px;
+}
+.masthead-rule::after {
+  content: ''; position: absolute; left: 0; right: 0; top: 10px;
+  height: 1px; background: var(--ink);
+}
+.masthead-meta {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 16px; flex-wrap: wrap;
+  font-family: var(--font-display);
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--ink-3);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 36px;
+}
+.masthead-meta .left { color: var(--accent); }
+.masthead-title-block {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  align-items: end;
+}
+@media (min-width: 900px) {
+  .masthead-title-block { grid-template-columns: 1.4fr 1fr; gap: 64px; }
+}
+.masthead-eyebrow {
+  display: inline-flex; align-items: center; gap: 14px;
+  margin-bottom: 20px;
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 0.7rem;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--accent);
+}
+.masthead-eyebrow::before {
+  content: ''; width: 32px; height: 1px; background: var(--accent); opacity: 0.5;
+}
+.masthead h1 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: clamp(2.4rem, 5.5vw, 4.4rem);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+.masthead h1 .em {
+  font-style: italic;
+  font-weight: 500;
+  color: var(--accent-strong);
+}
+.masthead-deck {
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  line-height: 1.55;
+  color: var(--ink-2);
+  border-left: 2px solid var(--accent);
+  padding-left: 20px;
+  max-width: 460px;
+}
+
+/* ───────── FILTER BAR ───────── */
+.filterbar {
+  position: sticky; top: 72px; z-index: 90;
+  background: var(--bg-paper);
+  border-bottom: 1px solid var(--rule);
+}
+.filterbar-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 24px; flex-wrap: wrap;
+  padding: 14px 0;
+}
+.filter-tabs {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  font-family: var(--font-display);
+  font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+}
+.filter-tab {
+  padding: 8px 14px;
+  background: transparent; border: none;
+  color: var(--ink-3);
+  cursor: pointer; transition: var(--transition);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.filter-tab:hover { color: var(--ink); }
+.filter-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.filter-count {
+  font-family: var(--font-display);
+  font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.filter-count strong { color: var(--ink); }
+
+/* ───────── FEATURE — top story ───────── */
+.feature {
+  padding: 72px 0 32px;
+}
+.feature-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 56px;
+}
+@media (min-width: 900px) {
+  .feature-grid { grid-template-columns: 1.2fr 1fr; gap: 80px; align-items: start; }
+}
+.feature-meta {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  margin-bottom: 18px;
+  font-family: var(--font-display);
+  font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase;
+}
+.tag {
+  padding: 4px 10px; border: 1px solid currentColor;
+  border-radius: 2px;
+}
+.tag-alert    { color: var(--tag-alert); }
+.tag-research { color: var(--tag-research); }
+.tag-regulation { color: var(--tag-regulation); }
+.tag-policy   { color: var(--tag-regulation); }
+.tag-guide    { color: var(--tag-guide); }
+.tag-news     { color: var(--tag-news); }
+.feature-date { color: var(--ink-3); font-weight: 600; }
+.feature h2 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-style: italic;
+  font-size: clamp(1.9rem, 3.6vw, 2.8rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin-bottom: 22px;
+}
+.feature h2 a { transition: var(--transition); background-image: linear-gradient(var(--accent),var(--accent)); background-repeat: no-repeat; background-size: 0 1px; background-position: 0 100%; }
+.feature h2 a:hover { background-size: 100% 1px; }
+.feature-dek {
+  font-family: var(--font-serif);
+  font-size: 1.1875rem;
+  line-height: 1.65;
+  color: var(--ink-2);
+  margin-bottom: 24px;
+}
+.feature-source {
+  font-family: var(--font-display);
+  font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.feature-source strong { color: var(--ink); }
+.feature-source::after {
+  content: '→'; margin-left: 10px; color: var(--accent); font-family: var(--font-body);
+}
+
+.feature-aside {
+  border-left: 1px solid var(--rule);
+  padding-left: 40px;
+}
+@media (max-width: 899px) {
+  .feature-aside { border-left: none; border-top: 1px solid var(--rule); padding-left: 0; padding-top: 40px; }
+}
+.feature-aside-head {
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 0.7rem;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 24px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--accent);
+}
+.aside-list { list-style: none; counter-reset: alsoread; }
+.aside-list li {
+  counter-increment: alsoread;
+  padding: 18px 0;
+  border-bottom: 1px dashed var(--rule-2);
+}
+.aside-list li:last-child { border-bottom: none; }
+.aside-list li a { display: grid; grid-template-columns: 32px 1fr; gap: 14px; align-items: start; transition: var(--transition); }
+.aside-list li a::before {
+  content: counter(alsoread, decimal-leading-zero);
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 0.78rem;
+  letter-spacing: 0.1em; color: var(--accent);
+  padding-top: 2px;
+}
+.aside-list h4 {
+  font-family: var(--font-serif);
+  font-weight: 600; font-size: 1.0625rem;
+  line-height: 1.25; color: var(--ink);
+  margin-bottom: 6px;
+}
+.aside-list .src {
+  font-family: var(--font-display);
+  font-size: 0.66rem; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.aside-list li a:hover h4 { color: var(--accent-strong); }
+
+/* ───────── INTELLIGENCE FEED ───────── */
+.feed {
+  padding: 64px 0 100px;
+  border-top: 1px solid var(--rule);
+}
+.feed-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 24px; flex-wrap: wrap;
+  padding-bottom: 24px; margin-bottom: 48px;
+  border-bottom: 1px solid var(--rule-2);
+}
+.section-eyebrow {
+  display: inline-block; margin-bottom: 14px;
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 0.7rem;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--accent);
+}
+.section-title {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: clamp(1.8rem, 3.4vw, 2.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.feed-meta {
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 0.72rem;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--ink-3);
+  padding-bottom: 6px;
+}
+
+.feed-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 48px;
+}
+@media (min-width: 1024px) {
+  .feed-grid { grid-template-columns: 7fr 4fr; gap: 80px; align-items: start; }
+}
+
+.article-list {
+  list-style: none; counter-reset: art;
+}
+.article-list > li {
+  counter-increment: art;
+  scroll-margin-top: 140px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  padding: 36px 0;
+  border-top: 1px solid var(--rule);
+  transition: var(--transition);
+}
+.article-list > li:last-child { border-bottom: 1px solid var(--rule); }
+@media (min-width: 720px) {
+  .article-list > li { grid-template-columns: 80px 1fr; gap: 36px; align-items: start; }
+}
+.article-num {
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 0.78rem;
+  letter-spacing: 0.16em; color: var(--ink-3);
+  padding-top: 4px;
+}
+.article-num::before { content: counter(art, decimal-leading-zero); }
+.article-list > li:hover .article-num { color: var(--accent); }
+.article-card-meta {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  margin-bottom: 12px;
+  font-family: var(--font-display);
+  font-size: 0.68rem; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase;
+}
+.article-date { color: var(--ink-3); font-weight: 600; }
+.article-list h3 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  margin-bottom: 14px;
+}
+.article-list h3 a { transition: var(--transition); }
+.article-list > li:hover h3 a { color: var(--accent-strong); }
+.article-list p {
+  font-family: var(--font-serif);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--ink-2);
+  margin-bottom: 14px;
+}
+.article-source {
+  font-family: var(--font-display);
+  font-size: 0.68rem; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.article-source strong { color: var(--ink); }
+.article-source::after {
+  content: ' ↗'; margin-left: 6px; color: var(--accent); font-family: var(--font-body); font-weight: 400;
+}
+
+/* ───────── SIDEBAR ───────── */
+.sidebar { display: flex; flex-direction: column; gap: 40px; }
+.side-block { padding-top: 4px; }
+.side-block + .side-block { padding-top: 36px; border-top: 1px solid var(--rule); }
+.side-head {
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 0.7rem;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--accent);
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--accent);
+  margin-bottom: 22px;
+}
+
+.alert-card {
+  padding: 22px 22px 24px;
+  background: var(--ink);
+  color: #F5F0E7;
+  position: relative;
+}
+.alert-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 3px; background: var(--accent);
+}
+.alert-card .label {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 0.7rem;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+.alert-card .label .dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+  animation: dotPulse 1.6s ease-in-out infinite;
+}
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.3); }
+}
+.alert-card h4 {
+  font-family: var(--font-serif);
+  font-weight: 500; font-style: italic;
+  font-size: 1.25rem; line-height: 1.25;
+  color: #fff; margin-bottom: 10px;
+}
+.alert-card p {
+  font-family: var(--font-serif);
+  font-size: 0.95rem; line-height: 1.55;
+  color: #D6CDBE;
+}
+
+.topics { display: flex; flex-wrap: wrap; gap: 6px; }
+.topic-tag {
+  padding: 7px 12px;
+  font-family: var(--font-display);
+  font-size: 0.68rem; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-2); background: var(--bg-paper-2);
+  border: 1px solid var(--rule);
+  transition: var(--transition);
+}
+.topic-tag:hover { border-color: var(--accent); color: var(--accent); }
+.topic-tag .count { color: var(--ink-3); margin-left: 6px; font-weight: 600; }
+
+.quick-list { list-style: none; }
+.quick-list li {
+  padding: 14px 0;
+  border-top: 1px solid var(--rule);
+}
+.quick-list li:first-child { border-top: none; padding-top: 0; }
+.quick-list li a {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 14px;
+  font-family: var(--font-serif);
+  font-size: 1.0625rem;
+  color: var(--ink);
+  transition: var(--transition);
+}
+.quick-list li a::after {
+  content: '→'; color: var(--accent); font-family: var(--font-body);
+  transform: translateX(0); transition: var(--transition);
+}
+.quick-list li a:hover { color: var(--accent-strong); }
+.quick-list li a:hover::after { transform: translateX(4px); }
+
+.subscribe-card {
+  background: var(--bg-paper-2);
+  border: 1px solid var(--rule);
+  padding: 26px;
+}
+.subscribe-card h4 {
+  font-family: var(--font-serif);
+  font-weight: 500; font-style: italic;
+  font-size: 1.4rem; line-height: 1.2;
+  color: var(--ink); margin-bottom: 12px;
+}
+.subscribe-card p {
+  font-family: var(--font-serif);
+  font-size: 0.95rem; line-height: 1.55;
+  color: var(--ink-2); margin-bottom: 18px;
+}
+.subscribe-form { display: flex; flex-direction: column; gap: 10px; }
+.subscribe-input {
+  padding: 12px 14px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  background: #fff;
+  border: 1px solid var(--rule-2);
+  outline: none;
+  transition: var(--transition);
+}
+.subscribe-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(190,58,75,0.12); }
+.subscribe-btn {
+  padding: 12px 16px;
+  font-family: var(--font-display);
+  font-size: 0.74rem; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  background: var(--accent); color: #fff;
+  border: none; cursor: pointer;
+  transition: var(--transition);
+}
+.subscribe-btn:hover { background: var(--accent-strong); }
+.subscribe-note {
+  font-family: var(--font-display);
+  font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3); margin-top: 10px;
+}
+
+/* ───────── STAT BAND (dark) ───────── */
+.stats {
+  background: var(--ink);
+  color: #F5F0E7;
+  padding: 96px 0;
+  position: relative; overflow: hidden;
+}
+.stats::before {
+  content: ''; position: absolute; inset: 0;
+  background-image:
+    radial-gradient(circle at 15% 30%, rgba(190,58,75,0.18), transparent 50%),
+    radial-gradient(circle at 85% 70%, rgba(190,58,75,0.10), transparent 55%);
+  pointer-events: none;
+}
+.stats-inner { position: relative; }
+.stats-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 32px; flex-wrap: wrap;
+  margin-bottom: 56px; padding-bottom: 24px;
+  border-bottom: 1px solid rgba(245,240,231,0.12);
+}
+.stats .section-eyebrow { color: var(--accent); }
+.stats .section-title { color: #fff; max-width: 640px; }
+.stats-head-meta {
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 0.72rem;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: #A19888; padding-bottom: 6px;
+}
+.stats-grid {
+  display: grid; grid-template-columns: 1fr; gap: 0;
+}
+@media (min-width: 700px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
+.stat {
+  padding: 32px 32px 32px 0;
+  border-top: 1px solid rgba(245,240,231,0.12);
+}
+@media (min-width: 1024px) {
+  .stat { padding: 0 32px; border-top: none; }
+  .stat + .stat { border-left: 1px solid rgba(245,240,231,0.12); }
+  .stat:first-child { padding-left: 0; }
+}
+.stat-num {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: clamp(2.4rem, 4vw, 3.4rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #fff;
+  margin-bottom: 14px;
+}
+.stat-num .accent { color: var(--accent); font-style: italic; font-weight: 400; }
+.stat-label {
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 0.7rem;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+.stat-body {
+  font-family: var(--font-serif);
+  font-size: 0.95rem; line-height: 1.55;
+  color: #D6CDBE;
+}
+.stat-src {
+  display: block; margin-top: 14px;
+  font-family: var(--font-display);
+  font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: #8A8175;
+}
+
+/* ───────── REGULATION TIMELINE ───────── */
+.timeline { padding: 110px 0; background: var(--bg-paper-2); border-top: 1px solid var(--rule-2); border-bottom: 1px solid var(--rule-2); }
+.timeline-head { max-width: 720px; margin-bottom: 56px; }
+.timeline-head p {
+  margin-top: 16px;
+  font-family: var(--font-serif);
+  font-size: 1.125rem; line-height: 1.65;
+  color: var(--ink-2);
+}
+.timeline-list { list-style: none; }
+.timeline-list li {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  padding: 30px 0;
+  border-top: 1px solid var(--rule);
+}
+.timeline-list li:last-child { border-bottom: 1px solid var(--rule); }
+@media (min-width: 700px) {
+  .timeline-list li {
+    grid-template-columns: 110px 110px 1fr auto;
+    gap: 32px; align-items: baseline;
+  }
+}
+.tl-date {
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 0.78rem;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--accent);
+}
+.tl-region {
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 0.7rem;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.tl-title {
+  font-family: var(--font-serif);
+  font-weight: 500; font-size: 1.25rem;
+  line-height: 1.3; color: var(--ink);
+}
+.tl-title em { font-style: italic; color: var(--accent-strong); font-weight: 500; }
+.tl-source {
+  font-family: var(--font-display);
+  font-size: 0.66rem; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3);
+  transition: var(--transition);
+}
+.tl-source:hover { color: var(--accent); }
+
+/* ───────── PULL QUOTE ───────── */
+.pullquote-section { padding: 100px 0; background: var(--bg-paper); }
+.pullquote { max-width: 980px; margin: 0 auto; text-align: center; }
+.pullquote::before {
+  content: ''; display: block; width: 64px; height: 2px;
+  background: var(--accent); margin: 0 auto 32px;
+}
+.pullquote-text {
+  font-family: var(--font-serif);
+  font-style: italic; font-weight: 400;
+  font-size: clamp(1.5rem, 3.5vw, 2.5rem);
+  line-height: 1.25; letter-spacing: -0.015em;
+  color: var(--ink);
+}
+.pullquote-text strong {
+  font-weight: 600; font-style: normal;
+  background: linear-gradient(180deg, transparent 62%, rgba(190,58,75,0.18) 62%, rgba(190,58,75,0.18) 92%, transparent 92%);
+  padding: 0 0.08em;
+}
+.pullquote-cite {
+  display: block; margin-top: 28px;
+  font-family: var(--font-display);
+  font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* ───────── CTA ───────── */
+.cta { padding: 110px 0; background: var(--ink); color: #F5F0E7; text-align: center; position: relative; overflow: hidden; }
+.cta::before {
+  content: ''; position: absolute; inset: 0;
+  background-image: radial-gradient(circle at 50% 0%, rgba(190,58,75,0.20), transparent 60%);
+  pointer-events: none;
+}
+.cta-inner { max-width: 760px; margin: 0 auto; position: relative; }
+.cta-eyebrow {
+  display: inline-block; margin-bottom: 24px;
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 0.7rem;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--accent);
+}
+.cta h2 {
+  font-family: var(--font-serif);
+  font-style: italic; font-weight: 400;
+  font-size: clamp(2rem, 4.5vw, 3.25rem);
+  line-height: 1.1; letter-spacing: -0.025em;
+  color: #fff; margin-bottom: 24px;
+}
+.cta h2 .em { font-style: normal; font-weight: 600; color: var(--accent); }
+.cta p {
+  font-family: var(--font-serif);
+  font-size: 1.1875rem; line-height: 1.65;
+  color: #D6CDBE; margin-bottom: 40px;
+}
+.cta-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 14px 28px;
+  font-family: var(--font-display);
+  font-size: 0.84rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  border-radius: 4px; border: none;
+  transition: var(--transition); cursor: pointer;
+}
+.btn-accent { background: var(--accent); color: #fff; }
+.btn-accent:hover { background: var(--accent-strong); }
+.btn-ghost {
+  background: transparent; color: #F5F0E7;
+  border: 1px solid rgba(245,240,231,0.25);
+}
+.btn-ghost:hover { border-color: rgba(245,240,231,0.55); }
+
+/* ───────── FOOTER ───────── */
+.footer { padding: 80px 0 40px; background: var(--bg-dark); color: #94A3B8; }
+.footer-grid {
+  display: grid; grid-template-columns: 1fr; gap: 48px; margin-bottom: 64px;
+}
+@media (min-width: 768px) { .footer-grid { grid-template-columns: 2fr 1fr 1fr 1fr; } }
+.footer-brand p { font-size: 0.9375rem; line-height: 1.7; max-width: 320px; margin-top: 20px; }
+.footer-col h4 {
+  font-family: var(--font-display);
+  font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: #E2E8F0; margin-bottom: 20px;
+}
+.footer-col a { display: block; font-size: 0.9375rem; margin-bottom: 14px; transition: var(--transition); }
+.footer-col a:hover { color: var(--accent); }
+.footer-bottom {
+  padding-top: 32px; border-top: 1px solid rgba(255,255,255,0.08);
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+  gap: 16px; font-size: 0.84rem; color: #64748B;
+}
+.footer-links { display: flex; gap: 24px; }
+.footer-links a:hover { color: #E2E8F0; }
+
+
+/* Newsletter — CAPTCHA + honeypot */
+.subscribe-btn:disabled, .subscribe-btn[aria-disabled="true"] { background: #C4B5A8; cursor: not-allowed; }
+.nl-honeypot { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.newsletter-captcha { position: relative; min-height: 60px; background: rgba(0,0,0,0.04); border: 1px solid var(--rule, #E2E8F0); border-radius: 8px; overflow: hidden; }
+.newsletter-captcha[data-state="verified"] { background: rgba(31,139,92,0.06); border-color: rgba(31,139,92,0.30); }
+.newsletter-captcha[data-state="verified"] .turnstile-spinner { border-color: var(--accent, #1F8B5C); animation: none; }
+.newsletter-captcha[data-state="verified"] .turnstile-spinner::after { content: "\2713"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; color: var(--accent, #1F8B5C); }
+.newsletter-captcha[data-state="verified"] .turnstile-label { color: var(--accent-strong, #16734C); font-weight: 600; }
+.turnstile-placeholder { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.turnstile-spinner { position: relative; width: 16px; height: 16px; border: 2px solid var(--rule, #E2E8F0); border-top-color: var(--accent, #1F8B5C); border-radius: 50%; animation: nl-spin 0.9s linear infinite; flex-shrink: 0; }
+@keyframes nl-spin { to { transform: rotate(360deg); } }
+.turnstile-label { font-size: 0.85rem; color: var(--ink, #0F172A); flex-grow: 1; }
+.turnstile-brand { font-family: var(--font-display, Syne, sans-serif); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3, #475569); }
+.nl-message { font-size: 0.8rem; line-height: 1.4; padding: 2px; min-height: 1em; }
+.nl-message.error { color: #B91C1C; }
+.nl-message.success { color: var(--accent-strong, #16734C); }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo" aria-label="ASPS accueil">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C" opacity="0.4">
+          <animate attributeName="r" values="4;8;4" dur="2.5s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.4;0;0.4" dur="2.5s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs>
+          <linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#1F8B5C"/>
+            <stop offset="100%" stop-color="#16734C"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </a>
+    <div class="nav-links">
+      <a href="index.html#epidemic" class="nav-link">La menace</a>
+      <a href="platform.html" class="nav-link">Comment ça marche</a>
+      <a href="knowledge.html" class="nav-link active">Centre de connaissances</a>
+      <a href="stories.html" class="nav-link">Témoignages</a>
+      <a href="partners.html" class="nav-link">Partenaires</a>
+      <a href="about.html" class="nav-link">À propos</a>
+    </div>
+    <div class="nav-actions">
+      <div class="lang-dropdown">
+        <button class="lang-dropdown-btn" aria-label="Choisir la langue">
+          <span>FR</span>
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l4 4 4-4"/></svg>
+        </button>
+        <div class="lang-dropdown-menu">
+          <a href="../knowledge.html" class="lang-option">English</a>
+          <a href="../he/knowledge.html" class="lang-option">עברית</a>
+          <span class="lang-option active">Français</span>
+          <a href="../ru/knowledge.html" class="lang-option">Русский</a>
+          <a href="../es/knowledge.html" class="lang-option">Español</a>
+        </div>
+      </div>
+      <a href="partner-login.html" class="nav-btn nav-btn-ghost">Connexion partenaire</a>
+      <a href="protection-plans.html" class="nav-btn nav-btn-primary">Se protéger</a>
+    </div>
+  </div>
+</nav>
+
+<!-- MASTHEAD -->
+<header class="masthead">
+  <div class="container">
+    <div class="masthead-rule"></div>
+    <div class="masthead-meta">
+      <span class="left">Vol. 01 · Le Centre de connaissances</span>
+      <span>Mis à jour chaque semaine · Renseignement indépendant sur la fraude à l'ère de l'IA</span>
+    </div>
+    <div class="masthead-title-block">
+      <div>
+        <span class="masthead-eyebrow">Ce que nous lisons</span>
+        <h1>Le renseignement sur les arnaques, <span class="em">mis par écrit.</span></h1>
+      </div>
+      <p class="masthead-deck">Une archive vivante d'alertes de menace, de réglementation, de recherche académique et de rapports de terrain — pour ceux qui se défendent et ceux qui défendent leurs clients.</p>
+    </div>
+  </div>
+</header>
+
+<!-- FILTER BAR -->
+<div class="filterbar">
+  <div class="container">
+    <div class="filterbar-inner">
+      <div class="filter-tabs" role="tablist">
+        <button class="filter-tab active" data-filter="all" type="button">Tout</button>
+        <button class="filter-tab" data-filter="alert" type="button">Alertes</button>
+        <button class="filter-tab" data-filter="research" type="button">Recherche</button>
+        <button class="filter-tab" data-filter="regulation" type="button">Réglementation</button>
+        <button class="filter-tab" data-filter="guide" type="button">Guides</button>
+        <button class="filter-tab" data-filter="news" type="button">Actualités</button>
+      </div>
+      <span class="filter-count" id="filterCount"><strong>8</strong> entrées</span>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURE -->
+<section class="feature">
+  <div class="container">
+    <div class="feature-grid">
+      <article>
+        <div class="feature-meta">
+          <span class="tag tag-alert">Alerte</span>
+          <span class="feature-date">10 mai 2026</span>
+        </div>
+        <h2><a href="https://news.trendmicro.com/2026/04/16/ai-voice-cloning/" target="_blank" rel="noopener">Les arnaques par clonage vocal IA s'accélèrent à l'échelle mondiale — et l'écart se réduit sur la détection.</a></h2>
+        <p class="feature-dek">Les attaques par voix synthétique ne sont plus un tour de salon. Les usurpations de membres de la famille, d'employés de banque et de responsables publics sont désormais assemblées à partir de quelques secondes d'audio et déployées à l'échelle industrielle. Les défenseurs qui s'appuyaient sur le « vous le saurez forcément » sont à court d'intuition.</p>
+        <a href="https://news.trendmicro.com/2026/04/16/ai-voice-cloning/" target="_blank" rel="noopener" class="feature-source">Source · <strong>Trend Micro</strong></a>
+      </article>
+
+      <aside class="feature-aside">
+        <div class="feature-aside-head">À lire également</div>
+        <ol class="aside-list">
+          <li>
+            <a href="https://www.vectra.ai/topics/ai-scams" target="_blank" rel="noopener">
+              <div>
+                <h4>Même les experts peinent à détecter les voix d'arnaque générées par IA</h4>
+                <span class="src">Recherche · Vectra AI</span>
+              </div>
+            </a>
+          </li>
+          <li>
+            <a href="https://www.threatmark.com/six-months-of-psr-scam-reimbursement/" target="_blank" rel="noopener">
+              <div>
+                <h4>Les règles britanniques de remboursement remodèlent la prévention de la fraude</h4>
+                <span class="src">Réglementation · ThreatMark</span>
+              </div>
+            </a>
+          </li>
+          <li>
+            <a href="https://www.cnbc.com/2026/05/09/ai-powered-scam-calls-getting-more-convincing.html" target="_blank" rel="noopener">
+              <div>
+                <h4>Les arnaques par IA s'industrialisent à grande échelle</h4>
+                <span class="src">Rapport · GASA</span>
+              </div>
+            </a>
+          </li>
+        </ol>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- INTELLIGENCE FEED -->
+<section class="feed" id="feed">
+  <div class="container">
+    <div class="feed-head">
+      <div>
+        <span class="section-eyebrow">Le flux</span>
+        <h2 class="section-title">Le renseignement, par ordre d'arrivée.</h2>
+      </div>
+      <span class="feed-meta">Hebdomadaire · Sélectionné · Lié à la source</span>
+    </div>
+
+    <div class="feed-grid">
+      <ol class="article-list" id="articleList">
+
+        <li data-cat="alert" id="voice-cloning-global">
+          <span class="article-num"></span>
+          <div>
+            <div class="article-card-meta">
+              <span class="tag tag-alert">Alerte</span>
+              <span class="article-date">10 mai 2026</span>
+            </div>
+            <h3><a href="https://news.trendmicro.com/2026/04/16/ai-voice-cloning/" target="_blank" rel="noopener">Les arnaques par clonage vocal IA s'accélèrent à l'échelle mondiale</a></h3>
+            <p>Les arnaques par usurpation vocale générée par IA deviennent rapidement plus sophistiquées, permettant aux attaquants d'imiter membres de la famille, employés de banque et responsables publics avec un réalisme alarmant — et à un rythme que les défenseurs ne peuvent plus suivre à l'oreille.</p>
+            <a class="article-source" href="https://news.trendmicro.com/2026/04/16/ai-voice-cloning/" target="_blank" rel="noopener">Source · <strong>Trend Micro</strong></a>
+          </div>
+        </li>
+
+        <li data-cat="regulation" id="uk-reimbursement">
+          <span class="article-num"></span>
+          <div>
+            <div class="article-card-meta">
+              <span class="tag tag-regulation">Réglementation</span>
+              <span class="article-date">8 mai 2026</span>
+            </div>
+            <h3><a href="https://www.threatmark.com/six-months-of-psr-scam-reimbursement/" target="_blank" rel="noopener">Les règles britanniques de remboursement des arnaques remodèlent la prévention de la fraude</a></h3>
+            <p>De nouvelles réglementations britanniques de remboursement accentuent la pression sur les institutions financières pour prévenir les arnaques avant que les pertes ne surviennent. L'accent se déplace du remboursement après fraude vers une intervention proactive, en temps réel, au moment de la décision.</p>
+            <a class="article-source" href="https://www.threatmark.com/six-months-of-psr-scam-reimbursement/" target="_blank" rel="noopener">Source · <strong>ThreatMark</strong></a>
+          </div>
+        </li>
+
+        <li data-cat="research" id="experts-ai-voices">
+          <span class="article-num"></span>
+          <div>
+            <div class="article-card-meta">
+              <span class="tag tag-research">Recherche</span>
+              <span class="article-date">6 mai 2026</span>
+            </div>
+            <h3><a href="https://www.vectra.ai/topics/ai-scams" target="_blank" rel="noopener">Même les experts peinent à détecter les voix d'arnaque générées par IA</a></h3>
+            <p>Une étude récente évaluée par les pairs a révélé que les participants — y compris ceux très confiants dans leurs capacités — échouaient souvent à distinguer une vraie parole humaine d'un clone vocal généré par IA. La seule intuition humaine devient insuffisante.</p>
+            <a class="article-source" href="https://www.vectra.ai/topics/ai-scams" target="_blank" rel="noopener">Source · <strong>Recherche Vectra AI</strong></a>
+          </div>
+        </li>
+
+        <li data-cat="regulation" id="gasa-policy-2026">
+          <span class="article-num"></span>
+          <div>
+            <div class="article-card-meta">
+              <span class="tag tag-policy">Politique</span>
+              <span class="article-date">5 mai 2026</span>
+            </div>
+            <h3><a href="https://www.gasa.org/post/global-state-of-scams-report-2024-1-trillion-stolen-in-12-months-gasa-feedzai" target="_blank" rel="noopener">GASA appelle à une coordination mondiale anti-arnaque renforcée</a></h3>
+            <p>L'agenda politique permanent de la Global Anti-Scam Alliance continue de mettre l'accent sur l'éducation des consommateurs, le partage de renseignements, la collaboration intersectorielle et des initiatives anti-arnaque coordonnées au-delà des frontières — des thèmes qui n'ont fait que s'intensifier en 2025–2026.</p>
+            <a class="article-source" href="https://www.gasa.org/post/global-state-of-scams-report-2024-1-trillion-stolen-in-12-months-gasa-feedzai" target="_blank" rel="noopener">Source · <strong>GASA</strong></a>
+          </div>
+        </li>
+
+        <li data-cat="alert" id="ai-scams-industrialised">
+          <span class="article-num"></span>
+          <div>
+            <div class="article-card-meta">
+              <span class="tag tag-alert">Alerte</span>
+              <span class="article-date">3 mai 2026</span>
+            </div>
+            <h3><a href="https://www.cnbc.com/2026/05/09/ai-powered-scam-calls-getting-more-convincing.html" target="_blank" rel="noopener">Les menaces d'arnaque par IA s'industrialisent à grande échelle</a></h3>
+            <p>Les chercheurs du secteur avertissent que les arnaques alimentées par IA deviennent évolutives, automatisées et distribuées mondialement, augmentant drastiquement la vitesse et le volume des attaques contre les consommateurs — et raccourcissant la fenêtre pendant laquelle une personne peut réagir.</p>
+            <a class="article-source" href="https://www.cnbc.com/2026/05/09/ai-powered-scam-calls-getting-more-convincing.html" target="_blank" rel="noopener">Source · <strong>CNBC</strong></a>
+          </div>
+        </li>
+
+        <li data-cat="regulation" id="govt-ai-regulation">
+          <span class="article-num"></span>
+          <div>
+            <div class="article-card-meta">
+              <span class="tag tag-regulation">Réglementation</span>
+              <span class="article-date">28 avril 2026</span>
+            </div>
+            <h3><a href="https://www.americanbar.org/groups/senior_lawyers/resources/voice-of-experience/2025-september/ai-cloned-voice-scam/" target="_blank" rel="noopener">Les gouvernements renforcent leur attention sur la sécurité de l'IA et la réglementation de la fraude</a></h3>
+            <p>Les gouvernements et régulateurs du monde entier commencent à introduire des cadres axés sur la tromperie générée par IA, l'usurpation et la protection des consommateurs contre la fraude. L'IA responsable devient une priorité réglementaire — et non un sujet de discussion.</p>
+            <a class="article-source" href="https://www.americanbar.org/groups/senior_lawyers/resources/voice-of-experience/2025-september/ai-cloned-voice-scam/" target="_blank" rel="noopener">Source · <strong>American Bar Association</strong></a>
+          </div>
+        </li>
+
+        <li data-cat="guide" id="guide-voice-cloning">
+          <span class="article-num"></span>
+          <div>
+            <div class="article-card-meta">
+              <span class="tag tag-guide">Guide</span>
+              <span class="article-date">25 avril 2026</span>
+            </div>
+            <h3><a href="knowledge.html">Comment se protéger des arnaques par clonage vocal</a></h3>
+            <p>Un guide pratique, testé sur le terrain, pour reconnaître et se défendre contre les attaques d'usurpation vocale par IA. Signes d'alerte, phrases de vérification que les familles peuvent convenir, et les habitudes de rappel qui transforment un moment de panique en un moment de réflexion.</p>
+            <a class="article-source" href="knowledge.html">Source · <strong>ASPS</strong></a>
+          </div>
+        </li>
+
+        <li data-cat="news" id="bank-impersonation-eu">
+          <span class="article-num"></span>
+          <div>
+            <div class="article-card-meta">
+              <span class="tag tag-news">Actualité</span>
+              <span class="article-date">20 avril 2026</span>
+            </div>
+            <h3><a href="https://sqmagazine.co.uk/ai-voice-cloning-fraud-statistics/" target="_blank" rel="noopener">Les arnaques par usurpation bancaire explosent sur les marchés européens</a></h3>
+            <p>Les institutions financières de toute l'Europe signalent une augmentation significative des attaques d'usurpation sophistiquées ciblant les clients par appels téléphoniques et SMS — avec des pertes déplacées qui retombent sur les banques selon les nouvelles règles de remboursement.</p>
+            <a class="article-source" href="https://sqmagazine.co.uk/ai-voice-cloning-fraud-statistics/" target="_blank" rel="noopener">Source · <strong>SQ Magazine</strong></a>
+          </div>
+        </li>
+
+      </ol>
+
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+
+        <div class="side-block">
+          <div class="alert-card">
+            <div class="label"><span class="dot"></span>Menace active</div>
+            <h4>Arnaques au clonage vocal visant les familles.</h4>
+            <p>Les attaquants utilisent quelques secondes d'audio public pour usurper l'identité de fils, filles et petits-enfants en détresse. Convenez d'un mot de vérification avec votre famille — maintenant, pas plus tard.</p>
+          </div>
+        </div>
+
+        <div class="side-block">
+          <div class="side-head">Sujets en vogue</div>
+          <div class="topics">
+            <a href="#feed" class="topic-tag" data-jump="alert">Alertes <span class="count">3</span></a>
+            <a href="#feed" class="topic-tag" data-jump="regulation">Réglementation <span class="count">2</span></a>
+            <a href="#feed" class="topic-tag" data-jump="research">Recherche <span class="count">1</span></a>
+            <a href="#feed" class="topic-tag" data-jump="regulation">Politique <span class="count">1</span></a>
+            <a href="#feed" class="topic-tag" data-jump="guide">Guides <span class="count">1</span></a>
+            <a href="#feed" class="topic-tag" data-jump="news">Actualités <span class="count">1</span></a>
+            <a href="#feed" class="topic-tag" data-jump="alert">Voix IA <span class="count">2</span></a>
+            <a href="#feed" class="topic-tag" data-jump="news">Fraude bancaire <span class="count">2</span></a>
+          </div>
+        </div>
+
+        <div class="side-block">
+          <div class="side-head">Liens rapides</div>
+          <ul class="quick-list">
+            <li><a href="knowledge.html">Encyclopédie des types d'arnaques</a></li>
+            <li><a href="platform.html">Liste de contrôle de protection</a></li>
+            <li><a href="contact.html">Signaler une arnaque</a></li>
+            <li><a href="stories.html#support">Obtenir de l'aide</a></li>
+            <li><a href="https://www.gasa.org/post/global-state-of-scams-report-2024-1-trillion-stolen-in-12-months-gasa-feedzai" target="_blank" rel="noopener">Dernières statistiques mondiales</a></li>
+          </ul>
+        </div>
+
+        <div class="side-block">
+          <div class="subscribe-card">
+            <h4>Recevez le brief dans votre boîte mail.</h4>
+            <p>Renseignement hebdomadaire sur les arnaques et notes de protection — court, sourcé, et écrit pour des humains.</p>
+            <form class="subscribe-form" id="newsletter-form" novalidate>
+              <input type="email" class="subscribe-input" name="email" placeholder="vous@exemple.com" required/>
+
+              <!-- Honeypot — hidden field bots tend to fill. -->
+              <div aria-hidden="true" class="nl-honeypot">
+                <label for="nl-website">Site web (laisser vide)</label>
+                <input type="text" id="nl-website" name="website" tabindex="-1" autocomplete="off"/>
+              </div>
+
+              <!-- Cloudflare Turnstile CAPTCHA placeholder.
+                   To activate (free, ~5 min):
+                     1. Sign up at https://www.cloudflare.com/products/turnstile/
+                     2. Replace data-sitekey="PLACEHOLDER" with your real sitekey
+                     3. Uncomment the Turnstile <script> tag at the end of <body>. -->
+              <div class="cf-turnstile newsletter-captcha"
+                   data-sitekey="PLACEHOLDER"
+                   data-callback="onNewsletterCaptchaSuccess"
+                   data-theme="light">
+                <div class="turnstile-placeholder" role="status" aria-live="polite">
+                  <span class="turnstile-spinner" aria-hidden="true"></span>
+                  <span class="turnstile-label">Vérification que vous êtes humain&hellip;</span>
+                  <span class="turnstile-brand">Protégé par ASPS</span>
+                </div>
+              </div>
+
+              <button type="submit" class="subscribe-btn" id="nl-submit">S'abonner</button>
+              <div class="nl-message" role="status" aria-live="polite"></div>
+            </form>
+            <div class="subscribe-note">Gratuit · Désabonnement à tout moment</div>
+          </div>
+        </div>
+
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- STATS BAND -->
+<section class="stats">
+  <div class="container stats-inner">
+    <div class="stats-head">
+      <div>
+        <span class="section-eyebrow">Les chiffres</span>
+        <h2 class="section-title">Ce que le monde rapporte.</h2>
+      </div>
+      <span class="stats-head-meta">Quatre indicateurs · Sources indépendantes</span>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat">
+        <div class="stat-num"><a href="https://www.gasa.org/post/global-scams-on-the-rise-over-half-of-adults-worldwide-report-scam-encounters" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;border-bottom:1px solid var(--rule-2)"><span class="accent">442</span> G$</a></div>
+        <div class="stat-label">Estimation prudente · <a href="https://www.gasa.org/post/global-scams-on-the-rise-over-half-of-adults-worldwide-report-scam-encounters" target="_blank" rel="noopener" style="color:var(--ink-3);text-decoration:underline">GASA 2025</a></div>
+        <div class="stat-body">Pertes signalées dans 42 pays étudiés — le chiffre le plus récent et le plus prudent sur le plan méthodologique pour les pertes mondiales dues aux arnaques.</div>
+        <div style="margin-top:18px;padding-top:18px;border-top:1px solid var(--rule);display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:14px">
+            <span style="font-family:var(--font-display);font-size:.7rem;color:var(--ink-3);text-transform:uppercase;letter-spacing:.12em;font-weight:600">Extrapolation plus large</span>
+            <span style="font-family:var(--font-display);font-size:.95rem;color:var(--ink);font-weight:700;white-space:nowrap"><a href="https://www.gasa.org/knowledge-base/reports/global-state-of-scams-2024" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;text-decoration-color:var(--rule-2)">1,03 Bn$</a> <span style="color:var(--ink-3);font-weight:500">· <a href="https://www.gasa.org/knowledge-base/reports/global-state-of-scams-2024" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">GASA 2024</a></span></span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:14px">
+            <span style="font-family:var(--font-display);font-size:.7rem;color:var(--ink-3);text-transform:uppercase;letter-spacing:.12em;font-weight:600">Toute la criminalité financière</span>
+            <span style="font-family:var(--font-display);font-size:.95rem;color:var(--ink);font-weight:700;white-space:nowrap"><a href="https://www.nasdaq.com/global-financial-crime-report" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;text-decoration-color:var(--rule-2)">3,1 Bn$</a> <span style="color:var(--ink-3);font-weight:500">· <a href="https://www.nasdaq.com/global-financial-crime-report" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Nasdaq Verafin</a></span></span>
+          </div>
+        </div>
+        <span class="stat-src">Trois estimations · même problème, portée différente</span>
+      </div>
+      <div class="stat">
+        <div class="stat-num"><span class="accent">3 sur 4</span></div>
+        <div class="stat-label">Ciblés chaque mois</div>
+        <div class="stat-body">Environ trois quarts des adultes dans le monde déclarent être ciblés par une tentative d'arnaque au cours d'un mois donné.</div>
+        <span class="stat-src">Source · GASA State of Scams</span>
+      </div>
+      <div class="stat">
+        <div class="stat-num"><a href="https://slashnext.com/state-of-phishing-2023/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;border-bottom:1px solid var(--rule-2)"><span class="accent">↑</span> 1 265 %</a></div>
+        <div class="stat-label">Croissance du phishing · <a href="https://slashnext.com/state-of-phishing-2023/" target="_blank" rel="noopener" style="color:var(--ink-3);text-decoration:underline">SlashNext</a></div>
+        <div class="stat-body">Croissance signalée du volume de phishing depuis la diffusion large des outils d'IA générative — en grande partie assemblé par IA.</div>
+        <span class="stat-src">Source · Recherche SlashNext</span>
+      </div>
+      <div class="stat">
+        <div class="stat-num"><span class="accent">3</span> s</div>
+        <div class="stat-label">Clone vocal</div>
+        <div class="stat-body">La quantité d'audio source désormais suffisante pour produire un clone vocal synthétique convaincant d'une personne connue.</div>
+        <span class="stat-src">Source · McAfee Labs</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REGULATION TIMELINE -->
+<section class="timeline">
+  <div class="container">
+    <div class="timeline-head">
+      <span class="section-eyebrow">Suivi de la réglementation</span>
+      <h2 class="section-title">Ce que les législateurs ont fait cette année.</h2>
+      <p>Un journal continu de la législation, des actions de mise en application et des orientations de supervision qui façonnent la manière dont la fraude à l'ère de l'IA est encadrée dans les principales juridictions.</p>
+    </div>
+
+    <ul class="timeline-list">
+      <li>
+        <span class="tl-date">Avr. 2026</span>
+        <span class="tl-region">Royaume-Uni · FCA</span>
+        <span class="tl-title">Remboursement obligatoire de la fraude au virement autorisé — <em>les banques désormais responsables par défaut.</em></span>
+        <a class="tl-source" href="https://www.threatmark.com/six-months-of-psr-scam-reimbursement/" target="_blank" rel="noopener">Lire ↗</a>
+      </li>
+      <li>
+        <span class="tl-date">Mars 2026</span>
+        <span class="tl-region">UE · AI Act</span>
+        <span class="tl-title">Les dispositions sur l'usurpation générée par IA et la divulgation des deepfakes entrent en application progressive.</span>
+        <a class="tl-source" href="https://www.americanbar.org/groups/senior_lawyers/resources/voice-of-experience/2025-september/ai-cloned-voice-scam/" target="_blank" rel="noopener">Lire ↗</a>
+      </li>
+      <li>
+        <span class="tl-date">Févr. 2026</span>
+        <span class="tl-region">États-Unis · FCC</span>
+        <span class="tl-title">Les voix générées par IA dans les appels automatisés jugées illégales selon la réglementation télécom existante.</span>
+        <a class="tl-source" href="https://www.fcc.gov/" target="_blank" rel="noopener">Lire ↗</a>
+      </li>
+      <li>
+        <span class="tl-date">Janv. 2026</span>
+        <span class="tl-region">Australie · AFCA</span>
+        <span class="tl-title">Un nouveau cadre de prévention des arnaques place une responsabilité partagée sur les banques, opérateurs télécoms et plateformes numériques.</span>
+        <a class="tl-source" href="https://www.gasa.org/" target="_blank" rel="noopener">Lire ↗</a>
+      </li>
+      <li>
+        <span class="tl-date">Nov. 2025</span>
+        <span class="tl-region">Singapour · MAS</span>
+        <span class="tl-title">Cadre de responsabilité partagée finalisé — banques et opérateurs indemnisent les victimes lorsque des obligations sont manquées.</span>
+        <a class="tl-source" href="https://www.gasa.org/" target="_blank" rel="noopener">Lire ↗</a>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- PULL QUOTE -->
+<section class="pullquote-section">
+  <div class="container">
+    <div class="pullquote">
+      <p class="pullquote-text">Une arnaque est une histoire qui voyage plus vite que la vérité. Le travail d'un centre de connaissances est de <strong>faire arriver la vérité en premier</strong>.</p>
+      <span class="pullquote-cite">— Note éditoriale ASPS</span>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="container">
+    <div class="cta-inner">
+      <span class="cta-eyebrow">Restez à jour</span>
+      <h2>Lisez ce que les escrocs <span class="em">ne veulent pas que vous lisiez.</span></h2>
+      <p>Abonnez-vous au brief hebdomadaire, ou mettez en place une protection qui fait la lecture pour vous — en temps réel, sur chaque canal.</p>
+      <div class="cta-buttons">
+        <a href="protection-plans.html" class="btn btn-accent">
+          Lire le flux
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="contact.html" class="btn btn-ghost">Se protéger</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerLogoGrad)"/>
+          <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs>
+            <linearGradient id="footerLogoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#1F8B5C"/>
+              <stop offset="100%" stop-color="#16734C"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <p>Protection IA en temps réel contre la fraude, les arnaques et l'ingénierie sociale. Protéger les personnes au moment où ça compte le plus.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Plateforme</h4>
+        <a href="platform.html">Comment ça marche</a>
+        <a href="individuals.html#individuals">Pour les particuliers</a>
+        <a href="individuals.html#families">Pour les familles</a>
+        <a href="partners.html">Pour les partenaires</a>
+      </div>
+      <div class="footer-col">
+        <h4>Ressources</h4>
+        <a href="knowledge.html">Centre de connaissances</a>
+        <a href="knowledge.html#feed">Flux de renseignements</a>
+        <a href="stories.html#support">Obtenir de l'aide</a>
+        <a href="stories.html">Témoignages</a>
+      </div>
+      <div class="footer-col">
+        <h4>Entreprise</h4>
+        <a href="about.html">À propos</a>
+        <a href="about.html#mission">Notre mission</a>
+        <a href="about.html#ethics">Éthique &amp; confiance</a>
+        <a href="contact.html">Contact</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 ASPS. Tous droits réservés.</p>
+      <div class="footer-links">
+        <a href="privacy.html">Confidentialité</a>
+        <a href="privacy.html#terms">Conditions</a>
+        <a href="privacy.html#cookies">Cookies</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Filter tabs
+document.addEventListener('DOMContentLoaded', function() {
+  const tabs = document.querySelectorAll('.filter-tab');
+  const items = document.querySelectorAll('#articleList > li');
+  const count = document.getElementById('filterCount');
+
+  function applyFilter(filter) {
+    let n = 0;
+    items.forEach(li => {
+      const cat = li.dataset.cat;
+      const match = filter === 'all' || cat === filter;
+      li.style.display = match ? '' : 'none';
+      if (match) n++;
+    });
+    count.innerHTML = '<strong>' + n + '</strong> ' + (n === 1 ? 'entrée' : 'entrées');
+  }
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', function() {
+      tabs.forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      applyFilter(this.dataset.filter);
+    });
+  });
+
+  // Topic tag jumps to filter
+  document.querySelectorAll('.topic-tag[data-jump]').forEach(tag => {
+    tag.addEventListener('click', function(e) {
+      const target = this.dataset.jump;
+      const matching = document.querySelector('.filter-tab[data-filter="' + target + '"]');
+      if (matching) {
+        tabs.forEach(t => t.classList.remove('active'));
+        matching.classList.add('active');
+        applyFilter(target);
+      }
+    });
+  });
+});
+</script>
+
+
+<script>
+(function () {
+  const form = document.getElementById("newsletter-form");
+  if (!form) return;
+  const emailInput = form.querySelector(".subscribe-input");
+  const submitBtn  = form.querySelector(".subscribe-btn");
+  const honeypot   = form.querySelector("#nl-website");
+  const captchaBox = form.querySelector(".newsletter-captcha");
+  const captchaLbl = form.querySelector(".turnstile-label");
+  const msg        = form.querySelector(".nl-message");
+
+  let captchaToken = null;
+  submitBtn.setAttribute("aria-disabled", "true");
+
+  function showMsg(text, kind) {
+    msg.textContent = text || "";
+    msg.className = "nl-message" + (kind ? " " + kind : "");
+  }
+
+  window.onNewsletterCaptchaSuccess = function (token) {
+    captchaToken = token || "verified";
+    captchaBox.setAttribute("data-state", "verified");
+    if (captchaLbl) captchaLbl.textContent = "Vérifié — vous êtes humain";
+    submitBtn.removeAttribute("aria-disabled");
+  };
+
+  // Placeholder mode: simulate verification if no real sitekey.
+  const sitekey = captchaBox && captchaBox.getAttribute("data-sitekey");
+  if (!sitekey || sitekey === "PLACEHOLDER") {
+    setTimeout(function () { if (!captchaToken) window.onNewsletterCaptchaSuccess("placeholder-token"); }, 1400);
+  }
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    const email = (emailInput.value || "").trim();
+
+    // Honeypot tripped → silently succeed.
+    if (honeypot && honeypot.value) {
+      showMsg("Merci — nous vous recontacterons.", "success");
+      emailInput.value = "";
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showMsg("Veuillez saisir une adresse e-mail valide.", "error");
+      emailInput.focus();
+      return;
+    }
+    if (!captchaToken) {
+      showMsg("Un instant — vérification que vous êtes humain en cours.", "error");
+      return;
+    }
+
+    // Success — real backend would POST email + captchaToken here.
+    const orig = submitBtn.textContent;
+    submitBtn.textContent = "✓ Abonné !";
+    emailInput.value = "";
+    emailInput.disabled = true;
+    submitBtn.disabled = true;
+    showMsg("C'est fait. Surveillez le brief hebdomadaire dans votre boîte mail.", "success");
+    setTimeout(function () {
+      submitBtn.textContent = orig;
+      emailInput.disabled = false;
+      submitBtn.disabled = false;
+    }, 4000);
+  });
+})();
+</script>
+
+<script src="cookie-banner.js"></script>
+</body>
+</html>

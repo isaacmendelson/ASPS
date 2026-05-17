@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="Вы не одни. Реальный опыт, которым делятся люди, чтобы помочь другим не стать жертвами мошенничества и обмана."/>
+<title>Истории — ASPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;0,16..72,700;1,16..72,400;1,16..72,500;1,16..72,600&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-dark:#070B14; --bg-paper:#FAF7F2; --bg-paper-2:#F3EFE8;
+  --accent:#BE3A4B; --accent-strong:#8E1A2A;
+  --ink:#1A1814; --ink-2:#4A4640; --ink-3:#6B655C;
+  --rule:#E4DDD2; --rule-2:#D7CFC2;
+  --font-body:'Instrument Sans',-apple-system,sans-serif;
+  --font-serif:'Newsreader',Georgia,serif;
+  --font-display:'Syne',Georgia,serif;
+  --transition:0.25s cubic-bezier(0.4,0,0.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--bg-paper);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+@media(min-width:768px){.container{padding:0 40px}}
+@media(min-width:1024px){.container{padding:0 60px}}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:1000;height:72px;background:rgba(15,18,56,0.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08)}
+.nav-inner{max-width:1400px;margin:0 auto;padding:0 40px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:32px}
+.nav-logo{display:flex;align-items:center;flex-shrink:0}
+.nav-links{display:none;align-items:center;gap:8px}
+@media(min-width:1024px){.nav-links{display:flex}}
+.nav-link{padding:8px 16px;font-size:.875rem;font-weight:500;color:#94A3B8;border-radius:8px;transition:var(--transition)}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,0.05)}
+.nav-link.active{color:#fff;position:relative}
+.nav-link.active::after{content:'';position:absolute;left:16px;right:16px;bottom:0;height:2px;background:var(--accent)}
+.nav-actions{display:flex;align-items:center;gap:12px}
+.nav-btn{padding:10px 20px;font-size:.875rem;font-weight:600;border-radius:8px;transition:var(--transition);border:none}
+.nav-btn-ghost{background:transparent;color:#94A3B8;border:1px solid rgba(255,255,255,0.12)}
+.nav-btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.25)}
+.nav-btn-primary{background:#fff;color:#0F1238}
+.nav-btn-primary:hover{background:#EEF0FF}
+.lang-dropdown{position:relative}
+.lang-dropdown-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#E2E8F0;font-size:.8125rem;font-weight:600;cursor:pointer;transition:var(--transition)}
+.lang-dropdown-btn:hover{background:rgba(255,255,255,0.1)}
+.lang-dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:140px;padding:8px 0;background:#0F1238;border:1px solid rgba(255,255,255,0.12);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.3);opacity:0;visibility:hidden;transform:translateY(-8px);transition:var(--transition);z-index:100}
+.lang-dropdown:hover .lang-dropdown-menu,.lang-dropdown:focus-within .lang-dropdown-menu{opacity:1;visibility:visible;transform:translateY(0)}
+.lang-option{display:block;padding:10px 16px;font-size:.875rem;color:#94A3B8;transition:var(--transition)}
+.lang-option:hover{background:rgba(255,255,255,0.05);color:#fff}
+.lang-option.active{color:var(--accent);font-weight:600}
+
+/* shared */
+.section-eyebrow{display:inline-flex;align-items:center;gap:14px;margin-bottom:18px;font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+.section-eyebrow.with-rule::before{content:'';width:32px;height:1px;background:var(--accent);opacity:.5}
+.section-title{font-family:var(--font-serif);font-weight:500;font-size:clamp(2rem,4vw,3rem);line-height:1.05;letter-spacing:-.025em;color:var(--ink)}
+.section-title .em{font-style:italic;font-weight:500;color:var(--accent-strong)}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 28px;font-family:var(--font-display);font-size:.84rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;border:none;transition:var(--transition);cursor:pointer}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-accent:hover{background:var(--accent-strong)}
+.btn-ink{background:transparent;color:var(--ink);border:1px solid var(--rule-2)}
+.btn-ink:hover{border-color:var(--ink)}
+.btn-ghost{background:transparent;color:#F5F0E7;border:1px solid rgba(245,240,231,0.25)}
+.btn-ghost:hover{border-color:rgba(245,240,231,0.55)}
+
+/* MASTHEAD */
+.masthead{padding:80px 0 64px;background:var(--bg-paper);border-bottom:1px solid var(--rule)}
+.masthead-top{display:flex;justify-content:space-between;align-items:baseline;gap:20px;padding-bottom:18px;border-bottom:1px solid var(--rule-2);margin-bottom:36px;font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+.masthead-top .right{color:var(--accent)}
+.masthead h1{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2.6rem,6vw,4.8rem);line-height:1;letter-spacing:-.03em;color:var(--ink);margin-bottom:24px;max-width:20ch}
+.masthead h1 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.masthead-lede{font-family:var(--font-serif);font-size:1.1875rem;line-height:1.6;color:var(--ink-2);max-width:680px}
+.masthead-note{margin-top:28px;padding-top:20px;border-top:1px solid var(--rule);font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);max-width:680px}
+
+/* FILTER */
+.filter{position:sticky;top:72px;z-index:50;padding:18px 0;background:rgba(250,247,242,0.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
+.filter-inner{display:flex;flex-wrap:wrap;align-items:center;gap:24px;justify-content:space-between}
+.filter-tabs{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.filter-label{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-right:8px}
+.filter-tab{padding:6px 4px;font-family:var(--font-display);font-weight:700;font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:var(--transition);margin:0 6px}
+.filter-tab:hover{color:var(--ink)}
+.filter-tab.active{color:var(--ink);border-bottom-color:var(--accent)}
+.filter-count{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.filter-count strong{color:var(--accent);font-weight:700}
+
+/* FEATURE STORY */
+.feature{padding:80px 0;background:var(--bg-paper);border-bottom:1px solid var(--rule)}
+.feature-grid{display:grid;grid-template-columns:1fr;gap:48px}
+@media(min-width:900px){.feature-grid{grid-template-columns:7fr 5fr;gap:80px;align-items:start}}
+.feature-meta{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;display:flex;gap:14px;flex-wrap:wrap}
+.feature-meta::before{content:'В фокусе ·';color:var(--accent)}
+.feature h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,4.6vw,3.4rem);line-height:1.05;letter-spacing:-.02em;color:var(--ink);margin-bottom:24px}
+.feature h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.feature-byline{display:flex;gap:24px;flex-wrap:wrap;font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);padding-bottom:20px;margin-bottom:24px;border-bottom:1px solid var(--rule)}
+.feature-byline strong{color:var(--ink);margin-left:6px}
+.feature-deck{font-family:var(--font-serif);font-size:1.25rem;line-height:1.5;color:var(--ink-2);margin-bottom:18px}
+.feature-body{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.65;color:var(--ink)}
+.feature-body p{margin-bottom:16px}
+.feature-body em{font-style:normal;color:var(--accent-strong);font-weight:600}
+.feature-body .dropcap::first-letter{font-family:var(--font-serif);font-style:italic;font-weight:500;font-size:4.5rem;float:left;line-height:.85;padding:4px 12px 0 0;color:var(--accent-strong)}
+.feature-cta{margin-top:20px;display:inline-flex;align-items:center;gap:8px;font-family:var(--font-display);font-weight:700;font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);border-bottom:1px solid var(--accent);padding-bottom:3px}
+
+.feature-side{display:flex;flex-direction:column;gap:24px}
+.outcome-card{background:#fff;border:1px solid var(--rule);padding:28px 26px 26px;position:relative}
+.outcome-card::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:3px;background:var(--accent)}
+.outcome-card-tag{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.outcome-card h3{font-family:var(--font-serif);font-weight:600;font-size:1.25rem;color:var(--ink);margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--rule)}
+.outcome-card dl{display:grid;grid-template-columns:auto 1fr;gap:10px 18px;font-size:.92rem}
+.outcome-card dt{font-family:var(--font-display);font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);padding-top:3px}
+.outcome-card dd{color:var(--ink);line-height:1.45}
+.outcome-card dd strong{color:var(--accent-strong);font-weight:600}
+
+.alsoread{padding:24px 24px;background:var(--bg-paper-2);border:1px solid var(--rule-2)}
+.alsoread-label{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+.alsoread ol{list-style:none;counter-reset:also;display:flex;flex-direction:column;gap:14px}
+.alsoread li{counter-increment:also;padding-left:32px;position:relative;font-family:var(--font-serif);font-size:1rem;line-height:1.4;color:var(--ink);cursor:pointer;transition:var(--transition)}
+.alsoread li::before{content:counter(also,decimal-leading-zero);position:absolute;left:0;top:1px;font-family:var(--font-display);font-weight:700;font-size:.72rem;color:var(--accent);letter-spacing:.06em}
+.alsoread li:hover{color:var(--accent-strong)}
+.alsoread li span{display:block;font-family:var(--font-body);font-size:.75rem;color:var(--ink-3);margin-top:2px;text-transform:uppercase;letter-spacing:.1em}
+
+/* STORIES LIST */
+.stories{padding:110px 0;background:var(--bg-paper)}
+.stories-head{margin-bottom:48px;display:flex;align-items:flex-end;justify-content:space-between;gap:40px;padding-bottom:24px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.stories-head-meta{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);padding-bottom:6px}
+.story-row{display:grid;grid-template-columns:1fr;gap:16px;padding:36px 0;border-bottom:1px solid var(--rule)}
+@media(min-width:900px){.story-row{grid-template-columns:100px 4fr 3fr;gap:48px;align-items:start}}
+.story-num{font-family:var(--font-display);font-weight:700;font-size:.78rem;letter-spacing:.16em;color:var(--accent);padding-top:4px}
+.story-meta-line{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:12px;display:flex;flex-wrap:wrap;gap:14px}
+.story-meta-line .cat{color:var(--accent)}
+.story-row h3{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:1.625rem;line-height:1.15;color:var(--ink);margin-bottom:12px;letter-spacing:-.01em}
+.story-row h3 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.story-row p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.55;color:var(--ink-2)}
+.story-row .pull{font-family:var(--font-serif);font-style:italic;font-weight:400;font-size:1.0625rem;line-height:1.5;color:var(--ink);padding:16px 18px;border-left:2px solid var(--accent);background:var(--bg-paper-2)}
+.story-row .pull strong{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.story-row .pull cite{display:block;margin-top:8px;font-style:normal;font-family:var(--font-display);font-size:.66rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+
+/* INTERRUPT — band of saves */
+.interrupt{background:var(--ink);color:#F5F0E7;padding:110px 0;position:relative;overflow:hidden}
+.interrupt::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 20% 30%,rgba(190,58,75,.18),transparent 50%),radial-gradient(circle at 80% 80%,rgba(190,58,75,.10),transparent 50%);pointer-events:none}
+.interrupt-inner{position:relative;max-width:1320px;margin:0 auto;padding:0 40px}
+.interrupt-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:56px;padding-bottom:24px;border-bottom:1px solid rgba(245,240,231,0.12);flex-wrap:wrap}
+.interrupt-head .section-title{color:#fff;max-width:640px}
+.interrupt-head-meta{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:#A19888;padding-bottom:6px}
+.interrupts-grid{display:grid;grid-template-columns:1fr;gap:0}
+@media(min-width:800px){.interrupts-grid{grid-template-columns:repeat(2,1fr);gap:0}}@media(min-width:1100px){.interrupts-grid{grid-template-columns:repeat(4,1fr)}}
+.inter{padding:32px 0;border-top:1px solid rgba(245,240,231,0.12)}
+@media(min-width:800px){.inter{padding:32px 28px;border-top:1px solid rgba(245,240,231,0.12)}.inter:nth-child(odd){border-right:1px solid rgba(245,240,231,0.12)}}@media(min-width:1100px){.inter{padding:0 28px;border-top:none;border-right:none !important}.inter+.inter{border-left:1px solid rgba(245,240,231,0.12)}.inter:first-child{padding-left:0}.inter:last-child{padding-right:0}}
+.inter-stat{font-family:var(--font-display);font-weight:800;font-size:clamp(3rem,5vw,4.4rem);line-height:1;color:#fff;letter-spacing:-.025em;margin-bottom:14px}
+.inter-stat span{color:var(--accent)}
+.inter-label{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(245,240,231,0.16)}
+.inter-body{font-family:var(--font-serif);font-size:1rem;line-height:1.55;color:#D6CDBE}
+
+/* SUPPORT */
+.support{padding:110px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule-2);border-bottom:1px solid var(--rule-2)}
+.support-grid{display:grid;grid-template-columns:1fr;gap:48px}
+@media(min-width:900px){.support-grid{grid-template-columns:5fr 7fr;gap:80px;align-items:start}}
+.support-left .section-title{margin-bottom:24px}
+.support-left p{font-family:var(--font-serif);font-size:1.125rem;line-height:1.6;color:var(--ink-2);margin-bottom:20px}
+.support-list{display:flex;flex-direction:column;gap:14px}
+.support-row{display:grid;grid-template-columns:auto 1fr auto;gap:20px;padding:20px 22px;background:#fff;border:1px solid var(--rule);align-items:center;transition:var(--transition)}
+.support-row:hover{border-color:var(--accent)}
+.support-row .num{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.16em;color:var(--accent)}
+.support-row h4{font-family:var(--font-serif);font-weight:500;font-size:1.125rem;color:var(--ink);margin-bottom:4px}
+.support-row p{font-family:var(--font-body);font-size:.875rem;color:var(--ink-3);line-height:1.5}
+.support-row .go{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);white-space:nowrap}
+
+/* SHARE STORY */
+.share{padding:110px 0;background:var(--bg-paper)}
+.share-grid{display:grid;grid-template-columns:1fr;gap:48px}
+@media(min-width:900px){.share-grid{grid-template-columns:1.1fr 1fr;gap:80px;align-items:center}}
+.share-left h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,4.5vw,3.2rem);line-height:1.05;letter-spacing:-.02em;color:var(--ink);margin-bottom:24px}
+.share-left h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.share-left p{font-family:var(--font-serif);font-size:1.125rem;line-height:1.6;color:var(--ink-2);margin-bottom:20px;max-width:520px}
+.share-promises{background:var(--bg-paper-2);border:1px solid var(--rule-2);padding:32px 28px;position:relative}
+.share-promises::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:3px;background:var(--accent)}
+.share-promises h3{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.share-promises ul{list-style:none;display:flex;flex-direction:column;gap:14px;margin-bottom:24px}
+.share-promises li{font-family:var(--font-serif);font-size:1rem;color:var(--ink);padding-left:22px;position:relative;line-height:1.5}
+.share-promises li::before{content:'';position:absolute;left:0;top:.62em;width:12px;height:1px;background:var(--accent)}
+.share-promises li strong{color:var(--accent-strong);font-weight:600}
+
+/* PULL QUOTE */
+.pullquote-section{padding:100px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule)}
+.pullquote{max-width:980px;margin:0 auto;text-align:center}
+.pullquote::before{content:'';display:block;width:64px;height:2px;background:var(--accent);margin:0 auto 32px}
+.pullquote-text{font-family:var(--font-serif);font-style:italic;font-weight:400;font-size:clamp(1.5rem,3.5vw,2.5rem);line-height:1.25;letter-spacing:-.015em;color:var(--ink)}
+.pullquote-text strong{font-weight:600;font-style:normal;background:linear-gradient(180deg,transparent 62%,rgba(190,58,75,.18) 62%,rgba(190,58,75,.18) 92%,transparent 92%);padding:0 .08em}
+.pullquote-cite{display:block;margin-top:28px;font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+
+/* CTA */
+.cta{padding:110px 0;background:var(--ink);color:#F5F0E7;text-align:center;position:relative;overflow:hidden}
+.cta::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 50% 0%,rgba(190,58,75,.20),transparent 60%);pointer-events:none}
+.cta-inner{max-width:760px;margin:0 auto;position:relative}
+.cta-eyebrow{display:inline-block;margin-bottom:24px;font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+.cta h2{font-family:var(--font-serif);font-style:italic;font-weight:400;font-size:clamp(2rem,4.5vw,3.25rem);line-height:1.1;letter-spacing:-.025em;color:#fff;margin-bottom:24px}
+.cta h2 .em{font-style:normal;font-weight:600;color:var(--accent)}
+.cta p{font-family:var(--font-serif);font-size:1.1875rem;line-height:1.65;color:#D6CDBE;margin-bottom:40px}
+.cta-buttons{display:flex;flex-wrap:wrap;justify-content:center;gap:14px}
+
+/* FOOTER */
+.footer{padding:80px 0 40px;background:var(--bg-dark);color:#94A3B8}
+.footer-grid{display:grid;grid-template-columns:1fr;gap:48px;margin-bottom:64px}
+@media(min-width:768px){.footer-grid{grid-template-columns:2fr 1fr 1fr 1fr}}
+.footer-brand p{font-size:.9375rem;line-height:1.7;max-width:320px;margin-top:20px}
+.footer-col h4{font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#E2E8F0;margin-bottom:20px}
+.footer-col a{display:block;font-size:.9375rem;margin-bottom:14px;transition:var(--transition)}
+.footer-col a:hover{color:var(--accent)}
+.footer-bottom{padding-top:32px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px;font-size:.84rem;color:#64748B}
+.footer-links{display:flex;gap:24px}
+.footer-links a:hover{color:#E2E8F0}
+
+.inter-src{display:block;margin-top:14px;padding-top:12px;border-top:1px solid rgba(245,240,231,0.10);font-family:var(--font-display);font-weight:700;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:#A19888}
+.inter-src a{color:inherit;border-bottom:1px solid rgba(161,152,136,0.45);transition:color .2s,border-color .2s}
+.inter-src a:hover{color:var(--accent);border-bottom-color:var(--accent)}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo" aria-label="Главная ASPS">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C" opacity="0.4"><animate attributeName="r" values="4;8;4" dur="2.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.4;0;0.4" dur="2.5s" repeatCount="indefinite"/></circle>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+      </svg>
+    </a>
+    <div class="nav-links">
+      <a href="index.html#epidemic" class="nav-link">Угроза</a>
+      <a href="platform.html" class="nav-link">Как это работает</a>
+      <a href="knowledge.html" class="nav-link">Центр знаний</a>
+      <a href="stories.html" class="nav-link active">Истории</a>
+      <a href="partners.html" class="nav-link">Партнёры</a>
+      <a href="about.html" class="nav-link">О нас</a>
+    </div>
+    <div class="nav-actions">
+      <div class="lang-dropdown">
+        <button class="lang-dropdown-btn" aria-label="Выбрать язык"><span>RU</span><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l4 4 4-4"/></svg></button>
+        <div class="lang-dropdown-menu">
+          <a href="../stories.html" class="lang-option">English</a>
+          <a href="../he/stories.html" class="lang-option">עברית</a>
+          <a href="../fr/stories.html" class="lang-option">Français</a>
+          <span class="lang-option active">Русский</span>
+          <a href="../es/stories.html" class="lang-option">Español</a>
+        </div>
+      </div>
+      <a href="#share" class="nav-btn nav-btn-ghost">Поделиться своей</a>
+      <a href="protection-plans.html" class="nav-btn nav-btn-primary">Защититься</a>
+    </div>
+  </div>
+</nav>
+
+<!-- MASTHEAD -->
+<header class="masthead">
+  <div class="container">
+    <div class="masthead-top">
+      <span>Истории · Реальный опыт</span>
+      <span class="right">Поделились, чтобы помочь другим</span>
+    </div>
+    <h1>Вы <span class="em">не одни.</span></h1>
+    <p class="masthead-lede">Миллионы людей сталкиваются с попытками мошенничества каждый день. Многие никогда никому не рассказывают. Это реальный опыт, которым делятся люди, желающие помочь другим не стать жертвами. Каждая история имеет значение.</p>
+    <p class="masthead-note">Анонимно по умолчанию · Опубликовано с согласия · Каждая история может помочь кому-то вовремя распознать мошенничество</p>
+  </div>
+</header>
+
+<!-- FILTER -->
+<div class="filter">
+  <div class="container">
+    <div class="filter-inner">
+      <div class="filter-tabs">
+        <span class="filter-label">Фильтр</span>
+        <button class="filter-tab active" data-filter="all">Все</button>
+        <button class="filter-tab" data-filter="voice">Клонирование голоса</button>
+        <button class="filter-tab" data-filter="bank">Выдача себя за банк</button>
+        <button class="filter-tab" data-filter="romance">Романтика</button>
+        <button class="filter-tab" data-filter="tech">Техподдержка</button>
+      </div>
+      <span class="filter-count"><strong id="storyCount">4</strong> историй</span>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURE -->
+<section class="feature">
+  <div class="container">
+    <div class="feature-grid">
+      <article>
+        <div class="feature-meta"><span>Клонирование голоса</span><span>·</span><span>Семья</span></div>
+        <h2>«Я думала, это мой сын. Голос звучал <span class="em">точь-в-точь как его.</span>»</h2>
+        <div class="feature-byline">
+          <span>Субъект<strong>Анонимно</strong></span>
+          <span>Возраст<strong>62</strong></span>
+          <span>Исход<strong>Деньги не отправлены</strong></span>
+        </div>
+        <p class="feature-deck">Телефонный звонок его голосом — его интонация, его слова, всё. Она уже собиралась перевести деньги, когда её настоящий сын вошёл в дверь.</p>
+
+        <div class="feature-body">
+          <p class="dropcap">Я думала, что звонит мой сын. Голос звучал точь-в-точь как его — его интонация, его слова, всё. Он сказал, что попал в беду и ему срочно нужны деньги.</p>
+          <p>Я уже собиралась перевести деньги, когда мой настоящий сын вошёл в дверь. Это было мошенничество с голосом, сгенерированным ИИ. Я до сих пор не могу поверить, насколько реально это звучало.</p>
+          <p>Вы думаете, что узнали бы. Вы думаете, что мать знает голос своего ребёнка. И вы знаете. Но то, что было у них по телефону — это был тот самый голос, ровно столько его, записанного откуда-то, воспроизведённого машиной, которая дополнила остальное.</p>
+          <p>Если бы он не вошёл именно тогда, я бы отправила деньги. И думала бы, что помогаю своему сыну.</p>
+        </div>
+      </article>
+
+      <aside class="feature-side">
+        <div class="outcome-card">
+          <span class="outcome-card-tag">Урок</span>
+          <h3>Почему эта история здесь.</h3>
+          <p style="font-family:var(--font-serif);font-size:1.0625rem;line-height:1.65;color:var(--ink-2);margin-bottom:18px">Она поделилась этим, чтобы следующий родитель не отправил деньги. Чтобы следующий человек, который услышит «ребёнка», плачущего на линии, сделал один лишний вдох.</p>
+          <p style="font-family:var(--font-serif);font-size:1.0625rem;line-height:1.65;color:var(--ink-2)">Мошенники процветают на молчании и стыде. Когда люди не говорят о том, что с ними произошло, мошенники выигрывают и следующий раунд.</p>
+        </div>
+
+        <div class="alsoread">
+          <p class="alsoread-label">Также стоит прочитать</p>
+          <ol>
+            <li>Коды, которые я им дал<span>Выдача себя за банк · 5 мин</span></li>
+            <li>Шесть месяцев сообщений<span>Романтическое мошенничество · 7 мин</span></li>
+            <li>Всплывающее окно, которое было не от Windows<span>Техподдержка · 4 мин</span></li>
+            <li>Почему мы делимся этими историями<span>Редакция · 3 мин</span></li>
+          </ol>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- STORIES LIST -->
+<section class="stories">
+  <div class="container">
+    <div class="stories-head">
+      <div>
+        <span class="section-eyebrow">Больше реальных историй</span>
+        <h2 class="section-title">Три истории, рассказанные, чтобы <span class="em">помочь другим.</span></h2>
+      </div>
+      <span class="stories-head-meta">Анонимно по умолчанию · Отредактировано только по длине</span>
+    </div>
+
+    <article class="story-row" data-cat="bank">
+      <span class="story-num">01 /</span>
+      <div>
+        <div class="story-meta-line"><span class="cat">Выдача себя за банк</span><span>Анонимно · 34</span></div>
+        <h3>«Я инженер-программист. Я думал, <span class="em">что меня не проведут.</span>»</h3>
+        <p>Они позвонили с того, что выглядело как официальный номер моего банка. Они знали моё имя, реквизиты моего счёта, всё. Они сказали, что есть подозрительная активность и мне нужно подтвердить личность. Но давление, срочность, профессионализм… Я дал им свои коды.</p>
+      </div>
+      <blockquote class="pull">«Я инженер-программист — я думал, что меня не проведут. Срочность — это то, что я недооценил.»<cite>— Анонимно, 34</cite></blockquote>
+    </article>
+
+    <article class="story-row" data-cat="romance">
+      <span class="story-num">02 /</span>
+      <div>
+        <div class="story-meta-line"><span class="cat">Романтическое мошенничество</span><span>Анонимно · 45</span></div>
+        <h3>Месяцы <span class="em">доверия.</span> Потом первая «срочность».</h3>
+        <p>Мы общались месяцами. Он был добрым, понимающим, всем, что я искала. Он работал за границей, как он говорил. Когда ему понадобились деньги на экстренный случай, я не колебалась. Потом ещё один экстренный случай. И ещё. К тому моменту, когда я поняла, я потеряла свои сбережения. Но хуже денег было предательство доверия.</p>
+      </div>
+      <blockquote class="pull">«Деньги важны. Предательство доверия важнее.»<cite>— Анонимно, учитель, 45</cite></blockquote>
+    </article>
+
+    <article class="story-row" data-cat="tech">
+      <span class="story-num">03 /</span>
+      <div>
+        <div class="story-meta-line"><span class="cat">Техподдержка</span><span>Анонимно · 71</span></div>
+        <h3>Всплывающее окно, которое выглядело <span class="em">точь-в-точь как Windows.</span></h3>
+        <p>Всплывающее окно на моём компьютере сообщило, что у меня вирус. Оно выглядело точь-в-точь как оповещение Windows. Я позвонил по номеру, и они провели меня через «исправление» проблемы — что означало предоставление им удалённого доступа к моему компьютеру. Они были очень профессиональны. Моя дочь, которая работает в ИТ, остановила это как раз вовремя.</p>
+      </div>
+      <blockquote class="pull">«Они были очень профессиональны. Моя дочь, которая работает в ИТ, остановила это как раз вовремя.»<cite>— Анонимно, на пенсии, 71</cite></blockquote>
+    </article>
+
+  </div>
+</section>
+
+<!-- WHY WE SHARE -->
+<section class="interrupt">
+  <div class="interrupt-inner">
+    <div class="interrupt-head">
+      <div>
+        <span class="section-eyebrow">Ломаем стигму</span>
+        <h2 class="section-title">Почему мы делимся этими историями.</h2>
+      </div>
+      <span class="interrupt-head-meta">Мошенничества процветают на молчании</span>
+    </div>
+    <div class="interrupts-grid">
+      <div class="inter">
+        <p class="inter-label">Осведомлённость</p>
+        <p class="inter-stat" style="font-size:2.4rem;line-height:1.15">Предотвращает жертв.</p>
+        <p class="inter-body">Каждая рассказанная история помогает кому-то распознать мошенничество, пока не стало слишком поздно. Признаки легче увидеть, когда вы услышали, как их называют.</p>
+      </div>
+      <div class="inter">
+        <p class="inter-label">Молчание</p>
+        <p class="inter-stat" style="font-size:2.4rem;line-height:1.15">Это то, что им нужно.</p>
+        <p class="inter-body">Когда люди не говорят о том, что произошло, мошенники выигрывают и следующий раунд. Рассказ — это то, как разрывается цикл.</p>
+      </div>
+      <div class="inter">
+        <p class="inter-label">Это не ваша вина</p>
+        <p class="inter-stat" style="font-size:2.4rem;line-height:1.15">Целью может стать любой.</p>
+        <p class="inter-body">Врачи, юристы, инженеры, эксперты по кибербезопасности — представители каждой группы попадались на мошенничество, которое сработало на них в их самую слабую минуту.</p>
+      </div>
+      <div class="inter">
+        <p class="inter-label">Рассказывать — легче</p>
+        <p class="inter-stat" style="font-size:2.4rem;line-height:1.15">Это ускоряет восстановление.</p>
+        <p class="inter-body">Исследования раскрытия травмы показывают, что разговор о трудном опыте — с доверенным человеком, терапевтом или сообществом таких же выживших — измеримо снижает дистресс и поддерживает психологическое исцеление. Как сказано в руководстве по восстановлению AARP, исцеление &laquo;часто начинается с рассказа другим о вашем опыте&raquo;.</p>
+        <span class="inter-src">Источники · <a href="https://www.aarp.org/money/scams-fraud/mental-health-impact/" target="_blank" rel="noopener">AARP — Влияние на психическое здоровье</a> · <a href="https://www.washingtonpost.com/business/interactive/2024/scam-victim-support-group-aarp/" target="_blank" rel="noopener">Washington Post — Группы поддержки</a></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SUPPORT -->
+<section class="support" id="support">
+  <div class="container">
+    <div class="support-grid">
+      <div class="support-left">
+        <span class="section-eyebrow with-rule">Если это уже произошло</span>
+        <h2 class="section-title">Помощь, простыми шагами.</h2>
+        <p>Если вы или кто-то близкий вам только что стали жертвой мошенничества — или думаете, что могли стать — следующий час важнее следующей недели. Начните здесь.</p>
+        <p>Ничего из этого не требует ASPS. Это то, что нужно сделать в любом случае. Мы изложили это коротко.</p>
+      </div>
+
+      <div class="support-list">
+        <div class="support-row">
+          <span class="num">01 /</span>
+          <div>
+            <h4>Позвоните на проверенную линию вашего банка — сейчас.</h4>
+            <p>Номер на обороте карты, а не любой номер из звонка или сообщения. Расскажите им, что произошло. Они могут заморозить, отозвать и пометить быстрее, чем вы думаете.</p>
+          </div>
+          <span class="go">Сначала →</span>
+        </div>
+        <div class="support-row">
+          <span class="num">02 /</span>
+          <div>
+            <h4>Смените пароли на всём, что они могли видеть.</h4>
+            <p>Особенно банкинг, email и любой аккаунт, чьё название всплыло во время звонка или сообщения. Email в первую очередь — это главный ключ.</p>
+          </div>
+          <span class="go">В течение 1 ч →</span>
+        </div>
+        <div class="support-row">
+          <span class="num">03 /</span>
+          <div>
+            <h4>Подайте заявление — даже если вы не потеряли деньги.</h4>
+            <p>Полиция, национальная линия киберпреступности и форма заявления о мошенничестве вашего банка. Неудавшиеся попытки так же полезны — они помогают предупредить следующего человека.</p>
+          </div>
+          <span class="go">Сегодня →</span>
+        </div>
+        <div class="support-row">
+          <span class="num">04 /</span>
+          <div>
+            <h4>Расскажите тому, кому доверяете.</h4>
+            <p>Вслух, лично, если возможно. Стыд от мошенничества — это его собственный второй вред; разговор о нём уменьшает его и помогает вам вспомнить важные детали.</p>
+          </div>
+          <span class="go">На этой неделе →</span>
+        </div>
+        <div class="support-row">
+          <span class="num">05 /</span>
+          <div>
+            <h4>Расскажите нам, когда будете готовы.</h4>
+            <p>Даже спустя месяцы. Шаблоны, которые мы изучаем из вашей истории, помогают нам ловить следующие раньше. Отправьте сообщение через страницу контактов — анонимно, если предпочитаете.</p>
+          </div>
+          <span class="go">В любой момент →</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SHARE -->
+<section class="share" id="share">
+  <div class="container">
+    <div class="share-grid">
+      <div class="share-left">
+        <span class="section-eyebrow">Поделитесь своей историей</span>
+        <h2>Ваша история может <span class="em">помочь кому-то ещё.</span></h2>
+        <p>Если вы столкнулись с попыткой мошенничества — удачной или нет — рассказ вашей истории может помочь защитить других. Каждая история имеет значение.</p>
+        <p>Вы решаете каждую деталь. Имена меняются по умолчанию. Ничего не публикуется без вашего одобрения. Ни в одной опубликованной истории никогда нет адреса субъекта, работодателя или любого идентифицирующего номера.</p>
+        <a href="share-story.html" class="btn btn-accent">Поделиться своей историей
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+
+      <div class="share-promises">
+        <h3>Что мы обещаем.</h3>
+        <ul>
+          <li><strong>Анонимность по умолчанию</strong> — вас называют только если вы попросите.</li>
+          <li><strong>Вы видите черновик</strong> — и одобряете его, прежде чем что-либо станет публичным.</li>
+          <li><strong>Вы можете отозвать</strong> — в любой момент, по любой причине, без вопросов.</li>
+          <li><strong>Никакого коммерческого использования</strong> — истории не реклама, они не используются в питч-презентациях.</li>
+          <li><strong>Редактируется людьми, а не моделями</strong> — Матеусом, в письменном виде.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PULL QUOTE -->
+<section class="pullquote-section">
+  <div class="container">
+    <div class="pullquote">
+      <p class="pullquote-text">Мошенничества процветают на молчании и стыде. Когда люди не говорят о своём опыте, <strong>мошенники выигрывают.</strong> Открыто делясь историями, мы разрываем цикл.</p>
+      <span class="pullquote-cite">— ASPS</span>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="container">
+    <div class="cta-inner">
+      <span class="cta-eyebrow">Будьте готовы до следующего раза</span>
+      <h2>Следующий звонок может быть <span class="em">о вас</span> — или о ком-то, кого вы любите.</h2>
+      <p>Настройте ASPS за пару минут для себя, своих родителей или своих детей. Чтобы следующая история в этом архиве была одной из тихих.</p>
+      <div class="cta-buttons">
+        <a href="individuals.html#pricing" class="btn btn-accent">Защититься
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="knowledge.html" class="btn btn-ghost">Читать ландшафт угроз</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerLogoGrad)"/>
+          <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs><linearGradient id="footerLogoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+        </svg>
+        <p>ИИ-защита в реальном времени от мошенничества, обмана и социальной инженерии. Защищаем людей в самый важный момент.</p>
+      </div>
+      <div class="footer-col"><h4>Платформа</h4><a href="platform.html">Как это работает</a><a href="individuals.html#individuals">Для частных лиц</a><a href="individuals.html#families">Для семей</a><a href="partners.html">Для партнёров</a></div>
+      <div class="footer-col"><h4>Ресурсы</h4><a href="knowledge.html">Центр знаний</a><a href="knowledge.html#feed">Лента аналитики</a><a href="stories.html#support">Получить поддержку</a><a href="stories.html">Истории</a></div>
+      <div class="footer-col"><h4>Компания</h4><a href="about.html">О нас</a><a href="about.html#mission">Наша миссия</a><a href="about.html#ethics">Этика и доверие</a><a href="contact.html">Контакты</a></div>
+    </div>
+    <div class="footer-bottom"><p>© 2026 ASPS. Все права защищены.</p><div class="footer-links"><a href="privacy.html">Конфиденциальность</a><a href="privacy.html#terms">Условия</a><a href="privacy.html#cookies">Куки</a></div></div>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.filter-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    const f=tab.dataset.filter;
+    let shown=0;
+    document.querySelectorAll('.story-row').forEach(row=>{
+      const cats=(row.dataset.cat||'').split(' ');
+      const show=f==='all'||cats.includes(f);
+      row.style.display=show?'':'none';
+      if(show) shown++;
+    });
+    document.getElementById('storyCount').textContent=shown;
+  });
+});
+</script>
+
+</body>
+</html>

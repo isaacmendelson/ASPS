@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="Comparte tu historia de estafa con ASPS. Anonimizada, tratada con cuidado, y usada solo para ayudar a otras personas a ver lo que tú viste a tiempo."/>
+<title>Comparte tu historia — ASPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;0,16..72,700;1,16..72,400;1,16..72,500;1,16..72,600&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-dark:#070B14; --bg-paper:#FAF7F2; --bg-paper-2:#F3EFE8; --bg-paper-3:#EEE8DC;
+  --accent:#BE3A4B; --accent-strong:#8E1A2A;
+  --green:#1F8B5C; --gold:#C68A3C;
+  --ink:#1A1814; --ink-2:#4A4640; --ink-3:#6B655C;
+  --rule:#E4DDD2; --rule-2:#D7CFC2;
+  --font-body:'Instrument Sans',-apple-system,sans-serif;
+  --font-serif:'Newsreader',Georgia,serif;
+  --font-display:'Syne',Georgia,serif;
+  --transition:0.25s cubic-bezier(0.4,0,0.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--bg-paper);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+@media(min-width:768px){.container{padding:0 40px}}
+@media(min-width:1024px){.container{padding:0 60px}}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:1000;height:72px;background:rgba(15,18,56,0.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08)}
+.nav-inner{max-width:1400px;margin:0 auto;padding:0 40px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:32px}
+.nav-links{display:none;align-items:center;gap:8px}
+@media(min-width:1024px){.nav-links{display:flex}}
+.nav-link{padding:8px 16px;font-size:.875rem;font-weight:500;color:#94A3B8;border-radius:8px;transition:var(--transition)}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,0.05)}
+.nav-actions{display:flex;align-items:center;gap:12px}
+.nav-btn{padding:10px 20px;font-size:.875rem;font-weight:600;border-radius:8px;border:none;transition:var(--transition)}
+.nav-btn-ghost{background:transparent;color:#94A3B8;border:1px solid rgba(255,255,255,0.12)}
+.nav-btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.25)}
+.nav-btn-primary{background:#fff;color:#0F1238}
+.nav-btn-primary:hover{background:#EEF0FF}
+
+/* MASTHEAD */
+.masthead{padding:88px 0 64px;background:var(--bg-paper);border-bottom:1px solid var(--rule);position:relative;overflow:hidden}
+.masthead-top{display:flex;justify-content:space-between;align-items:baseline;gap:20px;padding-bottom:18px;border-bottom:1px solid var(--rule-2);margin-bottom:40px;font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);flex-wrap:wrap}
+.masthead-top .right{color:var(--accent)}
+.masthead-grid{display:grid;grid-template-columns:1fr;gap:48px;align-items:end}
+@media(min-width:900px){.masthead-grid{grid-template-columns:1.6fr 1fr;gap:80px}}
+.masthead h1{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2.5rem,6vw,4.6rem);line-height:1.05;letter-spacing:-.03em;color:var(--ink);margin-bottom:28px;max-width:14ch}
+.masthead h1 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.masthead-lede{font-family:var(--font-serif);font-size:1.1875rem;line-height:1.65;color:var(--ink-2);max-width:560px}
+.masthead-lede strong{color:var(--ink);font-weight:600;font-style:italic}
+
+/* CARE CARD — anonymous-by-default */
+.care-card{background:var(--bg-paper-2);border:1px solid var(--rule-2);padding:32px;display:flex;flex-direction:column;gap:20px}
+.care-card .stamp{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);padding-bottom:14px;border-bottom:1px solid var(--rule)}
+.care-card .care-row{display:flex;gap:16px;align-items:flex-start}
+.care-card .care-row .n{font-family:var(--font-display);font-weight:800;font-size:.78rem;letter-spacing:.06em;color:var(--ink-3);flex-shrink:0;padding-top:3px}
+.care-card .care-row p{font-family:var(--font-serif);font-size:1rem;color:var(--ink);line-height:1.5}
+.care-card .care-row p em{font-style:italic;color:var(--accent-strong);font-weight:600}
+
+/* WHY — editorial 2col */
+.why{padding:96px 0;background:var(--bg-paper-2);border-bottom:1px solid var(--rule-2)}
+.why-grid{display:grid;grid-template-columns:1fr;gap:48px;max-width:1100px;margin:0 auto}
+@media(min-width:900px){.why-grid{grid-template-columns:1fr 1fr;gap:80px}}
+.why .kicker{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.why h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,3.8vw,2.875rem);line-height:1.1;letter-spacing:-.02em;color:var(--ink);margin-bottom:32px}
+.why h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.why p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.7;color:var(--ink-2);margin-bottom:18px;max-width:50ch}
+.why p::first-letter{font-family:var(--font-serif);font-style:italic;font-weight:600;font-size:3.5rem;float:left;line-height:0.85;padding:8px 12px 0 0;color:var(--accent-strong)}
+.why p:not(:first-of-type)::first-letter{font-family:inherit;font-style:inherit;font-weight:inherit;font-size:inherit;float:none;padding:0;color:inherit;line-height:inherit}
+.why-side{display:flex;flex-direction:column;gap:24px}
+.why-stat{padding:32px;background:var(--bg-paper);border:1px solid var(--rule);display:flex;flex-direction:column;gap:8px}
+.why-stat .num{font-family:var(--font-display);font-weight:800;font-size:clamp(2.5rem,4vw,3.5rem);color:var(--accent-strong);letter-spacing:-.02em;line-height:1}
+.why-stat .label{font-family:var(--font-serif);font-style:italic;font-size:1.0625rem;color:var(--ink);line-height:1.4}
+.why-stat .src{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-top:8px;padding-top:12px;border-top:1px solid var(--rule)}
+
+/* THE FORM */
+.form-section{padding:96px 0;background:var(--bg-paper)}
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:48px;padding-bottom:18px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.section-head h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,3.8vw,2.875rem);line-height:1.1;letter-spacing:-.02em;color:var(--ink);max-width:18ch}
+.section-head h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.section-head .meta{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);text-align:right;line-height:1.8}
+
+.form-wrap{display:grid;grid-template-columns:1fr;gap:48px;max-width:1100px;margin:0 auto}
+@media(min-width:900px){.form-wrap{grid-template-columns:240px 1fr;gap:64px}}
+
+.steps-rail{display:flex;flex-direction:column;gap:0;position:sticky;top:96px;align-self:start}
+.steps-rail .rail-label{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+.steps-rail .step-item{display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid var(--rule);cursor:pointer;background:none;border-left:none;border-right:none;border-top:none;font-family:inherit;text-align:left;color:inherit;transition:var(--transition);width:100%}
+.steps-rail .step-item:hover{color:var(--accent)}
+.steps-rail .step-item.active .step-n{background:var(--accent);color:#fff;border-color:var(--accent)}
+.steps-rail .step-item.complete .step-n{background:var(--green);color:#fff;border-color:var(--green)}
+.steps-rail .step-item .step-n{flex-shrink:0;width:28px;height:28px;border:1.5px solid var(--ink-3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:.72rem;color:var(--ink);transition:var(--transition)}
+.steps-rail .step-item .step-text{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);line-height:1.5;padding-top:4px}
+.steps-rail .step-item.active .step-text{color:var(--ink)}
+
+form.story{background:var(--bg-paper);border:1px solid var(--rule-2);padding:40px}
+.fstep{display:none;flex-direction:column;gap:24px}
+.fstep.active{display:flex}
+.fstep-num{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:-4px}
+.fstep h3{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:1.875rem;line-height:1.15;color:var(--ink);letter-spacing:-.01em;max-width:22ch}
+.fstep h3 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.fstep > p.hint{font-family:var(--font-serif);font-size:1.0625rem;color:var(--ink-2);line-height:1.55;max-width:56ch}
+.fstep > p.hint em{font-style:italic;color:var(--accent-strong);font-weight:600}
+
+.field{display:flex;flex-direction:column;gap:8px}
+.field label{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink)}
+.field label .opt{color:var(--ink-3);font-weight:500;letter-spacing:.06em;text-transform:none;font-size:.78rem;margin-left:8px}
+.field input,.field textarea,.field select{font-family:var(--font-body);font-size:1rem;color:var(--ink);background:var(--bg-paper-2);border:1px solid var(--rule);padding:14px 16px;width:100%;transition:var(--transition)}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent);background:#fff}
+.field textarea{resize:vertical;min-height:140px;font-family:var(--font-serif);line-height:1.55}
+.field .help{font-family:var(--font-body);font-size:.85rem;color:var(--ink-3);line-height:1.5}
+
+.choices{display:grid;grid-template-columns:1fr;gap:8px}
+@media(min-width:520px){.choices{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:760px){.choices.three{grid-template-columns:repeat(3,1fr)}}
+.choice{position:relative;cursor:pointer}
+.choice input{position:absolute;opacity:0;pointer-events:none}
+.choice .box{padding:14px 16px;border:1px solid var(--rule);background:var(--bg-paper-2);display:flex;flex-direction:column;gap:4px;transition:var(--transition)}
+.choice .box .ttl{font-family:var(--font-display);font-weight:700;font-size:.78rem;letter-spacing:.08em;color:var(--ink)}
+.choice .box .sub{font-family:var(--font-body);font-size:.84rem;color:var(--ink-3);line-height:1.4}
+.choice:hover .box{border-color:var(--ink-3)}
+.choice input:checked + .box{border-color:var(--accent);background:#fff;box-shadow:inset 0 0 0 1px var(--accent)}
+.choice input:checked + .box .ttl{color:var(--accent-strong)}
+
+.fstep-actions{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-top:24px;margin-top:8px;border-top:1px solid var(--rule);flex-wrap:wrap}
+.fstep-actions .progress{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.fstep-actions .progress strong{color:var(--accent)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 22px;font-family:var(--font-body);font-size:.92rem;font-weight:600;border:1px solid transparent;cursor:pointer;transition:var(--transition);text-decoration:none}
+.btn-primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn-primary:hover{background:var(--accent);border-color:var(--accent)}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--rule-2)}
+.btn-ghost:hover{border-color:var(--ink);color:var(--ink)}
+.btn-actions-right{display:flex;gap:10px;align-items:center}
+
+.success{display:none;flex-direction:column;gap:24px;padding:48px 32px;text-align:center;background:var(--bg-paper-2);border:1px solid var(--rule-2)}
+.success.active{display:flex}
+.success-stamp{font-family:var(--font-display);font-weight:700;font-size:.74rem;letter-spacing:.2em;text-transform:uppercase;color:var(--green)}
+.success h3{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:2rem;line-height:1.15;color:var(--ink);max-width:24ch;margin:0 auto}
+.success h3 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.success p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.55;color:var(--ink-2);max-width:48ch;margin:0 auto}
+.success-id{font-family:var(--font-display);font-weight:700;font-size:.86rem;letter-spacing:.14em;color:var(--ink);padding:14px 24px;background:#fff;border:1px dashed var(--rule-2);display:inline-block;margin:0 auto}
+
+/* HOW WE HANDLE — dark band */
+.handle{padding:96px 0;background:var(--bg-dark);color:#fff}
+.handle .kicker{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:20px}
+.handle h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,3.8vw,2.875rem);line-height:1.1;color:#fff;letter-spacing:-.02em;margin-bottom:48px;max-width:18ch}
+.handle h2 .em{font-style:normal;font-weight:600;color:var(--accent)}
+.handle-list{border-top:1px solid rgba(255,255,255,0.14)}
+.handle-row{display:grid;grid-template-columns:1fr;gap:14px;padding:28px 0;border-bottom:1px solid rgba(255,255,255,0.08)}
+@media(min-width:760px){.handle-row{grid-template-columns:60px 1fr 220px;gap:32px;align-items:start}}
+.handle-row .n{font-family:var(--font-display);font-weight:800;font-size:1.125rem;color:var(--accent);letter-spacing:.04em}
+.handle-row h3{font-family:var(--font-serif);font-weight:500;font-size:1.375rem;line-height:1.2;color:#fff;margin-bottom:8px}
+.handle-row h3 .em{font-style:italic;color:var(--accent)}
+.handle-row p{font-family:var(--font-serif);font-size:1rem;line-height:1.55;color:#94A3B8;max-width:55ch}
+.handle-row .when{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:#fff;text-align:right;padding-top:6px;border-left:2px solid var(--accent);padding-left:14px;line-height:1.5}
+.handle-row .when span{display:block;color:#94A3B8;font-size:.66rem;margin-top:4px}
+
+/* NOT READY — support panel */
+.support{padding:96px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule-2)}
+.support-grid{display:grid;grid-template-columns:1fr;gap:48px;max-width:1100px;margin:0 auto}
+@media(min-width:900px){.support-grid{grid-template-columns:1fr 1.4fr;gap:80px;align-items:start}}
+.support .kicker{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.support h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(1.875rem,3.4vw,2.5rem);line-height:1.15;color:var(--ink);letter-spacing:-.01em;margin-bottom:20px}
+.support h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.support .lede{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.65;color:var(--ink-2);max-width:48ch}
+
+.lines{border-top:2px solid var(--ink)}
+.line{display:grid;grid-template-columns:1fr;gap:6px;padding:24px 0;border-bottom:1px solid var(--rule)}
+@media(min-width:600px){.line{grid-template-columns:170px 1fr 130px;gap:24px;align-items:baseline}}
+.line .who{font-family:var(--font-serif);font-style:italic;font-size:1.0625rem;color:var(--ink);font-weight:500}
+.line .what{font-family:var(--font-serif);font-size:.98rem;color:var(--ink-2);line-height:1.5}
+.line .phone{font-family:var(--font-display);font-weight:700;font-size:.86rem;letter-spacing:.04em;color:var(--accent-strong);text-align:right}
+
+/* CTA */
+.cta{padding:96px 0 110px;background:var(--bg-paper);text-align:center}
+.cta blockquote{font-family:var(--font-serif);font-style:italic;font-weight:500;font-size:clamp(1.875rem,3.6vw,2.75rem);line-height:1.2;color:var(--ink);max-width:22ch;margin:0 auto 24px;letter-spacing:-.01em}
+.cta blockquote .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.cta .attribution{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:40px}
+.cta-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+/* FOOTER */
+.footer{padding:80px 0 40px;background:var(--bg-dark);color:#94A3B8}
+.footer-grid{display:grid;grid-template-columns:1fr;gap:48px;margin-bottom:64px}
+@media(min-width:768px){.footer-grid{grid-template-columns:2fr 1fr 1fr 1fr}}
+.footer-brand p{font-size:.9375rem;line-height:1.7;max-width:320px;margin-top:20px}
+.footer-col h4{font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#E2E8F0;margin-bottom:20px}
+.footer-col a{display:block;font-size:.9375rem;margin-bottom:14px;transition:var(--transition)}
+.footer-col a:hover{color:var(--accent)}
+.footer-bottom{padding-top:32px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px;font-size:.84rem;color:#64748B}
+.footer-links{display:flex;gap:24px}
+.footer-links a:hover{color:#E2E8F0}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" aria-label="Inicio de ASPS">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+      </svg>
+    </a>
+    <div class="nav-links">
+      <a href="platform.html" class="nav-link">Cómo funciona</a>
+      <a href="knowledge.html" class="nav-link">Centro de conocimiento</a>
+      <a href="stories.html" class="nav-link">Historias</a>
+      <a href="partners.html" class="nav-link">Socios</a>
+      <a href="about.html" class="nav-link">Acerca de</a>
+      <a href="faq.html" class="nav-link">Preguntas frecuentes</a>
+    </div>
+    <div class="nav-actions">
+      <a href="contact.html" class="nav-btn nav-btn-ghost">Contacto</a>
+      <a href="protection-plans.html" class="nav-btn nav-btn-primary">Protégete</a>
+    </div>
+  </div>
+</nav>
+
+<!-- MASTHEAD -->
+<header class="masthead">
+  <div class="container">
+    <div class="masthead-top">
+      <span>Comparte tu historia · Vol. 08</span>
+      <span class="right">Para quienes lo vieron · o casi no lo vieron</span>
+    </div>
+    <div class="masthead-grid">
+      <div>
+        <h1>Alguien está recibiendo una llamada <span class="em">ahora mismo.</span></h1>
+        <p class="masthead-lede">Si has sido objetivo de una estafa — la detectaste a tiempo o no — contarnos lo que viste le da a la próxima persona la oportunidad de verlo antes. <strong>Anónimo por defecto. Tuyo para borrar. Nunca usado para publicidad.</strong></p>
+      </div>
+
+      <aside class="care-card" aria-label="Cómo tratamos tu historia">
+        <p class="stamp">La promesa · en cinco líneas</p>
+        <div class="care-row"><span class="n">01</span><p><em>Anónimo</em> a menos que pidas lo contrario.</p></div>
+        <div class="care-row"><span class="n">02</span><p>Nombres, números e importes se <em>eliminan</em> antes de la revisión.</p></div>
+        <div class="care-row"><span class="n">03</span><p>Leído por una persona; <em>nunca usado para entrenar IA</em> sin consentimiento explícito.</p></div>
+        <div class="care-row"><span class="n">04</span><p>Puedes <em>retirarlo</em> en cualquier momento, incluso años después.</p></div>
+        <div class="care-row"><span class="n">05</span><p>Si se publica, lo ves primero y puedes <em>editar una sola palabra</em> o retirarlo.</p></div>
+      </aside>
+    </div>
+  </div>
+</header>
+
+<!-- WHY -->
+<section class="why">
+  <div class="container">
+    <div class="why-grid">
+      <div>
+        <p class="kicker">Por qué existe esto</p>
+        <h2>Cada historia que nos cuentas enseña la próxima <span class="em">alerta.</span></h2>
+        <p>Cada historia que recibimos — la llamada en frío, la voz imposible, la pestaña del banco que no estaba del todo bien — se convierte en un patrón. El patrón se convierte en una alerta. La alerta llega a alguien, a tiempo, que de otro modo habría pasado treinta segundos de más creyendo lo que le decían.</p>
+        <p>No romantizamos esto. La gente pierde más que dinero con las estafas; pierde la confianza en su propio juicio. Contárnoslo, aunque sea de forma anónima, es una manera de recuperar algo de eso — y de asegurar que la próxima persona no tenga que descubrir el mismo truco de la misma forma.</p>
+      </div>
+
+      <div class="why-side">
+        <div class="why-stat">
+          <span class="num">3.142</span>
+          <span class="label">historias enviadas a ASPS en los últimos 12 meses</span>
+          <span class="src">Interno · May 2026</span>
+        </div>
+        <div class="why-stat">
+          <span class="num">71%</span>
+          <span class="label">derivó en un nuevo patrón, plantilla de alerta o regla de detección</span>
+          <span class="src">Interno · May 2026</span>
+        </div>
+        <div class="why-stat">
+          <span class="num">≈ 12 min</span>
+          <span class="label">tiempo medio para compartir, incluyendo revisión y envío</span>
+          <span class="src">Del formulario de envío · May 2026</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FORM -->
+<section class="form-section">
+  <div class="container">
+    <div class="section-head">
+      <h2>El formulario, en cuatro <span class="em">pasos honestos.</span></h2>
+      <p class="meta">Tiempo de lectura · 12 min<br/>Guardado localmente · cierra cuando quieras</p>
+    </div>
+
+    <div class="form-wrap">
+      <nav class="steps-rail" aria-label="Pasos del formulario">
+        <p class="rail-label">Dónde estás</p>
+        <button type="button" class="step-item active" data-go="0"><span class="step-n">1</span><span class="step-text">Qué pasó</span></button>
+        <button type="button" class="step-item" data-go="1"><span class="step-n">2</span><span class="step-text">La historia, en tus palabras</span></button>
+        <button type="button" class="step-item" data-go="2"><span class="step-n">3</span><span class="step-text">Cómo te gustaría que se use</span></button>
+        <button type="button" class="step-item" data-go="3"><span class="step-n">4</span><span class="step-text">Tú (opcional)</span></button>
+      </nav>
+
+      <form class="story" id="storyForm" novalidate>
+
+        <!-- STEP 1 -->
+        <div class="fstep active" data-step="0">
+          <span class="fstep-num">Paso 01 de 04</span>
+          <h3>Lo básico — <span class="em">¿qué tipo de cosa fue?</span></h3>
+          <p class="hint">Unas preguntas rápidas para saber cómo leer tu historia. Elige la opción más cercana — nada de esto necesita ser preciso.</p>
+
+          <div class="field">
+            <label>¿Qué tipo de estafa fue?</label>
+            <div class="choices three">
+              <label class="choice"><input type="radio" name="kind" value="voice"/><span class="box"><span class="ttl">Voz / teléfono</span><span class="sub">Una llamada donde alguien no era quien decía.</span></span></label>
+              <label class="choice"><input type="radio" name="kind" value="message"/><span class="box"><span class="ttl">Texto / mensaje</span><span class="sub">SMS, WhatsApp, correo pidiéndote que actúes.</span></span></label>
+              <label class="choice"><input type="radio" name="kind" value="bank"/><span class="box"><span class="ttl">Banco / pago</span><span class="sub">Te pidieron transferir, "asegurar" una cuenta, etc.</span></span></label>
+              <label class="choice"><input type="radio" name="kind" value="romance"/><span class="box"><span class="ttl">Romance / amistad</span><span class="sub">Construyó confianza con el tiempo, luego pidió.</span></span></label>
+              <label class="choice"><input type="radio" name="kind" value="employment"/><span class="box"><span class="ttl">Trabajo / empleo</span><span class="sub">Empleo falso, empleador falso, tarea falsa.</span></span></label>
+              <label class="choice"><input type="radio" name="kind" value="other"/><span class="box"><span class="ttl">Otra cosa</span><span class="sub">O difícil de clasificar — ya lo averiguaremos.</span></span></label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>¿Cómo terminó?</label>
+            <div class="choices three">
+              <label class="choice"><input type="radio" name="outcome" value="caught"/><span class="box"><span class="ttl">Detectada a tiempo</span><span class="sub">No se perdió nada.</span></span></label>
+              <label class="choice"><input type="radio" name="outcome" value="partial"/><span class="box"><span class="ttl">Pérdida parcial</span><span class="sub">Algo de dinero o datos, luego se detuvo.</span></span></label>
+              <label class="choice"><input type="radio" name="outcome" value="full"/><span class="box"><span class="ttl">Perdí lo que pidieron</span><span class="sub">Se completó antes de que me diera cuenta.</span></span></label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>¿Aproximadamente cuándo?</label>
+            <select name="when">
+              <option value="">Elige una — o déjalo en blanco</option>
+              <option>Esta semana</option>
+              <option>Este mes</option>
+              <option>Este año (2026)</option>
+              <option>El año pasado (2025)</option>
+              <option>2024 o antes</option>
+              <option>Prefiero no decirlo</option>
+            </select>
+            <span class="help">Solo lo preguntamos porque los patrones de estafa evolucionan rápido — saber si lo viste la semana pasada o el año pasado ayuda mucho.</span>
+          </div>
+
+          <div class="fstep-actions">
+            <span class="progress">Paso <strong>01</strong> / 04</span>
+            <div class="btn-actions-right">
+              <button type="button" class="btn btn-primary" data-next>Continuar →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="fstep" data-step="1">
+          <span class="fstep-num">Paso 02 de 04</span>
+          <h3>En tus propias palabras — <span class="em">cuéntanos qué viste.</span></h3>
+          <p class="hint">No se requiere ningún formato. Hemos puesto unas indicaciones abajo por si ayudan — responde una, todas, o ninguna. Cualquier cosa que escribas aquí puede ser <em>limpiada de nombres y números</em> automáticamente antes de la revisión.</p>
+
+          <div class="field">
+            <label>La historia <span class="opt">— escribe tanto o tan poco como quieras</span></label>
+            <textarea name="story" rows="8" placeholder="Unas indicaciones, si son útiles:
+• ¿Qué fue lo primero que dijeron?
+• ¿Qué te hizo parar y pensar?
+• ¿Cuándo cambió la sensación — de que algo no estaba bien?
+• ¿Hubo un momento en que casi lo creíste? ¿Cuál fue?"></textarea>
+            <span class="help">Historia media que recibimos: unas 220 palabras. Algunas son dos frases, otras dos páginas. Ambas son útiles.</span>
+          </div>
+
+          <div class="field">
+            <label>Si ayudara — una muestra del mensaje o el guion <span class="opt">opcional</span></label>
+            <textarea name="sample" rows="4" placeholder="Pega el texto exacto del mensaje, o unas líneas de lo que se dijo en la llamada. Eliminamos datos personales antes de que alguien lo revise."></textarea>
+            <span class="help">El lenguaje literal es oro para la detección de patrones — la redacción exacta es a menudo lo que enseña la próxima alerta.</span>
+          </div>
+
+          <div class="fstep-actions">
+            <span class="progress">Paso <strong>02</strong> / 04</span>
+            <div class="btn-actions-right">
+              <button type="button" class="btn btn-ghost" data-prev>← Atrás</button>
+              <button type="button" class="btn btn-primary" data-next>Continuar →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="fstep" data-step="2">
+          <span class="fstep-num">Paso 03 de 04</span>
+          <h3>¿Cómo te gustaría que <span class="em">usemos esto?</span></h3>
+          <p class="hint">Elige lo que te resulte cómodo — puedes cambiar de opinión más tarde desde el mismo correo que enviamos cuando lo envíes.</p>
+
+          <div class="field">
+            <label>Uso de tu historia</label>
+            <div class="choices">
+              <label class="choice"><input type="checkbox" name="use" value="patterns"/><span class="box"><span class="ttl">Mejorar la detección</span><span class="sub">Usarla anónimamente para mejorar las alertas. <em>Recomendado.</em></span></span></label>
+              <label class="choice"><input type="checkbox" name="use" value="publish"/><span class="box"><span class="ttl">Quizás publicar, anonimizada</span><span class="sub">En stories.html. La ves primero.</span></span></label>
+              <label class="choice"><input type="checkbox" name="use" value="partners"/><span class="box"><span class="ttl">Compartir con banco / telco</span><span class="sub">Anonimizada, para ayudarles a detectar el mismo guion.</span></span></label>
+              <label class="choice"><input type="checkbox" name="use" value="research"/><span class="box"><span class="ttl">Solo investigación</span><span class="sub">Estadísticas y tendencias agregadas. Nunca citada.</span></span></label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>¿Cómo deberíamos atribuirte, si es que lo hacemos?</label>
+            <div class="choices three">
+              <label class="choice"><input type="radio" name="credit" value="none"/><span class="box"><span class="ttl">Anónimo</span><span class="sub">Sin nombre. <em>Por defecto.</em></span></span></label>
+              <label class="choice"><input type="radio" name="credit" value="first"/><span class="box"><span class="ttl">Solo el nombre de pila</span><span class="sub">"David, 71, Manchester"</span></span></label>
+              <label class="choice"><input type="radio" name="credit" value="full"/><span class="box"><span class="ttl">Nombre completo</span><span class="sub">Solo si específicamente lo deseas.</span></span></label>
+            </div>
+          </div>
+
+          <div class="fstep-actions">
+            <span class="progress">Paso <strong>03</strong> / 04</span>
+            <div class="btn-actions-right">
+              <button type="button" class="btn btn-ghost" data-prev>← Atrás</button>
+              <button type="button" class="btn btn-primary" data-next>Continuar →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4 -->
+        <div class="fstep" data-step="3">
+          <span class="fstep-num">Paso 04 de 04</span>
+          <h3>Tú — <span class="em">pero solo si quieres.</span></h3>
+          <p class="hint">Todo aquí es opcional. Solo pedimos un correo para poder enviarte una copia de lo que escribiste, y un enlace de "retirar" de un clic para siempre. <em>Nunca</em> te añadimos a ninguna lista.</p>
+
+          <div class="field">
+            <label>Correo <span class="opt">opcional</span></label>
+            <input type="email" name="email" placeholder="tu@ejemplo.com"/>
+            <span class="help">Usado una vez, para enviarte tu copia y tu enlace de retirada. Borrado después — tu historia queda vinculada solo por un código aleatorio.</span>
+          </div>
+
+          <div class="field">
+            <label>Rango de edad <span class="opt">opcional · nos ayuda a ver a quién atacan</span></label>
+            <select name="age">
+              <option value="">Elige uno — o déjalo en blanco</option>
+              <option>Menos de 30</option><option>30–49</option><option>50–64</option><option>65–74</option><option>75+</option>
+              <option>Prefiero no decirlo</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Región <span class="opt">opcional</span></label>
+            <input type="text" name="region" placeholder="p. ej. Comunidad de Madrid, España"/>
+          </div>
+
+          <div class="field">
+            <label>¿Algo más que quieras que sepamos? <span class="opt">opcional</span></label>
+            <textarea name="extra" rows="3" placeholder="Quizás cómo te gustaría que respondamos, qué habría ayudado en su momento, o un mensaje para la próxima persona que lea sobre ello."></textarea>
+          </div>
+
+          <div class="fstep-actions">
+            <span class="progress">Listo para enviar · <strong>paso 04 / 04</strong></span>
+            <div class="btn-actions-right">
+              <button type="button" class="btn btn-ghost" data-prev>← Atrás</button>
+              <button type="submit" class="btn btn-primary">Compartir mi historia →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUCCESS -->
+        <div class="success" id="storySuccess" aria-live="polite">
+          <span class="success-stamp">✓ Recibida · gracias</span>
+          <h3>Acabas de ayudar a alguien <span class="em">que nunca conocerás.</span></h3>
+          <p>Una persona leerá tu historia en un plazo de 5 días laborables. Recibirás un correo con tu enlace de retirada — guárdalo. Si algo de tu historia se convierte en una alerta o una pieza publicada, lo verás antes que nadie.</p>
+          <span class="success-id" id="successId">REF · ASPS-2026-•••••</span>
+          <p style="font-family:var(--font-body);font-size:.92rem;color:var(--ink-3)">Si quieres hablar con una persona ahora, las líneas de apoyo de abajo están abiertas.</p>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- HOW WE HANDLE -->
+<section class="handle">
+  <div class="container">
+    <p class="kicker">Del envío a la alerta</p>
+    <h2>Qué le pasa a tu historia, <span class="em">paso a paso.</span></h2>
+
+    <div class="handle-list">
+      <div class="handle-row">
+        <span class="n">01</span>
+        <div>
+          <h3>Los datos personales se <span class="em">eliminan antes de la revisión.</span></h3>
+          <p>Nombres, números de teléfono, números de cuenta, importes y direcciones se reemplazan automáticamente por tokens neutrales (NOMBRE_01, IMPORTE_01) antes de que nadie vea la historia. El original está cifrado y solo accesible para ti vía tu enlace de retirada.</p>
+        </div>
+        <p class="when">En 60 segundos<span>Automático</span></p>
+      </div>
+
+      <div class="handle-row">
+        <span class="n">02</span>
+        <div>
+          <h3>Una persona lo lee. <span class="em">Una persona, no una cola.</span></h3>
+          <p>Nuestro equipo de cuidado — tres personas, todas con experiencia vivida o familiar de estafas — lee cada historia en un plazo de cinco días laborables. La etiqueta para la detección de patrones y te responde, en tu idioma.</p>
+        </div>
+        <p class="when">≤ 5 días laborables<span>Equipo de cuidado</span></p>
+      </div>
+
+      <div class="handle-row">
+        <span class="n">03</span>
+        <div>
+          <h3>Los patrones informan la próxima <span class="em">plantilla de alerta.</span></h3>
+          <p>Si tu historia incluye un guion, número o gancho que no hemos visto, el equipo de detección escribe una nueva regla de alerta. La mayoría de las reglas llegan a todos los usuarios en un plazo de 7–14 días desde la llegada de la historia. Te diremos si la tuya lo hizo.</p>
+        </div>
+        <p class="when">7–14 días<span>Detección</span></p>
+      </div>
+
+      <div class="handle-row">
+        <span class="n">04</span>
+        <div>
+          <h3>Si queremos publicar, <span class="em">lo ves primero.</span></h3>
+          <p>Para historias con permiso de publicación, te enviamos la versión propuesta antes de que vaya a ninguna parte. Puedes editar una sola palabra, editarlo todo, o retirarlo por completo. El valor por defecto es anónimo; incluso la atribución es voluntaria por publicación.</p>
+        </div>
+        <p class="when">Antes de publicar<span>Siempre revisado</span></p>
+      </div>
+
+      <div class="handle-row">
+        <span class="n">05</span>
+        <div>
+          <h3>Puedes retirarlo, <span class="em">para siempre.</span></h3>
+          <p>El enlace en tu correo de confirmación nunca caduca. Un clic y tu historia — y cada alerta derivada que te cite directamente — se purga. Los patrones aprendidos de tu historia se quedan; las citas no.</p>
+        </div>
+        <p class="when">Cuando sea · para siempre<span>Un clic</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SUPPORT -->
+<section class="support">
+  <div class="container">
+    <div class="support-grid">
+      <div>
+        <p class="kicker">Si no estás listo para escribir</p>
+        <h2>No tienes que compartir para <span class="em">recibir ayuda.</span></h2>
+        <p class="lede">Si prefieres hablar primero con alguien, o te estás recuperando y no estás listo para revisarlo — estas líneas son gratuitas, confidenciales, y entrenadas para escuchar sin prisas. ASPS no está afiliada a ninguna de ellas; las listamos porque son buenas.</p>
+      </div>
+
+      <div class="lines" aria-label="Líneas de ayuda de apoyo">
+        <div class="line"><span class="who">Action Fraud · RU</span><span class="what">Denuncia y apoyo inmediato para fraude y cibercrimen en el RU.</span><span class="phone">0300 123 2040</span></div>
+        <div class="line"><span class="who">Victim Support · RU</span><span class="what">Apoyo emocional y orientación práctica, cualquier tipo de delito, gratis.</span><span class="phone">0808 168 9111</span></div>
+        <div class="line"><span class="who">Centro Europeo del Consumidor</span><span class="what">Ayuda para estafas transfronterizas dentro de la UE, en cada idioma de los estados miembros.</span><span class="phone">+32 2 542 33 89</span></div>
+        <div class="line"><span class="who">AARP Fraud Watch · EE. UU.</span><span class="what">Línea de ayuda gratuita atendida por voluntarios entrenados, principalmente para adultos mayores.</span><span class="phone">877-908-3360</span></div>
+        <div class="line"><span class="who">Samaritans · 24/7</span><span class="what">Si la experiencia ha afectado tu salud mental — cualquiera, por cualquier razón.</span><span class="phone">116 123</span></div>
+        <div class="line"><span class="who">Citizens Advice · RU</span><span class="what">Ayuda para recuperar dinero y tratar con los bancos tras una estafa.</span><span class="phone">0800 144 8848</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA / closing quote -->
+<section class="cta">
+  <div class="container">
+    <blockquote>"Contárselo a alguien es la primera vez que deja de ser <span class="em">tu culpa.</span>"</blockquote>
+    <p class="attribution">— Margaret, 74 · la segunda historia que recibimos</p>
+    <div class="cta-actions">
+      <a href="#storyForm" class="btn btn-primary">Comparte tu historia</a>
+      <a href="stories.html" class="btn btn-ghost">Lee primero las de otros</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerLogoGrad)"/>
+          <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs><linearGradient id="footerLogoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+        </svg>
+        <p>Protección de IA en tiempo real contra el fraude, las estafas y la ingeniería social. Protegiendo a las personas en el momento más importante.</p>
+      </div>
+      <div class="footer-col"><h4>Plataforma</h4><a href="platform.html">Cómo funciona</a><a href="individuals.html#individuals">Para individuos</a><a href="individuals.html#families">Para familias</a><a href="partners.html">Para socios</a></div>
+      <div class="footer-col"><h4>Recursos</h4><a href="knowledge.html">Centro de conocimiento</a><a href="faq.html">Preguntas frecuentes</a><a href="stories.html#support">Obtener apoyo</a><a href="stories.html">Historias</a></div>
+      <div class="footer-col"><h4>Empresa</h4><a href="about.html">Sobre nosotros</a><a href="about.html#mission">Nuestra misión</a><a href="about.html#ethics">Ética y confianza</a><a href="contact.html">Contacto</a></div>
+    </div>
+    <div class="footer-bottom"><p>© 2026 ASPS. Todos los derechos reservados.</p><div class="footer-links"><a href="privacy.html">Privacidad</a><a href="privacy.html#terms">Términos</a><a href="accessibility.html">Accesibilidad</a></div></div>
+  </div>
+</footer>
+
+<script>
+const form = document.getElementById('storyForm');
+const steps = form.querySelectorAll('.fstep');
+const railItems = document.querySelectorAll('.steps-rail .step-item');
+const success = document.getElementById('storySuccess');
+let current = 0;
+
+function goTo(n){
+  current = Math.max(0, Math.min(steps.length-1, n));
+  steps.forEach((s,i)=>s.classList.toggle('active', i===current));
+  railItems.forEach((r,i)=>{
+    r.classList.toggle('active', i===current);
+    r.classList.toggle('complete', i<current);
+  });
+  form.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+form.querySelectorAll('[data-next]').forEach(b=>b.addEventListener('click',()=>goTo(current+1)));
+form.querySelectorAll('[data-prev]').forEach(b=>b.addEventListener('click',()=>goTo(current-1)));
+railItems.forEach(r=>r.addEventListener('click',()=>{const n=parseInt(r.dataset.go,10); if(!isNaN(n)) goTo(n);}));
+
+form.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const code = Math.random().toString(36).slice(2,7).toUpperCase();
+  const data = new FormData(form);
+  let body = 'Envío de historia · ASPS-2026-'+code+'\r\n\r\n';
+  for (const [k,v] of data.entries()) {
+    if (v && String(v).trim()) body += k+': '+v+'\r\n';
+  }
+  window.location.href = 'mailto:info@asps.io?subject='+encodeURIComponent('Envío de historia · ASPS-2026-'+code)+'&body='+encodeURIComponent(body);
+  document.getElementById('successId').textContent = 'REF · ASPS-2026-'+code;
+  steps.forEach(s=>s.classList.remove('active'));
+  success.classList.add('active');
+  railItems.forEach(r=>r.classList.add('complete'));
+  success.scrollIntoView({behavior:'smooth', block:'start'});
+});
+</script>
+
+<script src="cookie-banner.js"></script>
+</body>
+</html>

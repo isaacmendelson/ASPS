@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="Share your scam experience. Your story can protect others. There's nothing to be ashamed of."/>
+<meta property="og:title" content="Share Your Story - ASPS"/>
+<meta property="og:description" content="Your experience matters. Sharing your story can help protect others from scams."/>
+<title>Поделиться историей - ASPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700;800;900&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;0,16..72,700;1,16..72,400;1,16..72,500&family=Instrument+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg-dark: #100E0B;
+  --bg-navy: #1A1814;
+  --bg-navy-2: #1A1814;
+  --bg-white: #FFFFFF;
+  --bg-light: #F3EFE8;
+  --bg-warm-pink: #F3EFE8;
+  --bg-warm-purple: #F3EFE8;
+  --green-500: #BE3A4B;
+  --green-400: #BE3A4B;
+  --green-dim: rgba(190, 58, 75, 0.12);
+  --purple: #7C3AED;
+  --purple-dim: rgba(124,58,237,0.12);
+  --pink: #EC4899;
+  --pink-dim: rgba(236,72,153,0.12);
+  --orange: #FF6B35;
+  --text-white: #FFFFFF;
+  --text-light: #E2E8F0;
+  --text-muted: #94A3B8;
+  --text-dark: #1A1814;
+  --text-dark-2: #4A4640;
+  --text-dark-3: #6B655C;
+  --on-light-heading: #1A1814;
+  --on-light-body: #475569;
+  --border-dark: rgba(255,255,255,0.08);
+  --border-light: #E4DDD2;
+  --font-body: 'Instrument Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Syne', Georgia, serif;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg-white);
+  color: var(--text-dark);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+@media (min-width: 768px) { .container { padding: 0 40px; } }
+
+/* Navigation */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  height: 72px;
+  background: rgba(26,24,20,0.97);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-dark);
+}
+.nav-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 40px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+.nav-logo { display: flex; align-items: center; }
+.nav-links { display: none; align-items: center; gap: 8px; }
+@media (min-width: 1024px) { .nav-links { display: flex; } }
+.nav-link {
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+.nav-link:hover { color: var(--text-white); background: rgba(255,255,255,0.05); }
+.nav-link.active { color: var(--pink); }
+.nav-actions { display: flex; align-items: center; gap: 12px; }
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+  border: none;
+}
+.nav-btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-dark);
+}
+.nav-btn-ghost:hover { color: var(--text-white); border-color: rgba(255,255,255,0.25); }
+.nav-btn-primary { background: var(--text-white); color: var(--bg-navy); }
+.nav-btn-primary:hover { background: var(--bg-light); }
+
+/* Hero */
+.hero {
+  padding: 140px 0 80px;
+  background: linear-gradient(135deg, var(--bg-warm-pink) 0%, var(--bg-warm-purple) 100%);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero-pattern {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 2px 2px, rgba(236,72,153,0.08) 1px, transparent 0);
+  background-size: 32px 32px;
+}
+.hero-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 32px;
+  background: linear-gradient(135deg, var(--pink), var(--purple));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  box-shadow: 0 8px 32px rgba(236,72,153,0.3);
+}
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 5vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--on-light-heading);
+  margin-bottom: 24px;
+}
+.hero-title-accent { color: var(--pink); }
+.hero-subtitle {
+  font-size: 1.25rem;
+  line-height: 1.8;
+  color: var(--on-light-body);
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+/* Section */
+.section { padding: 80px 0; }
+.section-warm { background: linear-gradient(180deg, var(--bg-warm-purple) 0%, var(--bg-white) 100%); }
+.section-light { background: var(--bg-white); }
+.section-gray { background: var(--bg-light); }
+
+/* Why Share Section */
+.why-share-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  margin-top: 48px;
+}
+@media (min-width: 768px) { .why-share-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .why-share-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.why-card {
+  padding: 40px 32px;
+  background: var(--bg-white);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  transition: var(--transition);
+}
+.why-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(236,72,153,0.12);
+}
+.why-card-icon {
+  width: 64px;
+  height: 64px;
+  background: var(--pink-dim);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  margin-bottom: 24px;
+}
+.why-card h3 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--on-light-heading);
+  margin-bottom: 12px;
+}
+.why-card p {
+  font-size: 1rem;
+  color: var(--on-light-body);
+  line-height: 1.75;
+}
+
+/* Truth Section */
+.truth-section {
+  padding: 100px 0;
+  background: linear-gradient(135deg, var(--bg-navy) 0%, var(--bg-navy-2) 100%);
+}
+.truth-content {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+}
+.truth-quote {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 800;
+  color: var(--text-white);
+  line-height: 1.5;
+  margin-bottom: 32px;
+}
+.truth-quote .highlight {
+  color: var(--pink);
+}
+.truth-text {
+  font-size: 1.125rem;
+  color: var(--text-light);
+  line-height: 1.85;
+  margin-bottom: 24px;
+}
+.truth-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 48px;
+  margin-top: 48px;
+  padding-top: 48px;
+  border-top: 1px solid var(--border-dark);
+}
+.truth-stat {
+  text-align: center;
+}
+.truth-stat-value {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--pink);
+  margin-bottom: 8px;
+}
+.truth-stat-label {
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+}
+
+/* Myths Section */
+.myths-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  margin-top: 48px;
+}
+@media (min-width: 768px) { .myths-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.myth-card {
+  padding: 32px;
+  background: var(--bg-white);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-xl);
+}
+.myth-label {
+  display: inline-block;
+  padding: 6px 12px;
+  background: #FEE2E2;
+  color: #DC2626;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: var(--radius-full);
+  margin-bottom: 16px;
+}
+.myth-text {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-dark-2);
+  margin-bottom: 16px;
+  text-decoration: line-through;
+  text-decoration-color: #DC2626;
+}
+.truth-label {
+  display: inline-block;
+  padding: 6px 12px;
+  background: var(--green-dim);
+  color: var(--green-500);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: var(--radius-full);
+  margin-bottom: 12px;
+}
+.reality-text {
+  font-size: 1rem;
+  color: var(--on-light-body);
+  line-height: 1.75;
+}
+
+/* Stories Examples */
+.stories-examples {
+  margin-top: 48px;
+}
+.story-example {
+  padding: 40px;
+  background: linear-gradient(135deg, var(--bg-warm-pink), var(--bg-warm-purple));
+  border-radius: var(--radius-xl);
+  margin-bottom: 24px;
+}
+.story-example-quote {
+  font-size: 1.1875rem;
+  font-style: italic;
+  color: var(--on-light-heading);
+  line-height: 1.8;
+  margin-bottom: 20px;
+}
+.story-example-author {
+  font-size: 0.9375rem;
+  color: var(--on-light-body);
+  font-weight: 600;
+}
+.story-example-context {
+  font-size: 0.875rem;
+  color: var(--text-dark-3);
+  margin-top: 4px;
+}
+
+/* Promise Section */
+.promise-section {
+  padding: 80px 0;
+  background: var(--bg-light);
+}
+.promise-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  margin-top: 40px;
+}
+@media (min-width: 768px) { .promise-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.promise-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 24px;
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+}
+.promise-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  background: var(--green-dim);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+.promise-card h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--on-light-heading);
+  margin-bottom: 6px;
+}
+.promise-card p {
+  font-size: 0.9375rem;
+  color: var(--on-light-body);
+  line-height: 1.6;
+}
+
+/* Form Section */
+.form-section {
+  padding: 100px 0;
+  background: var(--bg-white);
+}
+.form-container {
+  max-width: 700px;
+  margin: 0 auto;
+}
+.form-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+.form-title {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--on-light-heading);
+  margin-bottom: 16px;
+}
+.form-subtitle {
+  font-size: 1.0625rem;
+  color: var(--on-light-body);
+  line-height: 1.7;
+}
+
+.story-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.form-label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--on-light-heading);
+}
+.form-label-optional {
+  font-weight: 400;
+  color: var(--text-dark-3);
+}
+.form-input,
+.form-select,
+.form-textarea {
+  padding: 16px 20px;
+  font-size: 1rem;
+  font-family: var(--font-body);
+  color: var(--text-dark);
+  background: var(--bg-light);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  transition: var(--transition);
+}
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--pink);
+  background: var(--bg-white);
+}
+.form-textarea {
+  min-height: 200px;
+  resize: vertical;
+}
+.form-hint {
+  font-size: 0.8125rem;
+  color: var(--text-dark-3);
+  line-height: 1.5;
+}
+
+.form-checkbox-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.form-checkbox {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--pink);
+}
+.form-checkbox-label {
+  font-size: 0.9375rem;
+  color: var(--on-light-body);
+  line-height: 1.6;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 32px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.btn-pink {
+  background: linear-gradient(135deg, var(--pink), var(--purple));
+  color: var(--text-white);
+  box-shadow: 0 4px 20px rgba(236,72,153,0.35);
+}
+.btn-pink:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(236,72,153,0.45);
+}
+
+.form-success {
+  display: none;
+  text-align: center;
+  padding: 48px;
+  background: var(--green-dim);
+  border-radius: var(--radius-xl);
+}
+.form-success-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+.form-success h3 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--green-500);
+  margin-bottom: 12px;
+}
+.form-success p {
+  font-size: 1rem;
+  color: var(--on-light-body);
+  line-height: 1.7;
+}
+
+/* Section Headers */
+.section-header {
+  max-width: 700px;
+  margin-bottom: 48px;
+}
+.section-header.center {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+.section-label {
+  display: inline-block;
+  padding: 8px 16px;
+  background: var(--pink-dim);
+  color: var(--pink);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: var(--radius-full);
+  margin-bottom: 20px;
+}
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: var(--on-light-heading);
+  margin-bottom: 16px;
+}
+.section-subtitle {
+  font-size: 1.125rem;
+  line-height: 1.8;
+  color: var(--on-light-body);
+}
+
+/* Footer */
+.footer {
+  padding: 80px 0 40px;
+  background: var(--bg-dark);
+}
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 48px;
+  margin-bottom: 64px;
+}
+@media (min-width: 768px) { .footer-grid { grid-template-columns: 2fr 1fr 1fr 1fr; } }
+.footer-brand p {
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+  line-height: 1.75;
+  max-width: 320px;
+  margin-top: 20px;
+}
+.footer-col h4 {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-light);
+  margin-bottom: 20px;
+}
+.footer-col a {
+  display: block;
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  transition: var(--transition);
+}
+.footer-col a:hover { color: var(--green-400); }
+.footer-bottom {
+  padding-top: 32px;
+  border-top: 1px solid var(--border-dark);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.footer-bottom p { font-size: 0.875rem; color: #64748B; }
+.footer-links { display: flex; gap: 24px; }
+.footer-links a { font-size: 0.875rem; color: #64748B; transition: var(--transition); }
+.footer-links a:hover { color: var(--text-light); }
+/* Language Dropdown */
+.lang-dropdown {
+  position: relative;
+}
+.lang-dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: #E2E8F0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.25s;
+}
+.lang-dropdown-btn:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.25);
+}
+.lang-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 140px;
+  padding: 8px 0;
+  background: #1A1814;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: 0.25s;
+  z-index: 100;
+}
+.lang-dropdown:hover .lang-dropdown-menu,
+.lang-dropdown:focus-within .lang-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.lang-option {
+  display: block;
+  padding: 10px 16px;
+  font-size: 0.875rem;
+  color: #94A3B8;
+  transition: 0.25s;
+  text-decoration: none;
+}
+.lang-option:hover {
+  background: rgba(255,255,255,0.05);
+  color: #FFFFFF;
+}
+.lang-option.active {
+  color: #BE3A4B;
+  font-weight: 600;
+}
+
+</style>
+
+<style>
+/* EDITORIAL THEME OVERRIDE */
+:root{--ed-paper:#FAF7F2;--ed-paper-2:#F3EFE8;--ed-ink:#1A1814;--ed-ink-2:#4A4640;--ed-ink-3:#6B655C;--ed-accent:#BE3A4B;--ed-accent-strong:#8E1A2A;--ed-rule:#E4DDD2;--ed-rule-2:#D7CFC2;--ed-serif:'Frank Ruhl Libre','Newsreader',Georgia,serif}
+body{background:var(--ed-paper) !important;color:var(--ed-ink)}
+h1,h2,h3,h4,h5,.hero-title,.section-title,.page-hero h1{font-family:var(--ed-serif) !important;font-weight:500 !important;letter-spacing:0 !important}
+.hero-title,.section-title{letter-spacing:-.01em !important}
+.section-eyebrow,.hero-eyebrow,.hero-badge,.stat-label,.step-num,.stat-value,.footer-col h4,.nav-link,.nav-btn,.btn{font-family:'Syne',Georgia,serif !important}
+.why-now,.human-section,.pain-cards-grid,.stats,section[class*="warm"]{background:var(--ed-paper-2) !important}
+.hero,.partners,.how-it-works,.footer,footer.footer{background-color:var(--ed-ink) !important}
+.hero{background-image:linear-gradient(145deg,var(--ed-ink) 0%,#2A2620 60%,var(--ed-ink) 100%) !important}
+.partners,.how-it-works{background-image:none !important}
+.nav{background:rgba(26,24,20,0.96) !important}
+.nav-link.active{color:var(--ed-accent) !important}
+.nav-link.active::after{background:var(--ed-accent) !important}
+.btn-green,.cf-btn,button[type="submit"].cf-btn{background:var(--ed-accent) !important;background-image:linear-gradient(135deg,var(--ed-accent),var(--ed-accent-strong)) !important;color:#fff !important;box-shadow:0 4px 20px rgba(190,58,75,0.30) !important}
+.hero-badge{background:rgba(190,58,75,0.10) !important;border-color:rgba(190,58,75,0.30) !important}
+.hero-badge-dot{background:var(--ed-accent) !important;box-shadow:0 0 12px var(--ed-accent) !important}
+.threat-pill-dot.green{background:var(--ed-accent) !important;box-shadow:0 0 8px var(--ed-accent) !important}
+.stat-value.green,.stat-value.dark{color:var(--ed-accent) !important}
+.hero-stat-value,.hero-title-accent{color:var(--ed-accent) !important}
+.pain-card:hover,.intel-card:hover{border-color:var(--ed-accent) !important;box-shadow:0 8px 30px rgba(190,58,75,0.10) !important}
+.footer-col a:hover,a:hover{color:var(--ed-accent)}
+.origin-body p,.mission-statement,.princ-body,.pullquote-text,.pain-card p,.step-card p,.intel-card p,.human-section p,.epidemic p{font-family:'Newsreader',Georgia,serif}
+.cf-input,.cf-textarea,input[type="text"],input[type="email"],textarea,select{background:#FFFFFF !important;border-color:var(--ed-rule-2) !important;color:var(--ed-ink) !important}
+.cf-input:focus,.cf-textarea:focus,input:focus,textarea:focus,select:focus{border-color:var(--ed-accent) !important;outline:none !important}
+.pain-card,.intel-card,.step-card,.partner-logo{background:#FFFFFF !important;border-color:var(--ed-rule) !important}
+.footer a{color:#94A3B8}
+.footer a:hover{color:var(--ed-accent)}
+section[style*="background:#fff"],section[style*="background:#FFFFFF"],main[style*="background:#fff"]{background:var(--ed-paper) !important}
+.page-hero{background:var(--ed-ink) !important}
+.contact-info-label,.contact-press strong{color:var(--ed-ink) !important}
+.ci-icon{background:rgba(190,58,75,0.10) !important}
+.ci-icon svg{stroke:var(--ed-accent) !important}
+.contact-press{border-left-color:var(--ed-accent) !important}
+.ci-row:hover{color:var(--ed-accent) !important}
+html[lang="he"] body{font-family:'Heebo',sans-serif}
+.skip-link{background:var(--ed-accent) !important}
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#BE3A4B"/>
+        <circle cx="20" cy="6" r="4" fill="#BE3A4B" opacity="0.4">
+          <animate attributeName="r" values="4;8;4" dur="2.5s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.4;0;0.4" dur="2.5s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs>
+          <linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#BE3A4B"/>
+            <stop offset="100%" stop-color="#8E1A2A"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </a>
+    
+    <div class="nav-links">
+      <a href="index.html#epidemic" class="nav-link">Угроза</a>
+      <a href="platform.html" class="nav-link">Как это работает</a>
+      <a href="knowledge.html" class="nav-link">База знаний</a>
+      <a href="stories.html" class="nav-link">Истории</a>
+      <a href="partners.html" class="nav-link">Партнёры</a>
+      <a href="about.html" class="nav-link">О нас</a>
+    </div>
+    
+    <div class="nav-actions">
+      <div class="lang-dropdown">
+        <button class="lang-dropdown-btn" aria-label="Выбрать язык">
+          <span class="lang-current">RU</span>
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l4 4 4-4"/></svg>
+        </button>
+        <div class="lang-dropdown-menu">
+          <a href="../share-story.html" class="lang-option">English</a>
+          <a href="../he/share-story.html" class="lang-option">עברית</a>
+          <a href="../fr/share-story.html" class="lang-option">Français</a>
+          <span class="lang-option active">Русский</span>
+          <a href="../es/share-story.html" class="lang-option">Español</a>
+        </div>
+      </div>
+      <a href="../partner-login.html" class="nav-btn nav-btn-ghost">Вход для партнёров</a>
+      <a href="contact.html" class="nav-btn nav-btn-primary">Защититься</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-pattern"></div>
+  <div class="container" style="position: relative; z-index: 2;">
+    <div class="hero-icon">💜</div>
+    <h1 class="hero-title">הסיפור שלך <span class="hero-title-accent">חשוב.</span></h1>
+    <p class="hero-subtitle">Chaque histoire partagée est un bouclier pour quelqu'un d'autre. Your experience — no matter how painful — can help protect others from the same manipulation. You are not alone, and there is nothing to be ashamed of.</p>
+  </div>
+</section>
+
+<!-- Why Share -->
+<section class="section section-warm">
+  <div class="container">
+    <div class="section-header center">
+      <span class="section-label">Pourquoi partager</span>
+      <h2 class="section-title">Your voice has power.</h2>
+      <p class="section-subtitle">Sharing your experience isn't just cathartic — it's an act of courage that creates real change in the world.</p>
+    </div>
+    
+    <div class="why-share-grid">
+      <div class="why-card">
+        <div class="why-card-icon">🛡️</div>
+        <h3>Protéger les autres</h3>
+        <p>When you describe the tactics used against you, you arm others with knowledge. Your story becomes a warning sign that helps someone else recognize danger before it's too late.</p>
+      </div>
+      
+      <div class="why-card">
+        <div class="why-card-icon">💪</div>
+        <h3>Reprendre le contrôle</h3>
+        <p>Scammers thrive on silence and shame. By speaking up, you take back control of your narrative. Your story becomes one of strength, not victimhood.</p>
+      </div>
+      
+      <div class="why-card">
+        <div class="why-card-icon">🤝</div>
+        <h3>Créer une communauté</h3>
+        <p>When you share, you show others they're not alone. You create connection and solidarity. Together, we're stronger than any scammer.</p>
+      </div>
+      
+      <div class="why-card">
+        <div class="why-card-icon">📢</div>
+        <h3>Sensibiliser</h3>
+        <p>Real stories cut through the noise. They make the abstract threat concrete. They move policy makers, journalists, and families to take action.</p>
+      </div>
+      
+      <div class="why-card">
+        <div class="why-card-icon">🔬</div>
+        <h3>Améliorer la protection</h3>
+        <p>Every story teaches us something new about how scammers operate. Your experience directly informs better detection systems and prevention tools.</p>
+      </div>
+      
+      <div class="why-card">
+        <div class="why-card-icon">❤️</div>
+        <h3>Guérir en partageant</h3>
+        <p>Many people find that telling their story — and being heard without judgment — is a powerful step in processing what happened and moving forward.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Truth Section -->
+<section class="truth-section">
+  <div class="container">
+    <div class="truth-content">
+      <p class="truth-quote">"Being scammed is <span class="highlight">not a character flaw.</span> Ce n'est pas de la stupidité. It's not carelessness. C'est le résultat d'une manipulation psychologique sophistiquée designed by professionals."</p>
+      
+      <p class="truth-text">Scammers are trained to exploit fundamental human traits — trust, love, fear, hope, urgency. They study psychology. They practice their craft. They use AI to make their deception flawless.</p>
+      
+      <p class="truth-text">Doctors fall for scams. Lawyers fall for scams. Cybersecurity experts fall for scams. Judges, professors, engineers — people who analyze risk for a living. Because scams don't target intelligence. They target humanity.</p>
+      
+      <p class="truth-text" style="font-weight: 600; color: var(--pink);">There is absolutely nothing to be ashamed of.</p>
+      
+      <div class="truth-stats">
+        <div class="truth-stat">
+          <div class="truth-stat-value">57%</div>
+          <div class="truth-stat-label">of adults targeted yearly</div>
+        </div>
+        <div class="truth-stat">
+          <div class="truth-stat-value">70%</div>
+          <div class="truth-stat-label">never tell anyone</div>
+        </div>
+        <div class="truth-stat">
+          <div class="truth-stat-value">$442B</div>
+          <div class="truth-stat-label">lost globally each year</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Myths Section -->
+<section class="section section-light">
+  <div class="container">
+    <div class="section-header center">
+      <span class="section-label">Breaking the stigma</span>
+      <h2 class="section-title">Let's destroy these myths.</h2>
+      <p class="section-subtitle">The shame around scams is built on false beliefs. Here's the truth.</p>
+    </div>
+    
+    <div class="myths-grid">
+      <div class="myth-card">
+        <span class="myth-label">Myth</span>
+        <p class="myth-text">"Only naive or uneducated people fall for scams."</p>
+        <span class="truth-label">Truth</span>
+        <p class="reality-text">Scammers specifically target successful, educated people because they have more to lose. Intelligence doesn't protect you — awareness does.</p>
+      </div>
+      
+      <div class="myth-card">
+        <span class="myth-label">Myth</span>
+        <p class="myth-text">"I should have known better."</p>
+        <span class="truth-label">Truth</span>
+        <p class="reality-text">Scammers are professional manipulators. They create scenarios designed to bypass rational thinking. Hindsight isn't a fair judge of decisions made under manufactured pressure.</p>
+      </div>
+      
+      <div class="myth-card">
+        <span class="myth-label">Myth</span>
+        <p class="myth-text">"If I tell people, they'll think less of me."</p>
+        <span class="truth-label">Truth</span>
+        <p class="reality-text">Most people respond with empathy, not judgment. And those who judge often do so out of fear — a fear that diminishes when they hear your story.</p>
+      </div>
+      
+      <div class="myth-card">
+        <span class="myth-label">Myth</span>
+        <p class="myth-text">"My story isn't important enough to share."</p>
+        <span class="truth-label">Truth</span>
+        <p class="reality-text">Every scam attempt — whether you lost money or not — contains valuable information. Your story might be the exact warning someone else needs to hear.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Example Stories -->
+<section class="section section-gray">
+  <div class="container">
+    <div class="section-header center">
+      <span class="section-label">Voices like yours</span>
+      <h2 class="section-title">Others have shared. You can too.</h2>
+      <p class="section-subtitle">These are real people who found courage to speak up — and helped others in the process.</p>
+    </div>
+    
+    <div class="stories-examples">
+      <div class="story-example">
+        <p class="story-example-quote">"I'm a software engineer. I build security systems for a living. And I almost wired $15,000 to someone pretending to be my son. The voice was perfect — it was AI. Sharing this story felt humiliating at first, but then three of my colleagues told me they'd had similar calls. We weren't stupid. We were targeted."</p>
+        <p class="story-example-author">— David, 58</p>
+        <p class="story-example-context">His story has been shared over 2,000 times and helped identify a voice cloning ring</p>
+      </div>
+      
+      <div class="story-example">
+        <p class="story-example-quote">"After my husband passed, I was lonely. A man online seemed to understand. Over six months, I sent him $40,000 for emergencies that never existed. I blamed myself for years. Then I shared my story at a community center. An elderly woman came up to me crying — I had just described exactly what was happening to her. We stopped her from losing her savings. That's when I realized: my shame was protecting scammers, not me."</p>
+        <p class="story-example-author">— Margaret, 71</p>
+        <p class="story-example-context">Now speaks at senior centers about romance scams</p>
+      </div>
+      
+      <div class="story-example">
+        <p class="story-example-quote">"The 'job offer' seemed perfect — remote work, great pay. They just needed my bank details for direct deposit. I'm 24 and supposedly 'digital native.' I felt like an idiot. But when I posted about it, my DMs exploded. Dozens of people my age had the same thing happen. This isn't a personal failure. It's an epidemic."</p>
+        <p class="story-example-author">— Priya, 24</p>
+        <p class="story-example-context">Her post reached 50K people and was cited in a news investigation</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Our Promise -->
+<section class="promise-section">
+  <div class="container">
+    <div class="section-header center">
+      <span class="section-label">Our promise to you</span>
+      <h2 class="section-title">Share safely with us.</h2>
+      <p class="section-subtitle">We treat every story with the respect and care it deserves.</p>
+    </div>
+    
+    <div class="promise-grid">
+      <div class="promise-card">
+        <div class="promise-icon">🔒</div>
+        <div>
+          <h4>Complete anonymity</h4>
+          <p>We never publish names or identifying details without explicit permission.</p>
+        </div>
+      </div>
+      
+      <div class="promise-card">
+        <div class="promise-icon">🤐</div>
+        <div>
+          <h4>No judgment</h4>
+          <p>Our team understands that scams can happen to anyone. We're here to listen, not to judge.</p>
+        </div>
+      </div>
+      
+      <div class="promise-card">
+        <div class="promise-icon">✅</div>
+        <div>
+          <h4>Your control</h4>
+          <p>You decide how your story is used. You can request changes or removal at any time.</p>
+        </div>
+      </div>
+      
+      <div class="promise-card">
+        <div class="promise-icon">🎯</div>
+        <div>
+          <h4>Purposeful use</h4>
+          <p>Stories are used only to protect others — through awareness, education, and better detection.</p>
+        </div>
+      </div>
+      
+      <div class="promise-card">
+        <div class="promise-icon">💬</div>
+        <div>
+          <h4>Follow-up support</h4>
+          <p>If you want to talk more, we can connect you with resources and support communities.</p>
+        </div>
+      </div>
+      
+      <div class="promise-card">
+        <div class="promise-icon">🙏</div>
+        <div>
+          <h4>Gratitude</h4>
+          <p>We recognize the courage it takes to share. Thank you for helping protect others.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Form Section -->
+<section id="form" class="form-section">
+  <div class="container">
+    <div class="form-container">
+      <div class="form-header">
+        <h2 class="form-title">שתף את הסיפור שלך</h2>
+        <p class="form-subtitle">Take your time. Share as much or as little as you're comfortable with. Every detail helps, but nothing is required except what happened.</p>
+      </div>
+      
+      <form class="story-form" id="story-form">
+        <div class="form-group">
+          <label class="form-label" for="scam-type">What type of scam was it?</label>
+          <select class="form-select" id="scam-type" name="scam_type">
+            <option value="">Select if you know...</option>
+            <option value="voice_cloning">Voice cloning / AI impersonation</option>
+            <option value="romance">Romance scam</option>
+            <option value="bank_impersonation">Bank or government impersonation</option>
+            <option value="tech_support">Tech support scam</option>
+            <option value="investment">Investment or crypto scam</option>
+            <option value="job">Job or employment scam</option>
+            <option value="phishing">Phishing email or text</option>
+            <option value="family_emergency">Family emergency scam</option>
+            <option value="other">Other / Not sure</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="story">What happened? <span class="form-label-optional">(required)</span></label>
+          <textarea class="form-textarea" id="story" name="story" required placeholder="Tell us your story in your own words. What did the scammer say or do? What made it convincing? How did you realize it was a scam? Don't worry about structure — just share what feels important."></textarea>
+          <p class="form-hint">Share as much or as little as you're comfortable with. Real details help others recognize similar tactics.</p>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="lesson">What do you wish you had known? <span class="form-label-optional">(optional)</span></label>
+          <textarea class="form-textarea" id="lesson" name="lesson" style="min-height: 100px;" placeholder="Looking back, what warning sign do you wish you'd noticed? What would you tell someone in the same situation?"></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="email">Email <span class="form-label-optional">(optional — only if you'd like us to follow up)</span></label>
+          <input type="email" class="form-input" id="email" name="email" placeholder="your@email.com"/>
+          <p class="form-hint">We'll only use this to follow up if you want, or to let you know if your story helped someone.</p>
+        </div>
+        
+        <div class="form-checkbox-group">
+          <input type="checkbox" class="form-checkbox" id="anonymous" name="anonymous" checked/>
+          <label class="form-checkbox-label" for="anonymous">Keep my story anonymous. Don't include any details that could identify me if this story is shared publicly.</label>
+        </div>
+        
+        <div class="form-checkbox-group">
+          <input type="checkbox" class="form-checkbox" id="consent" name="consent" required/>
+          <label class="form-checkbox-label" for="consent">I understand my story may be used (anonymously unless I specify otherwise) to help educate others and improve scam detection. I can request removal at any time by emailing info@asps.io.</label>
+        </div>
+        
+        <button type="submit" class="btn btn-pink" style="width: 100%; margin-top: 16px;">
+          Share my story
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </form>
+      
+      <div class="form-success" id="form-success">
+        <div class="form-success-icon">💜</div>
+        <h3>Thank you for your courage.</h3>
+        <p>Your story has been received. What you've shared will help protect others from experiencing the same thing. You've turned a painful experience into something powerful.<br><br>If you left your email, we may reach out. Otherwise, know that your contribution matters more than you might realize.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerLogoGrad)"/>
+          <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#BE3A4B"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs>
+            <linearGradient id="footerLogoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#BE3A4B"/>
+              <stop offset="100%" stop-color="#8E1A2A"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <p>Защита в реальном времени с помощью ИИ от мошенничества и социальной инженерии. Защищаем людей в критический момент.</p>
+      </div>
+      
+      <div class="footer-col">
+        <h4>Платформа</h4>
+        <a href="platform.html">Как это работает</a>
+        <a href="individuals.html#individuals">Для частных лиц</a>
+        <a href="individuals.html#families">Для семей</a>
+        <a href="partners.html">Для партнёров</a>
+      </div>
+      
+      <div class="footer-col">
+        <h4>Ресурсы</h4>
+        <a href="knowledge.html">База знаний</a>
+        <a href="knowledge.html">Аналитика мошенничества</a>
+        <a href="stories.html#support">Получить помощь</a>
+        <a href="stories.html">Истории</a>
+      </div>
+      
+      <div class="footer-col">
+        <h4>Компания</h4>
+        <a href="about.html">О нас</a>
+        <a href="about.html#mission">Наша миссия</a>
+        <a href="about.html#ethics">Этика и доверие</a>
+        <a href="contact.html">Контакт</a>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <p>© 2026 ASPS. Все права защищены.</p>
+      <div class="footer-links">
+        <a href="privacy.html">Конфиденциальность</a>
+        <a href="privacy.html#terms">Условия</a>
+        <a href="privacy.html#cookies">Куки</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Form submission
+document.getElementById('story-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  this.style.display = 'none';
+  document.getElementById('form-success').style.display = 'block';
+  window.scrollTo({ top: document.getElementById('form').offsetTop - 100, behavior: 'smooth' });
+});
+</script>
+<script src="../cookie-banner.js"></script>
+</body>
+</html>

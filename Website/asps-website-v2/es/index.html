@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="ASPS — Protección de IA en tiempo real contra el fraude, las estafas y la ingeniería social. Detén las estafas antes de que ocurran."/>
+<meta property="og:title" content="ASPS — Detén las estafas antes de que ocurran"/>
+<meta property="og:description" content="Protección de IA en tiempo real contra el fraude, las estafas y la ingeniería social."/>
+<title>ASPS — Detén las estafas antes de que ocurran</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;0,16..72,700;1,16..72,400;1,16..72,500;1,16..72,600&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-dark:#070B14; --bg-paper:#FAF7F2; --bg-paper-2:#F3EFE8;
+  --accent:#BE3A4B; --accent-strong:#8E1A2A;
+  --ink:#1A1814; --ink-2:#4A4640; --ink-3:#6B655C;
+  --rule:#E4DDD2; --rule-2:#D7CFC2;
+  --font-body:'Instrument Sans',-apple-system,sans-serif;
+  --font-serif:'Newsreader',Georgia,serif;
+  --font-display:'Syne',Georgia,serif;
+  --transition:0.25s cubic-bezier(0.4,0,0.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--bg-paper);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+@media(min-width:768px){.container{padding:0 40px}}
+@media(min-width:1024px){.container{padding:0 60px}}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:1000;height:72px;background:rgba(15,18,56,0.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08)}
+.nav-inner{max-width:1400px;margin:0 auto;padding:0 40px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:32px}
+.nav-logo{display:flex;align-items:center;flex-shrink:0}
+.nav-links{display:none;align-items:center;gap:8px}
+@media(min-width:1024px){.nav-links{display:flex}}
+.nav-link{padding:8px 16px;font-size:.875rem;font-weight:500;color:#94A3B8;border-radius:8px;transition:var(--transition)}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,0.05)}
+.nav-link.active{color:#fff;position:relative}
+.nav-link.active::after{content:'';position:absolute;left:16px;right:16px;bottom:0;height:2px;background:var(--accent)}
+.nav-actions{display:flex;align-items:center;gap:12px}
+.nav-btn{padding:10px 20px;font-size:.875rem;font-weight:600;border-radius:8px;transition:var(--transition);border:none}
+.nav-btn-ghost{background:transparent;color:#94A3B8;border:1px solid rgba(255,255,255,0.12)}
+.nav-btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.25)}
+.nav-btn-primary{background:#fff;color:#0F1238}
+.nav-btn-primary:hover{background:#EEF0FF}
+.lang-dropdown{position:relative}
+.lang-dropdown-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#E2E8F0;font-size:.8125rem;font-weight:600;cursor:pointer;transition:var(--transition)}
+.lang-dropdown-btn:hover{background:rgba(255,255,255,0.1)}
+.lang-dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:140px;padding:8px 0;background:#0F1238;border:1px solid rgba(255,255,255,0.12);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.3);opacity:0;visibility:hidden;transform:translateY(-8px);transition:var(--transition);z-index:100}
+.lang-dropdown:hover .lang-dropdown-menu,.lang-dropdown:focus-within .lang-dropdown-menu{opacity:1;visibility:visible;transform:translateY(0)}
+.lang-option{display:block;padding:10px 16px;font-size:.875rem;color:#94A3B8;transition:var(--transition)}
+.lang-option:hover{background:rgba(255,255,255,0.05);color:#fff}
+.lang-option.active{color:var(--accent);font-weight:600}
+.nav-mobile-btn{display:none}
+
+/* Shared */
+.section-eyebrow{display:inline-flex;align-items:center;gap:14px;margin-bottom:18px;font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+.section-eyebrow.with-rule::before{content:'';width:32px;height:1px;background:var(--accent);opacity:.5}
+.section-title{font-family:var(--font-serif);font-weight:500;font-size:clamp(2rem,4vw,3rem);line-height:1.05;letter-spacing:-.025em;color:var(--ink)}
+.section-title .em{font-style:italic;font-weight:500;color:var(--accent-strong)}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 28px;font-family:var(--font-display);font-size:.84rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;border:none;transition:var(--transition);cursor:pointer}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-accent:hover{background:var(--accent-strong)}
+.btn-ink{background:transparent;color:var(--ink);border:1px solid var(--rule-2)}
+.btn-ink:hover{border-color:var(--ink)}
+.btn-ghost{background:transparent;color:#F5F0E7;border:1px solid rgba(245,240,231,0.25)}
+.btn-ghost:hover{border-color:rgba(245,240,231,0.55)}
+
+/* MASTHEAD / HERO */
+.masthead{padding:80px 0 64px;background:var(--bg-paper);border-bottom:1px solid var(--rule)}
+.masthead-top{display:flex;justify-content:space-between;align-items:baseline;gap:20px;padding-bottom:18px;border-bottom:1px solid var(--rule-2);margin-bottom:36px;font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+.masthead-top .right{color:var(--accent)}
+.hero-grid{display:grid;grid-template-columns:1fr;gap:56px;align-items:start}
+@media(min-width:980px){.hero-grid{grid-template-columns:7fr 5fr;gap:80px}}
+.hero-lead h1{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2.8rem,6.5vw,5rem);line-height:.98;letter-spacing:-.03em;color:var(--ink);margin-bottom:24px}
+.hero-lead h1 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.hero-lede{font-family:var(--font-serif);font-size:1.25rem;line-height:1.55;color:var(--ink-2);max-width:620px}
+.hero-actions{display:flex;flex-wrap:wrap;gap:14px;margin-top:36px}
+.hero-byline{display:flex;flex-wrap:wrap;gap:32px;margin-top:40px;padding-top:24px;border-top:1px solid var(--rule);font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase}
+.hero-byline span{color:var(--ink-3)}
+.hero-byline strong{display:block;margin-top:6px;font-family:var(--font-serif);font-weight:600;font-style:italic;font-size:1.5rem;letter-spacing:-.01em;text-transform:none;color:var(--ink)}
+.hero-byline a{color:inherit;border-bottom:1px solid var(--rule-2)}
+
+/* BRIEF panel (intelligence) */
+.brief{background:#fff;border:1px solid var(--rule);position:relative}
+.brief::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:3px;background:var(--accent)}
+.brief-head{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:22px 24px 16px;border-bottom:1px solid var(--rule)}
+.brief-kicker{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+.brief-meta{font-family:var(--font-display);font-weight:700;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.brief-list{list-style:none}
+.brief-item{border-bottom:1px solid var(--rule)}
+.brief-item:last-child{border-bottom:none}
+.brief-item a{display:grid;grid-template-columns:34px 1fr;gap:14px;padding:18px 24px;transition:var(--transition)}
+.brief-item a:hover{background:var(--bg-paper)}
+.brief-num{font-family:var(--font-display);font-weight:700;font-size:.78rem;color:var(--accent);padding-top:2px}
+.brief-tag{font-family:var(--font-display);font-weight:700;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.brief-title{display:block;margin:6px 0 6px;font-family:var(--font-serif);font-weight:500;font-size:1.02rem;line-height:1.3;color:var(--ink)}
+.brief-title em{font-style:italic;color:var(--accent-strong)}
+.brief-time{font-size:.78rem;color:var(--ink-3)}
+.brief-all{display:flex;align-items:center;gap:10px;padding:18px 24px;font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);border-top:1px solid var(--rule)}
+.brief-all:hover{color:var(--accent-strong)}
+
+/* ALERTS TICKER */
+.alerts{background:var(--ink);color:#F5F0E7;overflow:hidden}
+.alerts-inner{display:flex;align-items:stretch}
+.alerts-label{display:flex;align-items:center;gap:10px;flex-shrink:0;padding:16px 28px;background:var(--accent);color:#fff;font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase}
+.alerts-label::before{content:'';width:8px;height:8px;border-radius:50%;background:#fff;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.alerts-track{overflow:hidden;flex:1;display:flex;align-items:center}
+.alerts-line{display:flex;gap:56px;white-space:nowrap;animation:ticker 38s linear infinite;padding-left:40px}
+.alerts-line span{font-family:var(--font-serif);font-size:1rem;color:#D6CDBE}
+.alerts-line a{color:inherit;transition:var(--transition)}
+.alerts-line a:hover{color:#fff;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--accent)}
+.alerts-line strong{color:#fff;font-weight:600}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* SECTION HEADS */
+.sec{padding:110px 0;background:var(--bg-paper)}
+.sec-2{background:var(--bg-paper-2);border-top:1px solid var(--rule-2);border-bottom:1px solid var(--rule-2)}
+.sec-head{max-width:760px;margin-bottom:56px}
+.sec-head.center{margin-left:auto;margin-right:auto;text-align:center}
+.sec-head.center .section-eyebrow{justify-content:center}
+.sec-lede{margin-top:20px;font-family:var(--font-serif);font-size:1.1875rem;line-height:1.6;color:var(--ink-2)}
+.sec-head-row{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:48px;padding-bottom:24px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.view-all{display:inline-flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);padding-bottom:6px}
+.view-all:hover{color:var(--accent-strong)}
+
+/* FIGURES (stats) */
+.figures{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule)}
+@media(min-width:800px){.figures{grid-template-columns:repeat(4,1fr)}}
+.figure{background:var(--bg-paper);padding:36px 28px}
+.figure-val{display:block;font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2.4rem,4vw,3.2rem);line-height:1;letter-spacing:-.02em;color:var(--accent-strong)}
+.figure-cap{display:block;margin-top:14px;font-family:var(--font-serif);font-size:1.0625rem;color:var(--ink)}
+.figure-src{display:block;margin-top:8px;font-family:var(--font-display);font-weight:700;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+
+/* EDITORIAL CARD GRID (pain / trust / steps) */
+.ed-grid{display:grid;grid-template-columns:1fr;gap:24px;margin-top:48px}
+@media(min-width:700px){.ed-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1000px){.ed-grid.cols-3{grid-template-columns:repeat(3,1fr)}.ed-grid.cols-4{grid-template-columns:repeat(4,1fr)}}
+.ed-card{padding:28px 0 24px;border-top:2px solid var(--ink)}
+.ed-card-mono{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.ed-card h3{font-family:var(--font-serif);font-weight:500;font-size:1.4rem;line-height:1.2;color:var(--ink);margin-bottom:12px;letter-spacing:-.01em}
+.ed-card p{font-family:var(--font-serif);font-size:1rem;line-height:1.55;color:var(--ink-2)}
+.ed-card.on-dark{border-top-color:#F0A8B4}
+.ed-card.on-dark h3{color:#fff}
+.ed-card.on-dark p{color:#D6CDBE}
+
+/* CALLOUT (why now) */
+.callout{margin-top:56px;background:#fff;border:1px solid var(--rule-2);padding:36px 40px;position:relative}
+.callout::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:3px;background:var(--accent)}
+.callout .label{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
+.callout p{font-family:var(--font-serif);font-size:1.25rem;line-height:1.5;color:var(--ink)}
+
+/* DARK BAND (how it works) */
+.band{background:var(--ink);color:#F5F0E7;padding:110px 0;position:relative;overflow:hidden}
+.band::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 80% 20%,rgba(190,58,75,.16),transparent 50%);pointer-events:none}
+.band-inner{position:relative;max-width:1320px;margin:0 auto;padding:0 40px}
+.band-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:56px;padding-bottom:24px;border-bottom:1px solid rgba(245,240,231,0.12);flex-wrap:wrap}
+.band-head .section-title{color:#fff;max-width:620px}
+.band-head .section-eyebrow{color:#F0A8B4}
+.band-head-meta{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:#A19888;padding-bottom:6px}
+.b-row{display:grid;grid-template-columns:1fr;gap:14px;padding:28px 0;border-bottom:1px solid rgba(245,240,231,0.12)}
+@media(min-width:800px){.b-row{grid-template-columns:120px 220px 1fr;gap:48px;align-items:start}}
+.b-num{font-family:var(--font-display);font-weight:800;font-size:2.2rem;color:#F0A8B4;letter-spacing:.02em;line-height:1}
+.b-stage{font-family:var(--font-serif);font-style:italic;font-weight:500;font-size:1.5rem;line-height:1.2;color:#fff;letter-spacing:-.01em}
+.b-body{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.6;color:#D6CDBE}
+
+/* INTEL CARDS */
+.intel-grid{display:grid;grid-template-columns:1fr;gap:1px;background:var(--rule);border:1px solid var(--rule)}
+@media(min-width:640px){.intel-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1000px){.intel-grid{grid-template-columns:repeat(3,1fr)}}
+.intel-card{display:block;background:var(--bg-paper);padding:32px 28px;transition:var(--transition)}
+.intel-card:hover{background:#fff}
+.intel-tag{font-family:var(--font-display);font-weight:700;font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.intel-tag.alert{color:var(--accent)}
+.intel-tag.research{color:var(--accent-strong)}
+.intel-card h3{margin:18px 0 24px;font-family:var(--font-serif);font-weight:500;font-size:1.25rem;line-height:1.3;color:var(--ink)}
+.intel-meta{display:flex;align-items:center;gap:12px;padding-top:16px;border-top:1px solid var(--rule-2);font-family:var(--font-display);font-weight:700;font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.intel-meta-dot{width:4px;height:4px;border-radius:50%;background:var(--accent)}
+
+/* SPLIT (human / not alone) */
+.split-grid{display:grid;grid-template-columns:1fr;gap:48px}
+@media(min-width:900px){.split-grid{grid-template-columns:5fr 7fr;gap:80px;align-items:start}}
+.split-left .section-title{margin-bottom:24px}
+.split-left p{font-family:var(--font-serif);font-size:1.125rem;line-height:1.6;color:var(--ink-2);margin-bottom:20px}
+.split-actions{display:flex;flex-wrap:wrap;gap:14px;margin-top:32px}
+.quote-card{background:#fff;border:1px solid var(--rule);padding:44px 40px;position:relative}
+.quote-card::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:3px;background:var(--accent)}
+.quote-mark{font-family:var(--font-serif);font-style:italic;font-size:4rem;line-height:.5;color:var(--accent);display:block;margin-bottom:8px}
+.quote-text{font-family:var(--font-serif);font-style:italic;font-weight:400;font-size:1.4rem;line-height:1.4;color:var(--ink)}
+.quote-author{margin-top:28px;padding-top:18px;border-top:1px dashed var(--rule-2);font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+
+/* PARTNER MARKS */
+.marks{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin:48px 0 40px}
+.mark{font-family:var(--font-display);font-weight:700;font-size:.84rem;letter-spacing:.06em;color:var(--ink);padding:10px 18px;border:1px solid var(--ink);background:transparent}
+.marks-cta{text-align:center}
+
+/* PULL QUOTE */
+.pullquote-section{padding:100px 0;background:var(--bg-paper)}
+.pullquote{max-width:980px;margin:0 auto;text-align:center}
+.pullquote::before{content:'';display:block;width:64px;height:2px;background:var(--accent);margin:0 auto 32px}
+.pullquote-text{font-family:var(--font-serif);font-style:italic;font-weight:400;font-size:clamp(1.5rem,3.5vw,2.5rem);line-height:1.25;letter-spacing:-.015em;color:var(--ink)}
+.pullquote-text strong{font-weight:600;font-style:normal;background:linear-gradient(180deg,transparent 62%,rgba(190,58,75,.18) 62%,rgba(190,58,75,.18) 92%,transparent 92%);padding:0 .08em}
+.pullquote-cite{display:block;margin-top:28px;font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+
+/* CTA */
+.cta{padding:110px 0;background:var(--ink);color:#F5F0E7;text-align:center;position:relative;overflow:hidden}
+.cta::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 50% 0%,rgba(190,58,75,.20),transparent 60%);pointer-events:none}
+.cta-inner{max-width:760px;margin:0 auto;position:relative}
+.cta-eyebrow{display:inline-block;margin-bottom:24px;font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+.cta h2{font-family:var(--font-serif);font-style:italic;font-weight:400;font-size:clamp(2rem,4.5vw,3.25rem);line-height:1.1;letter-spacing:-.025em;color:#fff;margin-bottom:24px}
+.cta h2 .em{font-style:normal;font-weight:600;color:var(--accent)}
+.cta p{font-family:var(--font-serif);font-size:1.1875rem;line-height:1.65;color:#D6CDBE;margin-bottom:40px}
+.cta-buttons{display:flex;flex-wrap:wrap;justify-content:center;gap:14px}
+
+/* FOOTER */
+.footer{padding:80px 0 40px;background:var(--bg-dark);color:#94A3B8}
+.footer-grid{display:grid;grid-template-columns:1fr;gap:48px;margin-bottom:64px}
+@media(min-width:768px){.footer-grid{grid-template-columns:2fr 1fr 1fr 1fr}}
+.footer-brand p{font-size:.9375rem;line-height:1.7;max-width:320px;margin-top:20px}
+.footer-col h4{font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#E2E8F0;margin-bottom:20px}
+.footer-col a{display:block;font-size:.9375rem;margin-bottom:14px;transition:var(--transition)}
+.footer-col a:hover{color:var(--accent)}
+.footer-bottom{padding-top:32px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px;font-size:.84rem;color:#64748B}
+.footer-links{display:flex;gap:24px}
+.footer-links a:hover{color:#E2E8F0}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo" aria-label="ASPS home">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C" opacity="0.4"><animate attributeName="r" values="4;8;4" dur="2.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.4;0;0.4" dur="2.5s" repeatCount="indefinite"/></circle>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+      </svg>
+    </a>
+    <div class="nav-links">
+      <a href="#epidemic" class="nav-link">La amenaza</a>
+      <a href="platform.html" class="nav-link">Cómo funciona</a>
+      <a href="knowledge.html" class="nav-link">Centro de conocimiento</a>
+      <a href="stories.html" class="nav-link">Historias</a>
+      <a href="partners.html" class="nav-link">Socios</a>
+      <a href="about.html" class="nav-link">Acerca de</a>
+      <a href="faq.html" class="nav-link">Preguntas frecuentes</a>
+    </div>
+    <div class="nav-actions">
+      <div class="lang-dropdown">
+        <button class="lang-dropdown-btn" aria-label="Select language"><span>ES</span><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l4 4 4-4"/></svg></button>
+        <div class="lang-dropdown-menu">
+          <a href="../index.html" class="lang-option">English</a>
+          <a href="../he/index.html" class="lang-option">עברית</a>
+          <a href="../fr/index.html" class="lang-option">Français</a>
+          <a href="../ru/index.html" class="lang-option">Русский</a>
+          <span class="lang-option active">Español</span>
+        </div>
+      </div>
+      <a href="contact.html" class="nav-btn nav-btn-ghost">Contacto</a>
+      <a href="protection-plans.html" class="nav-btn nav-btn-primary">Protégete</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO / MASTHEAD -->
+<header class="masthead">
+  <div class="container">
+    <div class="masthead-top">
+      <span>ASPS · Prevención de estafas en tiempo real</span>
+      <span class="right">Protegiendo personas, no sistemas</span>
+    </div>
+    <div class="hero-grid">
+      <div class="hero-lead">
+        <h1>Detén las estafas <span class="em">antes</span> de que ocurran.</h1>
+        <p class="hero-lede">Protección con IA contra el fraude, las estafas y la ingeniería social — protegiendo a las personas en el momento más importante, durante la interacción misma.</p>
+        <div class="hero-actions">
+          <a href="contact.html" class="btn btn-accent">Protégete
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+          <a href="partners.html" class="btn btn-ink">Asóciate con nosotros</a>
+        </div>
+        <div class="hero-byline">
+          <span>Pérdidas por estafas · GASA 2025<strong><a href="https://www.gasa.org/post/global-scams-on-the-rise-over-half-of-adults-worldwide-report-scam-encounters" target="_blank" rel="noopener">$442B</a></strong></span>
+          <span>Protección<strong>Tiempo real</strong></span>
+          <span>Cobertura<strong>Multicanal</strong></span>
+        </div>
+      </div>
+
+      <aside class="brief" aria-label="Última inteligencia">
+        <div class="brief-head">
+          <span class="brief-kicker">Última inteligencia</span>
+          <span class="brief-meta">Actualizado hace 4 min</span>
+        </div>
+        <ol class="brief-list">
+          <li class="brief-item">
+            <a href="knowledge.html#voice-cloning-global">
+              <span class="brief-num">01</span>
+              <div>
+                <span class="brief-tag">Alerta · global</span>
+                <span class="brief-title">Las estafas de clonación de voz se disparan — lo que dice la nueva investigación</span>
+                <span class="brief-time">Hace 2h · 4 min de lectura</span>
+              </div>
+            </a>
+          </li>
+          <li class="brief-item">
+            <a href="knowledge.html#uk-reimbursement">
+              <span class="brief-num">02</span>
+              <div>
+                <span class="brief-tag">Regulación · Reino Unido</span>
+                <span class="brief-title">El reembolso obligatorio del PSR remodela la responsabilidad por fraude APP</span>
+                <span class="brief-time">Hoy · 6 min de lectura</span>
+              </div>
+            </a>
+          </li>
+          <li class="brief-item">
+            <a href="knowledge.html#bank-impersonation-eu">
+              <span class="brief-num">03</span>
+              <div>
+                <span class="brief-tag">Patrón · activo</span>
+                <span class="brief-title">Campaña de suplantación bancaria afecta prefijos de enrutamiento de EU24</span>
+                <span class="brief-time">Ayer · 3 min de lectura</span>
+              </div>
+            </a>
+          </li>
+          <li class="brief-item">
+            <a href="knowledge.html#ai-scams-industrialised">
+              <span class="brief-num">04</span>
+              <div>
+                <span class="brief-tag">Informe · GASA</span>
+                <span class="brief-title"><em>$442B</em> en pérdidas globales por estafas — Estado de las Estafas 2025</span>
+                <span class="brief-time">Hace 3 días · 9 min de lectura</span>
+              </div>
+            </a>
+          </li>
+          <li class="brief-item">
+            <a href="stories.html">
+              <span class="brief-num">05</span>
+              <div>
+                <span class="brief-tag">Historia</span>
+                <span class="brief-title">Margaret, 74: <em>"La voz era de mi hijo. El número no."</em></span>
+                <span class="brief-time">Esta semana · 5 min de lectura</span>
+              </div>
+            </a>
+          </li>
+        </ol>
+        <a class="brief-all" href="knowledge.html">
+          Ver el centro de conocimiento completo
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </aside>
+    </div>
+  </div>
+</header>
+
+<!-- LIVE ALERTS TICKER -->
+<div class="alerts">
+  <div class="alerts-inner">
+    <span class="alerts-label">Alertas en vivo</span>
+    <div class="alerts-track">
+      <div class="alerts-line">
+        <span><a href="https://www.threatmark.com/six-months-of-psr-scam-reimbursement/" target="_blank" rel="noopener"><strong>RU:</strong> Las nuevas reglas de reembolso remodelan la prevención del fraude</a></span>
+        <span><a href="https://news.trendmicro.com/2026/04/16/ai-voice-cloning/" target="_blank" rel="noopener"><strong>Alerta IA:</strong> La clonación de voz emerge como un nuevo gran vector de estafa</a></span>
+        <span><a href="https://www.gasa.org/post/global-state-of-scams-report-2024-1-trillion-stolen-in-12-months-gasa-feedzai" target="_blank" rel="noopener"><strong>GASA:</strong> Pide una mayor coordinación global contra las estafas</a></span>
+        <span><a href="knowledge.html#bank-impersonation-eu"><strong>Advertencia:</strong> Detectada campaña de suplantación bancaria</a></span>
+        <span><a href="https://www.cnbc.com/2026/05/09/ai-powered-scam-calls-getting-more-convincing.html" target="_blank" rel="noopener"><strong>Informe:</strong> Las amenazas de estafa con IA se industrializan</a></span>
+        <span><a href="https://www.threatmark.com/six-months-of-psr-scam-reimbursement/" target="_blank" rel="noopener"><strong>RU:</strong> Las nuevas reglas de reembolso remodelan la prevención del fraude</a></span>
+        <span><a href="https://news.trendmicro.com/2026/04/16/ai-voice-cloning/" target="_blank" rel="noopener"><strong>Alerta IA:</strong> La clonación de voz emerge como un nuevo gran vector de estafa</a></span>
+        <span><a href="https://www.gasa.org/post/global-state-of-scams-report-2024-1-trillion-stolen-in-12-months-gasa-feedzai" target="_blank" rel="noopener"><strong>GASA:</strong> Pide una mayor coordinación global contra las estafas</a></span>
+        <span><a href="knowledge.html#bank-impersonation-eu"><strong>Advertencia:</strong> Detectada campaña de suplantación bancaria</a></span>
+        <span><a href="https://www.cnbc.com/2026/05/09/ai-powered-scam-calls-getting-more-convincing.html" target="_blank" rel="noopener"><strong>Informe:</strong> Las amenazas de estafa con IA se industrializan</a></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EPIDEMIC / THE THREAT -->
+<section id="epidemic" class="sec">
+  <div class="container">
+    <div class="sec-head center">
+      <span class="section-eyebrow with-rule">La amenaza creciente</span>
+      <h2 class="section-title">Una epidemia global que apunta a <span class="em">personas — no a sistemas.</span></h2>
+      <p class="sec-lede">Las estafas se han convertido en una de las amenazas globales de más rápido crecimiento. Los atacantes ya no necesitan hackear sistemas. Manipulan directamente a las personas usando IA, clonación de voz e ingeniería social.</p>
+    </div>
+
+    <div class="figures">
+      <div class="figure">
+        <span class="figure-val">$442B</span>
+        <span class="figure-cap">Pérdidas anuales por estafas</span>
+        <span class="figure-src">Fuente: GASA 2025</span>
+      </div>
+      <div class="figure">
+        <span class="figure-val">57%</span>
+        <span class="figure-cap">De adultos atacados anualmente</span>
+        <span class="figure-src">Más de 1 de cada 2 personas</span>
+      </div>
+      <div class="figure">
+        <span class="figure-val">300%</span>
+        <span class="figure-cap">Aumento de estafas con IA</span>
+        <span class="figure-src">Año tras año</span>
+      </div>
+      <div class="figure">
+        <span class="figure-val">Cero</span>
+        <span class="figure-cap">Existían soluciones en tiempo real</span>
+        <span class="figure-src">Hasta ahora</span>
+      </div>
+    </div>
+
+    <div class="ed-grid cols-3">
+      <div class="ed-card">
+        <div class="ed-card-mono">01 / Vector</div>
+        <h3>Ataques con IA</h3>
+        <p>La clonación de voz, los deepfakes y el contenido generado por IA hacen que las estafas sean más convincentes que nunca. Los atacantes ahora pueden imitar a cualquiera: familiares, empleados de banco, ejecutivos.</p>
+      </div>
+      <div class="ed-card">
+        <div class="ed-card-mono">02 / Vector</div>
+        <h3>Ingeniería social</h3>
+        <p>Los estafadores explotan la confianza, el miedo, la urgencia y la soledad. Manipulan las emociones para evitar el pensamiento racional y presionar a las víctimas a actuar de inmediato.</p>
+      </div>
+      <div class="ed-card">
+        <div class="ed-card-mono">03 / Vector</div>
+        <h3>Cualquiera es un objetivo</h3>
+        <p>Ningún nivel de inteligencia o conocimiento técnico garantiza protección. Médicos, abogados, ingenieros y expertos en ciberseguridad — todos han caído víctimas.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="label">¿Por qué ahora?</div>
+      <p>La IA generativa eliminó la última fricción de las estafas. La clonación de voz, el video deepfake y el phishing personalizado escalaron de la noche a la mañana. La detección tiene que vivir en el momento de la decisión — demasiado tarde una vez que termina la llamada o se hace clic en el enlace.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS (dark band) -->
+<section id="how-it-works" class="band">
+  <div class="band-inner">
+    <div class="band-head">
+      <div>
+        <span class="section-eyebrow">Cómo funciona</span>
+        <h2 class="section-title">Protección en el <span class="em">momento de la decisión.</span></h2>
+      </div>
+      <span class="band-head-meta">No después del daño — antes de que ocurra</span>
+    </div>
+
+    <div class="b-row">
+      <div class="b-num">01 /</div>
+      <h3 class="b-stage">Detectar.</h3>
+      <p class="b-body">Monitorea señales en llamadas, mensajes, correos electrónicos y actividad de navegación en tiempo real.</p>
+    </div>
+    <div class="b-row">
+      <div class="b-num">02 /</div>
+      <h3 class="b-stage">Analizar.</h3>
+      <p class="b-body">Los modelos de IA identifican patrones de estafa, tácticas de manipulación y señales de riesgo conductual.</p>
+    </div>
+    <div class="b-row">
+      <div class="b-num">03 /</div>
+      <h3 class="b-stage">Alertar.</h3>
+      <p class="b-body">Advertencia instantánea y clara en el momento crítico — antes de que ocurra ningún daño.</p>
+    </div>
+    <div class="b-row">
+      <div class="b-num">04 /</div>
+      <h3 class="b-stage">Proteger.</h3>
+      <p class="b-body">Ayuda a los usuarios a tomar la decisión correcta y prevenir daños financieros o emocionales.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURED INTELLIGENCE -->
+<section class="sec">
+  <div class="container">
+    <div class="sec-head-row">
+      <div>
+        <span class="section-eyebrow">Inteligencia sobre estafas</span>
+        <h2 class="section-title">Últimas perspectivas <span class="em">de amenazas.</span></h2>
+      </div>
+      <a href="knowledge.html" class="view-all">
+        Ver todas las perspectivas
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+
+    <div class="intel-grid">
+      <a href="https://www.threatmark.com/six-months-of-psr-scam-reimbursement/" target="_blank" rel="noopener" class="intel-card">
+        <span class="intel-tag">Regulación</span>
+        <h3>Las reglas de reembolso por estafas del Reino Unido están remodelando la prevención del fraude</h3>
+        <div class="intel-meta"><span>ThreatMark</span><span class="intel-meta-dot"></span><span>Mayo 2026</span></div>
+      </a>
+      <a href="https://news.trendmicro.com/2026/04/16/ai-voice-cloning/" target="_blank" rel="noopener" class="intel-card">
+        <span class="intel-tag alert">Alerta</span>
+        <h3>Las estafas de clonación de voz por IA se aceleran a nivel mundial</h3>
+        <div class="intel-meta"><span>Trend Micro</span><span class="intel-meta-dot"></span><span>Mayo 2026</span></div>
+      </a>
+      <a href="https://www.vectra.ai/topics/ai-scams" target="_blank" rel="noopener" class="intel-card">
+        <span class="intel-tag research">Investigación</span>
+        <h3>Incluso los expertos tienen dificultades para detectar voces de estafa generadas por IA</h3>
+        <div class="intel-meta"><span>Investigación académica</span><span class="intel-meta-dot"></span><span>Mayo 2026</span></div>
+      </a>
+      <a href="https://www.gasa.org/post/global-state-of-scams-report-2024-1-trillion-stolen-in-12-months-gasa-feedzai" target="_blank" rel="noopener" class="intel-card">
+        <span class="intel-tag">Política</span>
+        <h3>GASA pide una mayor coordinación global contra las estafas</h3>
+        <div class="intel-meta"><span>GASA</span><span class="intel-meta-dot"></span><span>Mayo 2026</span></div>
+      </a>
+      <a href="https://www.cnbc.com/2026/05/09/ai-powered-scam-calls-getting-more-convincing.html" target="_blank" rel="noopener" class="intel-card">
+        <span class="intel-tag alert">Alerta</span>
+        <h3>Las amenazas de estafa con IA se están industrializando a gran escala</h3>
+        <div class="intel-meta"><span>CNBC</span><span class="intel-meta-dot"></span><span>Mayo 2026</span></div>
+      </a>
+      <a href="https://www.americanbar.org/groups/senior_lawyers/resources/voice-of-experience/2025-september/ai-cloned-voice-scam/" target="_blank" rel="noopener" class="intel-card">
+        <span class="intel-tag">Regulación</span>
+        <h3>Los gobiernos aumentan el enfoque en la seguridad de la IA y la regulación del fraude</h3>
+        <div class="intel-meta"><span>Eversheds</span><span class="intel-meta-dot"></span><span>Abril 2026</span></div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- YOU'RE NOT ALONE (split) -->
+<section class="sec sec-2">
+  <div class="container">
+    <div class="split-grid">
+      <div class="split-left">
+        <span class="section-eyebrow with-rule">No estás solo</span>
+        <h2 class="section-title">Las estafas no son un <span class="em">fracaso personal.</span></h2>
+        <p>Cualquiera puede ser manipulado. No debería haber vergüenza en hablar de las estafas. La conciencia, la apertura y la protección comunitaria son partes esenciales de la prevención.</p>
+        <p>Millones de personas sufren intentos de estafa cada día. Muchas nunca se lo cuentan a nadie. Queremos ayudar a cambiar eso — compartir historias puede evitar la próxima víctima y ayudar a las personas a sanar.</p>
+        <div class="split-actions">
+          <a href="stories.html" class="btn btn-accent">Lee historias</a>
+          <a href="stories.html#support" class="btn btn-ink">Obtener apoyo</a>
+        </div>
+      </div>
+      <div class="quote-card">
+        <span class="quote-mark">"</span>
+        <p class="quote-text">Pensé que era mi hijo quien llamaba. La voz sonaba exactamente como él — su tono, sus palabras, todo. Dijo que estaba en problemas y necesitaba dinero urgentemente. Solo después me di cuenta de que era una estafa de voz generada por IA.</p>
+        <p class="quote-author">— Una historia compartida para ayudar a otros a mantenerse seguros</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PARTNERS -->
+<section id="partners" class="sec">
+  <div class="container">
+    <div class="sec-head center">
+      <span class="section-eyebrow with-rule">Asociaciones</span>
+      <h2 class="section-title">Combatir las estafas requiere <span class="em">colaboración.</span></h2>
+      <p class="sec-lede">Trabajamos con instituciones financieras, empresas de prevención del fraude, ONGs, investigadores e iniciativas del sector público para proteger a los consumidores en todo el mundo.</p>
+    </div>
+    <div class="marks">
+      <span class="mark">Bancos y aseguradoras</span>
+      <span class="mark">Prevención del fraude</span>
+      <span class="mark">ONGs y defensa</span>
+      <span class="mark">Instituciones de investigación</span>
+      <span class="mark">Sector público</span>
+      <span class="mark">Protección al consumidor</span>
+    </div>
+    <div class="marks-cta">
+      <a href="contact.html" class="btn btn-accent">Conviértete en socio
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST -->
+<section id="trust" class="sec sec-2">
+  <div class="container">
+    <div class="sec-head center">
+      <span class="section-eyebrow with-rule">Ética y confianza</span>
+      <h2 class="section-title">Construido sobre la <span class="em">confianza.</span></h2>
+      <p class="sec-lede">Nuestros principios guían todo lo que hacemos. La protección debe construirse sobre una base de respeto, transparencia y cuidado genuino por las personas.</p>
+    </div>
+    <div class="ed-grid cols-3">
+      <div class="ed-card">
+        <div class="ed-card-mono">Principio 01</div>
+        <h3>Privacidad primero</h3>
+        <p>Protegiendo a los usuarios sin recopilación de datos innecesaria. Tu privacidad es fundamental para nuestra misión, no algo secundario.</p>
+      </div>
+      <div class="ed-card">
+        <div class="ed-card-mono">Principio 02</div>
+        <h3>IA responsable</h3>
+        <p>Usando IA cuidadosa, transparente y éticamente. Construimos tecnología que ayuda a las personas, nunca las explota.</p>
+      </div>
+      <div class="ed-card">
+        <div class="ed-card-mono">Principio 03</div>
+        <h3>Centrado en el humano</h3>
+        <p>Apoyando a las personas — no explotando el miedo. Protección real con empatía, comprensión y respeto por la dignidad humana.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PULL QUOTE -->
+<section class="pullquote-section">
+  <div class="container">
+    <div class="pullquote">
+      <p class="pullquote-text">La protección debe vivir <strong>en el momento de la decisión</strong> — no después del daño, no antes de la amenaza, sino en el segundo exacto en que una persona está siendo manipulada.</p>
+      <span class="pullquote-cite">— La misión de ASPS, en una línea</span>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="cta">
+  <div class="container">
+    <div class="cta-inner">
+      <span class="cta-eyebrow">Comienza</span>
+      <h2>¿Listo para <span class="em">protegerte?</span></h2>
+      <p>Únete al movimiento contra las estafas. Obtén protección en tiempo real para ti y tu familia.</p>
+      <div class="cta-buttons">
+        <a href="contact.html" class="btn btn-accent">Protégete
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="contact.html" class="btn btn-ghost">Contáctanos</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerLogoGrad)"/>
+          <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs><linearGradient id="footerLogoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+        </svg>
+        <p>Protección de IA en tiempo real contra el fraude, las estafas y la ingeniería social. Protegiendo a las personas en el momento más importante.</p>
+      </div>
+      <div class="footer-col"><h4>Plataforma</h4><a href="platform.html">Cómo funciona</a><a href="individuals.html#individuals">Para individuos</a><a href="individuals.html#families">Para familias</a><a href="partners.html">Para socios</a></div>
+      <div class="footer-col"><h4>Recursos</h4><a href="knowledge.html">Centro de conocimiento</a><a href="knowledge.html">Inteligencia sobre estafas</a><a href="stories.html#support">Obtener apoyo</a><a href="stories.html">Historias</a></div>
+      <div class="footer-col"><h4>Empresa</h4><a href="about.html">Sobre nosotros</a><a href="about.html#mission">Nuestra misión</a><a href="about.html#ethics">Ética y confianza</a><a href="contact.html">Contacto</a></div>
+    </div>
+    <div class="footer-bottom"><p>© 2026 ASPS. Todos los derechos reservados.</p><div class="footer-links"><a href="privacy.html">Privacidad</a><a href="privacy.html#terms">Términos</a><a href="privacy.html#cookies">Cookies</a></div></div>
+  </div>
+</footer>
+
+<script src="cookie-banner.js"></script>
+</body>
+</html>

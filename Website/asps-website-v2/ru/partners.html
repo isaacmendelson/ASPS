@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="ASPS для партнёров — защита от мошенничества в реальном времени для банков, телеком-операторов, страховщиков и государственных органов. Развёртывание как API, SDK или white-label-слой."/>
+<title>Для партнёров · ASPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;0,16..72,700;1,16..72,400;1,16..72,500;1,16..72,600&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg-dark: #070B14;
+  --bg-paper: #FAF7F2;
+  --bg-paper-2: #F3EFE8;
+  --accent: #BE3A4B;
+  --accent-strong: #8E1A2A;
+  --ink: #1A1814;
+  --ink-2: #4A4640;
+  --ink-3: #6B655C;
+  --rule: #E4DDD2;
+  --rule-2: #D7CFC2;
+  --font-body: 'Instrument Sans', -apple-system, sans-serif;
+  --font-serif: 'Newsreader', Georgia, serif;
+  --font-display: 'Syne', Georgia, serif;
+  --transition: 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--font-body); background: var(--bg-paper); color: var(--ink); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+@media (min-width: 768px) { .container { padding: 0 40px; } }
+@media (min-width: 1024px) { .container { padding: 0 60px; } }
+
+/* NAV (same as platform/knowledge) */
+.nav { position: sticky; top: 0; z-index: 1000; height: 72px; background: rgba(15,18,56,0.97); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.08); }
+.nav-inner { max-width: 1400px; margin: 0 auto; padding: 0 40px; height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 32px; }
+.nav-logo { display: flex; align-items: center; flex-shrink: 0; }
+.nav-links { display: none; align-items: center; gap: 8px; }
+@media (min-width: 1024px) { .nav-links { display: flex; } }
+.nav-link { padding: 8px 16px; font-size: 0.875rem; font-weight: 500; color: #94A3B8; border-radius: 8px; transition: var(--transition); }
+.nav-link:hover { color: #fff; background: rgba(255,255,255,0.05); }
+.nav-link.active { color: #fff; position: relative; }
+.nav-link.active::after { content: ''; position: absolute; left: 16px; right: 16px; bottom: 0; height: 2px; background: var(--accent); }
+.nav-actions { display: flex; align-items: center; gap: 12px; }
+.nav-btn { padding: 10px 20px; font-size: 0.875rem; font-weight: 600; border-radius: 8px; transition: var(--transition); border: none; }
+.nav-btn-ghost { background: transparent; color: #94A3B8; border: 1px solid rgba(255,255,255,0.12); }
+.nav-btn-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.25); }
+.nav-btn-primary { background: #fff; color: #0F1238; }
+.nav-btn-primary:hover { background: #EEF0FF; }
+.lang-dropdown { position: relative; }
+.lang-dropdown-btn { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #E2E8F0; font-size: 0.8125rem; font-weight: 600; cursor: pointer; transition: var(--transition); }
+.lang-dropdown-btn:hover { background: rgba(255,255,255,0.1); }
+.lang-dropdown-menu { position: absolute; top: calc(100% + 8px); right: 0; min-width: 140px; padding: 8px 0; background: #0F1238; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); opacity: 0; visibility: hidden; transform: translateY(-8px); transition: var(--transition); z-index: 100; }
+.lang-dropdown:hover .lang-dropdown-menu, .lang-dropdown:focus-within .lang-dropdown-menu { opacity: 1; visibility: visible; transform: translateY(0); }
+.lang-option { display: block; padding: 10px 16px; font-size: 0.875rem; color: #94A3B8; transition: var(--transition); }
+.lang-option:hover { background: rgba(255,255,255,0.05); color: #FFFFFF; }
+.lang-option.active { color: var(--accent); font-weight: 600; }
+
+/* Shared typography */
+.section-eyebrow { display: inline-flex; align-items: center; gap: 14px; margin-bottom: 18px; font-family: var(--font-display); font-weight: 700; font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); }
+.section-eyebrow.with-rule::before { content: ''; width: 32px; height: 1px; background: var(--accent); opacity: 0.5; }
+.section-title { font-family: var(--font-serif); font-weight: 500; font-size: clamp(2rem, 4vw, 3rem); line-height: 1.05; letter-spacing: -0.025em; color: var(--ink); }
+.section-title .em { font-style: italic; font-weight: 500; color: var(--accent-strong); }
+.btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; font-family: var(--font-display); font-size: 0.84rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 4px; border: none; transition: var(--transition); cursor: pointer; }
+.btn-accent { background: var(--accent); color: #fff; }
+.btn-accent:hover { background: var(--accent-strong); }
+.btn-ink { background: transparent; color: var(--ink); border: 1px solid var(--rule-2); }
+.btn-ink:hover { border-color: var(--ink); }
+.btn-ghost { background: transparent; color: #F5F0E7; border: 1px solid rgba(245,240,231,0.25); }
+.btn-ghost:hover { border-color: rgba(245,240,231,0.55); }
+
+/* HERO */
+.hero { padding: 100px 0 80px; background: var(--bg-paper); border-bottom: 1px solid var(--rule); }
+.hero-grid { display: grid; grid-template-columns: 1fr; gap: 64px; align-items: center; }
+@media (min-width: 1024px) { .hero-grid { grid-template-columns: 1.2fr 1fr; gap: 80px; } }
+.hero-title { font-family: var(--font-serif); font-weight: 500; font-style: italic; font-size: clamp(2.5rem, 5.5vw, 4.4rem); line-height: 1.05; letter-spacing: -0.025em; color: var(--ink); margin-bottom: 28px; }
+.hero-title .em { font-style: normal; font-weight: 600; color: var(--accent-strong); }
+.hero-lede { font-family: var(--font-serif); font-size: 1.1875rem; line-height: 1.65; color: var(--ink-2); margin-bottom: 36px; max-width: 540px; }
+.hero-cta { display: flex; flex-wrap: wrap; gap: 14px; }
+
+/* Hero brief card */
+.brief-card { background: #fff; border: 1px solid var(--rule); padding: 32px; position: relative; box-shadow: 0 1px 0 var(--rule), 0 24px 60px -28px rgba(26,24,20,0.25); }
+.brief-card::before { content: ''; position: absolute; top: -1px; left: -1px; right: -1px; height: 4px; background: var(--accent); }
+.brief-head { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; margin-bottom: 22px; border-bottom: 1px solid var(--rule); font-family: var(--font-display); font-weight: 700; font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase; }
+.brief-head .l { color: var(--accent); }
+.brief-head .r { color: var(--ink-3); }
+.brief-rows { display: grid; grid-template-columns: auto 1fr; gap: 14px 20px; }
+.brief-label { font-family: var(--font-display); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); padding-top: 3px; }
+.brief-value { font-family: var(--font-serif); font-size: 1.0625rem; line-height: 1.4; color: var(--ink); }
+.brief-value strong { color: var(--accent-strong); font-weight: 600; }
+.brief-foot { margin-top: 22px; padding-top: 18px; border-top: 1px dashed var(--rule-2); font-family: var(--font-display); font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+
+/* COST OF DOING NOTHING — editorial split */
+.cost { padding: 100px 0; background: var(--bg-paper); }
+.cost-grid { display: grid; grid-template-columns: 1fr; gap: 56px; }
+@media (min-width: 900px) { .cost-grid { grid-template-columns: 5fr 7fr; gap: 96px; } }
+.cost-meta { position: sticky; top: 100px; align-self: start; }
+.cost-meta .section-title { margin-bottom: 20px; }
+.cost-meta-note { font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); padding-top: 18px; border-top: 1px solid var(--rule); margin-top: 24px; }
+.cost-body p { font-family: var(--font-serif); font-size: 1.1875rem; line-height: 1.6; color: var(--ink); margin-bottom: 24px; }
+.cost-body p.lead { font-size: 1.5rem; line-height: 1.4; font-weight: 500; padding-bottom: 32px; margin-bottom: 32px; border-bottom: 1px solid var(--rule); }
+.cost-body em { font-style: normal; color: var(--accent-strong); font-weight: 600; }
+.cost-pulls { margin-top: 36px; display: grid; grid-template-columns: 1fr; gap: 24px; }
+@media (min-width: 600px) { .cost-pulls { grid-template-columns: 1fr 1fr 1fr; } }
+.pull-num { font-family: var(--font-serif); font-weight: 500; font-size: clamp(2.2rem, 4vw, 2.8rem); line-height: 1; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 10px; }
+.pull-num .accent { color: var(--accent); font-style: italic; }
+.pull-lbl { font-family: var(--font-display); font-weight: 700; font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); padding-top: 12px; border-top: 1px solid var(--rule); }
+
+/* WHO — dark band */
+.who { background: var(--ink); color: #F5F0E7; padding: 110px 0; position: relative; overflow: hidden; }
+.who::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(circle at 20% 30%, rgba(190,58,75,0.18), transparent 50%), radial-gradient(circle at 80% 80%, rgba(190,58,75,0.10), transparent 50%); pointer-events: none; }
+.who-inner { position: relative; max-width: 1320px; margin: 0 auto; padding: 0 40px; }
+.who-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; margin-bottom: 56px; padding-bottom: 24px; border-bottom: 1px solid rgba(245,240,231,0.12); flex-wrap: wrap; }
+.who-head .section-title { color: #fff; max-width: 640px; }
+.who-head-meta { font-family: var(--font-display); font-weight: 700; font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: #A19888; padding-bottom: 6px; }
+.who-grid { display: grid; grid-template-columns: 1fr; gap: 0; }
+@media (min-width: 700px) { .who-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .who-grid { grid-template-columns: repeat(4, 1fr); } }
+.who-card { padding: 36px 28px 36px 0; border-top: 1px solid rgba(245,240,231,0.12); }
+@media (min-width: 1024px) {
+  .who-card { padding: 0 32px; border-top: none; }
+  .who-card + .who-card { border-left: 1px solid rgba(245,240,231,0.12); }
+  .who-card:first-child { padding-left: 0; }
+}
+.who-tag { font-family: var(--font-display); font-weight: 700; font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
+.who-title { font-family: var(--font-serif); font-weight: 600; font-size: 1.5rem; line-height: 1.2; letter-spacing: -0.01em; color: #fff; margin-bottom: 12px; }
+.who-body { font-family: var(--font-serif); font-size: 1rem; line-height: 1.6; color: #D6CDBE; margin-bottom: 18px; }
+.who-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.who-list li { font-size: 0.88rem; color: #B5AC9D; padding-left: 14px; position: relative; line-height: 1.5; font-family: var(--font-body); }
+.who-list li::before { content: ''; position: absolute; left: 0; top: 0.62em; width: 6px; height: 1px; background: var(--accent); }
+
+/* DEPLOY — steps */
+.deploy { padding: 110px 0; background: var(--bg-paper-2); border-top: 1px solid var(--rule-2); border-bottom: 1px solid var(--rule-2); }
+.deploy-head { max-width: 720px; margin-bottom: 56px; }
+.deploy-head p { margin-top: 16px; font-family: var(--font-serif); font-size: 1.125rem; line-height: 1.65; color: var(--ink-2); }
+.deploy-list { list-style: none; counter-reset: stp; }
+.deploy-list > li { counter-increment: stp; display: grid; grid-template-columns: 1fr; gap: 8px; padding: 40px 0; border-top: 1px solid var(--rule); }
+.deploy-list > li:last-child { border-bottom: 1px solid var(--rule); }
+@media (min-width: 768px) { .deploy-list > li { grid-template-columns: 100px 1fr 1.6fr; gap: 48px; align-items: start; } }
+.step-num { font-family: var(--font-display); font-weight: 700; font-size: 0.78rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
+.step-num::before { content: '0' counter(stp) ' /'; margin-right: 4px; }
+.step-title { font-family: var(--font-serif); font-weight: 600; font-size: 1.625rem; line-height: 1.15; letter-spacing: -0.015em; color: var(--ink); margin-bottom: 8px; }
+.step-when { font-family: var(--font-display); font-weight: 700; font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+.step-blurb { font-family: var(--font-serif); font-size: 1.0625rem; line-height: 1.65; color: var(--ink-2); margin-bottom: 18px; }
+.step-bullets { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.step-bullets li { font-size: 0.92rem; color: var(--ink-2); padding-left: 18px; position: relative; line-height: 1.55; }
+.step-bullets li::before { content: ''; position: absolute; left: 0; top: 0.62em; width: 8px; height: 1px; background: var(--accent); }
+
+/* INTEGRATIONS — 3 columns */
+.integ { padding: 110px 0; background: var(--bg-paper); border-bottom: 1px solid var(--rule); }
+.integ-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; margin-bottom: 56px; padding-bottom: 24px; border-bottom: 1px solid var(--rule-2); flex-wrap: wrap; }
+.integ-head-meta { font-family: var(--font-display); font-weight: 700; font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3); padding-bottom: 6px; }
+.integ-grid { display: grid; grid-template-columns: 1fr; gap: 0; border-left: 1px solid var(--rule); }
+@media (min-width: 700px) { .integ-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .integ-grid { grid-template-columns: repeat(3, 1fr); } }
+.integ-card { padding: 32px 32px 36px; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); border-top: 1px solid var(--rule); margin-top: -1px; transition: var(--transition); }
+.integ-card:hover { background: #fff; }
+.integ-num { font-family: var(--font-display); font-weight: 700; font-size: 0.72rem; letter-spacing: 0.14em; color: var(--accent); margin-bottom: 18px; }
+.integ-title { font-family: var(--font-serif); font-weight: 600; font-size: 1.25rem; line-height: 1.25; letter-spacing: -0.01em; color: var(--ink); margin-bottom: 10px; }
+.integ-body { font-size: 0.95rem; line-height: 1.6; color: var(--ink-2); margin-bottom: 14px; }
+.integ-meta { font-family: var(--font-display); font-size: 0.66rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); }
+
+/* TRUST / COMPLIANCE strip */
+.trust { padding: 80px 0; background: var(--bg-paper-2); }
+.trust-grid { display: grid; grid-template-columns: 1fr; gap: 0; border-left: 1px solid var(--rule); }
+@media (min-width: 700px) { .trust-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .trust-grid { grid-template-columns: repeat(4, 1fr); } }
+.trust-cell { padding: 28px 28px; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); border-top: 1px solid var(--rule); margin-top: -1px; }
+.trust-key { font-family: var(--font-display); font-weight: 700; font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+.trust-val { font-family: var(--font-serif); font-weight: 500; font-size: 1.125rem; line-height: 1.3; color: var(--ink); }
+
+/* PROOF — pilot row */
+.proof { padding: 110px 0; background: var(--bg-paper); border-top: 1px solid var(--rule); }
+.proof-head { max-width: 720px; margin-bottom: 56px; }
+.proof-head p { margin-top: 16px; font-family: var(--font-serif); font-size: 1.125rem; line-height: 1.65; color: var(--ink-2); }
+.pilots { display: grid; grid-template-columns: 1fr; gap: 0; }
+.pilot { display: grid; grid-template-columns: 1fr; gap: 16px; padding: 36px 0; border-top: 1px solid var(--rule); }
+.pilot:last-child { border-bottom: 1px solid var(--rule); }
+@media (min-width: 800px) { .pilot { grid-template-columns: 220px 1fr 200px; gap: 48px; align-items: baseline; } }
+.pilot-name { font-family: var(--font-display); font-weight: 700; font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
+.pilot-name small { display: block; color: var(--ink-3); font-size: 0.66rem; letter-spacing: 0.14em; margin-top: 6px; }
+.pilot-title { font-family: var(--font-serif); font-weight: 500; font-size: 1.25rem; line-height: 1.35; color: var(--ink); }
+.pilot-title em { font-style: italic; color: var(--accent-strong); }
+.pilot-stat { font-family: var(--font-serif); font-weight: 500; font-size: 1.6rem; line-height: 1.1; color: var(--ink); letter-spacing: -0.015em; }
+.pilot-stat .accent { color: var(--accent); font-style: italic; }
+.pilot-stat small { display: block; font-family: var(--font-display); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3); margin-top: 6px; }
+
+/* PULL QUOTE */
+.pullquote-section { padding: 100px 0; background: var(--bg-paper); }
+.pullquote { max-width: 980px; margin: 0 auto; text-align: center; }
+.pullquote::before { content: ''; display: block; width: 64px; height: 2px; background: var(--accent); margin: 0 auto 32px; }
+.pullquote-text { font-family: var(--font-serif); font-style: italic; font-weight: 400; font-size: clamp(1.5rem, 3.5vw, 2.5rem); line-height: 1.25; letter-spacing: -0.015em; color: var(--ink); }
+.pullquote-text strong { font-weight: 600; font-style: normal; background: linear-gradient(180deg, transparent 62%, rgba(190,58,75,0.18) 62%, rgba(190,58,75,0.18) 92%, transparent 92%); padding: 0 0.08em; }
+.pullquote-cite { display: block; margin-top: 28px; font-family: var(--font-display); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3); }
+
+/* CTA */
+.cta { padding: 110px 0; background: var(--ink); color: #F5F0E7; text-align: center; position: relative; overflow: hidden; }
+.cta::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(circle at 50% 0%, rgba(190,58,75,0.20), transparent 60%); pointer-events: none; }
+.cta-inner { max-width: 760px; margin: 0 auto; position: relative; }
+.cta-eyebrow { display: inline-block; margin-bottom: 24px; font-family: var(--font-display); font-weight: 700; font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); }
+.cta h2 { font-family: var(--font-serif); font-style: italic; font-weight: 400; font-size: clamp(2rem, 4.5vw, 3.25rem); line-height: 1.1; letter-spacing: -0.025em; color: #fff; margin-bottom: 24px; }
+.cta h2 .em { font-style: normal; font-weight: 600; color: var(--accent); }
+.cta p { font-family: var(--font-serif); font-size: 1.1875rem; line-height: 1.65; color: #D6CDBE; margin-bottom: 40px; }
+.cta-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
+
+/* FOOTER */
+.footer { padding: 80px 0 40px; background: var(--bg-dark); color: #94A3B8; }
+.footer-grid { display: grid; grid-template-columns: 1fr; gap: 48px; margin-bottom: 64px; }
+@media (min-width: 768px) { .footer-grid { grid-template-columns: 2fr 1fr 1fr 1fr; } }
+.footer-brand p { font-size: 0.9375rem; line-height: 1.7; max-width: 320px; margin-top: 20px; }
+.footer-col h4 { font-family: var(--font-display); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #E2E8F0; margin-bottom: 20px; }
+.footer-col a { display: block; font-size: 0.9375rem; margin-bottom: 14px; transition: var(--transition); }
+.footer-col a:hover { color: var(--accent); }
+.footer-bottom { padding-top: 32px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; font-size: 0.84rem; color: #64748B; }
+.footer-links { display: flex; gap: 24px; }
+.footer-links a:hover { color: #E2E8F0; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo" aria-label="Главная ASPS">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C" opacity="0.4"><animate attributeName="r" values="4;8;4" dur="2.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.4;0;0.4" dur="2.5s" repeatCount="indefinite"/></circle>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+      </svg>
+    </a>
+    <div class="nav-links">
+      <a href="index.html#epidemic" class="nav-link">Угроза</a>
+      <a href="platform.html" class="nav-link">Как это работает</a>
+      <a href="knowledge.html" class="nav-link">Центр знаний</a>
+      <a href="stories.html" class="nav-link">Истории</a>
+      <a href="partners.html" class="nav-link active">Партнёры</a>
+      <a href="about.html" class="nav-link">О нас</a>
+    </div>
+    <div class="nav-actions">
+      <div class="lang-dropdown">
+        <button class="lang-dropdown-btn" aria-label="Выбрать язык">
+          <span>RU</span>
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l4 4 4-4"/></svg>
+        </button>
+        <div class="lang-dropdown-menu">
+          <a href="../partners.html" class="lang-option">English</a>
+          <a href="../he/partners.html" class="lang-option">עברית</a>
+          <a href="../fr/partners.html" class="lang-option">Français</a>
+          <span class="lang-option active">Русский</span>
+          <a href="../es/partners.html" class="lang-option">Español</a>
+        </div>
+      </div>
+      <a href="contact.html" class="nav-btn nav-btn-ghost">Контакты</a>
+      <a href="protection-plans.html" class="nav-btn nav-btn-primary">Защититься</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-grid">
+      <div>
+        <span class="section-eyebrow with-rule">Для учреждений</span>
+        <h1 class="hero-title">Защитите своих клиентов <span class="em">до того, как уйдёт перевод.</span></h1>
+        <p class="hero-lede">Слой защиты в реальном времени для банков, телеком-операторов, страховщиков и государственных органов. Развёртывается как API, SDK или white-label — там, где мошенничество достигает вашего клиента первым.</p>
+        <div class="hero-cta">
+          <a href="contact.html" class="btn btn-accent">
+            Связаться с нашей командой
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+          <a href="#deploy" class="btn btn-ink">Посмотреть пути развёртывания</a>
+        </div>
+      </div>
+
+      <aside class="brief-card" aria-label="Краткое описание партнёрства">
+        <div class="brief-head">
+          <span class="l">● Краткое описание партнёрства</span>
+          <span class="r">2026 / 2 кв.</span>
+        </div>
+        <div class="brief-rows">
+          <span class="brief-label">Для кого</span>
+          <span class="brief-value">Банки · Телеком · Страхование · Госсектор</span>
+          <span class="brief-label">Развёртывание</span>
+          <span class="brief-value"><strong>API, SDK, white-label</strong> или совместный мобильный слой</span>
+          <span class="brief-label">Регион</span>
+          <span class="brief-value">ЕС · Великобритания · Израиль · АТР · Латинская Америка</span>
+          <span class="brief-label">Пилот</span>
+          <span class="brief-value"><strong>90 дней</strong> от контракта до первого защищённого клиента</span>
+        </div>
+        <div class="brief-foot">Соответствие · ISO 27001 · SOC 2 Type II · GDPR · готовность к DORA</div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- COST -->
+<section class="cost">
+  <div class="container">
+    <div class="cost-grid">
+      <div class="cost-meta">
+        <span class="section-eyebrow">Обоснование</span>
+        <h2 class="section-title">Цена позднего обнаружения.</h2>
+        <p class="cost-meta-note">Операционный риск · Регуляторная подверженность · Доверие</p>
+      </div>
+      <div class="cost-body">
+        <p class="lead">Большинство инструментов борьбы с мошенничеством следят за транзакцией. К тому моменту разговор, который её авторизовал, закончился час назад — а по новым правилам возмещения убыток ложится на вас.</p>
+        <p>Злоумышленнику больше не нужно взламывать систему. Он убеждает человека. Этот человек звонит в ваш контакт-центр после перевода, а не до него, и регулятор теперь ожидает, что вы это остановили.</p>
+        <p>Обнаружение в момент звонка, сообщения или клика выводит цену мошенничества <em>из операций и из отчёта о прибылях и убытках</em>.</p>
+        <p>ASPS — это слой между вашим клиентом и атакой социальной инженерии — объяснимый, в реальном времени и созданный для встраивания внутрь вашего существующего стека борьбы с мошенничеством, а не для его замены.</p>
+
+        <div class="cost-pulls">
+          <div>
+            <div class="pull-num"><a href="https://www.ukfinance.org.uk/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;border-bottom:1px solid var(--rule-2)"><span class="accent">↑</span> 64%</a></div>
+            <div class="pull-lbl">Рост числа заявлений о мошенничестве с авторизованными платежами год к году · <a href="https://www.ukfinance.org.uk/" target="_blank" rel="noopener" style="color:var(--ink-3);text-decoration:underline">UK Finance</a></div>
+          </div>
+          <div>
+            <div class="pull-num"><a href="https://www.gasa.org/post/global-scams-on-the-rise-over-half-of-adults-worldwide-report-scam-encounters" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;border-bottom:1px solid var(--rule-2)"><span class="accent">$442</span> млрд</a></div>
+            <div class="pull-lbl">Глобальные потери · GASA 2025 <span style="display:block;margin-top:4px;font-size:.7rem;color:var(--ink-3);font-weight:500;text-transform:none;letter-spacing:0;font-style:italic">консервативно · 42 опрошенные страны</span></div>
+          </div>
+          <div>
+            <div class="pull-num"><span class="accent">≤24</span> ч</div>
+            <div class="pull-lbl">Обязательное окно возмещения (Великобритания)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHO -->
+<section class="who">
+  <div class="who-inner">
+    <div class="who-head">
+      <div>
+        <span class="section-eyebrow">С кем мы сотрудничаем</span>
+        <h2 class="section-title">Четыре сектора, один слой.</h2>
+      </div>
+      <span class="who-head-meta">Где приходится атака · Там и мы</span>
+    </div>
+
+    <div class="who-grid">
+      <div class="who-card">
+        <p class="who-tag">01 / Банкинг</p>
+        <h3 class="who-title">Банки и платежи</h3>
+        <p class="who-body">Перехватывайте мошенничество с авторизованными платежами до того, как клиент подтвердит — и идите навстречу новым обязательствам по возмещению.</p>
+        <ul class="who-list">
+          <li>Предупреждения в приложении во время переводов</li>
+          <li>Второй пилот для контакт-центра</li>
+          <li>Подача данных о рисках в основные движки борьбы с мошенничеством</li>
+        </ul>
+      </div>
+      <div class="who-card">
+        <p class="who-tag">02 / Телеком</p>
+        <h3 class="who-title">Телеком и операторы</h3>
+        <p class="who-body">Анализ голоса и SMS на сетевом уровне. Останавливайте звонки, клонированные ИИ, и смишинг-кампании до того, как они достигнут трубки.</p>
+        <ul class="who-list">
+          <li>Оценка подлинности голоса в реальном времени</li>
+          <li>Проверка SMS и URL-адресов</li>
+          <li>Слой защиты по согласию абонента</li>
+        </ul>
+      </div>
+      <div class="who-card">
+        <p class="who-tag">03 / Страхование</p>
+        <h3 class="who-title">Страховщики</h3>
+        <p class="who-body">Снижайте частоту страховых случаев по полисам киберрисков, мошенничества и идентичности — и предлагайте защитную выгоду, удерживающую страхователей.</p>
+        <ul class="who-list">
+          <li>Встроенная защита потребителей</li>
+          <li>Данные о снижении убытков по выплатам</li>
+          <li>Аналитика по пулу рисков</li>
+        </ul>
+      </div>
+      <div class="who-card">
+        <p class="who-tag">04 / Госсектор</p>
+        <h3 class="who-title">Государство и НКО</h3>
+        <p class="who-body">Национальные горячие линии, агентства по борьбе с мошенничеством и органы защиты потребителей — расширьте охват на граждан, которые иначе столкнулись бы с этим в одиночку.</p>
+        <ul class="who-list">
+          <li>Бесплатная защита потребителей в масштабе</li>
+          <li>Межведомственный обмен аналитикой</li>
+          <li>Локализованная языковая поддержка</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DEPLOY -->
+<section class="deploy" id="deploy">
+  <div class="container">
+    <div class="deploy-head">
+      <span class="section-eyebrow with-rule">Развёртывание</span>
+      <h2 class="section-title">От контракта до первого защищённого клиента за <span class="em">90 дней.</span></h2>
+      <p>Поэтапный запуск, спроектированный для встраивания внутрь существующих рабочих процессов рисков, безопасности и продукта — а не для работы рядом с ними.</p>
+    </div>
+
+    <ol class="deploy-list">
+      <li>
+        <span class="step-num"></span>
+        <div>
+          <h3 class="step-title">Определение объёма</h3>
+          <p class="step-when">Недели 1–2</p>
+        </div>
+        <div>
+          <p class="step-blurb">Короткий спринт исследования с вашими командами по мошенничеству, продукту и рискам. Мы картируем векторы мошенничества, бьющие по вам сильнее всего, каналы, где оно приходится, и поверхность развёртывания, которая имеет смысл первой.</p>
+          <ul class="step-bullets">
+            <li>Анализ векторов угроз на ваших реальных данных об убытках</li>
+            <li>Обзор архитектуры с вашей командой безопасности</li>
+            <li>Утверждённые критерии успеха и определение KPI</li>
+          </ul>
+        </div>
+      </li>
+      <li>
+        <span class="step-num"></span>
+        <div>
+          <h3 class="step-title">Интеграция</h3>
+          <p class="step-when">Недели 3–8</p>
+        </div>
+        <div>
+          <p class="step-blurb">Подключение через REST API, мобильный SDK или наше white-label-приложение. Сначала песочница, затем стейджинг — ваши инженеры остаются в управлении, мы остаёмся на связи.</p>
+          <ul class="step-bullets">
+            <li>API / SDK / white-label, на ваш выбор</li>
+            <li>Однотенантная плоскость данных в вашем регионе</li>
+            <li>Выделенный инженер по решениям до запуска в работу</li>
+          </ul>
+        </div>
+      </li>
+      <li>
+        <span class="step-num"></span>
+        <div>
+          <h3 class="step-title">Пилот</h3>
+          <p class="step-when">Недели 9–12</p>
+        </div>
+        <div>
+          <p class="step-blurb">Запуск с контролируемой когортой. Мы настраиваем пороги под поведение ваших клиентов, передаём ежедневные аналитические отчёты и доказываем снижение убытков в ваших собственных цифрах.</p>
+          <ul class="step-bullets">
+            <li>Когорта клиентов по согласию, реальный трафик</li>
+            <li>Еженедельный обзор с операциями по мошенничеству</li>
+            <li>Снижение убытков, измеряемое в сэкономленных £ / $ / ₪</li>
+          </ul>
+        </div>
+      </li>
+      <li>
+        <span class="step-num"></span>
+        <div>
+          <h3 class="step-title">Масштабирование</h3>
+          <p class="step-when">С 13-й недели</p>
+        </div>
+        <div>
+          <p class="step-blurb">Расширение на всю вашу базу по вашему графику — с непрерывной аналитикой из более широкой сети ASPS, поступающей обратно в вашу модель обнаружения.</p>
+          <ul class="step-bullets">
+            <li>Развёртывание на полную базу, канал за каналом</li>
+            <li>Ежеквартальные бизнес-обзоры и вклад в дорожную карту</li>
+            <li>Общая аналитика по сети партнёров</li>
+          </ul>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- INTEGRATIONS -->
+<section class="integ">
+  <div class="container">
+    <div class="integ-head">
+      <div>
+        <span class="section-eyebrow">Пути интеграции</span>
+        <h2 class="section-title">Выберите подходящую форму.</h2>
+      </div>
+      <span class="integ-head-meta">Три режима · Один слой защиты</span>
+    </div>
+
+    <div class="integ-grid">
+      <div class="integ-card">
+        <p class="integ-num">01</p>
+        <h3 class="integ-title">REST и gRPC API</h3>
+        <p class="integ-body">Передавайте нам аудио звонка, текст сообщения или контекст транзакции — получайте обратно вердикт о риске с обоснованием менее чем за 300 мс. Встраивается в стек борьбы с мошенничеством, который у вас уже работает.</p>
+        <p class="integ-meta">Для · основного банкинга · движков мошенничества · контакт-центров</p>
+      </div>
+      <div class="integ-card">
+        <p class="integ-num">02</p>
+        <h3 class="integ-title">Мобильный SDK</h3>
+        <p class="integ-body">Встройте слой защиты внутрь своих собственных приложений iOS и Android. Нативный интерфейс, вывод на устройстве где возможно и настроен под голос вашего бренда.</p>
+        <p class="integ-meta">Для · банковских приложений · приложений операторов · суперприложений</p>
+      </div>
+      <div class="integ-card">
+        <p class="integ-num">03</p>
+        <h3 class="integ-title">White-label-приложение</h3>
+        <p class="integ-body">Автономное приложение защиты, ваш бренд на фасаде. Самый быстрый путь к потребительскому предложению — полезно для страховщиков и встроенных телеком-предложений.</p>
+        <p class="integ-meta">Для · страховых пакетов · телеком-надстроек · НКО</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST -->
+<section class="trust" aria-label="Соответствие и доверие">
+  <div class="container">
+    <div class="trust-grid">
+      <div class="trust-cell">
+        <div class="trust-key">Сертификаты</div>
+        <div class="trust-val">ISO 27001 · SOC 2 Type II</div>
+      </div>
+      <div class="trust-cell">
+        <div class="trust-key">Данные и конфиденциальность</div>
+        <div class="trust-val">GDPR · CCPA · региональные плоскости данных</div>
+      </div>
+      <div class="trust-cell">
+        <div class="trust-key">Финансовый сектор</div>
+        <div class="trust-val">Готовность к DORA · соответствие PSD3</div>
+      </div>
+      <div class="trust-cell">
+        <div class="trust-key">Отказоустойчивость</div>
+        <div class="trust-val">Цель высокой доступности · многорегиональное переключение при сбое</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROOF -->
+<section class="proof">
+  <div class="container">
+    <div class="proof-head">
+      <span class="section-eyebrow">Партнёры по разработке</span>
+      <h2 class="section-title">Как могли бы выглядеть развёртывания.</h2>
+      <p>Карточки ниже описывают типовые формы развёртывания — секторы, каналы и результаты, которые партнёр отслеживал бы. <strong>Только иллюстративно — партнёры по разработке ожидаются.</strong> Реальные цифры появятся здесь по мере запуска пилотов.</p>
+      <div style="margin-top:24px;display:inline-flex;align-items:center;gap:10px;padding:10px 18px;border:1px solid var(--accent);border-radius:4px;font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);background:rgba(190,58,75,.06)"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent)"></span>Иллюстративно · партнёры по разработке ожидаются</div>
+    </div>
+
+    <div class="pilots">
+      <div class="pilot">
+        <div class="pilot-name">Европейский банк уровня Tier-1<small>Розница · 9 млн клиентов</small></div>
+        <div class="pilot-title">Второй пилот контакт-центра ловил попытки выдачи себя за другого синтетическим голосом <em>до эскалации к оператору</em>.</div>
+        <div class="pilot-stat" style="opacity:.55"><span class="accent" style="font-style:italic">— пилот ожидается —</span><small>Отслеживаются убытки от мошенничества с платежами</small></div>
+      </div>
+      <div class="pilot">
+        <div class="pilot-name">Национальный оператор · АТР<small>Мобильный · 22 млн абонентов</small></div>
+        <div class="pilot-title">Проверка голоса на сетевом уровне помечала звонки, клонированные ИИ, до того, как они достигали трубки.</div>
+        <div class="pilot-stat" style="opacity:.55"><span class="accent" style="font-style:italic">— пилот ожидается —</span><small>Отслеживается объём звонков</small></div>
+      </div>
+      <div class="pilot">
+        <div class="pilot-name">НКО по защите потребителей<small>ЕС · при поддержке государства</small></div>
+        <div class="pilot-title">White-label-приложение распространялось через национальную горячую линию — фокус на защите пожилых и семей.</div>
+        <div class="pilot-stat" style="opacity:.55"><span class="accent" style="font-style:italic">— пилот ожидается —</span><small>Охваченные граждане</small></div>
+      </div>
+      <div class="pilot">
+        <div class="pilot-name">Киберстраховщик<small>Личные виды · Великобритания</small></div>
+        <div class="pilot-title">Встроенная защита снизила частоту заявлений о мошенничестве и повысила удержание в группах риска.</div>
+        <div class="pilot-stat" style="opacity:.55"><span class="accent" style="font-style:italic">— пилот ожидается —</span><small>Отслеживается частота заявлений</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PULL QUOTE -->
+<section class="pullquote-section">
+  <div class="container">
+    <div class="pullquote">
+      <p class="pullquote-text">Самая быстрая мера предотвращения мошенничества, оставшаяся нам, — это <strong>следующие тридцать секунд внимания клиента</strong> — защитите их, и убыток никогда не произойдёт.</p>
+      <span class="pullquote-cite">— Краткое описание для партнёров ASPS</span>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="container">
+    <div class="cta-inner">
+      <span class="cta-eyebrow">Давайте поговорим</span>
+      <h2>Перестаньте читать о <span class="em">потерях прошлого квартала.</span></h2>
+      <p>30 минут с нашей командой по решениям — без слайдов — чтобы понять, имеет ли смысл пилот для ваших клиентов, ваших регуляторов и вашего коэффициента убыточности.</p>
+      <div class="cta-buttons">
+        <a href="contact.html" class="btn btn-accent">
+          Записаться на партнёрский звонок
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="knowledge.html" class="btn btn-ghost">Читать ленту аналитики</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerLogoGrad)"/>
+          <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs><linearGradient id="footerLogoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+        </svg>
+        <p>ИИ-защита в реальном времени от мошенничества, обмана и социальной инженерии. Защищаем людей в самый важный момент.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Платформа</h4>
+        <a href="platform.html">Как это работает</a>
+        <a href="individuals.html#individuals">Для частных лиц</a>
+        <a href="individuals.html#families">Для семей</a>
+        <a href="partners.html">Для партнёров</a>
+      </div>
+      <div class="footer-col">
+        <h4>Ресурсы</h4>
+        <a href="knowledge.html">Центр знаний</a>
+        <a href="knowledge.html#feed">Лента аналитики</a>
+        <a href="stories.html#support">Получить поддержку</a>
+        <a href="stories.html">Истории</a>
+      </div>
+      <div class="footer-col">
+        <h4>Компания</h4>
+        <a href="about.html">О нас</a>
+        <a href="about.html#mission">Наша миссия</a>
+        <a href="about.html#ethics">Этика и доверие</a>
+        <a href="contact.html">Контакты</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 ASPS. Все права защищены.</p>
+      <div class="footer-links">
+        <a href="privacy.html">Конфиденциальность</a>
+        <a href="privacy.html#terms">Условия</a>
+        <a href="privacy.html#cookies">Куки</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

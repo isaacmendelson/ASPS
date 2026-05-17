@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="Talk to ASPS — for individuals, partners, press and researchers. Or if you're in the middle of a scam right now."/>
+<title>Contact · ASPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;0,16..72,700;1,16..72,400;1,16..72,500;1,16..72,600&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-dark:#070B14; --bg-paper:#FAF7F2; --bg-paper-2:#F3EFE8;
+  --accent:#BE3A4B; --accent-strong:#8E1A2A;
+  --ink:#1A1814; --ink-2:#4A4640; --ink-3:#6B655C;
+  --rule:#E4DDD2; --rule-2:#D7CFC2;
+  --font-body:'Instrument Sans',-apple-system,sans-serif;
+  --font-serif:'Newsreader',Georgia,serif;
+  --font-display:'Syne',Georgia,serif;
+  --transition:0.25s cubic-bezier(0.4,0,0.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--bg-paper);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+input,textarea,select{font-family:inherit;font-size:inherit;color:inherit}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+@media(min-width:768px){.container{padding:0 40px}}
+@media(min-width:1024px){.container{padding:0 60px}}
+
+/* NAV (same as other pages) */
+.nav{position:sticky;top:0;z-index:1000;height:72px;background:rgba(15,18,56,0.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08)}
+.nav-inner{max-width:1400px;margin:0 auto;padding:0 40px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:32px}
+.nav-logo{display:flex;align-items:center;flex-shrink:0}
+.nav-links{display:none;align-items:center;gap:8px}
+@media(min-width:1024px){.nav-links{display:flex}}
+.nav-link{padding:8px 16px;font-size:.875rem;font-weight:500;color:#94A3B8;border-radius:8px;transition:var(--transition)}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,0.05)}
+.nav-link.active{color:#fff;position:relative}
+.nav-link.active::after{content:'';position:absolute;left:16px;right:16px;bottom:0;height:2px;background:var(--accent)}
+.nav-actions{display:flex;align-items:center;gap:12px}
+.nav-btn{padding:10px 20px;font-size:.875rem;font-weight:600;border-radius:8px;transition:var(--transition);border:none}
+.nav-btn-ghost{background:transparent;color:#94A3B8;border:1px solid rgba(255,255,255,0.12)}
+.nav-btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.25)}
+.nav-btn-primary{background:#fff;color:#0F1238}
+.nav-btn-primary:hover{background:#EEF0FF}
+.lang-dropdown{position:relative}
+.lang-dropdown-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#E2E8F0;font-size:.8125rem;font-weight:600;cursor:pointer;transition:var(--transition)}
+.lang-dropdown-btn:hover{background:rgba(255,255,255,0.1)}
+.lang-dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:140px;padding:8px 0;background:#0F1238;border:1px solid rgba(255,255,255,0.12);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.3);opacity:0;visibility:hidden;transform:translateY(-8px);transition:var(--transition);z-index:100}
+.lang-dropdown:hover .lang-dropdown-menu,.lang-dropdown:focus-within .lang-dropdown-menu{opacity:1;visibility:visible;transform:translateY(0)}
+.lang-option{display:block;padding:10px 16px;font-size:.875rem;color:#94A3B8;transition:var(--transition)}
+.lang-option:hover{background:rgba(255,255,255,0.05);color:#fff}
+.lang-option.active{color:var(--accent);font-weight:600}
+
+/* shared */
+.section-eyebrow{display:inline-flex;align-items:center;gap:14px;margin-bottom:18px;font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+.section-eyebrow.with-rule::before{content:'';width:32px;height:1px;background:var(--accent);opacity:.5}
+.section-title{font-family:var(--font-serif);font-weight:500;font-size:clamp(2rem,4vw,3rem);line-height:1.05;letter-spacing:-.025em;color:var(--ink)}
+.section-title .em{font-style:italic;font-weight:500;color:var(--accent-strong)}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 28px;font-family:var(--font-display);font-size:.84rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;border:none;transition:var(--transition);cursor:pointer}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-accent:hover{background:var(--accent-strong)}
+.btn-ink{background:transparent;color:var(--ink);border:1px solid var(--rule-2)}
+.btn-ink:hover{border-color:var(--ink)}
+
+/* EMERGENCY BANNER */
+.emergency{background:var(--accent);color:#fff;padding:14px 0;border-bottom:1px solid var(--accent-strong)}
+.emergency-inner{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;font-family:var(--font-display);font-weight:700;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase}
+.emergency-inner .pulse{width:9px;height:9px;border-radius:50%;background:#fff;animation:pulse 1.6s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.3)}}
+.emergency-inner a{text-decoration:underline;text-underline-offset:3px}
+
+/* MASTHEAD */
+.masthead{padding:80px 0 64px;background:var(--bg-paper);border-bottom:1px solid var(--rule)}
+.masthead-top{display:flex;justify-content:space-between;align-items:baseline;gap:20px;padding-bottom:18px;border-bottom:1px solid var(--rule-2);margin-bottom:36px;font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+.masthead-top .right{color:var(--accent)}
+.masthead h1{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2.6rem,6vw,4.8rem);line-height:1;letter-spacing:-.03em;color:var(--ink);margin-bottom:24px;max-width:18ch}
+.masthead h1 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.masthead-lede{font-family:var(--font-serif);font-size:1.1875rem;line-height:1.6;color:var(--ink-2);max-width:640px}
+
+/* ROUTES — pick a door */
+.routes{padding:80px 0 110px;background:var(--bg-paper)}
+.routes-head{margin-bottom:36px}
+.routes-grid{display:grid;grid-template-columns:1fr;gap:0;border-top:1px solid var(--rule)}
+.route{display:grid;grid-template-columns:1fr;gap:14px;padding:32px 0;border-bottom:1px solid var(--rule);cursor:pointer;transition:var(--transition);text-align:left;width:100%;background:transparent;border-left:0;border-right:0;border-top:0;font:inherit;color:inherit}
+@media(min-width:800px){.route{grid-template-columns:80px 1.3fr 2fr 120px;gap:40px;align-items:center}}
+.route:hover{background:rgba(190,58,75,0.04);padding-left:18px;padding-right:18px}
+.route.active{background:rgba(190,58,75,0.06);padding-left:18px;padding-right:18px;border-color:var(--accent)}
+.route-num{font-family:var(--font-display);font-weight:700;font-size:.78rem;letter-spacing:.16em;color:var(--accent)}
+.route h3{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:1.5rem;line-height:1.15;color:var(--ink);letter-spacing:-.01em}
+.route h3 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.route p{font-family:var(--font-serif);font-size:1rem;line-height:1.5;color:var(--ink-2)}
+.route-arrow{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);text-align:right;display:flex;align-items:center;justify-content:flex-end;gap:8px;white-space:nowrap}
+.route.active .route-arrow{color:var(--accent)}
+
+/* FORM SECTION */
+.form-section{padding:100px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule-2);border-bottom:1px solid var(--rule-2)}
+.form-grid{display:grid;grid-template-columns:1fr;gap:48px}
+@media(min-width:900px){.form-grid{grid-template-columns:5fr 7fr;gap:80px;align-items:start}}
+.form-meta{position:sticky;top:100px;align-self:start}
+.form-meta .section-title{margin-bottom:20px}
+.form-meta-body{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.6;color:var(--ink-2);margin-bottom:24px}
+.form-meta-foot{padding-top:20px;border-top:1px solid var(--rule);font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);display:flex;flex-direction:column;gap:10px}
+.form-meta-foot strong{color:var(--ink);font-weight:700}
+
+.form-card{background:#fff;border:1px solid var(--rule);padding:36px 32px;position:relative}
+.form-card::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:3px;background:var(--accent)}
+.form-card-head{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:18px;margin-bottom:24px;border-bottom:1px solid var(--rule);gap:20px;flex-wrap:wrap}
+.form-card-tag{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+.form-card h3{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:1.5rem;color:var(--ink);line-height:1.2;margin-top:6px}
+.form-card-sla{font-family:var(--font-display);font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);text-align:right}
+.form-card-sla strong{display:block;color:var(--accent-strong);font-size:1rem;letter-spacing:0;margin-top:4px}
+
+.field{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.field-row{display:grid;grid-template-columns:1fr;gap:20px}
+@media(min-width:600px){.field-row{grid-template-columns:1fr 1fr}}
+.field label{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.field label .req{color:var(--accent)}
+.field input,.field textarea,.field select{width:100%;padding:12px 14px;background:var(--bg-paper);border:1px solid var(--rule-2);font-size:1rem;line-height:1.4;color:var(--ink);transition:var(--transition);border-radius:0;font-family:var(--font-serif)}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent);background:#fff}
+.field textarea{min-height:140px;resize:vertical}
+.field-hint{font-family:var(--font-body);font-size:.78rem;color:var(--ink-3);line-height:1.4}
+
+.check-row{display:flex;align-items:flex-start;gap:12px;margin-bottom:24px;font-family:var(--font-serif);font-size:.95rem;line-height:1.5;color:var(--ink-2)}
+.check-row input{margin-top:5px;accent-color:var(--accent)}
+.check-row a{color:var(--accent-strong);text-decoration:underline;text-underline-offset:2px}
+
+.form-foot{display:flex;align-items:center;justify-content:space-between;gap:20px;padding-top:24px;border-top:1px solid var(--rule);flex-wrap:wrap}
+.form-foot-note{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+
+/* CHANNELS — direct lines */
+.channels{padding:110px 0;background:var(--bg-paper)}
+.channels-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:48px;padding-bottom:24px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.channels-grid{display:grid;grid-template-columns:1fr;gap:24px}
+@media(min-width:700px){.channels-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1024px){.channels-grid{grid-template-columns:repeat(4,1fr)}}
+.channel-card{padding:24px 22px 22px;border-top:2px solid var(--ink);display:flex;flex-direction:column;gap:10px}
+.channel-card .num{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.16em;color:var(--accent)}
+.channel-card h4{font-family:var(--font-serif);font-weight:500;font-size:1.25rem;color:var(--ink);line-height:1.2}
+.channel-card .line{font-family:var(--font-serif);font-style:italic;font-size:1.0625rem;color:var(--accent-strong);word-break:break-all}
+.channel-card p{font-family:var(--font-body);font-size:.875rem;color:var(--ink-3);line-height:1.55;margin-top:auto;padding-top:14px;border-top:1px dashed var(--rule-2)}
+
+/* OFFICES — dark band */
+.offices{background:var(--ink);color:#F5F0E7;padding:100px 0;position:relative;overflow:hidden}
+.offices::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 30% 50%,rgba(190,58,75,.12),transparent 50%);pointer-events:none}
+.offices-inner{position:relative;max-width:1320px;margin:0 auto;padding:0 40px}
+.offices-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:48px;padding-bottom:24px;border-bottom:1px solid rgba(245,240,231,0.12);flex-wrap:wrap}
+.offices-head .section-title{color:#fff}
+.offices-head-meta{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:#A19888;padding-bottom:6px}
+.offices-grid{display:grid;grid-template-columns:1fr}
+@media(min-width:700px){.offices-grid{grid-template-columns:repeat(3,1fr)}}
+.office{padding:24px 0}
+@media(min-width:700px){.office{padding:0 32px;border-left:1px solid rgba(245,240,231,0.12)}.office:first-child{padding-left:0;border-left:0}}
+.office .city-tag{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+.office h3{font-family:var(--font-serif);font-weight:500;font-size:1.875rem;color:#fff;margin-bottom:16px;letter-spacing:-.015em}
+.office .addr{font-family:var(--font-serif);font-size:1rem;line-height:1.55;color:#D6CDBE;margin-bottom:16px}
+.office .hours{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#A19888;padding-top:14px;border-top:1px dashed rgba(245,240,231,0.16)}
+
+/* EMERGENCY CHECKLIST (replaces pullquote) */
+.emergency-section{padding:100px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.emergency-head{max-width:780px;margin-bottom:56px}
+.emergency-badge{display:inline-flex;align-items:center;gap:10px;padding:8px 14px;background:var(--accent);color:#fff;font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;margin-bottom:24px}
+.emergency-badge .pulse{width:8px;height:8px;border-radius:50%;background:#fff;animation:pulse 1.6s ease-in-out infinite}
+.emergency-title{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,4.5vw,3rem);line-height:1.05;letter-spacing:-.025em;color:var(--ink);margin-bottom:18px}
+.emergency-title .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.emergency-lede{font-family:var(--font-serif);font-size:1.125rem;line-height:1.6;color:var(--ink-2);max-width:620px}
+.emergency-steps{list-style:none;display:flex;flex-direction:column;gap:0;border-top:1px solid var(--rule);max-width:880px}
+.emergency-steps li{display:grid;grid-template-columns:64px 1fr;gap:24px;padding:32px 0;border-bottom:1px solid var(--rule);align-items:start}
+@media(min-width:700px){.emergency-steps li{grid-template-columns:88px 1fr;gap:36px}}
+.step-num{font-family:var(--font-display);font-weight:700;font-size:1.5rem;color:var(--accent);letter-spacing:.04em;padding-top:2px}
+.emergency-steps h3{font-family:var(--font-serif);font-weight:500;font-size:1.375rem;line-height:1.25;color:var(--ink);margin-bottom:10px;letter-spacing:-.01em}
+.emergency-steps p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.6;color:var(--ink-2);max-width:680px}
+.emergency-numbers{display:grid;grid-template-columns:1fr;gap:10px;margin-top:18px;max-width:600px}
+@media(min-width:600px){.emergency-numbers{grid-template-columns:repeat(3,1fr)}}
+.emergency-numbers a{display:flex;flex-direction:column;gap:4px;padding:14px 16px;background:#fff;border:1px solid var(--rule-2);transition:var(--transition)}
+.emergency-numbers a:hover{border-color:var(--accent);background:rgba(190,58,75,.04)}
+.emergency-numbers .reg{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+.emergency-numbers strong{font-family:var(--font-serif);font-weight:600;font-size:1.5rem;color:var(--accent-strong);line-height:1;letter-spacing:-.01em}
+.emergency-numbers .lbl{font-family:var(--font-body);font-size:.78rem;color:var(--ink-3);line-height:1.3}
+.emergency-footnote{margin-top:32px;font-family:var(--font-serif);font-style:italic;font-size:1rem;line-height:1.55;color:var(--ink-3);max-width:780px;padding-top:24px;border-top:1px dashed var(--rule-2)}
+
+/* PULL QUOTE */
+.pullquote-section{padding:100px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule)}
+.pullquote{max-width:980px;margin:0 auto;text-align:center}
+.pullquote::before{content:'';display:block;width:64px;height:2px;background:var(--accent);margin:0 auto 32px}
+.pullquote-text{font-family:var(--font-serif);font-style:italic;font-weight:400;font-size:clamp(1.4rem,3.2vw,2.2rem);line-height:1.3;letter-spacing:-.015em;color:var(--ink)}
+.pullquote-text strong{font-weight:600;font-style:normal;background:linear-gradient(180deg,transparent 62%,rgba(190,58,75,.18) 62%,rgba(190,58,75,.18) 92%,transparent 92%);padding:0 .08em}
+.pullquote-cite{display:block;margin-top:28px;font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+
+/* FOOTER */
+.footer{padding:80px 0 40px;background:var(--bg-dark);color:#94A3B8}
+.footer-grid{display:grid;grid-template-columns:1fr;gap:48px;margin-bottom:64px}
+@media(min-width:768px){.footer-grid{grid-template-columns:2fr 1fr 1fr 1fr}}
+.footer-brand p{font-size:.9375rem;line-height:1.7;max-width:320px;margin-top:20px}
+.footer-col h4{font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#E2E8F0;margin-bottom:20px}
+.footer-col a{display:block;font-size:.9375rem;margin-bottom:14px;transition:var(--transition)}
+.footer-col a:hover{color:var(--accent)}
+.footer-bottom{padding-top:32px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px;font-size:.84rem;color:#64748B}
+.footer-links{display:flex;gap:24px}
+.footer-links a:hover{color:#E2E8F0}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo" aria-label="ASPS home">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C" opacity="0.4"><animate attributeName="r" values="4;8;4" dur="2.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.4;0;0.4" dur="2.5s" repeatCount="indefinite"/></circle>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+      </svg>
+    </a>
+    <div class="nav-links">
+      <a href="index.html#epidemic" class="nav-link">The threat</a>
+      <a href="platform.html" class="nav-link">How it works</a>
+      <a href="knowledge.html" class="nav-link">Knowledge center</a>
+      <a href="stories.html" class="nav-link">Stories</a>
+      <a href="partners.html" class="nav-link">Partners</a>
+      <a href="about.html" class="nav-link">About</a>
+    </div>
+    <div class="nav-actions">
+      <div class="lang-dropdown">
+        <button class="lang-dropdown-btn" aria-label="Select language"><span>EN</span><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l4 4 4-4"/></svg></button>
+        <div class="lang-dropdown-menu">
+          <span class="lang-option active">English</span>
+          <a href="he/contact.html" class="lang-option">עברית</a>
+          <a href="fr/contact.html" class="lang-option">Français</a>
+          <a href="ru/contact.html" class="lang-option">Русский</a>
+          <a href="es/contact.html" class="lang-option">Español</a>
+        </div>
+      </div>
+      <a href="partners.html" class="nav-btn nav-btn-ghost">Partners</a>
+      <a href="protection-plans.html" class="nav-btn nav-btn-primary">Get protected</a>
+    </div>
+  </div>
+</nav>
+
+<!-- EMERGENCY -->
+<div class="emergency" role="alert">
+  <div class="container">
+    <div class="emergency-inner">
+      <span class="pulse"></span>
+      <span>In a scam right now?</span>
+      <a href="#emergency">Get help in the next 60 seconds →</a>
+    </div>
+  </div>
+</div>
+
+<!-- MASTHEAD -->
+<header class="masthead">
+  <div class="container">
+    <div class="masthead-top">
+      <span>Contact · Vol. 03</span>
+      <span class="right">Press & partners ≤ 4h · everyone else ≤ 24h</span>
+    </div>
+    <h1>Tell us what's <span class="em">on the line.</span></h1>
+    <p class="masthead-lede">Six doors, one team. Pick the one that fits — emergency, customer support, partnership, press, research, or a tip about a scam we should know about.</p>
+  </div>
+</header>
+
+<!-- ROUTES -->
+<section class="routes">
+  <div class="container">
+    <div class="routes-head">
+      <span class="section-eyebrow">Pick a door</span>
+      <h2 class="section-title">Where should this go?</h2>
+    </div>
+
+    <div class="routes-grid" role="tablist" id="routes">
+      <button class="route active" type="button" data-route="general" role="tab" aria-selected="true">
+        <span class="route-num">01 /</span>
+        <h3>General <span class="em">enquiry</span></h3>
+        <p>You have a question, a comment or you're not quite sure where to put it. We'll read it and route it.</p>
+        <span class="route-arrow">Selected →</span>
+      </button>
+      <button class="route" type="button" data-route="partner" role="tab" aria-selected="false">
+        <span class="route-num">02 /</span>
+        <h3>Partnership &amp; <span class="em">enterprise</span></h3>
+        <p>Bank, telco, insurer, public-sector body. You want a pilot, an integration call, or a deployment proposal.</p>
+        <span class="route-arrow">Select →</span>
+      </button>
+      <button class="route" type="button" data-route="press" role="tab" aria-selected="false">
+        <span class="route-num">03 /</span>
+        <h3>Press &amp; <span class="em">media</span></h3>
+        <p>You're a journalist on a deadline, an editor commissioning a piece, or a researcher writing about the field.</p>
+        <span class="route-arrow">Select →</span>
+      </button>
+      <button class="route" type="button" data-route="research" role="tab" aria-selected="false">
+        <span class="route-num">04 /</span>
+        <h3>Research &amp; <span class="em">academia</span></h3>
+        <p>You're studying voice-AI fraud, social engineering, regulation or threat patterns and want our data or our minds.</p>
+        <span class="route-arrow">Select →</span>
+      </button>
+      <button class="route" type="button" data-route="tip" role="tab" aria-selected="false">
+        <span class="route-num">05 /</span>
+        <h3>Send a <span class="em">scam tip</span></h3>
+        <p>You've seen a new scam pattern, an attempt that almost worked, or a script we should be tracking. Tell us.</p>
+        <span class="route-arrow">Select →</span>
+      </button>
+      <button class="route" type="button" data-route="support" role="tab" aria-selected="false">
+        <span class="route-num">06 /</span>
+        <h3>Customer <span class="em">support</span></h3>
+        <p>You're an existing user — billing, devices, setup, family-loop, or anything that isn't urgent.</p>
+        <span class="route-arrow">Select →</span>
+      </button>
+      <button class="route" type="button" data-route="individual" role="tab" aria-selected="false">
+        <span class="route-num">07 /</span>
+        <h3>Individual <span class="em">plan</span></h3>
+        <p>You want real‑time protection for yourself — calls, messages, links, deepfake voice. Tell us a little about how you live and we'll come back with the right plan.</p>
+        <span class="route-arrow">Select →</span>
+      </button>
+      <button class="route" type="button" data-route="family" role="tab" aria-selected="false">
+        <span class="route-num">08 /</span>
+        <h3>Family <span class="em">plan</span></h3>
+        <p>Cover everyone in the household under one umbrella — parents, partner, kids. Most scams hit the most vulnerable person first; this closes that gap.</p>
+        <span class="route-arrow">Select →</span>
+      </button>
+      <button class="route" type="button" data-route="organizations" role="tab" aria-selected="false">
+        <span class="route-num">09 /</span>
+        <h3>For <span class="em">organizations</span></h3>
+        <p>Bank, telco, employer, care provider. Roll ASPS out as a benefit, an integration, or a managed service — and protect every person on your team.</p>
+        <span class="route-arrow">Select →</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- FORM -->
+<section class="form-section" id="form">
+  <div class="container">
+    <div class="form-grid">
+      <aside class="form-meta">
+        <span class="section-eyebrow with-rule">Writing to us</span>
+        <h2 class="section-title">Real people, <span class="em">real replies.</span></h2>
+        <p class="form-meta-body">A human reads every message we receive. No ticket purgatory, no AI auto-replies — except a single confirmation that we got it.</p>
+        <p class="form-meta-body">Press and partnership messages get a first reply within 4 hours during EU/IL business hours. Everything else: a meaningful reply inside 24 hours, 7 days a week.</p>
+        <div class="form-meta-foot">
+          <span>Replies in<strong>EN · HE · FR · ES · RU</strong></span>
+          <span>Encrypted<strong>TLS 1.3 · region-pinned</strong></span>
+          <span>Never sold<strong>Your message stays with us</strong></span>
+        </div>
+      </aside>
+
+      <form class="form-card" id="formCard" onsubmit="event.preventDefault();var n=document.getElementById('name').value,em=document.getElementById('email').value,o=document.getElementById('org').value,r=document.getElementById('region').value,s=document.getElementById('subj').value,m=document.getElementById('msg').value;var to=window.getRouteEmail();var routeTitle=window.getRouteTitle();var body='Name: '+n+'%0D%0AEmail: '+em+'%0D%0AOrganisation: '+o+'%0D%0ARegion: '+r+'%0D%0ARoute: '+routeTitle+'%0D%0A%0D%0A'+encodeURIComponent(m);window.location.href='mailto:'+to+'?subject='+encodeURIComponent(s||'ASPS '+routeTitle.toLowerCase())+'&body='+body;setTimeout(function(){document.getElementById('formCard').innerHTML='<div style=\'padding:60px 0;text-align:center\'><p style=\'font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:18px\'>Sent · Thank you</p><h3 style=\'font-family:var(--font-serif);font-style:italic;font-weight:500;font-size:2rem;color:var(--ink);margin-bottom:14px\'>Check your email client.</h3><p style=\'font-family:var(--font-serif);font-size:1.0625rem;color:var(--ink-2);max-width:380px;margin:0 auto;line-height:1.55\'>We opened a draft to '+to+' with your message. Press send there and a human will reply soon.</p></div>';},300);">
+        <div class="form-card-head">
+          <div>
+            <span class="form-card-tag" id="formTag">01 / General enquiry</span>
+            <h3 id="formTitle">Tell us what's on your mind.</h3>
+          </div>
+          <div class="form-card-sla">SLA<strong>≤ 24h</strong></div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="name">Your name <span class="req">*</span></label>
+            <input type="text" id="name" required placeholder="First &amp; last"/>
+          </div>
+          <div class="field">
+            <label for="email">Email <span class="req">*</span></label>
+            <input type="email" id="email" required placeholder="you@domain.com"/>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="org">Organisation <span style="color:var(--ink-3);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+            <input type="text" id="org" placeholder="Bank, telco, newsroom, university..."/>
+          </div>
+          <div class="field">
+            <label for="region">Region <span class="req">*</span></label>
+            <select id="region" required>
+              <option value="">Choose...</option>
+              <option>EU</option>
+              <option>UK</option>
+              <option>Israel</option>
+              <option>North America</option>
+              <option>APAC</option>
+              <option>LATAM</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="subj">Subject <span class="req">*</span></label>
+          <input type="text" id="subj" required placeholder="One short line — what is this about?"/>
+        </div>
+
+        <div class="field">
+          <label for="msg">Your message <span class="req">*</span></label>
+          <textarea id="msg" required placeholder="The more concrete you can be — names of products, regions, timeframes, what you'd like from us — the faster we can respond usefully."></textarea>
+          <span class="field-hint">Don't include passwords, full account numbers or scan copies of ID. If we need those, we'll ask through a secure channel.</span>
+        </div>
+
+        <label class="check-row">
+          <input type="checkbox" required/>
+          <span>I've read the <a href="privacy.html">privacy policy</a> and understand ASPS will use this message to reply, and only to reply.</span>
+        </label>
+
+        <div class="form-foot">
+          <span class="form-foot-note">Your data stays in EU/IL regions</span>
+          <button type="submit" class="btn btn-accent">Send message
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- CHANNELS -->
+<section class="channels">
+  <div class="container">
+    <div class="channels-head">
+      <div>
+        <span class="section-eyebrow">Direct lines</span>
+        <h2 class="section-title">Skip the form, write us straight.</h2>
+      </div>
+      <span style="font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);padding-bottom:6px">For when you know who you need</span>
+    </div>
+
+    <div class="channels-grid">
+      <div class="channel-card">
+        <span class="num">01 / Press</span>
+        <h4>Newsroom enquiries</h4>
+        <span class="line"><a href="mailto:press@asps.io" style="color:inherit">press@asps.io</a></span>
+        <p>First reply within 4 hours during business hours, EU/IL. After-hours line available on request.</p>
+      </div>
+      <div class="channel-card">
+        <span class="num">02 / Partnership</span>
+        <h4>Banks · telcos · insurers</h4>
+        <span class="line"><a href="mailto:partners@asps.io" style="color:inherit">partners@asps.io</a></span>
+        <p>Routes directly to our deployment leads. Briefing call typically booked within 48h.</p>
+      </div>
+      <div class="channel-card">
+        <span class="num">03 / Research</span>
+        <h4>Academic &amp; policy</h4>
+        <span class="line"><a href="mailto:research@asps.io" style="color:inherit">research@asps.io</a></span>
+        <p>Data requests, joint papers, threat-pattern collaboration. Reviewed weekly by our threat-intel team.</p>
+      </div>
+      <div class="channel-card">
+        <span class="num">04 / Security</span>
+        <h4>Responsible disclosure</h4>
+        <span class="line"><a href="mailto:security@asps.io" style="color:inherit">security@asps.io</a></span>
+        <p>PGP key available. Bounty programme details and scope in the disclosure policy.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EMERGENCY CHECKLIST -->
+<section class="emergency-section" id="emergency">
+  <div class="container">
+    <div class="emergency-head">
+      <span class="emergency-badge"><span class="pulse"></span>If it's happening now</span>
+      <h2 class="emergency-title">The next <span class="em">five minutes</span> matter most.</h2>
+      <p class="emergency-lede">Do these in order. Don't worry about anything else yet — write to us afterwards, once you and your money are safe.</p>
+    </div>
+
+    <ol class="emergency-steps">
+      <li>
+        <span class="step-num">01</span>
+        <div>
+          <h3>Hang up. Don't move money.</h3>
+          <p>Every scam relies on you staying on the line and acting fast. Ending the call costs nothing and breaks the script. No bank, no police force and no relative will ever lose trust because you called them back.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">02</span>
+        <div>
+          <h3>Call your bank from the number on the back of your card.</h3>
+          <p>Not the number the caller gave you. Not a number from a recent SMS. The card itself. Tell them you may have been targeted; they have a fraud team trained for this exact moment.</p>
+          <div class="emergency-numbers">
+            <a href="tel:159"><span class="reg">UK</span><strong>159</strong><span class="lbl">Stop Scams direct line</span></a>
+            <a href="tel:+97235999"><span class="reg">IL</span><strong>105</strong><span class="lbl">Police cyber unit</span></a>
+            <a href="tel:116006"><span class="reg">EU</span><strong>116 006</strong><span class="lbl">Victim support</span></a>
+          </div>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">03</span>
+        <div>
+          <h3>Change the password on your email first.</h3>
+          <p>Email is the master key. If a scammer is into your email, they can reset every other account. Do this before changing anything else.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">04</span>
+        <div>
+          <h3>File a report — even if no money moved.</h3>
+          <p>It creates the paper trail you'll need for reimbursement, and it feeds the patterns the rest of us are tracking. UK: Action Fraud (0300 123 2040). Israel: police 105. EU: your national fraud authority.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-num">05</span>
+        <div>
+          <h3>Then — and only then — write to us.</h3>
+          <p>Send the script, the number, the timing, anything you remember. It goes into our threat-pattern database. The next person who hears the same opening line will get a warning because of you.</p>
+          <a href="mailto:info@asps.io?subject=Scam%20tip%20%E2%80%94%20just%20happened" class="btn btn-accent" style="margin-top:8px">Send a scam tip
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+      </li>
+    </ol>
+
+    <p class="emergency-footnote">Not in one of these regions? Your bank's verified number, your national police non-emergency line, and your email password — in that order. The principle works everywhere.</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerLogoGrad)"/>
+          <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs><linearGradient id="footerLogoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+        </svg>
+        <p>Real-time AI protection against fraud, scams and social engineering. Protecting people at the moment it matters most.</p>
+      </div>
+      <div class="footer-col"><h4>Platform</h4><a href="platform.html">How it works</a><a href="individuals.html#individuals">For individuals</a><a href="individuals.html#families">For families</a><a href="partners.html">For partners</a></div>
+      <div class="footer-col"><h4>Resources</h4><a href="knowledge.html">Knowledge center</a><a href="knowledge.html#feed">Intelligence feed</a><a href="stories.html#support">Get support</a><a href="stories.html">Stories</a></div>
+      <div class="footer-col"><h4>Company</h4><a href="about.html">About us</a><a href="about.html#mission">Our mission</a><a href="about.html#ethics">Ethics &amp; trust</a><a href="contact.html">Contact</a></div>
+    </div>
+    <div class="footer-bottom"><p>© 2026 ASPS. All rights reserved.</p><div class="footer-links"><a href="privacy.html">Privacy</a><a href="privacy.html#terms">Terms</a><a href="privacy.html#cookies">Cookies</a></div></div>
+  </div>
+</footer>
+
+<script>
+const routeMeta = {
+  general: {num:'01', title:'General enquiry', sub:"Tell us what's on your mind.", sla:'≤ 24h', email:'info@asps.io'},
+  partner: {num:'02', title:'Partnership & enterprise', sub:"Tell us about your organisation.", sla:'≤ 4h', email:'partners@asps.io'},
+  press:   {num:'03', title:'Press & media',     sub:"Tell us about the piece.",      sla:'≤ 4h', email:'press@asps.io'},
+  research:{num:'04', title:'Research & academia',sub:"Tell us about the work.",      sla:'≤ 72h', email:'research@asps.io'},
+  tip:     {num:'05', title:'Scam tip',          sub:"Tell us what you've seen.",     sla:'≤ 24h', email:'info@asps.io'},
+  support:       {num:'06', title:'Customer support',           sub:"Tell us what isn't working.",            sla:'≤ 24h', email:'info@asps.io'},
+  individual:    {num:'07', title:'Individual plan',             sub:"Tell us a little about you.",              sla:'≤ 24h', email:'info@asps.io'},
+  family:        {num:'08', title:'Family plan',                 sub:"Tell us about your household.",            sla:'≤ 24h', email:'info@asps.io'},
+  organizations: {num:'09', title:'Protection for organizations',sub:"Tell us about your organisation.",         sla:'≤ 24h', email:'partners@asps.io'}
+};
+let activeRoute = 'general';
+document.querySelectorAll('.route').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.route').forEach(b=>{
+      b.classList.remove('active');
+      b.setAttribute('aria-selected','false');
+      b.querySelector('.route-arrow').textContent='Select →';
+    });
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected','true');
+    btn.querySelector('.route-arrow').textContent='Selected →';
+    const key=btn.dataset.route, m=routeMeta[key];
+    activeRoute = key;
+    const tag=document.getElementById('formTag');
+    const title=document.getElementById('formTitle');
+    const sla=document.querySelector('.form-card-sla strong');
+    if(tag) tag.textContent=`${m.num} / ${m.title}`;
+    if(title) title.textContent=m.sub;
+    if(sla) sla.textContent=m.sla;
+    const f=document.getElementById('form'); if(f){window.scrollTo({top:f.getBoundingClientRect().top+window.scrollY-80,behavior:'smooth'});}
+  });
+});
+window.getRouteEmail = function(){ return routeMeta[activeRoute].email; };
+window.getRouteTitle = function(){ return routeMeta[activeRoute].title; };
+
+// Deep-link: ?subject=individual|family|organizations|... activates the matching route on load.
+(function () {
+  try {
+    const params  = new URLSearchParams(window.location.search);
+    const aliases = { personal: "individual" };
+    let subject   = (params.get("subject") || "").toLowerCase();
+    if (aliases[subject]) subject = aliases[subject];
+    if (routeMeta[subject]) {
+      const btn = document.querySelector('.route[data-route="' + subject + '"]');
+      if (btn) btn.click();
+    }
+  } catch (e) { /* no-op */ }
+})();
+</script>
+
+</body>
+</html>

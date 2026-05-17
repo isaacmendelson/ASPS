@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="You're not alone. Real experiences shared by people who want to help prevent others from becoming victims of fraud and scams."/>
+<title>Historias — ASPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;0,16..72,700;1,16..72,400;1,16..72,500;1,16..72,600&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-dark:#070B14; --bg-paper:#FAF7F2; --bg-paper-2:#F3EFE8;
+  --accent:#BE3A4B; --accent-strong:#8E1A2A;
+  --ink:#1A1814; --ink-2:#4A4640; --ink-3:#6B655C;
+  --rule:#E4DDD2; --rule-2:#D7CFC2;
+  --font-body:'Instrument Sans',-apple-system,sans-serif;
+  --font-serif:'Newsreader',Georgia,serif;
+  --font-display:'Syne',Georgia,serif;
+  --transition:0.25s cubic-bezier(0.4,0,0.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--bg-paper);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+@media(min-width:768px){.container{padding:0 40px}}
+@media(min-width:1024px){.container{padding:0 60px}}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:1000;height:72px;background:rgba(15,18,56,0.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08)}
+.nav-inner{max-width:1400px;margin:0 auto;padding:0 40px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:32px}
+.nav-logo{display:flex;align-items:center;flex-shrink:0}
+.nav-links{display:none;align-items:center;gap:8px}
+@media(min-width:1024px){.nav-links{display:flex}}
+.nav-link{padding:8px 16px;font-size:.875rem;font-weight:500;color:#94A3B8;border-radius:8px;transition:var(--transition)}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,0.05)}
+.nav-link.active{color:#fff;position:relative}
+.nav-link.active::after{content:'';position:absolute;left:16px;right:16px;bottom:0;height:2px;background:var(--accent)}
+.nav-actions{display:flex;align-items:center;gap:12px}
+.nav-btn{padding:10px 20px;font-size:.875rem;font-weight:600;border-radius:8px;transition:var(--transition);border:none}
+.nav-btn-ghost{background:transparent;color:#94A3B8;border:1px solid rgba(255,255,255,0.12)}
+.nav-btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.25)}
+.nav-btn-primary{background:#fff;color:#0F1238}
+.nav-btn-primary:hover{background:#EEF0FF}
+.lang-dropdown{position:relative}
+.lang-dropdown-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#E2E8F0;font-size:.8125rem;font-weight:600;cursor:pointer;transition:var(--transition)}
+.lang-dropdown-btn:hover{background:rgba(255,255,255,0.1)}
+.lang-dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:140px;padding:8px 0;background:#0F1238;border:1px solid rgba(255,255,255,0.12);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.3);opacity:0;visibility:hidden;transform:translateY(-8px);transition:var(--transition);z-index:100}
+.lang-dropdown:hover .lang-dropdown-menu,.lang-dropdown:focus-within .lang-dropdown-menu{opacity:1;visibility:visible;transform:translateY(0)}
+.lang-option{display:block;padding:10px 16px;font-size:.875rem;color:#94A3B8;transition:var(--transition)}
+.lang-option:hover{background:rgba(255,255,255,0.05);color:#fff}
+.lang-option.active{color:var(--accent);font-weight:600}
+
+/* shared */
+.section-eyebrow{display:inline-flex;align-items:center;gap:14px;margin-bottom:18px;font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+.section-eyebrow.with-rule::before{content:'';width:32px;height:1px;background:var(--accent);opacity:.5}
+.section-title{font-family:var(--font-serif);font-weight:500;font-size:clamp(2rem,4vw,3rem);line-height:1.05;letter-spacing:-.025em;color:var(--ink)}
+.section-title .em{font-style:italic;font-weight:500;color:var(--accent-strong)}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 28px;font-family:var(--font-display);font-size:.84rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;border:none;transition:var(--transition);cursor:pointer}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-accent:hover{background:var(--accent-strong)}
+.btn-ink{background:transparent;color:var(--ink);border:1px solid var(--rule-2)}
+.btn-ink:hover{border-color:var(--ink)}
+.btn-ghost{background:transparent;color:#F5F0E7;border:1px solid rgba(245,240,231,0.25)}
+.btn-ghost:hover{border-color:rgba(245,240,231,0.55)}
+
+/* MASTHEAD */
+.masthead{padding:80px 0 64px;background:var(--bg-paper);border-bottom:1px solid var(--rule)}
+.masthead-top{display:flex;justify-content:space-between;align-items:baseline;gap:20px;padding-bottom:18px;border-bottom:1px solid var(--rule-2);margin-bottom:36px;font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+.masthead-top .right{color:var(--accent)}
+.masthead h1{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2.6rem,6vw,4.8rem);line-height:1;letter-spacing:-.03em;color:var(--ink);margin-bottom:24px;max-width:20ch}
+.masthead h1 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.masthead-lede{font-family:var(--font-serif);font-size:1.1875rem;line-height:1.6;color:var(--ink-2);max-width:680px}
+.masthead-note{margin-top:28px;padding-top:20px;border-top:1px solid var(--rule);font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);max-width:680px}
+
+/* FILTER */
+.filter{position:sticky;top:72px;z-index:50;padding:18px 0;background:rgba(250,247,242,0.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
+.filter-inner{display:flex;flex-wrap:wrap;align-items:center;gap:24px;justify-content:space-between}
+.filter-tabs{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.filter-label{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-right:8px}
+.filter-tab{padding:6px 4px;font-family:var(--font-display);font-weight:700;font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:var(--transition);margin:0 6px}
+.filter-tab:hover{color:var(--ink)}
+.filter-tab.active{color:var(--ink);border-bottom-color:var(--accent)}
+.filter-count{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.filter-count strong{color:var(--accent);font-weight:700}
+
+/* FEATURE STORY */
+.feature{padding:80px 0;background:var(--bg-paper);border-bottom:1px solid var(--rule)}
+.feature-grid{display:grid;grid-template-columns:1fr;gap:48px}
+@media(min-width:900px){.feature-grid{grid-template-columns:7fr 5fr;gap:80px;align-items:start}}
+.feature-meta{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;display:flex;gap:14px;flex-wrap:wrap}
+.feature-meta::before{content:'Featured ·';color:var(--accent)}
+.feature h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,4.6vw,3.4rem);line-height:1.05;letter-spacing:-.02em;color:var(--ink);margin-bottom:24px}
+.feature h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.feature-byline{display:flex;gap:24px;flex-wrap:wrap;font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);padding-bottom:20px;margin-bottom:24px;border-bottom:1px solid var(--rule)}
+.feature-byline strong{color:var(--ink);margin-left:6px}
+.feature-deck{font-family:var(--font-serif);font-size:1.25rem;line-height:1.5;color:var(--ink-2);margin-bottom:18px}
+.feature-body{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.65;color:var(--ink)}
+.feature-body p{margin-bottom:16px}
+.feature-body em{font-style:normal;color:var(--accent-strong);font-weight:600}
+.feature-body .dropcap::first-letter{font-family:var(--font-serif);font-style:italic;font-weight:500;font-size:4.5rem;float:left;line-height:.85;padding:4px 12px 0 0;color:var(--accent-strong)}
+.feature-cta{margin-top:20px;display:inline-flex;align-items:center;gap:8px;font-family:var(--font-display);font-weight:700;font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);border-bottom:1px solid var(--accent);padding-bottom:3px}
+
+.feature-side{display:flex;flex-direction:column;gap:24px}
+.outcome-card{background:#fff;border:1px solid var(--rule);padding:28px 26px 26px;position:relative}
+.outcome-card::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:3px;background:var(--accent)}
+.outcome-card-tag{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.outcome-card h3{font-family:var(--font-serif);font-weight:600;font-size:1.25rem;color:var(--ink);margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--rule)}
+.outcome-card dl{display:grid;grid-template-columns:auto 1fr;gap:10px 18px;font-size:.92rem}
+.outcome-card dt{font-family:var(--font-display);font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);padding-top:3px}
+.outcome-card dd{color:var(--ink);line-height:1.45}
+.outcome-card dd strong{color:var(--accent-strong);font-weight:600}
+
+.alsoread{padding:24px 24px;background:var(--bg-paper-2);border:1px solid var(--rule-2)}
+.alsoread-label{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+.alsoread ol{list-style:none;counter-reset:also;display:flex;flex-direction:column;gap:14px}
+.alsoread li{counter-increment:also;padding-left:32px;position:relative;font-family:var(--font-serif);font-size:1rem;line-height:1.4;color:var(--ink);cursor:pointer;transition:var(--transition)}
+.alsoread li::before{content:counter(also,decimal-leading-zero);position:absolute;left:0;top:1px;font-family:var(--font-display);font-weight:700;font-size:.72rem;color:var(--accent);letter-spacing:.06em}
+.alsoread li:hover{color:var(--accent-strong)}
+.alsoread li span{display:block;font-family:var(--font-body);font-size:.75rem;color:var(--ink-3);margin-top:2px;text-transform:uppercase;letter-spacing:.1em}
+
+/* STORIES LIST */
+.stories{padding:110px 0;background:var(--bg-paper)}
+.stories-head{margin-bottom:48px;display:flex;align-items:flex-end;justify-content:space-between;gap:40px;padding-bottom:24px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.stories-head-meta{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);padding-bottom:6px}
+.story-row{display:grid;grid-template-columns:1fr;gap:16px;padding:36px 0;border-bottom:1px solid var(--rule)}
+@media(min-width:900px){.story-row{grid-template-columns:100px 4fr 3fr;gap:48px;align-items:start}}
+.story-num{font-family:var(--font-display);font-weight:700;font-size:.78rem;letter-spacing:.16em;color:var(--accent);padding-top:4px}
+.story-meta-line{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:12px;display:flex;flex-wrap:wrap;gap:14px}
+.story-meta-line .cat{color:var(--accent)}
+.story-row h3{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:1.625rem;line-height:1.15;color:var(--ink);margin-bottom:12px;letter-spacing:-.01em}
+.story-row h3 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.story-row p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.55;color:var(--ink-2)}
+.story-row .pull{font-family:var(--font-serif);font-style:italic;font-weight:400;font-size:1.0625rem;line-height:1.5;color:var(--ink);padding:16px 18px;border-left:2px solid var(--accent);background:var(--bg-paper-2)}
+.story-row .pull strong{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.story-row .pull cite{display:block;margin-top:8px;font-style:normal;font-family:var(--font-display);font-size:.66rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+
+/* INTERRUPT — band of saves */
+.interrupt{background:var(--ink);color:#F5F0E7;padding:110px 0;position:relative;overflow:hidden}
+.interrupt::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 20% 30%,rgba(190,58,75,.18),transparent 50%),radial-gradient(circle at 80% 80%,rgba(190,58,75,.10),transparent 50%);pointer-events:none}
+.interrupt-inner{position:relative;max-width:1320px;margin:0 auto;padding:0 40px}
+.interrupt-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:56px;padding-bottom:24px;border-bottom:1px solid rgba(245,240,231,0.12);flex-wrap:wrap}
+.interrupt-head .section-title{color:#fff;max-width:640px}
+.interrupt-head-meta{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:#A19888;padding-bottom:6px}
+.interrupts-grid{display:grid;grid-template-columns:1fr;gap:0}
+@media(min-width:800px){.interrupts-grid{grid-template-columns:repeat(2,1fr);gap:0}}@media(min-width:1100px){.interrupts-grid{grid-template-columns:repeat(4,1fr)}}
+.inter{padding:32px 0;border-top:1px solid rgba(245,240,231,0.12)}
+@media(min-width:800px){.inter{padding:32px 28px;border-top:1px solid rgba(245,240,231,0.12)}.inter:nth-child(odd){border-right:1px solid rgba(245,240,231,0.12)}}@media(min-width:1100px){.inter{padding:0 28px;border-top:none;border-right:none !important}.inter+.inter{border-left:1px solid rgba(245,240,231,0.12)}.inter:first-child{padding-left:0}.inter:last-child{padding-right:0}}
+.inter-stat{font-family:var(--font-display);font-weight:800;font-size:clamp(3rem,5vw,4.4rem);line-height:1;color:#fff;letter-spacing:-.025em;margin-bottom:14px}
+.inter-stat span{color:var(--accent)}
+.inter-label{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(245,240,231,0.16)}
+.inter-body{font-family:var(--font-serif);font-size:1rem;line-height:1.55;color:#D6CDBE}
+
+/* SUPPORT */
+.support{padding:110px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule-2);border-bottom:1px solid var(--rule-2)}
+.support-grid{display:grid;grid-template-columns:1fr;gap:48px}
+@media(min-width:900px){.support-grid{grid-template-columns:5fr 7fr;gap:80px;align-items:start}}
+.support-left .section-title{margin-bottom:24px}
+.support-left p{font-family:var(--font-serif);font-size:1.125rem;line-height:1.6;color:var(--ink-2);margin-bottom:20px}
+.support-list{display:flex;flex-direction:column;gap:14px}
+.support-row{display:grid;grid-template-columns:auto 1fr auto;gap:20px;padding:20px 22px;background:#fff;border:1px solid var(--rule);align-items:center;transition:var(--transition)}
+.support-row:hover{border-color:var(--accent)}
+.support-row .num{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.16em;color:var(--accent)}
+.support-row h4{font-family:var(--font-serif);font-weight:500;font-size:1.125rem;color:var(--ink);margin-bottom:4px}
+.support-row p{font-family:var(--font-body);font-size:.875rem;color:var(--ink-3);line-height:1.5}
+.support-row .go{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);white-space:nowrap}
+
+/* SHARE STORY */
+.share{padding:110px 0;background:var(--bg-paper)}
+.share-grid{display:grid;grid-template-columns:1fr;gap:48px}
+@media(min-width:900px){.share-grid{grid-template-columns:1.1fr 1fr;gap:80px;align-items:center}}
+.share-left h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,4.5vw,3.2rem);line-height:1.05;letter-spacing:-.02em;color:var(--ink);margin-bottom:24px}
+.share-left h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.share-left p{font-family:var(--font-serif);font-size:1.125rem;line-height:1.6;color:var(--ink-2);margin-bottom:20px;max-width:520px}
+.share-promises{background:var(--bg-paper-2);border:1px solid var(--rule-2);padding:32px 28px;position:relative}
+.share-promises::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:3px;background:var(--accent)}
+.share-promises h3{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.share-promises ul{list-style:none;display:flex;flex-direction:column;gap:14px;margin-bottom:24px}
+.share-promises li{font-family:var(--font-serif);font-size:1rem;color:var(--ink);padding-left:22px;position:relative;line-height:1.5}
+.share-promises li::before{content:'';position:absolute;left:0;top:.62em;width:12px;height:1px;background:var(--accent)}
+.share-promises li strong{color:var(--accent-strong);font-weight:600}
+
+/* PULL QUOTE */
+.pullquote-section{padding:100px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule)}
+.pullquote{max-width:980px;margin:0 auto;text-align:center}
+.pullquote::before{content:'';display:block;width:64px;height:2px;background:var(--accent);margin:0 auto 32px}
+.pullquote-text{font-family:var(--font-serif);font-style:italic;font-weight:400;font-size:clamp(1.5rem,3.5vw,2.5rem);line-height:1.25;letter-spacing:-.015em;color:var(--ink)}
+.pullquote-text strong{font-weight:600;font-style:normal;background:linear-gradient(180deg,transparent 62%,rgba(190,58,75,.18) 62%,rgba(190,58,75,.18) 92%,transparent 92%);padding:0 .08em}
+.pullquote-cite{display:block;margin-top:28px;font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+
+/* CTA */
+.cta{padding:110px 0;background:var(--ink);color:#F5F0E7;text-align:center;position:relative;overflow:hidden}
+.cta::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 50% 0%,rgba(190,58,75,.20),transparent 60%);pointer-events:none}
+.cta-inner{max-width:760px;margin:0 auto;position:relative}
+.cta-eyebrow{display:inline-block;margin-bottom:24px;font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+.cta h2{font-family:var(--font-serif);font-style:italic;font-weight:400;font-size:clamp(2rem,4.5vw,3.25rem);line-height:1.1;letter-spacing:-.025em;color:#fff;margin-bottom:24px}
+.cta h2 .em{font-style:normal;font-weight:600;color:var(--accent)}
+.cta p{font-family:var(--font-serif);font-size:1.1875rem;line-height:1.65;color:#D6CDBE;margin-bottom:40px}
+.cta-buttons{display:flex;flex-wrap:wrap;justify-content:center;gap:14px}
+
+/* FOOTER */
+.footer{padding:80px 0 40px;background:var(--bg-dark);color:#94A3B8}
+.footer-grid{display:grid;grid-template-columns:1fr;gap:48px;margin-bottom:64px}
+@media(min-width:768px){.footer-grid{grid-template-columns:2fr 1fr 1fr 1fr}}
+.footer-brand p{font-size:.9375rem;line-height:1.7;max-width:320px;margin-top:20px}
+.footer-col h4{font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#E2E8F0;margin-bottom:20px}
+.footer-col a{display:block;font-size:.9375rem;margin-bottom:14px;transition:var(--transition)}
+.footer-col a:hover{color:var(--accent)}
+.footer-bottom{padding-top:32px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px;font-size:.84rem;color:#64748B}
+.footer-links{display:flex;gap:24px}
+.footer-links a:hover{color:#E2E8F0}
+
+.inter-src{display:block;margin-top:14px;padding-top:12px;border-top:1px solid rgba(245,240,231,0.10);font-family:var(--font-display);font-weight:700;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:#A19888}
+.inter-src a{color:inherit;border-bottom:1px solid rgba(161,152,136,0.45);transition:color .2s,border-color .2s}
+.inter-src a:hover{color:var(--accent);border-bottom-color:var(--accent)}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo" aria-label="ASPS home">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C" opacity="0.4"><animate attributeName="r" values="4;8;4" dur="2.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.4;0;0.4" dur="2.5s" repeatCount="indefinite"/></circle>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+      </svg>
+    </a>
+    <div class="nav-links">
+      <a href="#epidemic" class="nav-link">La amenaza</a>
+      <a href="platform.html" class="nav-link">Cómo funciona</a>
+      <a href="knowledge.html" class="nav-link">Centro de conocimiento</a>
+      <a href="stories.html" class="nav-link">Historias</a>
+      <a href="partners.html" class="nav-link">Socios</a>
+      <a href="about.html" class="nav-link">Acerca de</a>
+      <a href="faq.html" class="nav-link">Preguntas frecuentes</a>
+    </div>
+    <div class="nav-actions">
+      <div class="lang-dropdown">
+        <button class="lang-dropdown-btn" aria-label="Select language"><span>ES</span><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l4 4 4-4"/></svg></button>
+        <div class="lang-dropdown-menu">
+          <a href="../stories.html" class="lang-option">English</a>
+          <a href="../he/stories.html" class="lang-option">עברית</a>
+          <a href="../fr/stories.html" class="lang-option">Français</a>
+          <a href="../ru/stories.html" class="lang-option">Русский</a>
+          <span class="lang-option active">Español</span>
+        </div>
+      </div>
+      <a href="#share" class="nav-btn nav-btn-ghost">Share yours</a>
+      <a href="protection-plans.html" class="nav-btn nav-btn-primary">Protégete</a>
+    </div>
+  </div>
+</nav>
+
+<!-- MASTHEAD -->
+<header class="masthead">
+  <div class="container">
+    <div class="masthead-top">
+      <span>Historias · Experiencias reales</span>
+      <span class="right">Compartidas para ayudar a otros</span>
+    </div>
+    <h1>No estás <span class="em">solo.</span></h1>
+    <p class="masthead-lede">Millions of people experience scam attempts every day. Many never tell anyone. These are real experiences shared by people who want to help prevent others from becoming victims. Every story makes a difference.</p>
+    <p class="masthead-note">Anonymous by default · Shared with consent · Every story can help someone else recognize a scam in time</p>
+  </div>
+</header>
+
+<!-- FILTER -->
+<div class="filter">
+  <div class="container">
+    <div class="filter-inner">
+      <div class="filter-tabs">
+        <span class="filter-label">Filtrar</span>
+        <button class="filter-tab active" data-filter="all">Todas</button>
+        <button class="filter-tab" data-filter="voice">Clonación de voz</button>
+        <button class="filter-tab" data-filter="bank">Suplantación bancaria</button>
+        <button class="filter-tab" data-filter="romance">Romance</button>
+        <button class="filter-tab" data-filter="tech">Soporte técnico</button>
+      </div>
+      <span class="filter-count"><strong id="storyCount">4</strong> stories</span>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURE -->
+<section class="feature">
+  <div class="container">
+    <div class="feature-grid">
+      <article>
+        <div class="feature-meta"><span>Clonación de voz</span><span>·</span><span>Family</span></div>
+        <h2>"I thought it was my son. The voice sounded <span class="em">exactly like him.</span>"</h2>
+        <div class="feature-byline">
+          <span>Subject<strong>Anonymous</strong></span>
+          <span>Age<strong>62</strong></span>
+          <span>Outcome<strong>No money sent</strong></span>
+        </div>
+        <p class="feature-deck">A phone call in his voice — his tone, his words, everything. She was about to transfer the money when her real son walked through the door.</p>
+
+        <div class="feature-body">
+          <p class="dropcap">I thought it was my son calling. The voice sounded exactly like him — his tone, his words, everything. He said he was in trouble and needed money urgently.</p>
+          <p>I was about to transfer the money when my real son walked through the door. It was an AI-generated voice scam. I still can't believe how real it sounded.</p>
+          <p>You think you'd know. You think a mother knows her child's voice. And you do. But what they had on the phone was that voice — just enough of it, recorded from somewhere, replayed by a machine that filled in the rest.</p>
+          <p>If he hadn't walked in when he did, I'd have sent the money. And I'd have thought I was helping my son.</p>
+        </div>
+      </article>
+
+      <aside class="feature-side">
+        <div class="outcome-card">
+          <span class="outcome-card-tag">The lesson</span>
+          <h3>Why this story is here.</h3>
+          <p style="font-family:var(--font-serif);font-size:1.0625rem;line-height:1.65;color:var(--ink-2);margin-bottom:18px">She shared this so the next parent doesn't send the money. So the next person who hears a "child" crying on the line pauses for one extra breath.</p>
+          <p style="font-family:var(--font-serif);font-size:1.0625rem;line-height:1.65;color:var(--ink-2)">Scammers thrive on silence and shame. When people don't talk about what happened to them, the scammers win the next round too.</p>
+        </div>
+
+        <div class="alsoread">
+          <p class="alsoread-label">Also worth reading</p>
+          <ol>
+            <li>The codes I gave them<span>Suplantación bancaria · 5 min</span></li>
+            <li>Six months of messages<span>Romance scam · 7 min</span></li>
+            <li>The popup that wasn't from Windows<span>Soporte técnico · 4 min</span></li>
+            <li>Why we share these stories<span>Editorial · 3 min</span></li>
+          </ol>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- STORIES LIST -->
+<section class="stories">
+  <div class="container">
+    <div class="stories-head">
+      <div>
+        <span class="section-eyebrow">Más historias reales</span>
+        <h2 class="section-title">Tres historias, compartidas para <span class="em">ayudar a otros.</span></h2>
+      </div>
+      <span class="stories-head-meta">Anonymous by default · Edited only for length</span>
+    </div>
+
+    <article class="story-row" data-cat="bank">
+      <span class="story-num">01 /</span>
+      <div>
+        <div class="story-meta-line"><span class="cat">Suplantación bancaria</span><span>Anonymous · 34</span></div>
+        <h3>"I'm a software engineer. I thought <span class="em">I'd know better.</span>"</h3>
+        <p>They called from what appeared to be my bank's official number. They knew my name, my account details, everything. They said there was suspicious activity and I needed to verify my identity. But the pressure, the urgency, the professionalism… I gave them my codes.</p>
+      </div>
+      <blockquote class="pull">"I'm a software engineer — I thought I knew better. The urgency was the part I underestimated."<cite>— Anonymous, 34</cite></blockquote>
+    </article>
+
+    <article class="story-row" data-cat="romance">
+      <span class="story-num">02 /</span>
+      <div>
+        <div class="story-meta-line"><span class="cat">Romance scam</span><span>Anonymous · 45</span></div>
+        <h3>Months of <span class="em">trust.</span> Then the first emergency.</h3>
+        <p>We talked for months. He was kind, understanding, everything I was looking for. He was working abroad, he said. When he needed money for an emergency, I didn't hesitate. Then another emergency. And another. By the time I realized, I had lost my savings. But worse than the money was the betrayal of trust.</p>
+      </div>
+      <blockquote class="pull">"The money matters. The betrayal of trust matters more."<cite>— Anonymous, teacher, 45</cite></blockquote>
+    </article>
+
+    <article class="story-row" data-cat="tech">
+      <span class="story-num">03 /</span>
+      <div>
+        <div class="story-meta-line"><span class="cat">Soporte técnico</span><span>Anonymous · 71</span></div>
+        <h3>The popup that looked <span class="em">exactly like Windows.</span></h3>
+        <p>A popup on my computer said I had a virus. It looked exactly like a Windows alert. I called the number and they walked me through "fixing" the problem — which meant giving them remote access to my computer. They were very professional. My daughter, who works in IT, stopped it just in time.</p>
+      </div>
+      <blockquote class="pull">"They were very professional. My daughter, who works in IT, stopped it just in time."<cite>— Anonymous, retired, 71</cite></blockquote>
+    </article>
+
+  </div>
+</section>
+
+<!-- WHY WE SHARE -->
+<section class="interrupt">
+  <div class="interrupt-inner">
+    <div class="interrupt-head">
+      <div>
+        <span class="section-eyebrow">Rompiendo el estigma</span>
+        <h2 class="section-title">Por qué compartimos estas historias.</h2>
+      </div>
+      <span class="interrupt-head-meta">Las estafas prosperan en el silencio</span>
+    </div>
+    <div class="interrupts-grid">
+      <div class="inter">
+        <p class="inter-label">Conciencia</p>
+        <p class="inter-stat" style="font-size:2.4rem;line-height:1.15">Previene víctimas.</p>
+        <p class="inter-body">Every story shared helps someone recognize a scam before it's too late. The signs become easier to see once you've heard them named.</p>
+      </div>
+      <div class="inter">
+        <p class="inter-label">Silencio</p>
+        <p class="inter-stat" style="font-size:2.4rem;line-height:1.15">Es lo que necesitan.</p>
+        <p class="inter-body">When people don't talk about what happened, scammers win the next round too. Sharing is how the cycle breaks.</p>
+      </div>
+      <div class="inter">
+        <p class="inter-label">No es tu culpa</p>
+        <p class="inter-stat" style="font-size:2.4rem;line-height:1.15">Cualquiera puede ser objetivo.</p>
+        <p class="inter-body">Doctors, lawyers, engineers, cybersecurity experts — every demographic has been caught by a scam that worked on them in their weakest minute.</p>
+      </div>
+      <div class="inter">
+        <p class="inter-label">Compartir alivia</p>
+        <p class="inter-stat" style="font-size:2.4rem;line-height:1.15">Acelera la recuperación.</p>
+        <p class="inter-body">La investigación sobre la divulgación del trauma muestra que hablar de una experiencia difícil — con una persona de confianza, un terapeuta o una comunidad de sobrevivientes — reduce de manera medible la angustia y favorece la recuperación psicológica. Como dice la guía de recuperación de AARP, la sanación &ldquo;a menudo comienza cuando le cuentas a otros lo que viviste.&rdquo;</p>
+        <span class="inter-src">Fuentes · <a href="https://www.aarp.org/money/scams-fraud/mental-health-impact/" target="_blank" rel="noopener">AARP — Mental health impact</a> · <a href="https://www.washingtonpost.com/business/interactive/2024/scam-victim-support-group-aarp/" target="_blank" rel="noopener">Washington Post — grupos de apoyo</a></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SUPPORT -->
+<section class="support" id="support">
+  <div class="container">
+    <div class="support-grid">
+      <div class="support-left">
+        <span class="section-eyebrow with-rule">If it's already happened</span>
+        <h2 class="section-title">Help, in plain steps.</h2>
+        <p>If you or someone close to you has just been scammed — or thinks they might have been — the next hour matters more than the next week. Start here.</p>
+        <p>None of these need ASPS. They're the things to do regardless. We've kept them short.</p>
+      </div>
+
+      <div class="support-list">
+        <div class="support-row">
+          <span class="num">01 /</span>
+          <div>
+            <h4>Call your bank's verified line — now.</h4>
+            <p>The number on the back of your card, not any number from the call or message. Tell them what happened. They can freeze, recall and flag faster than you think.</p>
+          </div>
+          <span class="go">First →</span>
+        </div>
+        <div class="support-row">
+          <span class="num">02 /</span>
+          <div>
+            <h4>Change passwords on anything they may have seen.</h4>
+            <p>Especially banking, email and any account whose name came up during the call or message. Email first — it's the master key.</p>
+          </div>
+          <span class="go">Within 1h →</span>
+        </div>
+        <div class="support-row">
+          <span class="num">03 /</span>
+          <div>
+            <h4>File a report — even if you didn't lose money.</h4>
+            <p>Police, national cyber-crime line, and your bank's fraud report form. Attempts that didn't succeed are just as useful — they help warn the next person.</p>
+          </div>
+          <span class="go">Today →</span>
+        </div>
+        <div class="support-row">
+          <span class="num">04 /</span>
+          <div>
+            <h4>Tell someone you trust.</h4>
+            <p>Out loud, in person if possible. Scam shame is its own second harm — talking about it shrinks it, and it helps you remember details that matter.</p>
+          </div>
+          <span class="go">This week →</span>
+        </div>
+        <div class="support-row">
+          <span class="num">05 /</span>
+          <div>
+            <h4>Tell us, when you're ready.</h4>
+            <p>Even months later. Patterns we learn from your story help us catch the next ones earlier. Send a tip via the contact page — anonymous, if you prefer.</p>
+          </div>
+          <span class="go">Anytime →</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SHARE -->
+<section class="share" id="share">
+  <div class="container">
+    <div class="share-grid">
+      <div class="share-left">
+        <span class="section-eyebrow">Comparte tu historia</span>
+        <h2>Tu historia puede <span class="em">ayudar a otra persona.</span></h2>
+        <p>Si has vivido un intento de estafa — exitoso o no — compartir tu historia puede ayudar a proteger a otros. Cada historia importa.</p>
+        <p>You decide every detail. Names changed by default. Nothing published without your sign-off. No story posted ever has the subject's address, employer or any identifying number.</p>
+        <a href="share-story.html" class="btn btn-accent">Comparte tu historia
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+
+      <div class="share-promises">
+        <h3>What we promise.</h3>
+        <ul>
+          <li><strong>Anonymity by default</strong> — you only get named if you ask.</li>
+          <li><strong>You see the draft</strong> — and sign off before anything goes public.</li>
+          <li><strong>You can withdraw</strong> — at any time, for any reason, no questions.</li>
+          <li><strong>No commercial use</strong> — stories aren't ads, they're not used in pitch decks.</li>
+          <li><strong>Edited by people, not models</strong> — by Mateus, in writing.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PULL QUOTE -->
+<section class="pullquote-section">
+  <div class="container">
+    <div class="pullquote">
+      <p class="pullquote-text">Las estafas prosperan en el silencio and shame. When people don't talk about their experiences, <strong>scammers win.</strong> By sharing stories openly, we break the cycle.</p>
+      <span class="pullquote-cite">— ASPS</span>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="container">
+    <div class="cta-inner">
+      <span class="cta-eyebrow">Get ready before the next one</span>
+      <h2>The next call could be <span class="em">about you</span> — or about someone you love.</h2>
+      <p>Set up ASPS in a couple of minutes for yourself, your parents, or your kids. So the next story in this archive is one of the quiet ones.</p>
+      <div class="cta-buttons">
+        <a href="individuals.html#pricing" class="btn btn-accent">Protégete
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="knowledge.html" class="btn btn-ghost">Read the threat landscape</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerLogoGrad)"/>
+          <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs><linearGradient id="footerLogoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+        </svg>
+        <p>Protección de IA en tiempo real contra el fraude, las estafas y la ingeniería social. Protegiendo a las personas en el momento más importante.</p>
+      </div>
+      <div class="footer-col"><h4>Plataforma</h4><a href="platform.html">Cómo funciona</a><a href="individuals.html#individuals">Para individuos</a><a href="individuals.html#families">Para familias</a><a href="partners.html">Para socios</a></div>
+      <div class="footer-col"><h4>Recursos</h4><a href="knowledge.html">Centro de conocimiento</a><a href="knowledge.html#feed">Feed de inteligencia</a><a href="stories.html#support">Obtener soporte</a><a href="stories.html">Historias</a></div>
+      <div class="footer-col"><h4>Empresa</h4><a href="about.html">Sobre nosotros</a><a href="about.html#mission">Nuestra misión</a><a href="about.html#ethics">Ética y confianza</a><a href="contact.html">Contacto</a></div>
+    </div>
+    <div class="footer-bottom"><p>© 2026 ASPS. Todos los derechos reservados.</p><div class="footer-links"><a href="privacy.html">Privacidad</a><a href="privacy.html#terms">Términos</a><a href="privacy.html#cookies">Cookies</a></div></div>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.filter-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    const f=tab.dataset.filter;
+    let shown=0;
+    document.querySelectorAll('.story-row').forEach(row=>{
+      const cats=(row.dataset.cat||'').split(' ');
+      const show=f==='all'||cats.includes(f);
+      row.style.display=show?'':'none';
+      if(show) shown++;
+    });
+    document.getElementById('storyCount').textContent=shown;
+  });
+});
+</script>
+
+</body>
+</html>

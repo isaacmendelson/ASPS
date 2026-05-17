@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml"/>
+<meta name="description" content="Partagez votre témoignage d'arnaque avec ASPS. Anonymisé, traité avec soin, et utilisé uniquement pour aider d'autres personnes à voir ce que vous avez vu, à temps."/>
+<title>Partagez votre témoignage — ASPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;0,16..72,700;1,16..72,400;1,16..72,500;1,16..72,600&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg-dark:#070B14; --bg-paper:#FAF7F2; --bg-paper-2:#F3EFE8; --bg-paper-3:#EEE8DC;
+  --accent:#BE3A4B; --accent-strong:#8E1A2A;
+  --green:#1F8B5C; --gold:#C68A3C;
+  --ink:#1A1814; --ink-2:#4A4640; --ink-3:#6B655C;
+  --rule:#E4DDD2; --rule-2:#D7CFC2;
+  --font-body:'Instrument Sans',-apple-system,sans-serif;
+  --font-serif:'Newsreader',Georgia,serif;
+  --font-display:'Syne',Georgia,serif;
+  --transition:0.25s cubic-bezier(0.4,0,0.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--bg-paper);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+@media(min-width:768px){.container{padding:0 40px}}
+@media(min-width:1024px){.container{padding:0 60px}}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:1000;height:72px;background:rgba(15,18,56,0.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08)}
+.nav-inner{max-width:1400px;margin:0 auto;padding:0 40px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:32px}
+.nav-links{display:none;align-items:center;gap:8px}
+@media(min-width:1024px){.nav-links{display:flex}}
+.nav-link{padding:8px 16px;font-size:.875rem;font-weight:500;color:#94A3B8;border-radius:8px;transition:var(--transition)}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,0.05)}
+.nav-actions{display:flex;align-items:center;gap:12px}
+.nav-btn{padding:10px 20px;font-size:.875rem;font-weight:600;border-radius:8px;border:none;transition:var(--transition)}
+.nav-btn-ghost{background:transparent;color:#94A3B8;border:1px solid rgba(255,255,255,0.12)}
+.nav-btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.25)}
+.nav-btn-primary{background:#fff;color:#0F1238}
+.nav-btn-primary:hover{background:#EEF0FF}
+.lang-dropdown{position:relative}
+.lang-dropdown-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#E2E8F0;font-size:.8125rem;font-weight:600;cursor:pointer;transition:var(--transition)}
+.lang-dropdown-btn:hover{background:rgba(255,255,255,0.1)}
+.lang-dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:140px;padding:8px 0;background:#0F1238;border:1px solid rgba(255,255,255,0.12);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.3);opacity:0;visibility:hidden;transform:translateY(-8px);transition:var(--transition);z-index:100}
+.lang-dropdown:hover .lang-dropdown-menu,.lang-dropdown:focus-within .lang-dropdown-menu{opacity:1;visibility:visible;transform:translateY(0)}
+.lang-option{display:block;padding:10px 16px;font-size:.875rem;color:#94A3B8;transition:var(--transition)}
+.lang-option:hover{background:rgba(255,255,255,0.05);color:#fff}
+.lang-option.active{color:var(--accent);font-weight:600}
+
+/* MASTHEAD */
+.masthead{padding:88px 0 64px;background:var(--bg-paper);border-bottom:1px solid var(--rule);position:relative;overflow:hidden}
+.masthead-top{display:flex;justify-content:space-between;align-items:baseline;gap:20px;padding-bottom:18px;border-bottom:1px solid var(--rule-2);margin-bottom:40px;font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);flex-wrap:wrap}
+.masthead-top .right{color:var(--accent)}
+.masthead-grid{display:grid;grid-template-columns:1fr;gap:48px;align-items:end}
+@media(min-width:900px){.masthead-grid{grid-template-columns:1.6fr 1fr;gap:80px}}
+.masthead h1{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2.5rem,6vw,4.6rem);line-height:1.05;letter-spacing:-.03em;color:var(--ink);margin-bottom:28px;max-width:14ch}
+.masthead h1 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.masthead-lede{font-family:var(--font-serif);font-size:1.1875rem;line-height:1.65;color:var(--ink-2);max-width:560px}
+.masthead-lede strong{color:var(--ink);font-weight:600;font-style:italic}
+
+/* CARE CARD — anonymous-by-default */
+.care-card{background:var(--bg-paper-2);border:1px solid var(--rule-2);padding:32px;display:flex;flex-direction:column;gap:20px}
+.care-card .stamp{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);padding-bottom:14px;border-bottom:1px solid var(--rule)}
+.care-card .care-row{display:flex;gap:16px;align-items:flex-start}
+.care-card .care-row .n{font-family:var(--font-display);font-weight:800;font-size:.78rem;letter-spacing:.06em;color:var(--ink-3);flex-shrink:0;padding-top:3px}
+.care-card .care-row p{font-family:var(--font-serif);font-size:1rem;color:var(--ink);line-height:1.5}
+.care-card .care-row p em{font-style:italic;color:var(--accent-strong);font-weight:600}
+
+/* WHY — editorial 2col */
+.why{padding:96px 0;background:var(--bg-paper-2);border-bottom:1px solid var(--rule-2)}
+.why-grid{display:grid;grid-template-columns:1fr;gap:48px;max-width:1100px;margin:0 auto}
+@media(min-width:900px){.why-grid{grid-template-columns:1fr 1fr;gap:80px}}
+.why .kicker{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.why h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,3.8vw,2.875rem);line-height:1.1;letter-spacing:-.02em;color:var(--ink);margin-bottom:32px}
+.why h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.why p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.7;color:var(--ink-2);margin-bottom:18px;max-width:50ch}
+.why p::first-letter{font-family:var(--font-serif);font-style:italic;font-weight:600;font-size:3.5rem;float:left;line-height:0.85;padding:8px 12px 0 0;color:var(--accent-strong)}
+.why p:not(:first-of-type)::first-letter{font-family:inherit;font-style:inherit;font-weight:inherit;font-size:inherit;float:none;padding:0;color:inherit;line-height:inherit}
+.why-side{display:flex;flex-direction:column;gap:24px}
+.why-stat{padding:32px;background:var(--bg-paper);border:1px solid var(--rule);display:flex;flex-direction:column;gap:8px}
+.why-stat .num{font-family:var(--font-display);font-weight:800;font-size:clamp(2.5rem,4vw,3.5rem);color:var(--accent-strong);letter-spacing:-.02em;line-height:1}
+.why-stat .label{font-family:var(--font-serif);font-style:italic;font-size:1.0625rem;color:var(--ink);line-height:1.4}
+.why-stat .src{font-family:var(--font-display);font-weight:700;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-top:8px;padding-top:12px;border-top:1px solid var(--rule)}
+
+/* THE FORM */
+.form-section{padding:96px 0;background:var(--bg-paper)}
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:48px;padding-bottom:18px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.section-head h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,3.8vw,2.875rem);line-height:1.1;letter-spacing:-.02em;color:var(--ink);max-width:18ch}
+.section-head h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.section-head .meta{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);text-align:right;line-height:1.8}
+
+.form-wrap{display:grid;grid-template-columns:1fr;gap:48px;max-width:1100px;margin:0 auto}
+@media(min-width:900px){.form-wrap{grid-template-columns:240px 1fr;gap:64px}}
+
+.steps-rail{display:flex;flex-direction:column;gap:0;position:sticky;top:96px;align-self:start}
+.steps-rail .rail-label{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+.steps-rail .step-item{display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid var(--rule);cursor:pointer;background:none;border-left:none;border-right:none;border-top:none;font-family:inherit;text-align:left;color:inherit;transition:var(--transition);width:100%}
+.steps-rail .step-item:hover{color:var(--accent)}
+.steps-rail .step-item.active .step-n{background:var(--accent);color:#fff;border-color:var(--accent)}
+.steps-rail .step-item.complete .step-n{background:var(--green);color:#fff;border-color:var(--green)}
+.steps-rail .step-item .step-n{flex-shrink:0;width:28px;height:28px;border:1.5px solid var(--ink-3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:.72rem;color:var(--ink);transition:var(--transition)}
+.steps-rail .step-item .step-text{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);line-height:1.5;padding-top:4px}
+.steps-rail .step-item.active .step-text{color:var(--ink)}
+
+form.story{background:var(--bg-paper);border:1px solid var(--rule-2);padding:40px}
+.fstep{display:none;flex-direction:column;gap:24px}
+.fstep.active{display:flex}
+.fstep-num{font-family:var(--font-display);font-weight:700;font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:-4px}
+.fstep h3{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:1.875rem;line-height:1.15;color:var(--ink);letter-spacing:-.01em;max-width:22ch}
+.fstep h3 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.fstep > p.hint{font-family:var(--font-serif);font-size:1.0625rem;color:var(--ink-2);line-height:1.55;max-width:56ch}
+.fstep > p.hint em{font-style:italic;color:var(--accent-strong);font-weight:600}
+
+.field{display:flex;flex-direction:column;gap:8px}
+.field label{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink)}
+.field label .opt{color:var(--ink-3);font-weight:500;letter-spacing:.06em;text-transform:none;font-size:.78rem;margin-left:8px}
+.field input,.field textarea,.field select{font-family:var(--font-body);font-size:1rem;color:var(--ink);background:var(--bg-paper-2);border:1px solid var(--rule);padding:14px 16px;width:100%;transition:var(--transition)}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent);background:#fff}
+.field textarea{resize:vertical;min-height:140px;font-family:var(--font-serif);line-height:1.55}
+.field .help{font-family:var(--font-body);font-size:.85rem;color:var(--ink-3);line-height:1.5}
+
+.choices{display:grid;grid-template-columns:1fr;gap:8px}
+@media(min-width:520px){.choices{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:760px){.choices.three{grid-template-columns:repeat(3,1fr)}}
+.choice{position:relative;cursor:pointer}
+.choice input{position:absolute;opacity:0;pointer-events:none}
+.choice .box{padding:14px 16px;border:1px solid var(--rule);background:var(--bg-paper-2);display:flex;flex-direction:column;gap:4px;transition:var(--transition)}
+.choice .box .ttl{font-family:var(--font-display);font-weight:700;font-size:.78rem;letter-spacing:.08em;color:var(--ink)}
+.choice .box .sub{font-family:var(--font-body);font-size:.84rem;color:var(--ink-3);line-height:1.4}
+.choice:hover .box{border-color:var(--ink-3)}
+.choice input:checked + .box{border-color:var(--accent);background:#fff;box-shadow:inset 0 0 0 1px var(--accent)}
+.choice input:checked + .box .ttl{color:var(--accent-strong)}
+
+.fstep-actions{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-top:24px;margin-top:8px;border-top:1px solid var(--rule);flex-wrap:wrap}
+.fstep-actions .progress{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.fstep-actions .progress strong{color:var(--accent)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 22px;font-family:var(--font-body);font-size:.92rem;font-weight:600;border:1px solid transparent;cursor:pointer;transition:var(--transition);text-decoration:none}
+.btn-primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn-primary:hover{background:var(--accent);border-color:var(--accent)}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--rule-2)}
+.btn-ghost:hover{border-color:var(--ink);color:var(--ink)}
+.btn-actions-right{display:flex;gap:10px;align-items:center}
+
+.success{display:none;flex-direction:column;gap:24px;padding:48px 32px;text-align:center;background:var(--bg-paper-2);border:1px solid var(--rule-2)}
+.success.active{display:flex}
+.success-stamp{font-family:var(--font-display);font-weight:700;font-size:.74rem;letter-spacing:.2em;text-transform:uppercase;color:var(--green)}
+.success h3{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:2rem;line-height:1.15;color:var(--ink);max-width:24ch;margin:0 auto}
+.success h3 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.success p{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.55;color:var(--ink-2);max-width:48ch;margin:0 auto}
+.success-id{font-family:var(--font-display);font-weight:700;font-size:.86rem;letter-spacing:.14em;color:var(--ink);padding:14px 24px;background:#fff;border:1px dashed var(--rule-2);display:inline-block;margin:0 auto}
+
+/* HOW WE HANDLE — dark band */
+.handle{padding:96px 0;background:var(--bg-dark);color:#fff}
+.handle .kicker{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:20px}
+.handle h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(2rem,3.8vw,2.875rem);line-height:1.1;color:#fff;letter-spacing:-.02em;margin-bottom:48px;max-width:18ch}
+.handle h2 .em{font-style:normal;font-weight:600;color:var(--accent)}
+.handle-list{border-top:1px solid rgba(255,255,255,0.14)}
+.handle-row{display:grid;grid-template-columns:1fr;gap:14px;padding:28px 0;border-bottom:1px solid rgba(255,255,255,0.08)}
+@media(min-width:760px){.handle-row{grid-template-columns:60px 1fr 220px;gap:32px;align-items:start}}
+.handle-row .n{font-family:var(--font-display);font-weight:800;font-size:1.125rem;color:var(--accent);letter-spacing:.04em}
+.handle-row h3{font-family:var(--font-serif);font-weight:500;font-size:1.375rem;line-height:1.2;color:#fff;margin-bottom:8px}
+.handle-row h3 .em{font-style:italic;color:var(--accent)}
+.handle-row p{font-family:var(--font-serif);font-size:1rem;line-height:1.55;color:#94A3B8;max-width:55ch}
+.handle-row .when{font-family:var(--font-display);font-weight:700;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:#fff;text-align:right;padding-top:6px;border-left:2px solid var(--accent);padding-left:14px;line-height:1.5}
+.handle-row .when span{display:block;color:#94A3B8;font-size:.66rem;margin-top:4px}
+
+/* NOT READY — support panel */
+.support{padding:96px 0;background:var(--bg-paper-2);border-top:1px solid var(--rule-2)}
+.support-grid{display:grid;grid-template-columns:1fr;gap:48px;max-width:1100px;margin:0 auto}
+@media(min-width:900px){.support-grid{grid-template-columns:1fr 1.4fr;gap:80px;align-items:start}}
+.support .kicker{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.support h2{font-family:var(--font-serif);font-weight:500;font-style:italic;font-size:clamp(1.875rem,3.4vw,2.5rem);line-height:1.15;color:var(--ink);letter-spacing:-.01em;margin-bottom:20px}
+.support h2 .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.support .lede{font-family:var(--font-serif);font-size:1.0625rem;line-height:1.65;color:var(--ink-2);max-width:48ch}
+
+.lines{border-top:2px solid var(--ink)}
+.line{display:grid;grid-template-columns:1fr;gap:6px;padding:24px 0;border-bottom:1px solid var(--rule)}
+@media(min-width:600px){.line{grid-template-columns:170px 1fr 130px;gap:24px;align-items:baseline}}
+.line .who{font-family:var(--font-serif);font-style:italic;font-size:1.0625rem;color:var(--ink);font-weight:500}
+.line .what{font-family:var(--font-serif);font-size:.98rem;color:var(--ink-2);line-height:1.5}
+.line .phone{font-family:var(--font-display);font-weight:700;font-size:.86rem;letter-spacing:.04em;color:var(--accent-strong);text-align:right}
+
+/* CTA */
+.cta{padding:96px 0 110px;background:var(--bg-paper);text-align:center}
+.cta blockquote{font-family:var(--font-serif);font-style:italic;font-weight:500;font-size:clamp(1.875rem,3.6vw,2.75rem);line-height:1.2;color:var(--ink);max-width:22ch;margin:0 auto 24px;letter-spacing:-.01em}
+.cta blockquote .em{font-style:normal;font-weight:600;color:var(--accent-strong)}
+.cta .attribution{font-family:var(--font-display);font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:40px}
+.cta-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+/* FOOTER */
+.footer{padding:80px 0 40px;background:var(--bg-dark);color:#94A3B8}
+.footer-grid{display:grid;grid-template-columns:1fr;gap:48px;margin-bottom:64px}
+@media(min-width:768px){.footer-grid{grid-template-columns:2fr 1fr 1fr 1fr}}
+.footer-brand p{font-size:.9375rem;line-height:1.7;max-width:320px;margin-top:20px}
+.footer-col h4{font-family:var(--font-display);font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#E2E8F0;margin-bottom:20px}
+.footer-col a{display:block;font-size:.9375rem;margin-bottom:14px;transition:var(--transition)}
+.footer-col a:hover{color:var(--accent)}
+.footer-bottom{padding-top:32px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px;font-size:.84rem;color:#64748B}
+.footer-links{display:flex;gap:24px}
+.footer-links a:hover{color:#E2E8F0}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" aria-label="ASPS accueil">
+      <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#logoGrad)"/>
+        <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+        <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+        <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+        <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+      </svg>
+    </a>
+    <div class="nav-links">
+      <a href="platform.html" class="nav-link">Comment ça marche</a>
+      <a href="knowledge.html" class="nav-link">Centre de connaissances</a>
+      <a href="stories.html" class="nav-link">Témoignages</a>
+      <a href="partners.html" class="nav-link">Partenaires</a>
+      <a href="about.html" class="nav-link">À propos</a>
+      <a href="faq.html" class="nav-link">Questions fréquentes</a>
+    </div>
+    <div class="nav-actions">
+      <div class="lang-dropdown">
+        <button class="lang-dropdown-btn" aria-label="Choisir la langue"><span>FR</span><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l4 4 4-4"/></svg></button>
+        <div class="lang-dropdown-menu">
+          <a href="../share-story.html" class="lang-option">English</a>
+          <a href="../he/share-story.html" class="lang-option">עברית</a>
+          <span class="lang-option active">Français</span>
+          <a href="../ru/share-story.html" class="lang-option">Русский</a>
+          <a href="../es/share-story.html" class="lang-option">Español</a>
+        </div>
+      </div>
+      <a href="contact.html" class="nav-btn nav-btn-ghost">Contact</a>
+      <a href="protection-plans.html" class="nav-btn nav-btn-primary">Se protéger</a>
+    </div>
+  </div>
+</nav>
+
+<!-- MASTHEAD -->
+<header class="masthead">
+  <div class="container">
+    <div class="masthead-top">
+      <span>Partagez votre témoignage · Vol. 08</span>
+      <span class="right">Pour ceux qui l'ont vu · ou qui ont failli ne pas le voir</span>
+    </div>
+    <div class="masthead-grid">
+      <div>
+        <h1>Quelqu'un est appelé <span class="em">en ce moment.</span></h1>
+        <p class="masthead-lede">Si vous avez été ciblé par une arnaque — que vous l'ayez détectée à temps ou non — nous raconter ce que vous avez vu donne à la prochaine personne une chance de le voir plus tôt. <strong>Anonyme par défaut. À vous de le supprimer. Jamais utilisé pour de la publicité.</strong></p>
+      </div>
+
+      <aside class="care-card" aria-label="Comment nous traitons votre témoignage">
+        <p class="stamp">La promesse · en cinq lignes</p>
+        <div class="care-row"><span class="n">01</span><p><em>Anonyme</em> sauf si vous demandez le contraire.</p></div>
+        <div class="care-row"><span class="n">02</span><p>Les noms, numéros et montants sont <em>effacés</em> avant examen.</p></div>
+        <div class="care-row"><span class="n">03</span><p>Lu par un humain ; <em>jamais utilisé pour entraîner une IA</em> sans consentement explicite.</p></div>
+        <div class="care-row"><span class="n">04</span><p>Vous pouvez <em>vous retirer</em> à tout moment, même des années plus tard.</p></div>
+        <div class="care-row"><span class="n">05</span><p>S'il est publié, vous le voyez en premier et pouvez <em>modifier un seul mot</em> ou le retirer.</p></div>
+      </aside>
+    </div>
+  </div>
+</header>
+
+<!-- WHY -->
+<section class="why">
+  <div class="container">
+    <div class="why-grid">
+      <div>
+        <p class="kicker">Pourquoi cela existe</p>
+        <h2>Chaque témoignage que vous nous confiez instruit la prochaine <span class="em">alerte.</span></h2>
+        <p>Chaque témoignage que nous recevons — l'appel à froid, la voix impossible, l'onglet bancaire qui n'était pas tout à fait juste — devient un schéma. Le schéma devient une alerte. L'alerte atteint quelqu'un, à temps, qui aurait sinon passé trente secondes de trop à croire ce qu'on lui disait.</p>
+        <p>Nous ne romançons pas cela. Les gens perdent plus que de l'argent dans les arnaques ; ils perdent confiance en leur propre jugement. Nous le raconter, même anonymement, est une façon d'en reprendre une partie — et de s'assurer que la prochaine personne n'ait pas à découvrir la même ruse de la même manière.</p>
+      </div>
+
+      <div class="why-side">
+        <div class="why-stat">
+          <span class="num">3 142</span>
+          <span class="label">témoignages soumis à ASPS au cours des 12 derniers mois</span>
+          <span class="src">Interne · Mai 2026</span>
+        </div>
+        <div class="why-stat">
+          <span class="num">71 %</span>
+          <span class="label">ont conduit à un nouveau schéma, modèle d'alerte ou règle de détection</span>
+          <span class="src">Interne · Mai 2026</span>
+        </div>
+        <div class="why-stat">
+          <span class="num">≈ 12 min</span>
+          <span class="label">temps médian pour partager, examen et envoi inclus</span>
+          <span class="src">Depuis le formulaire d'envoi · Mai 2026</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FORM -->
+<section class="form-section">
+  <div class="container">
+    <div class="section-head">
+      <h2>Le formulaire, en quatre <span class="em">étapes honnêtes.</span></h2>
+      <p class="meta">Temps de lecture · 12 min<br/>Enregistré localement · fermez quand vous voulez</p>
+    </div>
+
+    <div class="form-wrap">
+      <nav class="steps-rail" aria-label="Étapes du formulaire">
+        <p class="rail-label">Où vous en êtes</p>
+        <button type="button" class="step-item active" data-go="0"><span class="step-n">1</span><span class="step-text">Ce qui s'est passé</span></button>
+        <button type="button" class="step-item" data-go="1"><span class="step-n">2</span><span class="step-text">Le récit, avec vos mots</span></button>
+        <button type="button" class="step-item" data-go="2"><span class="step-n">3</span><span class="step-text">Comment vous souhaitez qu'il soit utilisé</span></button>
+        <button type="button" class="step-item" data-go="3"><span class="step-n">4</span><span class="step-text">Vous (facultatif)</span></button>
+      </nav>
+
+      <form class="story" id="storyForm" novalidate>
+
+        <!-- STEP 1 -->
+        <div class="fstep active" data-step="0">
+          <span class="fstep-num">Étape 01 sur 04</span>
+          <h3>L'essentiel — <span class="em">de quel genre de chose s'agissait-il ?</span></h3>
+          <p class="hint">Quelques questions rapides pour savoir comment lire votre témoignage. Choisissez ce qui s'en rapproche le plus — rien de tout cela n'a besoin d'être précis.</p>
+
+          <div class="field">
+            <label>De quel type d'arnaque s'agissait-il ?</label>
+            <div class="choices three">
+              <label class="choice"><input type="radio" name="kind" value="voice"/><span class="box"><span class="ttl">Voix / téléphone</span><span class="sub">Un appel où quelqu'un n'était pas celui qu'il prétendait être.</span></span></label>
+              <label class="choice"><input type="radio" name="kind" value="message"/><span class="box"><span class="ttl">Texto / message</span><span class="sub">SMS, WhatsApp, e-mail vous demandant d'agir.</span></span></label>
+              <label class="choice"><input type="radio" name="kind" value="bank"/><span class="box"><span class="ttl">Banque / paiement</span><span class="sub">Demande de transfert, de « sécuriser » un compte, etc.</span></span></label>
+              <label class="choice"><input type="radio" name="kind" value="romance"/><span class="box"><span class="ttl">Amour / amitié</span><span class="sub">Confiance bâtie au fil du temps, puis une demande.</span></span></label>
+              <label class="choice"><input type="radio" name="kind" value="employment"/><span class="box"><span class="ttl">Emploi / travail</span><span class="sub">Faux emploi, faux employeur, fausse tâche.</span></span></label>
+              <label class="choice"><input type="radio" name="kind" value="other"/><span class="box"><span class="ttl">Autre chose</span><span class="sub">Ou difficile à classer — nous trouverons.</span></span></label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Comment cela s'est-il terminé ?</label>
+            <div class="choices three">
+              <label class="choice"><input type="radio" name="outcome" value="caught"/><span class="box"><span class="ttl">Détecté à temps</span><span class="sub">Rien de perdu.</span></span></label>
+              <label class="choice"><input type="radio" name="outcome" value="partial"/><span class="box"><span class="ttl">Perte partielle</span><span class="sub">Un peu d'argent ou de données, puis arrêté.</span></span></label>
+              <label class="choice"><input type="radio" name="outcome" value="full"/><span class="box"><span class="ttl">Perdu ce qu'ils demandaient</span><span class="sub">C'est passé avant que je m'en rende compte.</span></span></label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>À peu près quand ?</label>
+            <select name="when">
+              <option value="">Choisissez — ou laissez vide</option>
+              <option>Cette semaine</option>
+              <option>Ce mois-ci</option>
+              <option>Cette année (2026)</option>
+              <option>L'an dernier (2025)</option>
+              <option>2024 ou avant</option>
+              <option>Je préfère ne pas dire</option>
+            </select>
+            <span class="help">Nous demandons cela uniquement parce que les schémas d'arnaque évoluent vite — savoir si vous avez vu ceci la semaine dernière ou l'an dernier aide vraiment.</span>
+          </div>
+
+          <div class="fstep-actions">
+            <span class="progress">Étape <strong>01</strong> / 04</span>
+            <div class="btn-actions-right">
+              <button type="button" class="btn btn-primary" data-next>Continuer →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="fstep" data-step="1">
+          <span class="fstep-num">Étape 02 sur 04</span>
+          <h3>Avec vos propres mots — <span class="em">dites-nous ce que vous avez vu.</span></h3>
+          <p class="hint">Aucun format requis. Nous avons mis quelques pistes ci-dessous au cas où cela aiderait — répondez à une, à toutes, ou à aucune. Tout ce que vous écrivez ici peut être <em>débarrassé des noms et numéros</em> automatiquement avant examen.</p>
+
+          <div class="field">
+            <label>Le récit <span class="opt">— écrivez autant ou aussi peu que vous voulez</span></label>
+            <textarea name="story" rows="8" placeholder="Quelques pistes, si utile :
+• Quelle a été la première chose qu'ils ont dite ?
+• Qu'est-ce qui vous a fait vous arrêter et réfléchir ?
+• Quand le sentiment a-t-il basculé — que quelque chose clochait ?
+• Y a-t-il eu un moment où vous y avez presque cru ? Lequel ?"></textarea>
+            <span class="help">Témoignage moyen que nous recevons : environ 220 mots. Certains font deux phrases, d'autres deux pages. Les deux sont utiles.</span>
+          </div>
+
+          <div class="field">
+            <label>Si cela peut aider — un échantillon du message ou du scénario <span class="opt">facultatif</span></label>
+            <textarea name="sample" rows="4" placeholder="Collez le texte exact du message, ou quelques lignes de ce qui a été dit au téléphone. Nous retirons les détails personnels avant tout examen."></textarea>
+            <span class="help">Le langage mot à mot est précieux pour la détection de schémas — la formulation exacte est souvent ce qui instruit la prochaine alerte.</span>
+          </div>
+
+          <div class="fstep-actions">
+            <span class="progress">Étape <strong>02</strong> / 04</span>
+            <div class="btn-actions-right">
+              <button type="button" class="btn btn-ghost" data-prev>← Retour</button>
+              <button type="button" class="btn btn-primary" data-next>Continuer →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="fstep" data-step="2">
+          <span class="fstep-num">Étape 03 sur 04</span>
+          <h3>Comment souhaitez-vous que nous <span class="em">l'utilisions ?</span></h3>
+          <p class="hint">Choisissez ce avec quoi vous êtes à l'aise — vous pourrez changer d'avis plus tard depuis le même e-mail que nous envoyons lors de l'envoi.</p>
+
+          <div class="field">
+            <label>Utilisation de votre témoignage</label>
+            <div class="choices">
+              <label class="choice"><input type="checkbox" name="use" value="patterns"/><span class="box"><span class="ttl">Améliorer la détection</span><span class="sub">Utilisé anonymement pour améliorer les alertes. <em>Recommandé.</em></span></span></label>
+              <label class="choice"><input type="checkbox" name="use" value="publish"/><span class="box"><span class="ttl">Peut-être publier, anonymisé</span><span class="sub">Sur stories.html. Vous le voyez en premier.</span></span></label>
+              <label class="choice"><input type="checkbox" name="use" value="partners"/><span class="box"><span class="ttl">Partager avec banque / opérateur</span><span class="sub">Anonymisé, pour les aider à repérer le même scénario.</span></span></label>
+              <label class="choice"><input type="checkbox" name="use" value="research"/><span class="box"><span class="ttl">Recherche uniquement</span><span class="sub">Statistiques et tendances agrégées. Jamais cité.</span></span></label>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Comment devons-nous vous créditer, si tant est ?</label>
+            <div class="choices three">
+              <label class="choice"><input type="radio" name="credit" value="none"/><span class="box"><span class="ttl">Anonyme</span><span class="sub">Aucun nom. <em>Par défaut.</em></span></span></label>
+              <label class="choice"><input type="radio" name="credit" value="first"/><span class="box"><span class="ttl">Prénom uniquement</span><span class="sub">« David, 71 ans, Manchester »</span></span></label>
+              <label class="choice"><input type="radio" name="credit" value="full"/><span class="box"><span class="ttl">Nom complet</span><span class="sub">Seulement si vous le souhaitez expressément.</span></span></label>
+            </div>
+          </div>
+
+          <div class="fstep-actions">
+            <span class="progress">Étape <strong>03</strong> / 04</span>
+            <div class="btn-actions-right">
+              <button type="button" class="btn btn-ghost" data-prev>← Retour</button>
+              <button type="button" class="btn btn-primary" data-next>Continuer →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4 -->
+        <div class="fstep" data-step="3">
+          <span class="fstep-num">Étape 04 sur 04</span>
+          <h3>Vous — <span class="em">mais seulement si vous le voulez.</span></h3>
+          <p class="hint">Tout ici est facultatif. Nous ne demandons un e-mail que pour vous envoyer une copie de ce que vous avez écrit, et un lien « retrait » en un clic, pour toujours. Nous ne vous ajoutons <em>jamais</em> à aucune liste.</p>
+
+          <div class="field">
+            <label>E-mail <span class="opt">facultatif</span></label>
+            <input type="email" name="email" placeholder="vous@exemple.com"/>
+            <span class="help">Utilisé une seule fois, pour envoyer votre copie et votre lien de retrait. Supprimé ensuite — votre témoignage ne reste lié que par un code aléatoire.</span>
+          </div>
+
+          <div class="field">
+            <label>Tranche d'âge <span class="opt">facultatif · nous aide à voir qui est ciblé</span></label>
+            <select name="age">
+              <option value="">Choisissez — ou laissez vide</option>
+              <option>Moins de 30 ans</option><option>30–49 ans</option><option>50–64 ans</option><option>65–74 ans</option><option>75 ans et plus</option>
+              <option>Je préfère ne pas dire</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Région <span class="opt">facultatif</span></label>
+            <input type="text" name="region" placeholder="ex. Grand Manchester, Royaume-Uni"/>
+          </div>
+
+          <div class="field">
+            <label>Autre chose que vous aimeriez nous faire savoir ? <span class="opt">facultatif</span></label>
+            <textarea name="extra" rows="3" placeholder="Peut-être comment vous aimeriez que nous répondions, ce qui aurait aidé sur le moment, ou un message pour la prochaine personne qui le lira."></textarea>
+          </div>
+
+          <div class="fstep-actions">
+            <span class="progress">Prêt à envoyer · <strong>étape 04 / 04</strong></span>
+            <div class="btn-actions-right">
+              <button type="button" class="btn btn-ghost" data-prev>← Retour</button>
+              <button type="submit" class="btn btn-primary">Partager mon témoignage →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUCCESS -->
+        <div class="success" id="storySuccess" aria-live="polite">
+          <span class="success-stamp">✓ Reçu · merci</span>
+          <h3>Vous venez d'aider quelqu'un <span class="em">que vous ne rencontrerez jamais.</span></h3>
+          <p>Un humain lira votre témoignage sous 5 jours ouvrés. Vous recevrez un e-mail avec votre lien de retrait — conservez-le. Si quoi que ce soit de votre témoignage devient une alerte ou un article publié, vous le verrez avant tout le monde.</p>
+          <span class="success-id" id="successId">RÉF · ASPS-2026-•••••</span>
+          <p style="font-family:var(--font-body);font-size:.92rem;color:var(--ink-3)">Si vous souhaitez parler à un humain maintenant, les lignes d'assistance ci-dessous sont ouvertes.</p>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- HOW WE HANDLE -->
+<section class="handle">
+  <div class="container">
+    <p class="kicker">De l'envoi à l'alerte</p>
+    <h2>Ce qui arrive à votre témoignage, <span class="em">étape par étape.</span></h2>
+
+    <div class="handle-list">
+      <div class="handle-row">
+        <span class="n">01</span>
+        <div>
+          <h3>Les détails personnels sont <span class="em">effacés avant examen.</span></h3>
+          <p>Les noms, numéros de téléphone, numéros de compte, montants et adresses sont automatiquement remplacés par des jetons neutres (NAME_01, AMOUNT_01) avant que quiconque ne voie le témoignage. L'original est chiffré et accessible uniquement à vous via votre lien de retrait.</p>
+        </div>
+        <p class="when">Sous 60 secondes<span>Automatique</span></p>
+      </div>
+
+      <div class="handle-row">
+        <span class="n">02</span>
+        <div>
+          <h3>Un humain le lit. <span class="em">Une personne, pas une file d'attente.</span></h3>
+          <p>Notre équipe d'accompagnement — trois personnes, toutes ayant vécu ou ayant une expérience familiale des arnaques — lit chaque témoignage sous cinq jours ouvrés. Elle le marque pour la détection de schémas et vous répond, dans votre langue.</p>
+        </div>
+        <p class="when">≤ 5 jours ouvrés<span>Équipe d'accompagnement</span></p>
+      </div>
+
+      <div class="handle-row">
+        <span class="n">03</span>
+        <div>
+          <h3>Les schémas instruisent le prochain <span class="em">modèle d'alerte.</span></h3>
+          <p>Si votre témoignage inclut un scénario, un numéro ou un hameçon que nous n'avons pas vu, l'équipe de détection rédige une nouvelle règle d'alerte. La plupart des règles sont déployées à tous les utilisateurs sous 7 à 14 jours après l'arrivée du témoignage. Vous serez informé si la vôtre l'a été.</p>
+        </div>
+        <p class="when">7 à 14 jours<span>Détection</span></p>
+      </div>
+
+      <div class="handle-row">
+        <span class="n">04</span>
+        <div>
+          <h3>Si nous voulons publier, <span class="em">vous le voyez en premier.</span></h3>
+          <p>Pour les témoignages avec autorisation de publication, nous vous envoyons la version proposée avant qu'elle n'aille où que ce soit. Vous pouvez modifier un seul mot, tout modifier, ou le retirer entièrement. Le défaut est anonyme ; même l'attribution est sur consentement, publication par publication.</p>
+        </div>
+        <p class="when">Avant publication<span>Toujours relu</span></p>
+      </div>
+
+      <div class="handle-row">
+        <span class="n">05</span>
+        <div>
+          <h3>Vous pouvez vous retirer, <span class="em">pour toujours.</span></h3>
+          <p>Le lien dans votre e-mail de confirmation n'expire jamais. Un clic et votre témoignage — ainsi que chaque alerte dérivée qui vous cite directement — est purgé. Les schémas appris de votre témoignage restent ; les citations, non.</p>
+        </div>
+        <p class="when">À tout moment · pour toujours<span>Un clic</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SUPPORT -->
+<section class="support">
+  <div class="container">
+    <div class="support-grid">
+      <div>
+        <p class="kicker">Si vous n'êtes pas prêt à écrire</p>
+        <h2>Vous n'avez pas à partager pour <span class="em">obtenir de l'aide.</span></h2>
+        <p class="lede">Si vous préférez parler d'abord à quelqu'un, ou si vous vous remettez et n'êtes pas prêt à y revenir — ces lignes sont gratuites, confidentielles, et formées pour écouter sans presser. ASPS n'est affilié à aucune d'elles ; nous les listons parce qu'elles sont bonnes.</p>
+      </div>
+
+      <div class="lines" aria-label="Lignes d'assistance">
+        <div class="line"><span class="who">Action Fraud · Royaume-Uni</span><span class="what">Signalement et soutien immédiat pour la fraude et la cybercriminalité au Royaume-Uni.</span><span class="phone">0300 123 2040</span></div>
+        <div class="line"><span class="who">Victim Support · Royaume-Uni</span><span class="what">Soutien émotionnel et accompagnement pratique, tout type de délit, gratuit.</span><span class="phone">0808 168 9111</span></div>
+        <div class="line"><span class="who">Centre Européen des Consommateurs</span><span class="what">Aide pour les arnaques transfrontalières au sein de l'UE, dans la langue de chaque État membre.</span><span class="phone">+32 2 542 33 89</span></div>
+        <div class="line"><span class="who">AARP Fraud Watch · États-Unis</span><span class="what">Ligne d'assistance gratuite tenue par des bénévoles formés, principalement pour les personnes âgées.</span><span class="phone">877-908-3360</span></div>
+        <div class="line"><span class="who">Samaritans · 24h/24 7j/7</span><span class="what">Si l'expérience a affecté votre santé mentale — n'importe qui, pour n'importe quelle raison.</span><span class="phone">116 123</span></div>
+        <div class="line"><span class="who">Citizens Advice · Royaume-Uni</span><span class="what">Aide pour récupérer de l'argent et traiter avec les banques après une arnaque.</span><span class="phone">0800 144 8848</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA / closing quote -->
+<section class="cta">
+  <div class="container">
+    <blockquote>« Le dire à quelqu'un, c'est la première fois que ça cesse d'être <span class="em">votre faute.</span> »</blockquote>
+    <p class="attribution">— Margaret, 74 ans · le deuxième témoignage que nous ayons jamais reçu</p>
+    <div class="cta-actions">
+      <a href="#storyForm" class="btn btn-primary">Partagez votre témoignage</a>
+      <a href="stories.html" class="btn btn-ghost">Lire les autres d'abord</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <svg width="120" height="32" viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="3" height="40" rx="1.5" fill="url(#footerLogoGrad)"/>
+          <text x="12" y="27" font-family="'Syne', serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="-0.5">ASPS</text>
+          <circle cx="20" cy="6" r="4" fill="#1F8B5C"/>
+          <circle cx="20" cy="6" r="2" fill="#FFFFFF"/>
+          <defs><linearGradient id="footerLogoGrad" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1F8B5C"/><stop offset="100%" stop-color="#16734C"/></linearGradient></defs>
+        </svg>
+        <p>Protection IA en temps réel contre la fraude, les arnaques et l'ingénierie sociale. Protéger les personnes au moment où ça compte le plus.</p>
+      </div>
+      <div class="footer-col"><h4>Plateforme</h4><a href="platform.html">Comment ça marche</a><a href="individuals.html#individuals">Pour les particuliers</a><a href="individuals.html#families">Pour les familles</a><a href="partners.html">Pour les partenaires</a></div>
+      <div class="footer-col"><h4>Ressources</h4><a href="knowledge.html">Centre de connaissances</a><a href="faq.html">Questions fréquentes</a><a href="stories.html#support">Obtenir de l'aide</a><a href="stories.html">Témoignages</a></div>
+      <div class="footer-col"><h4>Entreprise</h4><a href="about.html">À propos</a><a href="about.html#mission">Notre mission</a><a href="about.html#ethics">Éthique &amp; confiance</a><a href="contact.html">Contact</a></div>
+    </div>
+    <div class="footer-bottom"><p>© 2026 ASPS. Tous droits réservés.</p><div class="footer-links"><a href="privacy.html">Confidentialité</a><a href="privacy.html#terms">Conditions</a><a href="accessibility.html">Accessibilité</a></div></div>
+  </div>
+</footer>
+
+<script>
+const form = document.getElementById('storyForm');
+const steps = form.querySelectorAll('.fstep');
+const railItems = document.querySelectorAll('.steps-rail .step-item');
+const success = document.getElementById('storySuccess');
+let current = 0;
+
+function goTo(n){
+  current = Math.max(0, Math.min(steps.length-1, n));
+  steps.forEach((s,i)=>s.classList.toggle('active', i===current));
+  railItems.forEach((r,i)=>{
+    r.classList.toggle('active', i===current);
+    r.classList.toggle('complete', i<current);
+  });
+  form.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+form.querySelectorAll('[data-next]').forEach(b=>b.addEventListener('click',()=>goTo(current+1)));
+form.querySelectorAll('[data-prev]').forEach(b=>b.addEventListener('click',()=>goTo(current-1)));
+railItems.forEach(r=>r.addEventListener('click',()=>{const n=parseInt(r.dataset.go,10); if(!isNaN(n)) goTo(n);}));
+
+form.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const code = Math.random().toString(36).slice(2,7).toUpperCase();
+  const data = new FormData(form);
+  let body = 'Envoi de témoignage · ASPS-2026-'+code+'\r\n\r\n';
+  for (const [k,v] of data.entries()) {
+    if (v && String(v).trim()) body += k+': '+v+'\r\n';
+  }
+  window.location.href = 'mailto:info@asps.io?subject='+encodeURIComponent('Envoi de témoignage · ASPS-2026-'+code)+'&body='+encodeURIComponent(body);
+  document.getElementById('successId').textContent = 'RÉF · ASPS-2026-'+code;
+  steps.forEach(s=>s.classList.remove('active'));
+  success.classList.add('active');
+  railItems.forEach(r=>r.classList.add('complete'));
+  success.scrollIntoView({behavior:'smooth', block:'start'});
+});
+</script>
+
+<script src="cookie-banner.js"></script>
+</body>
+</html>
