@@ -16,6 +16,59 @@
     </div>
 }
 
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <strong>Success!</strong> @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Add Tracked Domain</h6>
+    </div>
+    <div class="card-body">
+        <form method="post" asp-page-handler="Add" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label" for="NewDomain">Domain <span class="text-danger">*</span></label>
+                <input type="text" class="form-control form-control-sm" id="NewDomain"
+                       asp-for="NewDomain" required placeholder="evil-bank.example" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="NewCategory">Category</label>
+                <input type="text" class="form-control form-control-sm" id="NewCategory"
+                       asp-for="NewCategory" placeholder="Manual" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="NewTrackMode">Track mode</label>
+                <select class="form-select form-select-sm" id="NewTrackMode" asp-for="NewTrackMode">
+                    <option value="0">None</option>
+                    <option value="1" selected>Surf (once per domain)</option>
+                    <option value="2">Click (every navigation)</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="NewUserKey">User key</label>
+                <input type="text" class="form-control form-control-sm" id="NewUserKey"
+                       asp-for="NewUserKey" placeholder="(all devices of user)" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="NewReason">Reason</label>
+                <input type="text" class="form-control form-control-sm" id="NewReason"
+                       asp-for="NewReason" placeholder="optional" />
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-sm btn-primary w-100">Add</button>
+            </div>
+        </form>
+        <small class="text-muted d-block mt-2">
+            Persists the domain and syncs it to every device of the given user
+            (empty user key = persist only, no device fan-out).
+        </small>
+    </div>
+</div>
+
 <div class="card shadow mb-4">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
         <h6 class="m-0 font-weight-bold text-primary">Tracking Domains (@Model.TotalCount)</h6>

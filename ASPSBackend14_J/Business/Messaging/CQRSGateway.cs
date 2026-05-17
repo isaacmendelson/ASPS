@@ -210,6 +210,8 @@ public class CQRSGateway : IDisposable
             // Website Category Commands (SCRUM-822)
             "CreateWebsiteCategoryCommand" => await HandleCreateWebsiteCategoryCommand(messageJson, scope),
             "UpdateWebsiteCategoryCommand" => await HandleUpdateWebsiteCategoryCommand(messageJson, scope),
+            // Tracked Domain Commands (ASPS-371)
+            "AddTrackedDomainCommand" => await HandleAddTrackedDomainCommand(messageJson, scope),
             // Roadmap Commands
             "CreateRoadmapCommand" => await HandleCreateRoadmapCommand(messageJson, scope),
             "SaveRoadmapCommand" => await HandleSaveRoadmapCommand(messageJson, scope),
@@ -807,6 +809,21 @@ public class CQRSGateway : IDisposable
         var query = JsonConvert.DeserializeObject<GetParentCategoriesQuery>(messageJson) ?? new GetParentCategoriesQuery();
         var handler = scope.ServiceProvider.GetRequiredService<WebsiteCategoryQueryHandlers>();
         var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    // Tracked Domain Command Handlers (ASPS-371)
+    private async Task<string> HandleAddTrackedDomainCommand(string messageJson, IServiceScope scope)
+    {
+        var command = JsonConvert.DeserializeObject<AddTrackedDomainCommand>(messageJson);
+        if (command == null) return CreateErrorResponse("Invalid AddTrackedDomainCommand format");
+
+        var handler = scope.ServiceProvider.GetRequiredService<TrackedDomainCommandHandlers>();
+        var result = await handler.HandleAsync(command);
         return JsonConvert.SerializeObject(result, new JsonSerializerSettings
         {
             TypeNameHandling = TypeNameHandling.Auto,

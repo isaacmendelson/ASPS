@@ -293,6 +293,40 @@ function setupWebSocketHandlers() {
 
       console.log(`[Background] Stored ${data.domains.length} tracked domains`);
 
+      // Rebuild the in-memory trackedDomains Map so navigation-based
+      // TrackUrlAlert (getTrackingInfo → Surf/Click) sees centrally-managed
+      // domains too. Previously this Map was ONLY populated by the
+      // protective-action path (enableUrlTracking/setTrackMode), so
+      // backend-pushed SetTrackedDomains never triggered navigation
+      // tracking — only content.js form-submit tracking.
+      //
+      // This list is authoritative: clear then refill. Each entry is keyed
+      // by ROOT domain (getTrackingInfo looks up by root). Centrally-managed
+      // domains have no per-entry duration, so use a long TTL that self-heals
+      // if backend stops syncing; every push refreshes it.
+      const CENTRAL_TRACK_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+      trackedDomains.clear();
+      for (const item of data.domains) {
+        const rawDomain = item.Domain || item.domain;
+        if (!rawDomain) continue;
+        let rootDomain;
+        try {
+          rootDomain = getRootDomain(
+            rawDomain.replace(/^https?:\/\//, '').split('/')[0]
+          );
+        } catch (_) {
+          rootDomain = String(rawDomain).toLowerCase();
+        }
+        trackedDomains.set(rootDomain, {
+          expiresAt: Date.now() + CENTRAL_TRACK_TTL_MS,
+          trackMode: typeof item.TrackMode === 'number'
+            ? item.TrackMode
+            : (item.trackMode ?? TrackMode.Surf),
+          scamInProgressKey: item.ScamInProgressKey || item.scamInProgressKey || '',
+        });
+      }
+      console.log(`[Background] In-memory trackedDomains Map rebuilt: ${trackedDomains.size} root domain(s)`);
+
       // Notify all content scripts to reload tracked domains
       const tabs = await chrome.tabs.query({});
       for (const tab of tabs) {

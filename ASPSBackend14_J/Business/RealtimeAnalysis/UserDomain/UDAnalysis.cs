@@ -11,6 +11,7 @@ using Common.Models;
 using Common.Models.Alerts;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Runtime.Serialization;
 using DeviceAlert = Common.Models.DeviceAlert;
@@ -151,6 +152,11 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
                 {
                     analyzerResult.ProtectiveActions?.AddRange(protectiveActions.ToList());
                 }
+
+                // Phase 4b: risk-based auto-track. Reuse the threshold decision
+                // already made by ProtectiveActionsFactory (an EnableUrlTracking
+                // action means risk ≥ trackUrlThreshold) — no duplicate logic.
+                MaybeRaiseRiskBasedTrackedDomain(resultsCollection.First(), protectiveActions);
             }
             analysisResults[analyzer.GetType().Name] = new Tuple<string, AnalyzerResult>(deviceAlert.AlertId, analyzerResult);
             
@@ -231,6 +237,88 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
         CleanupOldAlerts();
 
         return analysisResult.AnalyzerResults;
+    }
+
+    // Phase 4b dedup: "userKey|domain" → last raise time. Prevents flooding
+    // SetTrackedDomains when the user repeatedly hits the same risky domain.
+    // Static (process-wide) so it survives per-user UDAnalysis re-creation.
+    private static readonly ConcurrentDictionary<string, DateTime> _riskTrackCooldown = new();
+    private static readonly TimeSpan _riskTrackCooldownWindow = TimeSpan.FromMinutes(10);
+    private static readonly TrackedDomainDistributor _trackDistributor = new();
+
+    /// <summary>
+    /// Phase 4b — risk-based auto-track. If ProtectiveActionsFactory emitted an
+    /// EnableUrlTracking action (i.e. risk ≥ trackUrlThreshold), raise a
+    /// SetTrackedDomains event for this user so the domain is synced to all
+    /// their devices. Dedup'd per user+domain with a cooldown window.
+    ///
+    /// Note: this path does NOT persist a TrackedDomain row (per-user
+    /// UDAnalysis has no repository in the hot path). It's an ephemeral
+    /// device sync; the extension keeps it for 24h and a fresh risky visit
+    /// re-triggers. The admin path (Phase 4a) persists for the managed list.
+    /// </summary>
+    private void MaybeRaiseRiskBasedTrackedDomain(AnalysisResult analysisResult, IProtectiveAction[]? protectiveActions)
+    {
+        try
+        {
+            if (protectiveActions is null || protectiveActions.Length == 0)
+                return;
+
+            var trackAction = protectiveActions
+                .OfType<ProtectiveAction>()
+                .FirstOrDefault(a => a.ActionType == ProtectiveActionType.EnableUrlTracking);
+            if (trackAction is null)
+                return;
+
+            // Message format: "EnableUrlTracking|{domain}|{durationMinutes}"
+            var parts = (trackAction.Message ?? string.Empty).Split('|');
+            if (parts.Length < 2 || string.IsNullOrWhiteSpace(parts[1]))
+                return;
+            var domain = parts[1].Trim().ToLowerInvariant();
+
+            var userKey = UDUser.Key.Value;
+            var dedupKey = $"{userKey}|{domain}";
+            var now = DateTime.UtcNow;
+            if (_riskTrackCooldown.TryGetValue(dedupKey, out var last)
+                && (now - last) < _riskTrackCooldownWindow)
+            {
+                _logger.LogDebug(
+                    "[UDAnalysis] risk-track skipped (cooldown): user={UserKey} domain={Domain}",
+                    userKey, domain);
+                return;
+            }
+            _riskTrackCooldown[dedupKey] = now;
+
+            var riskScore = (analysisResult as UrlAnalysisResult)?.risk_assessment?.risk_score ?? 0d;
+            var trackMode = _trackDistributor.DetermineTrackMode(riskScore);
+
+            var cmd = new TrackedDomainCommand(
+                domain: domain,
+                scamInProgressKey: string.Empty,
+                trackMode: trackMode,
+                reportType: ReportType.Backend,
+                reason: $"Risk-based auto-track (score={riskScore:0})");
+
+            var evt = new SetTrackedDomains(
+                userKeyField: userKey,
+                trackedDomains: new List<TrackedDomainCommand> { cmd },
+                isCrossPlatformLock: false,
+                reason: cmd.Reason);
+
+            // Same proven mechanism used 4 lines later for AnalyzerResultReceived.
+            // NotificationPublisherActor is subscribed to this publisher (wired
+            // by UDAnalysisManager) → it fans out to every device of the user.
+            this._domainEventPublisher.Register(evt);
+            this._domainEventPublisher.RaiseAll();
+
+            _logger.LogInformation(
+                "[UDAnalysis] risk-based SetTrackedDomains raised: user={UserKey} domain={Domain} mode={Mode} score={Score:0}",
+                userKey, domain, trackMode, riskScore);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[UDAnalysis] MaybeRaiseRiskBasedTrackedDomain failed");
+        }
     }
 
     /// <summary>

@@ -67,6 +67,10 @@ class NotificationHandler:
             self._handle_set_browser_tabs_policy(notification)
             print("!" * 60 + "\n")
             return
+        if msg_type == 'SetTrackedDomainsNotification':
+            self._handle_set_tracked_domains(notification)
+            print("!" * 60 + "\n")
+            return
 
         # Backend wraps data in 'Data' object
         data = notification.get('Data', {})
@@ -331,6 +335,46 @@ class NotificationHandler:
         except Exception as e:
             logger.error(f"[NOTIFICATION] step 5/5 broadcast failed: {e}")
             import traceback; traceback.print_exc()
+
+    def _handle_set_tracked_domains(self, notification: Dict[str, Any]):
+        """Handle SetTrackedDomainsNotification — backend-pushed list of
+        domains to track across this user's devices (ASPS-371).
+
+        Backend payload (Data):
+          - UserKeyField, IsCrossPlatformLock, Reason, DistributionTimestamp
+          - TrackedDomains: [ {Domain, ScamInProgressKey, TrackMode,
+                               ReportType, AddedTimestamp, Reason}, ... ]
+
+        The Chrome extension's content.js consumes exactly these PascalCase
+        fields (Domain / ScamInProgressKey / TrackMode / ReportType), so the
+        agent is a faithful pass-through relay: forward the list as the
+        'tracked_domains:set' WebSocket message the extension already
+        listens for. IsCrossPlatformLock maps to alwaysSendFormSubmits
+        (cross-platform lock = high alert ⇒ always report form submits).
+        """
+        data = notification.get('Data', {}) or {}
+        tracked = data.get('TrackedDomains')
+        if tracked is None:
+            tracked = data.get('trackedDomains') or []
+
+        always_send_form_submits = bool(
+            data.get('IsCrossPlatformLock', data.get('isCrossPlatformLock', False))
+        )
+
+        if not isinstance(tracked, list):
+            print(f"[NOTIFICATION] SetTrackedDomains: bad payload — "
+                  f"TrackedDomains is {type(tracked).__name__}, skipping")
+            return
+
+        print(f"[NOTIFICATION] SetTrackedDomains: {len(tracked)} domain(s), "
+              f"alwaysSendFormSubmits={always_send_form_submits}, "
+              f"reason={data.get('Reason', data.get('reason', ''))!r}")
+
+        self._broadcast_typed({
+            'type': 'tracked_domains:set',
+            'domains': tracked,
+            'alwaysSendFormSubmits': always_send_form_submits,
+        })
 
     def _handle_set_browser_tabs_policy(self, notification: Dict[str, Any]):
         """Handle SetBrowserTabsPolicyNotification — backend-controlled override

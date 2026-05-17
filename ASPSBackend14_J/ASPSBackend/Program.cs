@@ -158,6 +158,7 @@ class Program
                 services.AddScoped<WebsiteCategoryCommandHandlers>(); // SCRUM-822
                 services.AddScoped<RoadmapQueryHandlers>();
                 services.AddScoped<RoadmapCommandHandlers>();
+                services.AddScoped<TrackedDomainCommandHandlers>(); // ASPS-371
 
                 // Add CQRS Gateway (listens for Commands/Queries from WebApi)
                 services.AddSingleton<CQRSGateway>();
