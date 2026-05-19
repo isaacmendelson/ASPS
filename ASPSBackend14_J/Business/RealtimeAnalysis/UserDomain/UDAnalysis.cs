@@ -295,6 +295,7 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
             var cmd = new TrackedDomainCommand(
                 domain: domain,
                 scamInProgressKey: string.Empty,
+                analysisKey: string.Empty,
                 trackMode: trackMode,
                 reportType: ReportType.Backend,
                 reason: $"Risk-based auto-track (score={riskScore:0})");

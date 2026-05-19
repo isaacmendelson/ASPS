@@ -20,7 +20,7 @@ public class TrackedDomain
     /// </summary>
     /// <param name="domain">The domain to track (e.g., "google-analytics.com")</param>
     /// <param name="category">Category (e.g., "Analytics", "Advertising", "Social")</param>
-    public TrackedDomain(string domain, string category, string? userKey = null, string? scamInProgressKey = null, int trackMode = 1, string? reason = null)
+    public TrackedDomain(string domain, string category, string? userKey = null, string? scamInProgressKey = null, int trackMode = 1, string? reason = null, string? analysisKey = null)
     {
         if (string.IsNullOrWhiteSpace(domain))
             throw new ArgumentException("Domain cannot be empty", nameof(domain));
@@ -34,6 +34,7 @@ public class TrackedDomain
         ScamInProgressKey = string.IsNullOrWhiteSpace(scamInProgressKey) ? null : scamInProgressKey.Trim();
         TrackMode = trackMode;
         Reason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+        AnalysisKey = string.IsNullOrWhiteSpace(analysisKey) ? null : analysisKey.Trim();
         IsActive = true;
         DateCreated = DateTime.UtcNow;
         DateModified = DateTime.UtcNow;
@@ -75,6 +76,13 @@ public class TrackedDomain
     /// </summary>
     [MaxLength(255)]
     public string? ScamInProgressKey { get; set; }
+
+    /// <summary>
+    /// Optional analysis correlation key (links this tracked domain back to
+    /// the AnalysisResult that triggered it). NULL when not analysis-driven.
+    /// </summary>
+    [MaxLength(255)]
+    public string? AnalysisKey { get; set; }
 
     /// <summary>
     /// Tracking mode as Common.Enums.TrackMode int: 0=None, 1=Surf (default),

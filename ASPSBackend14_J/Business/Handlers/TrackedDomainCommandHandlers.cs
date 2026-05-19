@@ -80,7 +80,8 @@ public class TrackedDomainCommandHandlers
                         userKey: command.UserKeyField,
                         scamInProgressKey: command.ScamInProgressKey,
                         trackMode: command.TrackMode,
-                        reason: command.Reason); // ctor validates + lowercases
+                        reason: command.Reason,
+                        analysisKey: command.AnalysisKey); // ctor validates + lowercases
                     trackedDomainId = await _repository.AddAsync(entity);
                     _logger.LogInformation(
                         "Added TrackedDomain '{Domain}' (ID {Id}, Category {Category})",
@@ -101,6 +102,7 @@ public class TrackedDomainCommandHandlers
             TrackedDomainCommand BuildCmd() => new TrackedDomainCommand(
                 domain: domainNorm,
                 scamInProgressKey: command.ScamInProgressKey ?? string.Empty,
+                analysisKey: command.AnalysisKey ?? string.Empty,
                 trackMode: trackMode,
                 reportType: ReportType.Backend,
                 reason: reason);
@@ -214,6 +216,7 @@ public class TrackedDomainCommandHandlers
                     new TrackedDomainCommand(
                         domain: entity.Domain,
                         scamInProgressKey: entity.ScamInProgressKey ?? string.Empty,
+                        analysisKey: entity.AnalysisKey ?? string.Empty,
                         trackMode: trackMode,
                         reportType: ReportType.Backend,
                         reason: reason)

@@ -466,6 +466,7 @@ namespace Business.RealtimeAnalysis.UserDomain
                             Domain = u.Domain,
                             Category = u.WebsiteCategory?.NameEn ?? "Unknown",
                             UserKeyField = this.UDUser.Key.Value,
+                            AnalysisKey = analysisEvent.DeviceAlertKeyField,
                             ScamInProgressKey = ( analysisEvent.DeviceAlertKeyField is not null) ? $"{analysisEvent.DeviceAlertKeyField}-ScamInProgress" : null,
                             TrackMode = (int)TrackMode.Surf, // e.g., 1 for automatic tracking based on risk, 2 for manual tracking by user/analyst
                             Reason = $"Automatically tracked due to critical risk score of {riskValue.risk_score} from URL analysis.",

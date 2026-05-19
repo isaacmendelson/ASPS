@@ -248,7 +248,8 @@ public class UDAnalysisTests
             30,
             90,
             _mockLoggerFactory.Object,
-            _mockProtectiveActionsFactory.Object
+            _mockProtectiveActionsFactory.Object,
+            new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build()
         );
 
         return new UDAnalysis(

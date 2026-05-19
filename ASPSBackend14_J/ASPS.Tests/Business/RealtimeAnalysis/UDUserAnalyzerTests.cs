@@ -47,7 +47,8 @@ public class UDUserAnalyzerTests
             alertExpiryDays: 30,
             alertDeletionDays: 90,
             loggerFactory,
-            this._mockProtectiveActionsFactory.Object
+            this._mockProtectiveActionsFactory.Object,
+            new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build()
         );
     }
 

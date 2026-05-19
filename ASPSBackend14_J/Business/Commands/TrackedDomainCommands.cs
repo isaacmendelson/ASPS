@@ -32,6 +32,8 @@ public class AddTrackedDomainCommand : Command
     /// <summary>Optional scam-in-progress correlation key.</summary>
     public string? ScamInProgressKey { get; set; }
 
+    public string? AnalysisKey { get; set; }
+
     /// <summary>
     /// Track mode as Common.Enums.TrackMode int (0=None, 1=Surf, 2=Click).
     /// Defaults to Surf when omitted/zero.

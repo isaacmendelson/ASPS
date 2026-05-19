@@ -9,7 +9,8 @@ namespace Business.RealtimeAnalysis.UserDomain;
 public class TrackedDomainCommand
 {
     public string Domain { get; set; } = string.Empty;
-    public string ScamInProgressKey { get; set; } = string.Empty;
+    public string? ScamInProgressKey { get; set; }
+    public string? AnalysisKey { get; set; }
     public TrackMode TrackMode { get; set; }
     public ReportType ReportType { get; set; }
     public DateTime AddedTimestamp { get; set; }
@@ -23,12 +24,14 @@ public class TrackedDomainCommand
     public TrackedDomainCommand(
         string domain,
         string scamInProgressKey,
+        string analysisKey,
         TrackMode trackMode,
         ReportType reportType,
         string reason)
     {
         Domain = domain;
         ScamInProgressKey = scamInProgressKey;
+        AnalysisKey = analysisKey;
         TrackMode = trackMode;
         ReportType = reportType;
         AddedTimestamp = DateTime.UtcNow;

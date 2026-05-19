@@ -52,6 +52,7 @@ public class TrackedDomainDistributor
         return new TrackedDomainCommand(
             domain: domain,
             scamInProgressKey: scamKey,
+            analysisKey: string.Empty,
             trackMode: trackMode,
             reportType: reportType,
             reason: reason
