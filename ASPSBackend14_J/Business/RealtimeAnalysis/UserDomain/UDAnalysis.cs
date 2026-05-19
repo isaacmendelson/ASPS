@@ -63,7 +63,7 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
         _aSView = aSView;
         _analyzers = analyzers;
         _logger = _loggerFactory.CreateLogger<UDAnalysis>();
-
+        
         this.LoadConfiguration(configuration);
 
         _indicatorFactory = indicatorFactory;

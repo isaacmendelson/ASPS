@@ -30,7 +30,7 @@ public class AddTrackedDomainCommand : Command
     public string UserKeyField { get; set; } = string.Empty;
 
     /// <summary>Optional scam-in-progress correlation key.</summary>
-    public string ScamInProgressKey { get; set; } = string.Empty;
+    public string? ScamInProgressKey { get; set; }
 
     /// <summary>
     /// Track mode as Common.Enums.TrackMode int (0=None, 1=Surf, 2=Click).

@@ -1,4 +1,5 @@
-﻿using Business.DomainEvents;
+﻿using Business.Commands;
+using Business.DomainEvents;
 using Business.RealtimeAnalysis.Indicators;
 using Business.RealtimeAnalysis.ProtectivActions;
 using Business.Views;
@@ -8,6 +9,7 @@ using Common.Interfaces;
 using Common.Models;
 using Common.Models.Alerts;
 using Common.ViewModels;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using NetTopologySuite.Utilities;
 using System;
@@ -24,8 +26,8 @@ namespace Business.RealtimeAnalysis.UserDomain
         private bool _isRunning;
         private bool _isInitialized;
         private readonly ASView _asView;
-        private readonly int _alertExpiryDays;
-        private readonly int _alertDeletionDays;
+        private int _alertExpiryDays;
+        private int _alertDeletionDays;
         
         private List<DeviceAlertView> _activeDeviceAlerts = new();
         //private KeyValuePair<string, DeviceAlertEntity>[] _activeDeviceAlertMap = Array.Empty<KeyValuePair<string, DeviceAlertEntity>>();
@@ -49,6 +51,14 @@ namespace Business.RealtimeAnalysis.UserDomain
 
         private IProtectiveActionsFactory _protectiveActionsFactory;
 
+        private IConfiguration _configuration;
+
+        private float _riskThresholdEnableTracking;
+
+        private float _severityScoreThresholdCritical;
+        private float _severityScoreThresholdHigh;
+        private float _severityScoreThresholdMedium;
+
         public UDUserAnalyzer(
             UDUser udUser,
             //ILoggerFactory loggerFactory
@@ -57,14 +67,17 @@ namespace Business.RealtimeAnalysis.UserDomain
             int alertDeletionDays,
             ILoggerFactory loggerFactory,
             ProtectiveActionsFactory protectiveActionsFactory,
+            IConfiguration configuration,
             IEnumerable<IDomainEventHandler>? eventHandlers = null
             )
         {
             this.UDUser = udUser;
             this._asView = asView;
             this._logger = loggerFactory.CreateLogger<UDUserAnalyzer>();
-            this._alertDeletionDays = alertDeletionDays;
-            this._alertExpiryDays = alertExpiryDays;
+
+
+            this.LoadConfiguration(configuration);
+
             if (eventHandlers != null)
             {
                 _eventHandlers.AddRange(eventHandlers);
@@ -220,6 +233,7 @@ namespace Business.RealtimeAnalysis.UserDomain
         public Type[] GetHandleableEvents()
         {
             return new[] {
+                typeof(SystemConfigurationChanged),
                 typeof(AnalysisResultAdded),
                 typeof(AnalysisResultReceived),
                 typeof(ImmediateDangerDetected),
@@ -252,6 +266,9 @@ namespace Business.RealtimeAnalysis.UserDomain
                     break;
                 case ImmediateDangerEnded immediateDangerEnded:
                     this.HandleImmediateDangerEnded(immediateDangerEnded);
+                    break;
+                case SystemConfigurationChanged systemConfigurationChanged:
+                    this.HandleSystemConfigurationChanged(systemConfigurationChanged);
                     break;
             }
 
@@ -425,7 +442,7 @@ namespace Business.RealtimeAnalysis.UserDomain
             }
 
             var remoteAccessStatus = this.GetRemoteAccessStatus();
-            //var x = this._asView.GetUrlAnalysisResultsByUserKey().Select(i => i.Indicators) ?? 
+
             // SECURITY FIX ASPS-70: Safe null handling for FirstOrDefault
             var firstAnalyzerResult = analysisEvent.AnalyzerResults.FirstOrDefault();
             if (firstAnalyzerResult.Value.Item1 == null)
@@ -439,19 +456,56 @@ namespace Business.RealtimeAnalysis.UserDomain
                 case UrlAnalysisResult u:
                     var websitePurpose = u.Purpose;
 
-                    //if (remoteAccessStatus.IsRemoteAccessAppActive && remoteAccessStatus.isRemoteAccessSessionActive)
-                    //{
-                    //    if ((u.Purpose?.CategoryName == "banking") || (u.Purpose?.CategoryName == "exchange"))
-                    //    {
+                    var riskValue = u.risk_assessment;
+                    if (riskValue?.risk_score >= this._severityScoreThresholdHigh)
+                    {
 
-                    //    }
-                    //}
+                        var command = new AddTrackedDomainCommand()
+                        {
+                            CommandType = "AddTrackedDomain",
+                            Domain = u.Domain,
+                            Category = u.WebsiteCategory?.NameEn ?? "Unknown",
+                            UserKeyField = this.UDUser.Key.Value,
+                            ScamInProgressKey = ( analysisEvent.DeviceAlertKeyField is not null) ? $"{analysisEvent.DeviceAlertKeyField}-ScamInProgress" : null,
+                            TrackMode = (int)TrackMode.Surf, // e.g., 1 for automatic tracking based on risk, 2 for manual tracking by user/analyst
+                            Reason = $"Automatically tracked due to critical risk score of {riskValue.risk_score} from URL analysis.",
+                            NotifyAllUsers = false,
+                            NotifyOnly = true
+                        };
+                        if (riskValue?.risk_score >= this._severityScoreThresholdCritical)
+                        {
+                            command.TrackMode = (int)TrackMode.Click;
+                        }
+
+                    }
+                    else if (riskValue?.risk_score >= this._severityScoreThresholdMedium)
+                    {
+
+                    }
                     break;
                 case TrackUrlAnalysisResult t:
                     HandleTrackUrlAnalysisResultReceived(t, remoteAccessStatus);
                     break;
             }
             
+        }
+        private void HandleSystemConfigurationChanged(SystemConfigurationChanged sysConfigChanged)
+        {
+            this._configuration = sysConfigChanged.NewConfiguration;
+            this.LoadConfiguration(sysConfigChanged.NewConfiguration);
+        }
+
+        private void LoadConfiguration(IConfiguration configuration)
+        {
+            this._configuration = configuration;
+            this._riskThresholdEnableTracking = _configuration.GetValue<int>("TrackUrl:RiskThresholdToEnableTracking", 30);
+            this._alertExpiryDays = configuration.GetValue<int>("Analysis:DeviceAlertExpiryDays", 30);
+            this._alertDeletionDays = configuration.GetValue<int>("Analysis:DeviceAlertDeletionDays", 90);
+
+            this._severityScoreThresholdCritical = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdCritical", 80);
+            this._severityScoreThresholdHigh = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdHigh", 80);
+            this._severityScoreThresholdMedium = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdMedium", 80);
+
         }
 
         private IEnumerable<KeyValuePair<string, RemoteAccessStatusObject>>? GetRemoteAccessStatus()
