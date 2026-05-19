@@ -39,9 +39,67 @@ public class AddTrackedDomainCommand : Command
     public int TrackMode { get; set; } = 1;
 
     public string? Reason { get; set; }
+
+    /// <summary>
+    /// When true, fan the SetTrackedDomains event out to EVERY user's devices
+    /// (admin "Notify all user devices" action), ignoring UserKeyField for
+    /// targeting. The row's UserKey is still persisted as-is.
+    /// </summary>
+    public bool NotifyAllUsers { get; set; }
+
+    /// <summary>
+    /// When true, the row is NOT (re-)persisted — only the SetTrackedDomains
+    /// event is raised. Used by the admin "Notify" actions on existing rows.
+    /// </summary>
+    public bool NotifyOnly { get; set; }
 }
 
 public class AddTrackedDomainCommandResult : CommandResult
 {
     public int? TrackedDomainId { get; set; }
+}
+
+/// <summary>Edit an existing TrackedDomain row (ASPS-371). Raises
+/// TrackedDomainChanged and re-syncs the domain to the user's devices.</summary>
+public class UpdateTrackedDomainCommand : Command
+{
+    public UpdateTrackedDomainCommand()
+    {
+        CommandType = nameof(UpdateTrackedDomainCommand);
+    }
+
+    public string CommandType { get; set; }
+
+    public int Id { get; set; }
+    public string Domain { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public string? UserKeyField { get; set; }
+    public string? ScamInProgressKey { get; set; }
+    public int TrackMode { get; set; } = 1;
+    public bool IsActive { get; set; } = true;
+    public string? Reason { get; set; }
+}
+
+public class UpdateTrackedDomainCommandResult : CommandResult
+{
+    public int? TrackedDomainId { get; set; }
+}
+
+/// <summary>Soft-delete a TrackedDomain row (ASPS-371). Raises
+/// TrackedDomainDeleted.</summary>
+public class DeleteTrackedDomainCommand : Command
+{
+    public DeleteTrackedDomainCommand()
+    {
+        CommandType = nameof(DeleteTrackedDomainCommand);
+    }
+
+    public string CommandType { get; set; }
+
+    public int Id { get; set; }
+    public string? Reason { get; set; }
+}
+
+public class DeleteTrackedDomainCommandResult : CommandResult
+{
 }

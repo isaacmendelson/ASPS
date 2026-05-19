@@ -20,16 +20,20 @@ public class TrackedDomain
     /// </summary>
     /// <param name="domain">The domain to track (e.g., "google-analytics.com")</param>
     /// <param name="category">Category (e.g., "Analytics", "Advertising", "Social")</param>
-    public TrackedDomain(string domain, string category)
+    public TrackedDomain(string domain, string category, string? userKey = null, string? scamInProgressKey = null, int trackMode = 1, string? reason = null)
     {
         if (string.IsNullOrWhiteSpace(domain))
             throw new ArgumentException("Domain cannot be empty", nameof(domain));
-        
+
         if (string.IsNullOrWhiteSpace(category))
             throw new ArgumentException("Category cannot be empty", nameof(category));
 
         Domain = domain.ToLowerInvariant().Trim();
         Category = category.Trim();
+        UserKey = string.IsNullOrWhiteSpace(userKey) ? null : userKey.Trim();
+        ScamInProgressKey = string.IsNullOrWhiteSpace(scamInProgressKey) ? null : scamInProgressKey.Trim();
+        TrackMode = trackMode;
+        Reason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
         IsActive = true;
         DateCreated = DateTime.UtcNow;
         DateModified = DateTime.UtcNow;
@@ -56,6 +60,36 @@ public class TrackedDomain
     [Required]
     [MaxLength(100)]
     public string Category { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Owning user key (string form of the user's Key.Value). NULL = global /
+    /// not bound to a specific user. Used to scope SetTrackedDomains fan-out
+    /// to that user's devices and to render the User columns in the admin UI.
+    /// </summary>
+    [MaxLength(255)]
+    public string? UserKey { get; set; }
+
+    /// <summary>
+    /// Optional scam-in-progress correlation key carried through to the
+    /// extension's TrackUrlAlert. NULL when not part of an active scam flow.
+    /// </summary>
+    [MaxLength(255)]
+    public string? ScamInProgressKey { get; set; }
+
+    /// <summary>
+    /// Tracking mode as Common.Enums.TrackMode int: 0=None, 1=Surf (default),
+    /// 2=Click. Stored as int to keep the entity free of a Business enum
+    /// reference; the admin UI / extension interpret it via TrackMode.
+    /// </summary>
+    [Required]
+    public int TrackMode { get; set; } = 1;
+
+    /// <summary>
+    /// Free-text reason this domain is tracked (admin note / auto-track
+    /// rationale). NULL when unspecified.
+    /// </summary>
+    [MaxLength(500)]
+    public string? Reason { get; set; }
 
     /// <summary>
     /// Whether this tracking domain is actively monitored

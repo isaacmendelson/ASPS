@@ -212,6 +212,8 @@ public class CQRSGateway : IDisposable
             "UpdateWebsiteCategoryCommand" => await HandleUpdateWebsiteCategoryCommand(messageJson, scope),
             // Tracked Domain Commands (ASPS-371)
             "AddTrackedDomainCommand" => await HandleAddTrackedDomainCommand(messageJson, scope),
+            "UpdateTrackedDomainCommand" => await HandleUpdateTrackedDomainCommand(messageJson, scope),
+            "DeleteTrackedDomainCommand" => await HandleDeleteTrackedDomainCommand(messageJson, scope),
             // Roadmap Commands
             "CreateRoadmapCommand" => await HandleCreateRoadmapCommand(messageJson, scope),
             "SaveRoadmapCommand" => await HandleSaveRoadmapCommand(messageJson, scope),
@@ -821,6 +823,34 @@ public class CQRSGateway : IDisposable
     {
         var command = JsonConvert.DeserializeObject<AddTrackedDomainCommand>(messageJson);
         if (command == null) return CreateErrorResponse("Invalid AddTrackedDomainCommand format");
+
+        var handler = scope.ServiceProvider.GetRequiredService<TrackedDomainCommandHandlers>();
+        var result = await handler.HandleAsync(command);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleUpdateTrackedDomainCommand(string messageJson, IServiceScope scope)
+    {
+        var command = JsonConvert.DeserializeObject<UpdateTrackedDomainCommand>(messageJson);
+        if (command == null) return CreateErrorResponse("Invalid UpdateTrackedDomainCommand format");
+
+        var handler = scope.ServiceProvider.GetRequiredService<TrackedDomainCommandHandlers>();
+        var result = await handler.HandleAsync(command);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleDeleteTrackedDomainCommand(string messageJson, IServiceScope scope)
+    {
+        var command = JsonConvert.DeserializeObject<DeleteTrackedDomainCommand>(messageJson);
+        if (command == null) return CreateErrorResponse("Invalid DeleteTrackedDomainCommand format");
 
         var handler = scope.ServiceProvider.GetRequiredService<TrackedDomainCommandHandlers>();
         var result = await handler.HandleAsync(command);

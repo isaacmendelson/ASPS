@@ -446,3 +446,68 @@ public class SetTrackedDomains : DomainEvent
         DistributionTimestamp = DateTime.UtcNow;
     }
 }
+
+/// <summary>
+/// Raised when an admin edits an existing TrackedDomain row (ASPS-371).
+/// Carries the post-edit values so subscribers can re-sync / audit.
+/// </summary>
+public class TrackedDomainChanged : DomainEvent
+{
+    public int TrackedDomainId { get; set; }
+    public string Domain { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public string? UserKeyField { get; set; }
+    public string? ScamInProgressKey { get; set; }
+    public int TrackMode { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public DateTime ChangedTimestamp { get; set; }
+
+    public TrackedDomainChanged()
+    {
+        EventType = nameof(TrackedDomainChanged);
+        ChangedTimestamp = DateTime.UtcNow;
+    }
+
+    public TrackedDomainChanged(
+        int trackedDomainId, string domain, string category,
+        string? userKeyField, string? scamInProgressKey, int trackMode, string reason)
+    {
+        EventType = nameof(TrackedDomainChanged);
+        TrackedDomainId = trackedDomainId;
+        Domain = domain;
+        Category = category;
+        UserKeyField = userKeyField;
+        ScamInProgressKey = scamInProgressKey;
+        TrackMode = trackMode;
+        Reason = reason;
+        ChangedTimestamp = DateTime.UtcNow;
+    }
+}
+
+/// <summary>
+/// Raised when an admin soft-deletes a TrackedDomain row (ASPS-371).
+/// </summary>
+public class TrackedDomainDeleted : DomainEvent
+{
+    public int TrackedDomainId { get; set; }
+    public string Domain { get; set; } = string.Empty;
+    public string? UserKeyField { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public DateTime DeletedTimestamp { get; set; }
+
+    public TrackedDomainDeleted()
+    {
+        EventType = nameof(TrackedDomainDeleted);
+        DeletedTimestamp = DateTime.UtcNow;
+    }
+
+    public TrackedDomainDeleted(int trackedDomainId, string domain, string? userKeyField, string reason)
+    {
+        EventType = nameof(TrackedDomainDeleted);
+        TrackedDomainId = trackedDomainId;
+        Domain = domain;
+        UserKeyField = userKeyField;
+        Reason = reason;
+        DeletedTimestamp = DateTime.UtcNow;
+    }
+}

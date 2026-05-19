@@ -37,8 +37,12 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label" for="NewCategory">Category</label>
-                <input type="text" class="form-control form-control-sm" id="NewCategory"
-                       asp-for="NewCategory" placeholder="Manual" />
+                <select class="form-select form-select-sm" id="NewCategory" asp-for="NewCategory">
+                    @foreach (var wt in Model.CategoryNames)
+                    {
+                        <option value="@wt" selected="@(Model.NewCategory == wt)">@wt</option>
+                    }
+                </select>
             </div>
             <div class="col-md-2">
                 <label class="form-label" for="NewTrackMode">Track mode</label>
@@ -76,10 +80,10 @@
             <input type="text" name="search" value="@Model.Search" class="form-control form-control-sm me-2" placeholder="Search domain, category..." />
             <select name="category" class="form-select form-select-sm me-2" style="width: auto;">
                 <option value="">All Categories</option>
-                <option value="Analytics" selected="@(Model.Category == "Analytics")">Analytics</option>
-                <option value="Advertising" selected="@(Model.Category == "Advertising")">Advertising</option>
-                <option value="Social" selected="@(Model.Category == "Social")">Social</option>
-                <option value="Tracking" selected="@(Model.Category == "Tracking")">Tracking</option>
+                @foreach (var wt in Model.CategoryNames)
+                {
+                    <option value="@wt" selected="@(Model.Category == wt)">@wt</option>
+                }
             </select>
             <button type="submit" class="btn btn-sm btn-primary">Search</button>
             @if (!string.IsNullOrEmpty(Model.Search) || !string.IsNullOrEmpty(Model.Category))
@@ -96,9 +100,14 @@
                         <th>Key</th>
                         <th>Domain</th>
                         <th>Category</th>
+                        <th>Track Mode</th>
+                        <th>User name</th>
+                        <th>User Key</th>
+                        <th>Reason</th>
                         <th>Status</th>
                         <th>Date Created</th>
                         <th>Date Modified</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -130,6 +139,41 @@
                                 }
                             </td>
                             <td>
+                                @switch (domain.TrackMode)
+                                {
+                                    case 0:
+                                        <span class="badge bg-secondary">None</span>
+                                        break;
+                                    case 2:
+                                        <span class="badge bg-danger">Click</span>
+                                        break;
+                                    default:
+                                        <span class="badge bg-info">Surf</span>
+                                        break;
+                                }
+                            </td>
+                            <td>@Model.DisplayUserName(domain.UserKey)</td>
+                            <td>
+                                @if (string.IsNullOrWhiteSpace(domain.UserKey))
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                                else
+                                {
+                                    <code>@domain.UserKey</code>
+                                }
+                            </td>
+                            <td>
+                                @if (string.IsNullOrWhiteSpace(domain.Reason))
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                                else
+                                {
+                                    <span title="@domain.Reason">@domain.Reason</span>
+                                }
+                            </td>
+                            <td>
                                 @if (domain.IsActive)
                                 {
                                     <span class="badge bg-success">Active</span>
@@ -141,6 +185,59 @@
                             </td>
                             <td>@domain.DateCreated.ToString("yyyy-MM-dd HH:mm:ss")</td>
                             <td>@domain.DateModified.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                        Actions
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                        <li>
+                                            <form method="post" asp-page-handler="NotifyUser" class="m-0">
+                                                <input type="hidden" name="domain" value="@domain.Domain" />
+                                                <input type="hidden" name="userKey" value="@domain.UserKey" />
+                                                <button type="submit"
+                                                        class="dropdown-item @(string.IsNullOrWhiteSpace(domain.UserKey) ? "disabled" : "")"
+                                                        @(string.IsNullOrWhiteSpace(domain.UserKey) ? "disabled" : "")>
+                                                    <i class="fas fa-bell me-2"></i>Notify @Model.DisplayUserName(domain.UserKey) only
+                                                </button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <form method="post" asp-page-handler="NotifyAll" class="m-0">
+                                                <input type="hidden" name="domain" value="@domain.Domain" />
+                                                <button type="submit" class="dropdown-item">
+                                                    <i class="fas fa-broadcast-tower me-2"></i>Notify all user devices
+                                                </button>
+                                            </form>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <button type="button" class="dropdown-item js-edit-td"
+                                                    data-id="@domain.Id"
+                                                    data-domain="@domain.Domain"
+                                                    data-category="@domain.Category"
+                                                    data-userkey="@domain.UserKey"
+                                                    data-scamkey="@domain.ScamInProgressKey"
+                                                    data-trackmode="@domain.TrackMode"
+                                                    data-reason="@domain.Reason"
+                                                    data-isactive="@(domain.IsActive ? "true" : "false")"
+                                                    data-bs-toggle="modal" data-bs-target="#editTdModal">
+                                                <i class="fas fa-edit me-2"></i>Edit
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <form method="post" asp-page-handler="Delete" class="m-0"
+                                                  onsubmit="return confirm('Delete tracked domain @domain.Domain?');">
+                                                <input type="hidden" name="id" value="@domain.Id" />
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="fas fa-trash me-2"></i>Delete
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -197,6 +294,97 @@
         }
     </div>
 </div>
+
+<!-- Shared Edit modal — populated by JS from the clicked row's data-* attrs -->
+<div class="modal fade" id="editTdModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Edit">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Tracked Domain</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="id" id="edit-id" />
+                    <div class="mb-3">
+                        <label class="form-label">Domain</label>
+                        <input type="text" name="domain" id="edit-domain" class="form-control form-control-sm" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Category</label>
+                        <select name="category" id="edit-category" class="form-select form-select-sm">
+                            @foreach (var wt in Model.CategoryNames)
+                            {
+                                <option value="@wt">@wt</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Track mode</label>
+                        <select name="trackMode" id="edit-trackmode" class="form-select form-select-sm">
+                            <option value="0">None</option>
+                            <option value="1">Surf (once per domain)</option>
+                            <option value="2">Click (every navigation)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">User key</label>
+                        <input type="text" name="userKey" id="edit-userkey" class="form-control form-control-sm" placeholder="(none / global)" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Scam-in-progress key</label>
+                        <input type="text" name="scamInProgressKey" id="edit-scamkey" class="form-control form-control-sm" placeholder="(optional)" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reason</label>
+                        <textarea name="reason" id="edit-reason" class="form-control form-control-sm" rows="2" maxlength="500" placeholder="(optional)"></textarea>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" name="isActive" id="edit-isactive" value="true" class="form-check-input" />
+                        <label class="form-check-label" for="edit-isactive">Active</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary">Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Runs from the layout's Scripts section — AFTER bootstrap.bundle.min.js,
+    // so `bootstrap` is guaranteed to be defined here.
+    (function () {
+        document.querySelectorAll('.js-edit-td').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.getElementById('edit-id').value = btn.dataset.id || '';
+                document.getElementById('edit-domain').value = btn.dataset.domain || '';
+                document.getElementById('edit-category').value = btn.dataset.category || '';
+                document.getElementById('edit-trackmode').value = btn.dataset.trackmode || '1';
+                document.getElementById('edit-reason').value = btn.dataset.reason || '';
+                document.getElementById('edit-userkey').value = btn.dataset.userkey || '';
+                document.getElementById('edit-scamkey').value = btn.dataset.scamkey || '';
+                document.getElementById('edit-isactive').checked = (btn.dataset.isactive === 'true');
+            });
+        });
+
+        // Fix: the Actions dropdown is clipped by .table-responsive
+        // (overflow:auto). Pre-create each dropdown with Popper
+        // strategy:'fixed' so the menu is positioned against the viewport
+        // and escapes the scroll box.
+        document.querySelectorAll('#trackedDomainsTable [data-bs-toggle="dropdown"]').forEach(function (el) {
+            bootstrap.Dropdown.getOrCreateInstance(el, {
+                popperConfig: function (defaultConfig) {
+                    return Object.assign({}, defaultConfig, { strategy: 'fixed' });
+                }
+            });
+        });
+    })();
+</script>
+}
 
 @functions {
     string BuildQueryString(string? search, string? category)
