@@ -59,6 +59,11 @@ namespace Business.RealtimeAnalysis.UserDomain
         private float _severityScoreThresholdHigh;
         private float _severityScoreThresholdMedium;
 
+        private float _trackTypeForRiskScoreCritical;
+        private float _trackTypeForRiskScoreHigh;
+        private float _trackTypeForRiskScoreMedium;
+
+
         public UDUserAnalyzer(
             UDUser udUser,
             //ILoggerFactory loggerFactory
@@ -468,7 +473,7 @@ namespace Business.RealtimeAnalysis.UserDomain
                             UserKeyField = this.UDUser.Key.Value,
                             AnalysisKey = analysisEvent.DeviceAlertKeyField,
                             ScamInProgressKey = ( analysisEvent.DeviceAlertKeyField is not null) ? $"{analysisEvent.DeviceAlertKeyField}-ScamInProgress" : null,
-                            TrackMode = (int)TrackMode.Surf, // e.g., 1 for automatic tracking based on risk, 2 for manual tracking by user/analyst
+                            TrackMode = (int)TrackMode.Surf, 
                             Reason = $"Automatically tracked due to critical risk score of {riskValue.risk_score} from URL analysis.",
                             NotifyAllUsers = false,
                             NotifyOnly = true
@@ -477,6 +482,8 @@ namespace Business.RealtimeAnalysis.UserDomain
                         {
                             command.TrackMode = (int)TrackMode.Click;
                         }
+
+                        // Call command handler for AddTrackedDomainCommand. T
 
                     }
                     else if (riskValue?.risk_score >= this._severityScoreThresholdMedium)
@@ -504,8 +511,12 @@ namespace Business.RealtimeAnalysis.UserDomain
             this._alertDeletionDays = configuration.GetValue<int>("Analysis:DeviceAlertDeletionDays", 90);
 
             this._severityScoreThresholdCritical = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdCritical", 80);
-            this._severityScoreThresholdHigh = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdHigh", 80);
-            this._severityScoreThresholdMedium = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdMedium", 80);
+            this._severityScoreThresholdHigh = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdHigh", 60);
+            this._severityScoreThresholdMedium = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdMedium", 40);
+
+            this._trackTypeForRiskScoreCritical = _configuration.GetValue<float>("Analysis:TrackedDomains:TrackTypeForRiskScoreCritical", 2);
+            this._trackTypeForRiskScoreHigh = _configuration.GetValue<float>("Analysis:TrackedDomains:TrackTypeForRiskScoreHigh", 1);
+            this._trackTypeForRiskScoreMedium = _configuration.GetValue<float>("Analysis:TrackedDomains:TrackTypeForRiskScoreMedium", 0);
 
         }
 

@@ -6,11 +6,12 @@ This file is auto-loaded by Claude Code at session start. It is the entry point 
 
 ## At session start
 
-1. Read **`.claude/hats/ceo/INDEX.md`** — that file lists what to read next as the CEO (the default hat).
-2. Then read each file the INDEX points to, in order.
-3. Only after that, address the user's first message.
+1. Read **`.claude/team/CHARTER.md`** — the team-wide behavioral charter (ethics, thinking, priorities, conduct). Applies to every role, every session.
+2. Read **`.claude/hats/ceo/INDEX.md`** — that file lists what to read next as the CEO (the default hat).
+3. Then read each file the INDEX points to, in order.
+4. Only after that, address the user's first message.
 
-The CEO is always the default. Other hats (CTO, Backend, Frontend, Python, QA) are spawned as sub-agents when needed; their memory lives at `.claude/hats/<role>/`.
+The CEO is always the default. Other roles (CTO, Backend, Frontend, Python, Mobile, QA, Security) are spawned as sub-agents when needed — their role charter is `.claude/agents/<role>.md` and their accumulated memory is `.claude/hats/<role>/`. Every role also reads `.claude/team/CHARTER.md`.
 
 ---
 

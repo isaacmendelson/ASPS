@@ -290,7 +290,7 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
             _riskTrackCooldown[dedupKey] = now;
 
             var riskScore = (analysisResult as UrlAnalysisResult)?.risk_assessment?.risk_score ?? 0d;
-            var trackMode = _trackDistributor.DetermineTrackMode(riskScore);
+            var trackMode = _trackDistributor.DetermineTrackMode(riskScore, this._configuration);
 
             var cmd = new TrackedDomainCommand(
                 domain: domain,
@@ -533,8 +533,8 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
         this._alertDeletionDays = configuration.GetValue<int>("Analysis:DeviceAlertDeletionDays", 90);
 
         this._severityScoreThresholdCritical = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdCritical", 80);
-        this._severityScoreThresholdHigh = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdHigh", 80);
-        this._severityScoreThresholdMedium = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdMedium", 80);
+        this._severityScoreThresholdHigh = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdHigh", 60);
+        this._severityScoreThresholdMedium = _configuration.GetValue<float>("Analysis:SeverityScoreThresholdMedium", 40);
 
     }
 

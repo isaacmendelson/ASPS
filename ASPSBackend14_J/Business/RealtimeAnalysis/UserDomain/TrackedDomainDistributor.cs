@@ -1,5 +1,7 @@
 using Business.DomainEvents;
 using Common.Enums;
+using Microsoft.Extensions.Configuration;
+using static Business.DomainEvents.AuditLogRecord;
 
 namespace Business.RealtimeAnalysis.UserDomain;
 
@@ -17,6 +19,8 @@ public class TrackedDomainDistributor
     /// <param name="isCrossPlatformLock">Whether to enable cross-platform lock</param>
     /// <param name="reason">Reason for tracking</param>
     /// <returns>SetTrackedDomains event</returns>
+    /// 
+
     public SetTrackedDomains CreateTrackingEvent(
         string userKeyField,
         List<TrackedDomainCommand> domains,
@@ -100,12 +104,22 @@ public class TrackedDomainDistributor
     /// </summary>
     /// <param name="riskScore">Risk score (0-100)</param>
     /// <returns>Appropriate track mode</returns>
-    public TrackMode DetermineTrackMode(double riskScore)
+    public TrackMode DetermineTrackMode(double riskScore, IConfiguration configuration)
     {
-        if (riskScore >= 60)
-            return TrackMode.Click;
-        if (riskScore >= 40)
-            return TrackMode.Surf;
+        var trackTypeForRiskScoreCritical = configuration.GetValue<float>("Analysis:TrackedDomains:TrackTypeForRiskScoreCritical", 2);
+        var trackTypeForRiskScoreHigh = configuration.GetValue<float>("Analysis:TrackedDomains:TrackTypeForRiskScoreHigh", 1);
+        var trackTypeForRiskScoreMedium = configuration.GetValue<float>("Analysis:TrackedDomains:TrackTypeForRiskScoreMedium", 0);
+
+        var severityScoreThresholdCritical = configuration.GetValue<float>("Analysis:SeverityScoreThresholdCritical", 80);
+        var severityScoreThresholdHigh = configuration.GetValue<float>("Analysis:SeverityScoreThresholdHigh", 60);
+        var severityScoreThresholdMedium = configuration.GetValue<float>("Analysis:SeverityScoreThresholdMedium", 40);
+
+        if (riskScore >= severityScoreThresholdCritical)
+            return (TrackMode)trackTypeForRiskScoreCritical;
+        if (riskScore >= severityScoreThresholdHigh)
+            return (TrackMode)trackTypeForRiskScoreHigh;
+        if (riskScore >= severityScoreThresholdMedium)
+            return (TrackMode)trackTypeForRiskScoreMedium;
         return TrackMode.None;
     }
 
@@ -115,15 +129,19 @@ public class TrackedDomainDistributor
     /// <param name="riskScore">Risk score (0-100)</param>
     /// <param name="isTargeted">Whether user is targeted</param>
     /// <returns>Appropriate report type</returns>
-    public ReportType DetermineReportType(double riskScore, bool isTargeted)
+    public ReportType DetermineReportType(double riskScore, bool isTargeted, IConfiguration configuration)
     {
-        if (riskScore >= 80 || isTargeted)
+
+        var severityScoreThresholdCritical = configuration.GetValue<float>("Analysis:SeverityScoreThresholdCritical", 80);
+        var severityScoreThresholdHigh = configuration.GetValue<float>("Analysis:SeverityScoreThresholdHigh", 60);
+        var severityScoreThresholdMedium = configuration.GetValue<float>("Analysis:SeverityScoreThresholdMedium", 40);
+        if (riskScore >= severityScoreThresholdCritical || isTargeted)
             return ReportType.All; // High risk or targeted = report everything
 
-        if (riskScore >= 60)
+        if (riskScore >= severityScoreThresholdHigh)
             return ReportType.User; // Significant risk = notify user
 
-        if (riskScore >= 40)
+        if (riskScore >= severityScoreThresholdMedium)
             return ReportType.Backend; // Moderate risk = backend only
 
         return ReportType.None; // Low risk = no report
