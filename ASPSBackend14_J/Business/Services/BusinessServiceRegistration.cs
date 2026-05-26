@@ -40,6 +40,9 @@ public static class BusinessServiceRegistration
         services.AddScoped<IKnownPhishingWebsiteRepository, KnownPhishingWebsiteRepository>();
         services.AddScoped<ISimulationRepository, SimulationRepository>();
 
+        // SCRUM-904 — consent service for User Risk Score data sources
+        services.AddScoped<ConsentService>();
+
         // Register Background Services
         services.AddSingleton<SimulationRunner>();
         services.AddHostedService(provider => provider.GetRequiredService<SimulationRunner>());

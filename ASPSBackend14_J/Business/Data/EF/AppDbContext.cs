@@ -47,6 +47,9 @@ public class AppDbContext : DbContext
     public DbSet<WebsiteCategory> WebsiteCategories { get; set; }
     public DbSet<Roadmap> Roadmaps { get; set; }
     public DbSet<ImmediateDanger> ImmediateDangers { get; set; }
+    public DbSet<UserConsentPreferences> UserConsentPreferences { get; set; }
+    public DbSet<UserConsentAuditLog> UserConsentAuditLogs { get; set; }
+    public DbSet<UserRiskScoreHistory> UserRiskScoreHistories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -780,6 +783,126 @@ public class AppDbContext : DbContext
             // Index on DateDeleted for soft-delete queries
             entity.HasIndex(e => e.DateDeleted);
 
+        });
+
+        // UserConsentPreferences configuration (INT AUTO_INCREMENT key)
+        // JIRA: SCRUM-904 — per (user × data source) consent record.
+        // One row per (UserKey, Source) — enforced by composite unique index.
+        // Source/Level stored as string for forward-compatibility — adding a
+        // new enum value is non-breaking.
+        modelBuilder.Entity<UserConsentPreferences>(entity =>
+        {
+            entity.ToTable("UserConsentPreferences");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id)
+                .HasColumnName("Key")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.UserKey)
+                .IsRequired()
+                .HasMaxLength(36);
+
+            entity.Property(e => e.Source)
+                .IsRequired()
+                .HasConversion<string>()
+                .HasMaxLength(64);
+
+            entity.Property(e => e.Level)
+                .IsRequired()
+                .HasConversion<string>()
+                .HasMaxLength(32);
+
+            entity.Property(e => e.GrantedAt).IsRequired();
+            entity.Property(e => e.LastModified).IsRequired();
+
+            entity.Property(e => e.GrantedBy)
+                .HasMaxLength(36);
+
+            // Indexes
+            entity.HasIndex(e => e.UserKey);
+            entity.HasIndex(e => new { e.UserKey, e.Source })
+                .IsUnique();
+        });
+
+        // UserConsentAuditLog configuration (INT AUTO_INCREMENT key)
+        // JIRA: SCRUM-904 — append-only audit trail of every consent change.
+        modelBuilder.Entity<UserConsentAuditLog>(entity =>
+        {
+            entity.ToTable("UserConsentAuditLog");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id)
+                .HasColumnName("Key")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.UserKey)
+                .IsRequired()
+                .HasMaxLength(36);
+
+            entity.Property(e => e.Source)
+                .IsRequired()
+                .HasConversion<string>()
+                .HasMaxLength(64);
+
+            entity.Property(e => e.OldLevel)
+                .IsRequired()
+                .HasConversion<string>()
+                .HasMaxLength(32);
+
+            entity.Property(e => e.NewLevel)
+                .IsRequired()
+                .HasConversion<string>()
+                .HasMaxLength(32);
+
+            entity.Property(e => e.ChangedBy)
+                .HasMaxLength(36);
+
+            entity.Property(e => e.ChangedAt).IsRequired();
+
+            entity.Property(e => e.Reason)
+                .HasMaxLength(500);
+
+            entity.HasIndex(e => e.UserKey);
+            entity.HasIndex(e => e.ChangedAt);
+        });
+
+        // UserRiskScoreHistory configuration (INT AUTO_INCREMENT key)
+        // JIRA: SCRUM-904 — persisted URS snapshot per user per recompute.
+        // SerializedSnapshot stored as LONGTEXT for full explainability payload.
+        modelBuilder.Entity<UserRiskScoreHistory>(entity =>
+        {
+            entity.ToTable("UserRiskScoreHistories");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id)
+                .HasColumnName("Key")
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.UserKey)
+                .IsRequired()
+                .HasMaxLength(36);
+
+            entity.Property(e => e.Score).IsRequired();
+
+            entity.Property(e => e.Level)
+                .IsRequired()
+                .HasMaxLength(20);
+
+            entity.Property(e => e.Confidence).IsRequired();
+            entity.Property(e => e.ComputedAt).IsRequired();
+            entity.Property(e => e.VulnerabilityScore).IsRequired();
+            entity.Property(e => e.ExposureScore).IsRequired();
+            entity.Property(e => e.LiveScore).IsRequired();
+            entity.Property(e => e.CorrelationScore).IsRequired();
+
+            entity.Property(e => e.SerializedSnapshot)
+                .IsRequired()
+                .HasColumnType("LONGTEXT");
+
+            // Indexes
+            entity.HasIndex(e => e.UserKey);
+            entity.HasIndex(e => e.ComputedAt);
+            // Composite (UserKey, ComputedAt) for the "latest URS per user" query.
+            // MySQL can scan backward — explicit DESC direction is unnecessary.
+            entity.HasIndex(e => new { e.UserKey, e.ComputedAt });
         });
     }
 }
