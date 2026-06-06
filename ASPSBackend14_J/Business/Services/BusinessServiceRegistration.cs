@@ -50,6 +50,8 @@ public static class BusinessServiceRegistration
         services.AddScoped<Business.RealtimeAnalysis.UserDomain.SignalAggregators.InboundVectorAggregator>();
         services.AddScoped<Business.RealtimeAnalysis.UserDomain.SignalAggregators.CrossModalCorrelationAggregator>();
         services.AddScoped<Business.RealtimeAnalysis.UserDomain.UserRiskScoreCalculator>();
+        // SCRUM-904 — URS query handlers (CQRS path for the admin UI)
+        services.AddScoped<Business.Handlers.UserRiskScoreQueryHandlers>();
 
         // Register Background Services
         services.AddSingleton<SimulationRunner>();

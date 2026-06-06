@@ -179,6 +179,8 @@ public class CQRSGateway : IDisposable
             "GetAllBlacklistedPhoneNumbersQuery" => await HandleGetAllBlacklistedPhoneNumbersQuery(messageJson, scope),
             "GetBlacklistedPhoneNumberByIdQuery" => await HandleGetBlacklistedPhoneNumberByIdQuery(messageJson, scope),
             "CheckPhoneNumberBlacklistedQuery" => await HandleCheckPhoneNumberBlacklistedQuery(messageJson, scope),
+            // SCRUM-904 — User Risk Score
+            "GetLatestUserRiskScoreQuery" => await HandleGetLatestUserRiskScoreQuery(messageJson, scope),
             _ => CreateErrorResponse($"Unknown query type: {queryType}")
         };
     }
@@ -1157,6 +1159,22 @@ public class CQRSGateway : IDisposable
         if (command == null) return CreateErrorResponse("Invalid DeleteUserDeviceCommand format");
         var handler = scope.ServiceProvider.GetRequiredService<UserDeviceCommandHandlers>();
         var result = await handler.HandleAsync(command);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    // =========================================================================
+    // SCRUM-904 — User Risk Score query handlers
+    // =========================================================================
+    private async Task<string> HandleGetLatestUserRiskScoreQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetLatestUserRiskScoreQuery>(messageJson);
+        if (query == null) return CreateErrorResponse("Invalid GetLatestUserRiskScoreQuery format");
+        var handler = scope.ServiceProvider.GetRequiredService<UserRiskScoreQueryHandlers>();
+        var result = await handler.HandleAsync(query);
         return JsonConvert.SerializeObject(result, new JsonSerializerSettings
         {
             TypeNameHandling = TypeNameHandling.Auto,

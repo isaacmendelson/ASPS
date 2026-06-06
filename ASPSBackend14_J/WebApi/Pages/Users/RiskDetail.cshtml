@@ -1,0 +1,137 @@
+@page
+@model WebApi.Pages.Users.RiskDetailModel
+@{
+    ViewData["Title"] = "User Risk Score";
+}
+
+<h2>User Risk Score</h2>
+<p class="text-muted">SCRUM-904 — read-only view of the latest computed URS snapshot for this user.</p>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+else if (Model.NoScoreYet)
+{
+    <div class="alert alert-info">
+        No URS has been computed for user <code>@Model.UserKey</code> yet.
+        URS is computed on inbound alerts (with consent-aware throttling); send
+        an alert from this user's device or wait for the periodic batch.
+    </div>
+}
+else if (Model.Score != null)
+{
+    var s = Model.Score;
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Score</h6>
+                    <div style="font-size: 3rem; font-weight: 700;">@s.Score</div>
+                    <span class="badge @Model.LevelCss" style="font-size: 1rem;">@s.Level</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted">Metadata</h6>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">User key</dt>
+                        <dd class="col-sm-9"><code>@Model.UserKey</code></dd>
+                        <dt class="col-sm-3">Confidence</dt>
+                        <dd class="col-sm-9">@s.Confidence.ToString("0.00") <span class="text-muted">(consent-aware: fraction of required data sources permitted)</span></dd>
+                        <dt class="col-sm-3">Computed at</dt>
+                        <dd class="col-sm-9">@s.ComputedAt.ToString("u")</dd>
+                        <dt class="col-sm-3">Valid until</dt>
+                        <dd class="col-sm-9">@s.ValidUntil.ToString("u")</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Axis scores (0–100)</div>
+                <div class="card-body">
+                    <table class="table table-sm mb-0">
+                        <tr><th>Vulnerability</th><td>@s.AxisScores.VulnerabilityScore.ToString("0.0")</td></tr>
+                        <tr><th>Exposure</th><td>@s.AxisScores.ExposureScore.ToString("0.0")</td></tr>
+                        <tr><th>Live</th><td>@s.AxisScores.LiveScore.ToString("0.0")</td></tr>
+                        <tr><th>Correlation</th><td>@s.AxisScores.CorrelationScore.ToString("0.0")</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Dimension subscores (0–100)</div>
+                <div class="card-body">
+                    <table class="table table-sm mb-0">
+                        <tr><th>Inbound attack vector</th><td>@s.DimensionScores.InboundAttackVector.ToString("0.0")</td></tr>
+                        <tr><th>Observed behavior</th><td>@s.DimensionScores.ObservedBehavior.ToString("0.0")</td></tr>
+                        <tr><th>Live threat indicator</th><td>@s.DimensionScores.LiveThreatIndicator.ToString("0.0")</td></tr>
+                        <tr><th>Cross-modal correlation</th><td>@s.DimensionScores.CrossModalCorrelation.ToString("0.0")</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">Explanation</div>
+        <div class="card-body">@s.Explanation</div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">Contributing signals (@s.ContributingSignals.Count)</div>
+        <div class="card-body p-0">
+            @if (s.ContributingSignals.Count == 0)
+            {
+                <div class="p-3 text-muted">No signals collected within the active consent scope.</div>
+            }
+            else
+            {
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>Type</th><th>Weight</th><th>Value</th><th>Decayed contribution</th><th>Timestamp</th></tr></thead>
+                    <tbody>
+                        @foreach (var sig in s.ContributingSignals.OrderByDescending(x => x.DecayedContribution))
+                        {
+                            <tr>
+                                <td><code>@sig.SignalType</code></td>
+                                <td>@sig.Weight.ToString("0.0##")</td>
+                                <td>@sig.Value.ToString("0.0##")</td>
+                                <td>@sig.DecayedContribution.ToString("0.0")</td>
+                                <td>@sig.Timestamp.ToString("u")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">Active data sources (consent map)</div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+                <thead><tr><th>Source</th><th>Consent level</th><th>Last observed</th></tr></thead>
+                <tbody>
+                    @foreach (var d in s.DataSourcesActive.OrderBy(x => x.Source.ToString()))
+                    {
+                        <tr>
+                            <td>@d.Source</td>
+                            <td>@d.ConsentLevel</td>
+                            <td>@(d.LastObservedAt?.ToString("u") ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <p><a asp-page="/Users/Details" asp-route-userKey="@Model.UserKey" class="btn btn-secondary btn-sm">← Back to user details</a></p>
+}
