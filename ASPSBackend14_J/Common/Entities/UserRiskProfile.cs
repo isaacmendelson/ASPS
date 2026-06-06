@@ -1,11 +1,39 @@
-namespace Business.RealtimeAnalysis.UserDomain;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Common.Entities;
 
 /// <summary>
-/// User Risk Profile - combines vulnerability and exposure scores with weighted factors
-/// ASPS-366: UserRiskProfile Implementation
+/// Per-user weight set for the User Risk Score (URS) computation. One row
+/// per user — the row is keyed by <see cref="UserKey"/>.
+///
+/// Originally introduced as an in-memory POCO under
+/// <c>Business.RealtimeAnalysis.UserDomain</c> (ASPS-366 / ASPS-367); moved
+/// to <c>Common.Entities</c> and made persisted as part of SCRUM-904 (URS
+/// algorithm). See <c>docs/SCRUM-904-user-risk-score-design.md</c>:
+///   * §1 — UserRiskProfile is the <em>weight set</em>, not the score itself
+///     (the score is <see cref="Common.Models.UserRiskScore"/>);
+///   * §5 — these weights feed the L2 (per-dimension subscore) aggregation;
+///   * §7 — the auto-correction mechanism drifts these weights from the
+///     global defaults toward what each user's history says actually predicts
+///     harm <em>for them</em>.
+///
+/// The public API (the <c>Update*</c> + <c>Calculate*</c> methods) is
+/// preserved from the original implementation so existing tests and callers
+/// keep working unchanged.
 /// </summary>
+[Table("UserRiskProfiles")]
 public class UserRiskProfile
 {
+    /// <summary>
+    /// Primary key — the user this profile belongs to. Refers to
+    /// <c>User.KeyField</c>. One row per user.
+    /// </summary>
+    [Key]
+    [MaxLength(36)]
+    [Column("UserKey")]
+    public string UserKey { get; set; } = string.Empty;
+
     /// <summary>
     /// Historical tendency score (0-100) - measures user's past risky behavior patterns
     /// </summary>

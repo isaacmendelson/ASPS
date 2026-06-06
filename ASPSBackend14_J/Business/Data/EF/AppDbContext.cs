@@ -50,6 +50,7 @@ public class AppDbContext : DbContext
     public DbSet<UserConsentPreferences> UserConsentPreferences { get; set; }
     public DbSet<UserConsentAuditLog> UserConsentAuditLogs { get; set; }
     public DbSet<UserRiskScoreHistory> UserRiskScoreHistories { get; set; }
+    public DbSet<UserRiskProfile> UserRiskProfiles { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -903,6 +904,48 @@ public class AppDbContext : DbContext
             // Composite (UserKey, ComputedAt) for the "latest URS per user" query.
             // MySQL can scan backward — explicit DESC direction is unnecessary.
             entity.HasIndex(e => new { e.UserKey, e.ComputedAt });
+        });
+
+        // UserRiskProfile configuration (one row per user; UserKey is PK).
+        // JIRA: SCRUM-904 — persisted per-user weight set for URS computation.
+        // The entity uses private setters on the score/weight properties so EF
+        // is configured to access fields directly (UsePropertyAccessMode.Field).
+        modelBuilder.Entity<UserRiskProfile>(entity =>
+        {
+            entity.ToTable("UserRiskProfiles");
+
+            entity.HasKey(e => e.UserKey);
+            entity.Property(e => e.UserKey)
+                .HasColumnName("UserKey")
+                .HasColumnType("varchar(36)")
+                .IsRequired();
+
+            // Map private-setter properties through their backing fields so EF
+            // can both read and write them at materialization time.
+            entity.Property(e => e.VulnerabilityScore)
+                .UsePropertyAccessMode(PropertyAccessMode.Field)
+                .IsRequired();
+            entity.Property(e => e.ExposureScore)
+                .UsePropertyAccessMode(PropertyAccessMode.Field)
+                .IsRequired();
+            entity.Property(e => e.RiskyUrlWeight)
+                .UsePropertyAccessMode(PropertyAccessMode.Field)
+                .IsRequired();
+            entity.Property(e => e.SuspiciousCallWeight)
+                .UsePropertyAccessMode(PropertyAccessMode.Field)
+                .IsRequired();
+            entity.Property(e => e.RemoteAccessWeight)
+                .UsePropertyAccessMode(PropertyAccessMode.Field)
+                .IsRequired();
+            entity.Property(e => e.ScamInProgressWeight)
+                .UsePropertyAccessMode(PropertyAccessMode.Field)
+                .IsRequired();
+            entity.Property(e => e.AggregationPeriodDays)
+                .UsePropertyAccessMode(PropertyAccessMode.Field)
+                .IsRequired();
+            entity.Property(e => e.TimeDecayFactor)
+                .UsePropertyAccessMode(PropertyAccessMode.Field)
+                .IsRequired();
         });
     }
 }

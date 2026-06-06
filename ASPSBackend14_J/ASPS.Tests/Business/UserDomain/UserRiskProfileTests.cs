@@ -1,6 +1,6 @@
 using Xunit;
 using FluentAssertions;
-using Business.RealtimeAnalysis.UserDomain;
+using Common.Entities;
 
 namespace ASPS.Tests.Business.UserDomain;
 

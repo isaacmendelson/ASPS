@@ -42,6 +42,14 @@ public static class BusinessServiceRegistration
 
         // SCRUM-904 — consent service for User Risk Score data sources
         services.AddScoped<ConsentService>();
+        // SCRUM-904 Step B — persisted per-user URS weight set
+        services.AddScoped<IUserRiskProfileRepository, UserRiskProfileRepository>();
+        // SCRUM-904 Step B — signal aggregators + URS calculator
+        services.AddScoped<Business.RealtimeAnalysis.UserDomain.SignalAggregators.BehaviorAggregator>();
+        services.AddScoped<Business.RealtimeAnalysis.UserDomain.SignalAggregators.LiveThreatAggregator>();
+        services.AddScoped<Business.RealtimeAnalysis.UserDomain.SignalAggregators.InboundVectorAggregator>();
+        services.AddScoped<Business.RealtimeAnalysis.UserDomain.SignalAggregators.CrossModalCorrelationAggregator>();
+        services.AddScoped<Business.RealtimeAnalysis.UserDomain.UserRiskScoreCalculator>();
 
         // Register Background Services
         services.AddSingleton<SimulationRunner>();
