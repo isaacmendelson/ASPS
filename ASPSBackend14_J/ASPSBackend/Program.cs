@@ -181,6 +181,14 @@ class Program
                 services.AddSingleton<IDomainEventHandler, ImmediateDangerPersistanceActor>();
                 services.AddSingleton<IDomainEventHandler, NotificationPublisherActor>();
 
+                // SCRUM-904 — User Risk Score orchestration. Singleton so the
+                // per-user throttle state survives across alerts; resolved as
+                // an IDomainEventHandler so it receives DeviceAlertReceived
+                // events alongside the other actors.
+                services.AddSingleton<Business.Services.UserRiskScoreService>();
+                services.AddSingleton<IDomainEventHandler>(sp =>
+                    sp.GetRequiredService<Business.Services.UserRiskScoreService>());
+
                 services.AddSingleton<IDomainEventsContext, DomainEventsContext>();
 
                 // Add UserDomainManagerService (manages per-user analysis instances)
