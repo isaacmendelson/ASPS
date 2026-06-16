@@ -38,7 +38,8 @@ The CEO is always the default. Other roles (CTO, Backend, Frontend, Python, Mobi
 | 5001 | WebApi HTTP | Razor Pages |
 | 5002 | WebApi HTTPS | Razor Pages |
 | 3306 | MySQL | exposed in docker-compose (security debt) |
-| 8080–8484 | Local WebSocket between extension and Python agent | `ws://` (security debt) |
+| 8080–8484 | Local WebSocket between extension and Python agent (scans `[8080, 8181, 8282, 8383, 8484]`) | `ws://` (security debt) |
+| 8180 | Local Keycloak (dev only — OIDC for WebApi + ASPSBackend) | `http://` |
 
 ## Repo layout
 

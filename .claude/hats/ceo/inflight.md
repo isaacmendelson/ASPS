@@ -2,7 +2,7 @@
 
 What's actively in progress. Updated frequently — at session start, mid-session as state changes, and end-of-session.
 
-**Last updated:** 2026-05-03
+**Last updated:** 2026-06-17
 
 ---
 
@@ -37,6 +37,9 @@ From `docs/security-audits/2026-05-03.md` — 5 Critical, 15 High. None fixed ye
 - 2026-05-02: ImmediateDangers table created via 2 migrations (`AddImmediateDangersTable`, `AddedColumnsProtectiveActionsAndScamInProgressToImmediateDangerTable`)
 - 2026-05-02: `ImmediateDangerPersistanceActor` created + wired in DI; lazy-resolution pattern to break DI cycle
 - 2026-05-03: Bug fix — `Key.ToString()` overflow in `DeviceKey` varchar(36)
+- 2026-06-16: 14 project-local skills shipped under `.claude/skills/` (commit `f53435c`)
+- 2026-06-16: SCRUM-904 Phase-1 MVP complete (Steps A–D, commits `bc5561c`–`b70e927`)
+- 2026-06-17: CLAUDE.md `Ports / messaging` table updated — added 8180 (Keycloak) + annotated 8080–8484 agent scan range
 
 ### Open code threads
 - `ImmediateDangerPersistanceActor` — currently publishes `ImmediateDangerAdded` to per-user UDAnalysis + global handlers via lazy publisher. Tested in passing alert; full integration test not run yet.
@@ -59,3 +62,4 @@ From `docs/security-audits/2026-05-03.md` — 5 Critical, 15 High. None fixed ye
 ## Update log
 
 - **2026-05-03** — File created. CEO hat memory system bootstrapped. 5 Critical security findings remain open. Hat folders for other roles not yet built.
+- **2026-06-16** — Added CLAUDE.md ports-table amendment as a 30-second follow-up (Keycloak moved to 8180 today). 14 project-local skills shipped under `.claude/skills/` (commit `f53435c`). SCRUM-904 Phase-1 MVP complete (commits `bc5561c`–`b70e927`).
