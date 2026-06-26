@@ -1,0 +1,14 @@
+# Schema: Prompt (PLACEHOLDER)
+# TODO: Finalize fields and validation before authoring prompts against this schema.
+
+schema: prompt
+version: 0          # TODO: bump to 1 when stabilized
+
+fields:
+  id:           # string  — unique slug, kebab-case            # TODO
+  title:        # string  — what the prompt is for             # TODO
+  role:         # string  — intended role / agent              # TODO
+  intent:       # string  — the outcome it drives toward        # TODO
+  template:     # string  — the prompt body, with {{vars}}      # TODO
+  variables:    # list    — names + descriptions of {{vars}}    # TODO
+  notes:        # string  — usage caveats                       # TODO

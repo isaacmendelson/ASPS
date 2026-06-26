@@ -1,0 +1,15 @@
+# Schema: Lesson (PLACEHOLDER)
+# TODO: Finalize fields and validation before authoring lessons against this schema.
+
+schema: lesson
+version: 0          # TODO: bump to 1 when stabilized
+
+fields:
+  id:           # string  — unique slug, kebab-case            # TODO
+  title:        # string  — one-line summary                   # TODO
+  date:         # date    — when the lesson was captured        # TODO
+  context:      # string  — what was happening                  # TODO
+  observation:  # string  — what went wrong or right            # TODO
+  takeaway:     # string  — the reusable rule going forward      # TODO
+  roles:        # list    — roles this lesson applies to         # TODO
+  links:        # list    — related ADRs, files, lessons         # TODO
