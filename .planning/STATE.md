@@ -15,6 +15,12 @@ Phase 3 — Production Readiness (חלקי)
 | MySQL ללא SSL | `SslMode=Required` ב-connection string |
 | HTTPS ל-WebApi | הגדרת certificate |
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 001 | Unified ASPS system specification (all 7 subsystems) | 2026-06-27 | 1699aa5 | [001-asps-system-specifications](./quick/001-asps-system-specifications/) |
+
 ## Key Decisions
 
 ### Architecture
