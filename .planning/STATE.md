@@ -1,6 +1,6 @@
 # State
 
-**Last Updated:** 2026-02-28
+**Last Updated:** 2026-06-27
 
 ## Current Phase
 
@@ -31,9 +31,9 @@ Phase 3 — Production Readiness (חלקי)
 - **Localhost filter** — 3 שכבות: Extension JS / Python scan_service / C# backend
 
 ### Data
-- **No EF migrations** — DB נוצר עם raw SQL. שינויי schema דרך SQL ישיר
-- **DeviceTokens table** — נוצר ידנית: `DeviceUid` PK, `TokenValue`, `UserKeyField`, `DateCreated`, `Expiration`
-- **TokenStore in-memory** — אחרי restart הבאקנד: Python חייב RequestToken מחדש
+- **EF migrations active** — 51 migrations in `Business/Migrations/`; applied automatically in dev via `db.Database.Migrate()` in `Program.cs` (note: STATE.md previously said "No EF migrations" — this was stale)
+- **DeviceTokens table** — `DeviceUid` PK, `TokenValue`, `UserKeyField`, `DateCreated`, `Expiration`; persisted across restarts
+- **TokenStore write-through** — in-memory `ConcurrentDictionary` + MySQL persistence; survives backend restart
 
 ### Python Desktop
 - **Context singleton** — `zmq.Context()` נוצר פעם אחת, נסגר רק ב-shutdown
@@ -55,18 +55,28 @@ Phase 3 — Production Readiness (חלקי)
 
 | Branch | Commit | Notes |
 |--------|--------|-------|
-| `main` | `3e9654d` | Latest — localhost URL filter |
+| `main` | `1699aa5` | Latest — unified system specification |
 | `test-branch` | `9da4c6a` | Merged into main |
+
+## Session Continuity
+
+**Last session:** 2026-06-27 00:38–01:10 UTC
+**Completed:** quick-001 — unified ASPS system specification
+**Output:** `docs/system-specifications/ASPS_System_Specification.md`
+**Summary:** `.planning/quick/001-asps-system-specifications/001-SUMMARY.md`
 
 ## What's Working ✅
 
 - URL alert pipeline end-to-end (extension → backend → analysis → notification)
 - CURVE encryption on REQ (port 50001) + SUB (port 50002)
 - Device token auth
-- Remote access monitoring (TeamViewer detection)
-- Admin dashboard (WebApi + SignalR)
+- Remote access monitoring (TeamViewer, AnyDesk, RDP, 10+ apps)
+- Admin dashboard (WebApi + Keycloak OIDC + SignalR)
 - Docker Compose (MySQL + Backend + WebApi)
 - Hourly CISO security audit cron job
+- Roadmap editor (SPA + CQRS + optimistic concurrency)
+- UserRiskScore service (SCRUM-904, backend — partial)
+- ImmediateDanger detection and notification pipeline
 
 ## What Needs Attention
 
