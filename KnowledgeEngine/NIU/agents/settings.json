@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(dotnet ef *)",
-      "Bash(\"C:\\\\Program Files\\\\MySQL\\\\MySQL Server 8.0\\\\bin\\\\mysql.exe\" -h 127.0.0.1 -P 3306 -uroot -pzappa22 ASPSBackend2DB -e \"SHOW TABLES LIKE '%Consent%'; SHOW TABLES LIKE '%RiskScore%'; DESCRIBE UserConsentPreferences;\")"
-    ]
-  }
-}

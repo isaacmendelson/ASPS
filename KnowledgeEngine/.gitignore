@@ -12,6 +12,9 @@ __pycache__/
 db/
 output/
 
+# Archived / not-in-use material (kept on disk, out of git)
+NIU/
+
 # Secrets — never commit (use .env.example as the template)
 .env
 
