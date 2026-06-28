@@ -47,6 +47,8 @@ lessons. Example questions:
 ## Caveats
 
 - **Two access paths** — the **MCP server** (below; works for every agent) or the **CLI** (needs a Bash tool; agents like architect/product/qa have none).
+- **venv Python ONLY — never global `python`.** Always invoke `.venv\Scripts\python.exe`. The global interpreter has a different chromadb version (1.0.20 vs the venv's 1.5.9) and panics reading the DB (`PanicException: range start index … out of range`). The MCP server already uses the venv python, so it is immune.
+- **No need to `activate`** — calling `.venv\Scripts\python.exe` directly sidesteps the PowerShell execution-policy block on `Activate.ps1`. If you do want activation: `Set-ExecutionPolicy -Scope Process Bypass` (this terminal only) or `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` (persistent, Microsoft-recommended).
 - **Rebuild after edits** — the DB is static; new/changed docs are not reflected until `index --reset`.
 - **Fresh clone** — `.venv/` is gitignored; recreate with `python -m venv .venv && .venv\Scripts\python.exe -m pip install -r requirements.txt`, and create `.env` from `.env.example`.
 - **UTF-8 fallback** — the CLI's console print can hit `UnicodeEncodeError` on Windows; prefix with `PYTHONIOENCODING=utf-8`. (The MCP server is unaffected — it returns strings, not console prints.)
