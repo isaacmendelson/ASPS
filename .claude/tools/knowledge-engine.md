@@ -2,9 +2,9 @@
 
 A local RAG-based knowledge system that indexes ASPS knowledge and answers questions with cited sources.
 
-- **Location:** `C:\AI\Projects\KnowledgeEngine`
-- **Provider:** Anthropic (`AnthropicProvider`) — requires `ANTHROPIC_API_KEY` in the environment.
-- **Vector DB:** `C:\AI\Projects\KnowledgeEngine\db` (persisted; rebuilt with `--reset`).
+- **Location:** `C:\Jobs\ASPS\GitHub\Software\KnowledgeEngine` (in-repo). The standalone `C:\AI\Projects\KnowledgeEngine` is deprecated.
+- **Provider:** Anthropic (`AnthropicProvider`) — requires `ANTHROPIC_API_KEY` (loaded from `KnowledgeEngine\.env`, gitignored).
+- **Vector DB:** `KnowledgeEngine\db` (gitignored; rebuilt with `index --reset`).
 
 ## What it indexes
 
@@ -23,7 +23,7 @@ or AIducation knowledge are needed. The CLI (`ke_cli.py`) has three subcommands:
 `ask` (LLM answer + cited sources), `search` (raw retrieval, no LLM), `index --reset` (rebuild).
 
 ```bash
-cd C:\AI\Projects\KnowledgeEngine
+cd C:\Jobs\ASPS\GitHub\Software\KnowledgeEngine
 
 # Primary: ask a question — LLM answer with cited sources
 .venv\Scripts\python.exe scripts\ke_cli.py ask "QUESTION" --sources
@@ -46,14 +46,16 @@ lessons. Example questions:
 
 ## Caveats
 
-- **CLI only, with Bash** — agents without a Bash tool (e.g. architect, product, qa) cannot call it directly until the MCP server exists (see below).
+- **Two access paths** — the **MCP server** (below; works for every agent) or the **CLI** (needs a Bash tool; agents like architect/product/qa have none).
 - **Rebuild after edits** — the DB is static; new/changed docs are not reflected until `index --reset`.
-- **External path** — outside the ASPS repo; add `C:\AI\Projects\KnowledgeEngine` as a Claude Code working dir (`/add-dir`) to avoid permission prompts.
-- **UTF-8 fallback** — if you hit `UnicodeEncodeError` on Windows, prefix the command with `PYTHONIOENCODING=utf-8`.
+- **Fresh clone** — `.venv/` is gitignored; recreate with `python -m venv .venv && .venv\Scripts\python.exe -m pip install -r requirements.txt`, and create `.env` from `.env.example`.
+- **UTF-8 fallback** — the CLI's console print can hit `UnicodeEncodeError` on Windows; prefix with `PYTHONIOENCODING=utf-8`. (The MCP server is unaffected — it returns strings, not console prints.)
 
-## Future integration
+## MCP integration
 
-The Knowledge Engine will expose an API or **MCP server** so agents can query it directly
-instead of shelling out. This is the integration point referenced by
-[`../aiducation/learning-engine/README.md`](../aiducation/learning-engine/README.md) (Principle 7).
+An MCP server (`KnowledgeEngine/scripts/ke_mcp_server.py`, FastMCP over stdio) is registered in
+the repo-root [`.mcp.json`](../../.mcp.json), exposing two tools: **`knowledge_ask`** and
+**`knowledge_search`**. After a Claude Code restart + project MCP approval, **every** agent can
+query the Knowledge Engine directly — no Bash/CLI shell-out needed. This closes the integration
+point referenced by [`../aiducation/learning-engine/README.md`](../aiducation/learning-engine/README.md) (Principle 7).
 Owner: **knowledge-manager**.

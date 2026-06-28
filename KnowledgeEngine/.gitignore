@@ -1,0 +1,20 @@
+# Python virtual environment (not portable — recreate per machine)
+.venv/
+venv/
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Knowledge Engine runtime artifacts (regenerable via `ke_cli.py index --reset`)
+db/
+output/
+
+# Secrets — never commit (use .env.example as the template)
+.env
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
