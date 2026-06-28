@@ -8,30 +8,32 @@ A local RAG-based knowledge system that indexes ASPS knowledge and answers quest
 
 ## What it indexes
 
-The repository is the single source of truth. Indexed paths (`run_knowledge_engine.py`):
+The repository is the single source of truth. Indexed paths (`ke_cli.py`):
 - `C:\Jobs\ASPS\GitHub\Software\docs` — design docs, specs, audits
 - `C:\Jobs\ASPS\GitHub\Software\.claude` — agents, workflows, rules, AIducation, ADRs
 
 Supported file types: `.txt`, `.md`, `.docx`, `.pdf` (other files in those paths — e.g. `.json`, `.html` — are skipped).
 
-> The standalone `KnowledgeEngine\documents` path is **disabled** — knowledge lives in the repo, not a separate copy. Last build: **654 chunks**.
+> The standalone `KnowledgeEngine\documents` path is **disabled** — knowledge lives in the repo, not a separate copy. Last build: **690 chunks**.
 
-## How to run
+## How to use it — CLI
 
-The script is an **interactive REPL** with no `--query` flag. Drive it headless via stdin,
-and always force UTF-8 (the result-preview print crashes on box-drawing chars under Windows cp1252):
+Use the Knowledge Engine CLI when project knowledge, agent definitions, workflows, rules, ADRs,
+or AIducation knowledge are needed. The CLI (`ke_cli.py`) has three subcommands:
+`ask` (LLM answer + cited sources), `search` (raw retrieval, no LLM), `index --reset` (rebuild).
 
 ```bash
-# Ask a question (headless)
-printf 'YOUR QUESTION\nquit\n' | \
-  PYTHONIOENCODING=utf-8 C:/AI/Projects/KnowledgeEngine/.venv/Scripts/python.exe \
-  C:/AI/Projects/KnowledgeEngine/scripts/run_knowledge_engine.py
+cd C:\AI\Projects\KnowledgeEngine
 
-# Rebuild the index after changing docs/.claude content
-printf 'quit\n' | PYTHONIOENCODING=utf-8 .venv/Scripts/python.exe scripts/run_knowledge_engine.py --reset
+# Primary: ask a question — LLM answer with cited sources
+.venv\Scripts\python.exe scripts\ke_cli.py ask "QUESTION" --sources
+
+# Raw retrieval only — top-k chunks + scores, no LLM call
+.venv\Scripts\python.exe scripts\ke_cli.py search "QUESTION" --top-k 5
+
+# Rebuild the index after docs/.claude content changes
+.venv\Scripts\python.exe scripts\ke_cli.py index --reset
 ```
-
-Each query returns retrieval debug (top-k chunks + scores), an LLM answer, and a sources list.
 
 ## When to use it
 
@@ -44,9 +46,10 @@ lessons. Example questions:
 
 ## Caveats
 
-- **UTF-8 required** — run with `PYTHONIOENCODING=utf-8` or the debug print can crash (`UnicodeEncodeError │`). Cosmetic bug in the tool's print loop, not the query.
-- **Rebuild after edits** — the DB is static; new/changed docs are not reflected until `--reset`.
+- **CLI only, with Bash** — agents without a Bash tool (e.g. architect, product, qa) cannot call it directly until the MCP server exists (see below).
+- **Rebuild after edits** — the DB is static; new/changed docs are not reflected until `index --reset`.
 - **External path** — outside the ASPS repo; add `C:\AI\Projects\KnowledgeEngine` as a Claude Code working dir (`/add-dir`) to avoid permission prompts.
+- **UTF-8 fallback** — if you hit `UnicodeEncodeError` on Windows, prefix the command with `PYTHONIOENCODING=utf-8`.
 
 ## Future integration
 
