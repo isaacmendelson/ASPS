@@ -4,14 +4,27 @@ When to do work myself (CEO hat) vs spawn a sub-agent.
 
 ## The roles available
 
-| Role | Stack / Domain | Memory at |
+> **Roster updated 2026-06-28 (AI OS v1).** Definitions live in `.claude/agents/<role>.md`.
+> Org model: CEO (me) → **vp-engineering** (owns technical execution) → technical agents.
+> For multi-step technical work, prefer routing through **vp-engineering** rather than spawning programmers directly.
+
+| Role | Stack / Domain | Definition |
 |---|---|---|
-| **CTO** | Architecture, cross-cutting, spec breakdown | `cto/` (TBD) |
-| **Backend programmer** | C# / .NET 8 / EF Core / NetMQ / MySQL | `backend/` (TBD) |
-| **Frontend programmer** | Razor pages, CSS, vanilla JS, Chrome extension | `frontend/` (TBD) |
-| **Python programmer** | apps/desktop/win/, Analyzers/, pyzmq | `python/` (TBD) |
-| **Mobile programmer** | Android/iOS — when the project starts | `mobile/` (TBD) |
-| **QA** | Verify code before merge | `qa/` (TBD) |
+| **vp-engineering** | Owns/coordinates all technical execution; runs the engineering gates | `agents/vp-engineering.md` |
+| **product** | Requirements, user stories, acceptance criteria, priorities | `agents/product.md` |
+| **knowledge-manager** | AIducation, ADRs, lessons, organizational memory, Knowledge Engine | `agents/knowledge-manager.md` |
+| **architect** | Architecture, cross-cutting design, spec breakdown, ADRs (replaces CTO) | `agents/architect.md` |
+| **backend** | C# / .NET 8 / EF Core / NetMQ / MySQL | `agents/backend.md` |
+| **desktop-agent** | `apps/desktop/win/` — Python desktop agent | `agents/desktop-agent.md` |
+| **browser-extension** | `apps/extension/chrome/` — Chrome MV3 | `agents/browser-extension.md` |
+| **analyzer-ai** | `Analyzers/` — detection/scoring microservices | `agents/analyzer-ai.md` |
+| **qa** | Verify code before merge (mandatory gate) | `agents/qa.md` |
+| **security** | Threat review, audits; reports, does not fix | `agents/security.md` |
+| **devops** | Build / release / environments (forward-looking) | `agents/devops.md` |
+
+**Legacy agents retained** (still spawnable): `cto` (→ use architect), `frontend` (**owns the Razor admin UI** — no new-roster owner for it), `mobile` (Android/iOS, not started), `python` (→ split into desktop-agent + analyzer-ai).
+
+**Knowledge lookups:** any agent can query the Knowledge Engine via MCP tools `knowledge_ask` / `knowledge_search` (project knowledge, agent defs, workflows, rules, ADRs, lessons).
 
 ## Routing matrix
 

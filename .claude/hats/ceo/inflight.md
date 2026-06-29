@@ -2,17 +2,34 @@
 
 What's actively in progress. Updated frequently — at session start, mid-session as state changes, and end-of-session.
 
-**Last updated:** 2026-06-17
+**Last updated:** 2026-06-29
 
 ---
 
 ## Currently active
 
-### Hat-based memory system (this session)
-- ✅ CEO hat: 7 files complete (this folder)
-- ⏳ CTO, Backend, Frontend, Python, QA hats: not yet built
-- 🔜 Next: build QA hat (highest priority per user's earlier comment)
-- 🔜 Then: build Backend, Frontend, Python, CTO as we encounter the need
+### AI Operating System v1 (2026-06-28/29)
+- ✅ Built `.claude/` org structure: `agents/` (12 role defs in 3 layers + 4 legacy), `workflows/` (5), `rules/` (4), `memory/`, `aiducation/` (principles/lessons/prompts/schemas/role-training/learning-engine), `architecture/` (AI-OS.md + ADR/). Commit `a45327e`.
+- ✅ Roster: **Executive** = CEO (sole orchestrator) · **C-level** = vp-engineering / product / knowledge-manager · **Technical** = architect / backend / desktop-agent / browser-extension / analyzer-ai / qa / security / devops.
+- ✅ Legacy agents retained by user decision: `cto`, `frontend` (owns Razor admin UI), `mobile`, `python`.
+- 🔜 All role/workflow/rule files are TODO-stubbed templates — content to be filled as work demands.
+
+### Knowledge Engine (vendored + MCP, 2026-06-28/29)
+- ✅ Vendored into repo at `KnowledgeEngine/` (was `C:\AI\Projects\KnowledgeEngine`). Commit `e71fc8c`.
+- ✅ Gitignored: `.venv/`, `db/`, `output/`, `.env`, `NIU/`. `requirements.txt` + `.env.example` committed.
+- ✅ Runs **Sonnet 4.6** (`llm_provider.py`, max_tokens 1200). Indexes `docs/` + `.claude/` (env-driven config).
+- ✅ CLI: `ke_cli.py ask "Q" --sources` (venv python only — never global `python`; chromadb 1.5.9 vs 1.0.20 mismatch panics).
+- ✅ **MCP live**: `ke_mcp_server.py` registered in repo-root [`.mcp.json`](../../../.mcp.json) → tools `knowledge_ask` / `knowledge_search` available to all agents. Commit `7a5380b`. Doc: [`.claude/tools/knowledge-engine.md`](../../tools/knowledge-engine.md).
+- 🔜 Optional: delete original `C:\AI\Projects\KnowledgeEngine` (new path verified working).
+
+### System specification doc (gsd:quick 001, 2026-06-28)
+- ✅ [`docs/system-specifications/ASPS_System_Specification.md`](../../../docs/system-specifications/ASPS_System_Specification.md) — 7 subsystems, cited from code + KE + JIRA. Commits `1699aa5`/`3709da5`/`f17340f`/`eb6a548`.
+- ✅ Status: backend/admin-portal/desktop-agent/browser-extension/url-analyzer = **built**; mobile-agent + users-portal = **planned**.
+- ✅ 4 `.docx` specs converted to `.md` under `docs/system-specifications/`; binaries archived in `spec-sources/`. Commit `84f7e44`.
+
+### Hat-based memory system (legacy)
+- ✅ CEO hat: 7 files complete (this folder). Superseded as the org model by AI OS v1 `.claude/agents/`, but CEO hat memory still load-bearing.
+- ⏳ Other-role hats (`hats/<role>/`): not built. Note: `.claude/agents/<role>.md` (definitions) now exist for the new roster; hat *memory* folders do not.
 
 ### Daily security audit cron
 - ✅ Cron created 2026-05-03 (job ID `e54696bf`, fires daily at 05:03 local)
@@ -63,3 +80,4 @@ From `docs/security-audits/2026-05-03.md` — 5 Critical, 15 High. None fixed ye
 
 - **2026-05-03** — File created. CEO hat memory system bootstrapped. 5 Critical security findings remain open. Hat folders for other roles not yet built.
 - **2026-06-16** — Added CLAUDE.md ports-table amendment as a 30-second follow-up (Keycloak moved to 8180 today). 14 project-local skills shipped under `.claude/skills/` (commit `f53435c`). SCRUM-904 Phase-1 MVP complete (commits `bc5561c`–`b70e927`).
+- **2026-06-28/29** — Built AI Operating System v1 (`.claude/` org: agents/workflows/rules/memory/aiducation/architecture). Vendored KnowledgeEngine into the repo + wired its MCP server (now live: `knowledge_ask`/`knowledge_search`). Authored unified `ASPS_System_Specification.md` via gsd:quick 001. Commits `a45327e`, `84f7e44`, `e71fc8c`, `6b64e96`, `7a5380b`, `a7ad3d1`, `1699aa5`, `3709da5`, `f17340f`, `eb6a548`. 10 local commits, **not pushed**. CEO memory synced to reflect all of the above.
