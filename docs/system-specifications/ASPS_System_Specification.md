@@ -241,6 +241,8 @@ Source: (`docs/ASPS_DATA_FLOW.md §8`)
 
 **Status:** built — Python Windows application is fully operational; handles auth, CURVE encryption, remote-access detection, URL forwarding, and extension WebSocket server (`apps/desktop/win/src/main.py`)
 
+**Full feature documentation:** [`DESKTOP_AGENT_FEATURES.md`](DESKTOP_AGENT_FEATURES.md) — covers all 23 features, edge cases, and known gaps.
+
 ### Purpose
 
 A Python system-tray application running on the user's Windows PC. It bridges the Chrome extension (via local WebSocket) and the Backend (via ZMQ CURVE). It monitors remote-access software, forwards URL alerts to the Backend, receives analysis results, and executes protective actions locally (toasts, overlays, remote-session termination).

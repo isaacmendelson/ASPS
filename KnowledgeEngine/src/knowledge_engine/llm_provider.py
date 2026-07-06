@@ -43,3 +43,27 @@ class AnthropicProvider(LlmProvider):
         )
 
         return response.content[0].text
+
+
+class OllamaProvider(LlmProvider):
+    def __init__(
+        self,
+        model: str = "llama3.2",
+        base_url: str = "http://localhost:11434",
+    ):
+        try:
+            import ollama as _ollama
+            self._ollama = _ollama
+        except ImportError:
+            raise RuntimeError(
+                "ollama package not installed. Run: pip install ollama"
+            )
+        self.model = model
+        self.base_url = base_url
+
+    def generate(self, prompt: str) -> str:
+        response = self._ollama.chat(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.message.content

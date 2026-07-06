@@ -9,7 +9,7 @@ from mcp.server.fastmcp import FastMCP
 
 from knowledge_engine.config import DB_PATH, ASPS_DOCS, ASPS_CLAUDE
 from knowledge_engine.knowledge_service import KnowledgeService
-from knowledge_engine.llm_provider import AnthropicProvider
+from knowledge_engine.llm_provider import AnthropicProvider, OllamaProvider
 from knowledge_engine.models import RetrievalRequest
 
 mcp = FastMCP("ASPS Knowledge Engine")
@@ -18,7 +18,7 @@ def create_service():
     return KnowledgeService(
         knowledge_paths=[ASPS_DOCS, ASPS_CLAUDE],
         db_path=DB_PATH,
-        llm_provider=AnthropicProvider(),
+        llm_provider=OllamaProvider(),
     )
 
 @mcp.tool()

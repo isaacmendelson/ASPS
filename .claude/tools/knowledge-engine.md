@@ -16,6 +16,9 @@ Supported file types: `.txt`, `.md`, `.docx`, `.pdf` (other files in those paths
 
 > The standalone `KnowledgeEngine\documents` path is **disabled** — knowledge lives in the repo, not a separate copy. Last build: **690 chunks**.
 
+PowerShell Install ollama via python -m pip with full output
+IN
+
 ## How to use it — CLI
 
 Use the Knowledge Engine CLI when project knowledge, agent definitions, workflows, rules, ADRs,
