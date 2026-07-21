@@ -190,11 +190,33 @@ function setupWebSocketHandlers() {
   // Pushed by the agent each time its RA flag toggles. While true, every
   // URL change to a sensitive site (or login transition) emits
   // WS_TAB_CHANGED_ALERT; sensitive tab closes emit WS_TAB_CLOSED_ALERT.
-  connectionService.onMessage(MSG.WS_SET_REMOTE_CONTROLLED, (data) => {
+  connectionService.onMessage(MSG.WS_SET_REMOTE_CONTROLLED, async (data) => {
     const next = !!(data && data.isDeviceRemoteControlled);
     if (next === isDeviceRemoteControlled) return;
     isDeviceRemoteControlled = next;
     console.log('[Background] IsDeviceRemoteControlled =', next);
+
+    // On transition to remote-controlled: scan all already-open tabs and
+    // report any sensitive ones immediately. Without this, a bank tab that
+    // was open BEFORE AnyDesk connected is never reported to the backend,
+    // so ImmediateDanger is never raised.
+    if (next) {
+      try {
+        const allTabs = await chrome.tabs.query({});
+        for (const tab of allTabs) {
+          if (!tab.url || !/^https?:/i.test(tab.url)) continue;
+          const snap = await _refreshTabControl(tab.id, tab.url);
+          // Report every http/https tab — backend filters by SensitiveSites table.
+          // Skipping based on local sensitiveDomainCache would miss banks not yet
+          // seen this session.
+          if (snap.isSensitiveWebsite !== false) {
+            _sendTabChangedAlert(tab.id, snap);
+          }
+        }
+      } catch (e) {
+        console.warn('[Background] Existing-tab scan on remote-controlled transition failed:', e);
+      }
+    }
   });
 
   // Handle remote access alert from desktop
