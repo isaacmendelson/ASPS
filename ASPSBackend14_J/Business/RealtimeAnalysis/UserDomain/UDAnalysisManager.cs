@@ -1,8 +1,10 @@
 using Business.DomainEvents;
+using Business.Messaging;
 using Business.RealtimeAnalysis.Indicators;
 using Business.RealtimeAnalysis.ProtectivActions;
 using Business.Views;
 using Common.Entities;
+using Common.Enums;
 using Common.Interfaces;
 using Common.Models;
 using Common.Models.Alerts;
@@ -29,17 +31,18 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
     private bool isInitialized = false;
     private readonly IKnownPhishingWebsiteRepository _phishingRepo;
     private readonly ISafeDomainRepository _safeDomainRepo;
+    private readonly NotificationPublisher? _notificationPublisher;
 
     public UDAnalysisManager(
         UDUser udUser,
         UDUserAnalyzer userAnalyzer,
-        //ILogger<UDAnalysisManager> logger, 
         ILoggerFactory loggerFactory,
         ASView aSView,
         IConfiguration configuration,
         List<IDomainEventHandler> eventHandlers,
         IKnownPhishingWebsiteRepository phishingRepo,
-        ISafeDomainRepository safeDomainRepo)
+        ISafeDomainRepository safeDomainRepo,
+        NotificationPublisher? notificationPublisher = null)
     {
         _udUser = udUser;
         _userAnalyzer = userAnalyzer;
@@ -49,6 +52,7 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         _configuration = configuration;
         _phishingRepo = phishingRepo;
         _safeDomainRepo = safeDomainRepo;
+        _notificationPublisher = notificationPublisher;
 
         // Initialize analyzers
         _analyzers = new List<ISpecificAnalyzer>
@@ -188,11 +192,33 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         {
             if (alertEvent.Alert is RemoteAccessAlert ra)
             {
-                _= this._userAnalyzer.AnalyzeAsync(ra);
+                _ = this._userAnalyzer.AnalyzeAsync(ra);
+
+                // When AnyDesk/TeamViewer connects inbound but the agent didn't include
+                // browser tabs (race: extension hadn't reported yet), request the agent to
+                // always attach tabs so the next alert re-triggers DetectImmediateDanger
+                // with real tab data.
+                if (ra.BrowserTabs is null
+                    && ra.RemoteAccessDirection == RemoteAccessDirection.Incoming
+                    && ra.ConnectionStatus == ConnectionStatus.Open)
+                {
+                    _notificationPublisher?.PublishSetBrowserTabsPolicy(
+                        deviceUid,
+                        _udUser.Key.Value,
+                        "always",
+                        validUntil: DateTime.UtcNow.AddMinutes(10));
+                    _logger.LogInformation(
+                        "[UDAnalysisManager] RemoteAccessAlert with null BrowserTabs (Incoming+Open) on device {DeviceUid} — requested tab policy 'always'",
+                        deviceUid);
+                }
             }
             else if (alertEvent.Alert is TabChangedAlert tc)
             {
                 _ = this._userAnalyzer.AnalyzeAsync(tc);
+            }
+            else if (alertEvent.Alert is TabClosedAlert tca)
+            {
+                _ = this._userAnalyzer.AnalyzeAsync(tca);
             }
 
             this._analysis.AnalyzeAsync(alertEvent.Alert, deviceUid, alertEvent.DeviceAlertEntityKey);

@@ -772,9 +772,9 @@ namespace Business.RealtimeAnalysis.UserDomain
                         // Include only tabs that are sensitive AND the user is plausibly logged in to.
                         // (`IsConfidentlyNotLoggedIn` returns true ONLY when LoggedIn==false AND confidence=='high';
                         // any 'unknown' / lower-confidence false is treated as logged-in to avoid false negatives.)
-                        var sUrl = this.UDUser.BrowserTabs?[deviceUid]
+                        var sUrl = this.UDUser.BrowserTabs?.GetValueOrDefault(deviceUid)
                             ?.FirstOrDefault(i => this.IsSensitiveWebsite(i.Url) && !this.IsConfidentlyNotLoggedIn(i))?.Url;
-                        var urls = this.UDUser.BrowserTabs?[deviceUid]
+                        var urls = this.UDUser.BrowserTabs?.GetValueOrDefault(deviceUid)
                             ?.Where(i => this.IsSensitiveWebsite(i.Url) && !this.IsConfidentlyNotLoggedIn(i)).ToList();
                         if (this._immediateDangers is null)
                         {
@@ -825,12 +825,11 @@ namespace Business.RealtimeAnalysis.UserDomain
             // by combining a cookie check and a DOM scan. We suppress the alert
             // ONLY when both signals confidently say "not logged in"; anything
             // ambiguous or unknown still triggers (safer default).
-            var x = this.UDUser.BrowserTabs?[deviceUid]
+            var x = this.UDUser.BrowserTabs?.GetValueOrDefault(deviceUid)
                 ?.Any(i => this.IsSensitiveWebsite(i.Url) && this.IsLoggedIn(i)) ?? false;
 
-            return this.UDUser.BrowserTabs?[deviceUid]
-                ?.Any(i => this.IsSensitiveWebsite(i.Url) && this.IsLoggedIn(i)) ?? false;
-                //?.Any(i => this.IsSensitiveWebsite(i.Url) && !this.IsConfidentlyNotLoggedIn(i)) ?? false;
+            return this.UDUser.BrowserTabs?.GetValueOrDefault(deviceUid)
+                ?.Any(i => this.IsSensitiveWebsite(i.Url) && !this.IsConfidentlyNotLoggedIn(i)) ?? false;
         }
 
         private bool IsLoggedIn(BrowserTab tab)
