@@ -22,9 +22,22 @@ namespace ASPS.Tests.Business.RealtimeAnalysis;
 /// ImmediateDanger not raised when AnyDesk connects with null BrowserTabs,
 /// or when LoggedIn is null (incorrectly treated as not-logged-in by the old code).
 ///
-/// Fix 1 (UDUserAnalyzer.HasSensitiveBrowserPages): null LoggedIn treated as logged-in.
-/// Fix 2 (UDAnalysisManager): TabClosedAlert now routed to userAnalyzer.AnalyzeAsync.
-/// Fix 3 (UDAnalysisManager): SetBrowserTabsPolicy requested when null-tabs RA arrives.
+/// Root-cause fixes (this session):
+///   Fix A: AlertId is null in production (Python agent doesn't send it) →
+///           DetectImmediateDanger was always skipped. Now a synthetic key is generated.
+///   Fix B: _remoteAccessStatus was overwritten with empty when DB had no data yet →
+///           in-memory RA status lost on first detection. Now preserved when DB is empty.
+///   Fix C: _remoteAccessStatus was accumulating stale entries per device →
+///           now replaced (not appended) on each new alert for the same device.
+///
+/// Secondary fixes:
+///   Fix 1 (UDUserAnalyzer.HasSensitiveBrowserPages): null LoggedIn treated as logged-in.
+///   Fix 2 (UDAnalysisManager): TabClosedAlert now routed to userAnalyzer.AnalyzeAsync.
+///   Fix 3 (UDAnalysisManager): SetBrowserTabsPolicy requested when null-tabs RA arrives.
+///
+/// All tests simulate production conditions:
+///   • No AlertId on alerts (Python agent doesn't include it)
+///   • No pre-loaded ASView data (analysis completes after the first alert)
 /// </summary>
 public class ImmediateDangerDetectionTests
 {
@@ -90,9 +103,7 @@ public class ImmediateDangerDetectionTests
         list.Add(raView);
     }
 
-    private (UDUserAnalyzer sut, UDUser user, List<IDomainEvent> captured) CreateSut(
-        RemoteAccessDirection raDirection = RemoteAccessDirection.Incoming,
-        int raSessionStatus = 1)
+    private (UDUserAnalyzer sut, UDUser user, List<IDomainEvent> captured) CreateSut()
     {
         var loggerFactory = NullLoggerFactory.Instance;
         var services = new ServiceCollection();
@@ -101,17 +112,13 @@ public class ImmediateDangerDetectionTests
         var serviceProvider = services.BuildServiceProvider();
         var mockConfiguration = new Mock<IConfiguration>();
 
-        // Mock ASView with CallBase=true so that internal methods (GetRemoteAccessAnalysisResultsByUserKey,
-        // GetUrlAnalysisResultsByUserKey) call the real implementation that reads from private lists.
+        // Mock ASView with CallBase=true so that internal methods call the real implementation.
         // IsSensitiveDomain is public virtual → can be set up normally.
+        // NOTE: ASView is intentionally NOT pre-loaded with RA analysis data — this replicates
+        // the production scenario where analysis completes after the first alert arrives.
         var mockAsView = new Mock<ASView>(serviceProvider, mockASViewLogger.Object, mockConfiguration.Object) { CallBase = true };
         mockAsView.Setup(v => v.IsSensitiveDomain(It.Is<string>(u => u != null && u.Contains("mybank"))))
                   .Returns(true);
-
-        // Inject an active RA analysis result view into ASView._remoteAccessAnalysisResults so
-        // GetRemoteAccessStatus() returns an active incoming session for our device.
-        var raView = MakeRaAnalysisResultView(raDirection, raSessionStatus);
-        InjectRaViewIntoAsView(mockAsView.Object, raView);
 
         // Key("User", "u-001") → Type="User", Value="u-001"
         // This matches AnalysisResultView.UserKey.Value which is built from userKeyField = "u-001".
@@ -167,10 +174,11 @@ public class ImmediateDangerDetectionTests
 
     private static RemoteAccessAlert MakeRa(RemoteAccessDirection dir, ConnectionStatus status, BrowserTab[]? tabs)
     {
+        // AlertId is intentionally NOT set — the Python agent does not include it.
+        // Fix A ensures DetectImmediateDanger generates a synthetic key rather than skipping.
         var ra = new RemoteAccessAlert(RemoteAccessApp.AnyDesk, 1, "https://anydesk.com",
                                        status, dir, 1, (int)SessionStatus.Open, tabs)
         {
-            AlertId = Guid.NewGuid().ToString(),
             DeviceInfo = MakeDeviceInfo(),
         };
         return ra;
@@ -320,7 +328,7 @@ public class ImmediateDangerDetectionTests
     public async Task AnalyzeAsync_OutgoingRemoteAccess_WithBankTab_ShouldNotTriggerImmediateDanger()
     {
         // Outgoing = user is the one controlling the remote machine, not the victim
-        var (sut, _, captured) = CreateSut(raDirection: RemoteAccessDirection.Outgoing);
+        var (sut, _, captured) = CreateSut();
         var bankTab = new BrowserTab { TabId = "tab-1", Url = BankUrl, LoggedIn = null };
         await sut.AnalyzeAsync(MakeRa(RemoteAccessDirection.Outgoing, ConnectionStatus.Open, new[] { bankTab }));
 

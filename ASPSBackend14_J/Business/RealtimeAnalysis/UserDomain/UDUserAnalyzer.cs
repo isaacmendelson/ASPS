@@ -117,6 +117,8 @@ namespace Business.RealtimeAnalysis.UserDomain
                     // 1. Update RemoteAccessStatus for user
                     // 2. Update BrowserTabs for User (if provided)
 
+                    // Replace instead of accumulate: keep only the latest status per device.
+                    this._remoteAccessStatus.RemoveAll(kv => kv.Key == r.DeviceInfo.DeviceUid);
                     this._remoteAccessStatus.Add(new KeyValuePair<string, RemoteAccessStatusObject>(r.DeviceInfo.DeviceUid, new RemoteAccessStatusObject(r.Timestamp, r.DeviceInfo.DeviceUid, r.RemoteAccessDirection, r.RemoteAccessApp,
                         r.ConnectionStatus == ConnectionStatus.Open, r.SessionStatus == (int)SessionStatus.Open)));
 
@@ -182,8 +184,9 @@ namespace Business.RealtimeAnalysis.UserDomain
                         break;
             }
 
-            Key? key = alert.AlertId is not null ? new Key(alert.GetType().Name, alert.AlertId) : null;
-            // With every device alert - detect  immediate danger
+            // AlertId may be null (Python agent doesn't include it) — generate a synthetic key
+            // so DetectImmediateDanger is never skipped due to a null alertKey.
+            var key = new Key(alert.GetType().Name, alert.AlertId ?? Guid.NewGuid().ToString());
             var isImmediateDanger = this.DetectImmediateDanger(key);
 
             if (isImmediateDanger)
@@ -695,8 +698,14 @@ namespace Business.RealtimeAnalysis.UserDomain
 
             this.GetLatestAnalysisResults();
 
-            var remoteAccessStatus = this.GetRemoteAccessStatus();
-            this._remoteAccessStatus = this.GetRemoteAccessStatus()?.ToList() ?? new List<KeyValuePair<string, RemoteAccessStatusObject>>();
+            var fromDb = this.GetRemoteAccessStatus();
+            if (fromDb is not null && fromDb.Any())
+            {
+                // DB analysis data is available — it's authoritative; sync in-memory status from it.
+                this._remoteAccessStatus = fromDb.ToList();
+            }
+            // else: DB empty (analysis not yet complete for this alert) — preserve the in-memory
+            // _remoteAccessStatus that was populated directly from the incoming alert.
 
             // Diagnostic — show exactly what state is in front of us when we run.
             _logger.LogInformation(
