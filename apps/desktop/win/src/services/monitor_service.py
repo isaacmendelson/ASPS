@@ -57,6 +57,10 @@ class MonitorService:
         # stopped by stop_immediate_danger_loop() on the Ended notification.
         self._immediate_danger_task: Optional[asyncio.Task] = None
 
+        # Last (app_name, status) reported as active in _emit_immediate_danger_alert.
+        # Used to send a CLOSED alert when the session disappears between loop ticks.
+        self._last_danger_target: Optional[tuple] = None
+
         # Tracks whether the agent's last RemoteAccessAlert reported an active
         # incoming session (session=open + direction=incoming). The Chrome
         # extension uses this gate to decide whether to push fine-grained
@@ -254,6 +258,7 @@ class MonitorService:
         when danger_mode.active becomes False, so this is belt-and-suspenders."""
         task = self._immediate_danger_task
         self._immediate_danger_task = None
+        self._last_danger_target = None   # clear stale target so next session starts clean
         if task and not task.done():
             task.cancel()
             print("[MONITOR] ImmediateDanger loop STOPPED")
@@ -296,12 +301,45 @@ class MonitorService:
                     target = (app_name, status)
                     break
         if target is None:
-            # Always print — this is the periodic loop the user relies on to
-            # see logout events ≤10s after they happen. Silent mode used to
-            # hide the case "loop ticks but found no session".
-            print("[MONITOR] ImmediateDanger tick: no active RA session — skipping")
+            print("[MONITOR] ImmediateDanger tick: no active RA session")
+            # If we previously saw an active session, send a CLOSED alert so the
+            # backend fires ImmediateDangerEnded (the main monitoring loop's state
+            # machine is the primary path, but this is belt-and-suspenders).
+            last = self._last_danger_target
+            if last is not None:
+                last_app, last_status = last
+                self._last_danger_target = None
+                print(f"[MONITOR] ImmediateDanger tick → sending CLOSED alert for last-known {last_app}")
+                try:
+                    await self._send_remote_access_alert_with_retry(
+                        device_uid=self.device_id,
+                        remote_app=str(last_status.app_id),
+                        running_processes=0,
+                        connection_url="",
+                        connection_status=str(ConnectionStatus.CLOSED),
+                        session_status=str(SessionStatus.CLOSED),
+                        direction=last_status.direction or "unknown",
+                        confidence=last_status.confidence or "low",
+                        remote_country=last_status.remote_country or "",
+                        remote_country_code=last_status.remote_country_code or "",
+                        browser_tabs=[],
+                        ip_address=self._local_ip,
+                        remote_os="",
+                        remote_version="",
+                        connection_type="",
+                        file_transfer_active=False,
+                        file_transfers=0,
+                        remote_id="",
+                        remote_name="",
+                        logged_user="",
+                        connection_id="",
+                        software="",
+                    )
+                except Exception as e:
+                    logger.error(f"ImmediateDanger CLOSED alert failed: {e}")
             return
 
+        self._last_danger_target = target
         app_name, status = target
         # Always query tabs in danger mode (regardless of policy) — they're the
         # whole reason the danger fired.
@@ -400,6 +438,9 @@ class MonitorService:
 
         if mode == 'never':
             print("[MONITOR][TABS] policy=never → returning None")
+            return None
+        if not has_active_session:
+            print("[MONITOR][TABS] session not active → returning None")
             return None
         if mode == 'incoming_only' and norm_dir != 'incoming':
             print(f"[MONITOR][TABS] policy=incoming_only and direction={norm_dir!r} → returning None")
@@ -643,7 +684,7 @@ class MonitorService:
         # is *asserting*). True iff active incoming session.
         try:
             controlled = (
-                (direction or '').lower() == 'incoming'
+                (direction or '').lower() in ('incoming', 'unknown')
                 and str(session_status) == str(int(SessionStatus.OPEN))
             )
             await self._broadcast_is_device_remote_controlled_if_changed(controlled)
@@ -709,6 +750,26 @@ class MonitorService:
             'late_detection': late_detection
         })
 
+        # AnyDesk: topology OUTGOING is suppressed in remote_monitor.py (raddr:7070
+        # hole-punch is unreliable — appears for both incoming and outgoing relay
+        # sessions). direction here comes from the log watcher or is 'unknown'.
+        alert_direction = status.direction or 'unknown'
+
+        # AnyDesk race condition: "Connecting to <ID>" appears in the log during
+        # relay hole-punch setup ~1.25 s BEFORE "Incoming session request". If the
+        # monitoring cycle fires in that window, log_direction is already 'outgoing'.
+        # Wait up to 1.5 s to see whether the log watcher corrects it to 'incoming'.
+        # Genuine outgoing sessions never produce "Incoming session request", so the
+        # wait expires and 'outgoing' is preserved correctly.
+        if app_name == 'anydesk' and alert_direction == 'outgoing':
+            for _ in range(6):
+                await asyncio.sleep(0.25)
+                refreshed = self.remote_monitor.check_all().get(app_name)
+                if refreshed and (refreshed.direction or '').lower() == 'incoming':
+                    alert_direction = 'incoming'
+                    print(f"[MONITOR] AnyDesk: direction corrected outgoing→incoming (relay-setup race)")
+                    break
+
         # Send alert if authenticated
         if self.auth_manager.is_valid():
             if DEBUG_MODE:
@@ -716,7 +777,7 @@ class MonitorService:
 
             browser_tabs = await self._get_browser_tabs_for_alert(
                 has_active_session=True,
-                direction=status.direction or "unknown"
+                direction=alert_direction
             )
             await self._send_remote_access_alert_with_retry(
                 device_uid=self.device_id,
@@ -725,7 +786,7 @@ class MonitorService:
                 connection_url=status.remote_ip or "",
                 connection_status=str(status.connection_status),
                 session_status=str(SessionStatus.OPEN),
-                direction=status.direction or "unknown",
+                direction=alert_direction,
                 confidence=status.confidence or "low",
                 remote_country=status.remote_country or "",
                 remote_country_code=status.remote_country_code or "",
@@ -745,7 +806,7 @@ class MonitorService:
 
         # Show notification with direction-aware message
         self.tray.set_alert(True)
-        if status.direction == 'incoming':
+        if alert_direction == 'incoming':
             notification_msg = f"{app_name.upper()} - INCOMING connection detected! Someone may be controlling your computer."
             risk_level = "critical"
         else:
@@ -760,7 +821,7 @@ class MonitorService:
         )
 
         # Update tray popup with remote access info
-        self.tray.set_remote_access(app_name, status.direction or 'unknown')
+        self.tray.set_remote_access(app_name, alert_direction)
 
         # Broadcast to extension for warning display
         if hasattr(self, '_extension_server') and self._extension_server:
@@ -768,7 +829,7 @@ class MonitorService:
                 'type': 'remote_access_alert',
                 'toolId': status.app_id,
                 'toolName': app_name,
-                'direction': status.direction or 'unknown',
+                'direction': alert_direction,
                 'remoteIP': status.remote_ip or '',
                 'remote_country': status.remote_country or '',
                 'remote_country_code': status.remote_country_code or '',
@@ -795,10 +856,11 @@ class MonitorService:
             if DEBUG_MODE:
                 print(f"[MONITOR] Sending session end alert for {app_name}...")
 
-            browser_tabs = await self._get_browser_tabs_for_alert(
-                has_active_session=False,
-                direction=status.direction or "unknown",
-            )
+            # Send [] (not None) so the backend's UDUser.BrowserTabs cache is
+            # cleared for this device. Without this, a banking tab cached from this
+            # session lingers and triggers a false ImmediateDanger on the next
+            # incoming session (before fresh tabs are collected).
+            browser_tabs = []
             await self._send_remote_access_alert_with_retry(
                 device_uid=self.device_id,
                 remote_app=str(status.app_id),

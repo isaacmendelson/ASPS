@@ -143,7 +143,7 @@ class NotificationManager:
             app_id=self.app_id,
             title=title,
             msg=message,
-            duration=duration
+            duration="long" if duration > 7 else "short"
         )
 
         # Set icon based on risk level

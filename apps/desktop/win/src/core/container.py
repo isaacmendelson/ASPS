@@ -157,6 +157,7 @@ class Container:
         if self._remote_monitor is None:
             from remote_monitor import RemoteAccessMonitor
             self._remote_monitor = RemoteAccessMonitor()
+            self._remote_monitor.start_realtime_monitoring()
         return self._remote_monitor
 
     @property

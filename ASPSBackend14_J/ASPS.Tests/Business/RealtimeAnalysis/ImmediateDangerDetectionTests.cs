@@ -336,6 +336,22 @@ public class ImmediateDangerDetectionTests
             "Outgoing remote access must never trigger ImmediateDanger");
     }
 
+    // ── Fix D: direction=Unknown treated as incoming (timing race at session start) ──
+
+    [Fact]
+    public async Task AnalyzeAsync_UnknownDirectionRemoteAccess_WithBankTab_ShouldTriggerImmediateDanger()
+    {
+        // Scenario: AnyDesk network connections detected before log parser resolves
+        // direction — RemoteAppStatus.direction stays "unknown" when session_started fires.
+        // Fix D: Unknown direction is treated conservatively as potentially incoming.
+        var (sut, _, captured) = CreateSut();
+        var bankTab = new BrowserTab { TabId = "tab-1", Url = BankUrl, LoggedIn = null };
+        await sut.AnalyzeAsync(MakeRa(RemoteAccessDirection.Unknown, ConnectionStatus.Open, new[] { bankTab }));
+
+        captured.OfType<ImmediateDangerDetected>().Should().NotBeEmpty(
+            "Unknown direction with active session + sensitive tab must trigger danger (conservative — direction not yet resolved)");
+    }
+
     // ── event capture helper ───────────────────────────────────────────────
 
     private sealed class EventCapture : IDomainEventHandler

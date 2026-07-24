@@ -544,7 +544,7 @@ namespace Business.RealtimeAnalysis.UserDomain
                 }
 
                 var isRemoteAccessAppActive = anaylisisResult.RunningProcesses > 0;
-                var isRemoteAccessSessionActive = anaylisisResult.SessionStatus > 0;
+                var isRemoteAccessSessionActive = anaylisisResult.SessionStatus == (int)SessionStatus.Open;
                 var remoteAccessDirection = anaylisisResult.RemoteAccessDirection;
                 var connectionStatus = anaylisisResult.ConnectionStatus;
                 var statusForDevice = new RemoteAccessStatusObject(timestamp, deviceInfo.DeviceUid, remoteAccessDirection, anaylisisResult.RemoteAccessApp, isRemoteAccessAppActive, isRemoteAccessSessionActive);
@@ -722,7 +722,7 @@ namespace Business.RealtimeAnalysis.UserDomain
             }
 
 
-            var remoteAccessObjectsWithActiveSession = this._remoteAccessStatus.OrderByDescending(i => i.Value.Timestamp).Where(i => i.Value.isRemoteAccessSessionActive && i.Value.RemoteAccessDirection == RemoteAccessDirection.Incoming);
+            var remoteAccessObjectsWithActiveSession = this._remoteAccessStatus.OrderByDescending(i => i.Value.Timestamp).Where(i => i.Value.isRemoteAccessSessionActive && (i.Value.RemoteAccessDirection == RemoteAccessDirection.Incoming || i.Value.RemoteAccessDirection == RemoteAccessDirection.Unknown));
             //remoteAccessObjectsWithActiveSession = this._remoteAccessStatus.OrderByDescending(i => i.Timestamp).Where(i => i.isRemoteAccessSessionActive);
             if (!remoteAccessObjectsWithActiveSession.Any())
             {
@@ -761,12 +761,19 @@ namespace Business.RealtimeAnalysis.UserDomain
                     }
                     else if (!this.HasSensitiveBrowserPages(deviceUid))
                     {
-                        // Active incoming session but no sensitive+logged-in tab → not a danger.
+                        // Active incoming session but no sensitive+logged-in tab → danger has cleared
+                        // (user logged out or closed the bank/sensitive tab). Close any open danger.
                         var tabs = this.UDUser.BrowserTabs?.GetValueOrDefault(deviceUid)?.ToList() ?? new List<BrowserTab>();
                         _logger.LogInformation(
-                            "[DetectImmediateDanger] device {DeviceUid}: incoming session active, BUT HasSensitiveBrowserPages=false. tabs={N}: [{Tabs}]",
+                            "[DetectImmediateDanger] device {DeviceUid}: incoming session active, HasSensitiveBrowserPages=false — closing open dangers. tabs={N}: [{Tabs}]",
                             deviceUid, tabs.Count,
                             string.Join(" | ", tabs.Select(t => $"{t.Url} (loggedIn={t.LoggedIn?.ToString() ?? "null"} sensitive={IsSensitiveWebsite(t.Url)})")));
+                        foreach (var item in (this._immediateDangers ?? []).Where(i => i.DeviceUid == deviceUid && i.EndTime == null))
+                        {
+                            item.EndTime = DateTime.UtcNow;
+                            var evt = new ImmediateDangerEnded(item.Key, this.UDUser.Key, item.DeviceUid, (DateTime)item.EndTime);
+                            this._domainEventPublisher.Register(evt);
+                        }
                     }
                     else if (this.HasSensitiveBrowserPages(deviceUid))
                     {
@@ -778,13 +785,10 @@ namespace Business.RealtimeAnalysis.UserDomain
                         res = true;
                         var remoteAccessApp = remoteAccessObjectsWithActiveSession.OrderByDescending(i => i.Value.Timestamp).FirstOrDefault(i => i.Key == deviceUid).Value.RemoteAccessApp;
                         _logger.LogWarning($"Immediate danger detected for user {this.UDUser.Key} on device {deviceUid} with active remote access session and sensitive website open.");
-                        // Include only tabs that are sensitive AND the user is plausibly logged in to.
-                        // (`IsConfidentlyNotLoggedIn` returns true ONLY when LoggedIn==false AND confidence=='high';
-                        // any 'unknown' / lower-confidence false is treated as logged-in to avoid false negatives.)
                         var sUrl = this.UDUser.BrowserTabs?.GetValueOrDefault(deviceUid)
-                            ?.FirstOrDefault(i => this.IsSensitiveWebsite(i.Url) && !this.IsConfidentlyNotLoggedIn(i))?.Url;
+                            ?.FirstOrDefault(i => this.IsSensitiveWebsite(i.Url) && this.IsLoggedIn(i))?.Url;
                         var urls = this.UDUser.BrowserTabs?.GetValueOrDefault(deviceUid)
-                            ?.Where(i => this.IsSensitiveWebsite(i.Url) && !this.IsConfidentlyNotLoggedIn(i)).ToList();
+                            ?.Where(i => this.IsSensitiveWebsite(i.Url) && this.IsLoggedIn(i)).ToList();
                         if (this._immediateDangers is null)
                         {
                             this._immediateDangers = new();
@@ -828,17 +832,13 @@ namespace Business.RealtimeAnalysis.UserDomain
 
         private bool HasSensitiveBrowserPages(string deviceUid)
         {
-            // A sensitive tab counts toward ImmediateDanger only if the user is
-            // not confidently signed-out of it. The Chrome extension supplies
-            // LoggedIn (true / false / null) + LoggedInConfidence on each tab
-            // by combining a cookie check and a DOM scan. We suppress the alert
-            // ONLY when both signals confidently say "not logged in"; anything
-            // ambiguous or unknown still triggers (safer default).
-            var x = this.UDUser.BrowserTabs?.GetValueOrDefault(deviceUid)
-                ?.Any(i => this.IsSensitiveWebsite(i.Url) && this.IsLoggedIn(i)) ?? false;
-
+            // ImmediateDanger fires only when the extension explicitly detected
+            // the user is logged in (LoggedIn == true). LoggedIn == null (unknown)
+            // is treated as NOT logged in — this avoids false positives for sites
+            // where the extension couldn't determine login state (e.g., government
+            // portals with non-standard session cookies).
             return this.UDUser.BrowserTabs?.GetValueOrDefault(deviceUid)
-                ?.Any(i => this.IsSensitiveWebsite(i.Url) && !this.IsConfidentlyNotLoggedIn(i)) ?? false;
+                ?.Any(i => this.IsSensitiveWebsite(i.Url) && this.IsLoggedIn(i)) ?? false;
         }
 
         private bool IsLoggedIn(BrowserTab tab)

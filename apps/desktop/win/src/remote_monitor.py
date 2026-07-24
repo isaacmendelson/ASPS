@@ -807,7 +807,14 @@ class SessionTracker:
         self.current = sess
         return "session_started"
 
-    def _start_outgoing(self, event: dict) -> str:
+    def _start_outgoing(self, event: dict) -> Optional[str]:
+        # "Connecting to XXXXX" also appears during relay setup in INCOMING sessions.
+        # If we already have an active incoming session, protect it — don't replace
+        # it with an outgoing one from a relay line.
+        if self.current and self.current.active and self.current.direction == SessionDirection.INCOMING:
+            print(f"[REMOTE-MONITOR][PARSER] outgoing_start suppressed — incoming session already active "
+                  f"(remote_id={self.current.remote_id!r})")
+            return None
         sess = SessionState()
         sess.direction = SessionDirection.OUTGOING
         sess.remote_id = event.get("remote_id", "")
@@ -1147,7 +1154,21 @@ class RemoteAccessMonitor:
         ]
 
         # Build watchers (no threads yet)
+        print("[ANYDESK-DIAG] Log paths at startup:")
         for path in log_paths:
+            try:
+                exists = path.exists()
+                size = path.stat().st_size if exists else 0
+                readable = False
+                if exists:
+                    try:
+                        with open(path, "r", encoding="utf-8", errors="replace") as _f:
+                            readable = True
+                    except (IOError, PermissionError) as e:
+                        readable = False
+                print(f"  {path}: exists={exists}, size={size}, readable={readable}")
+            except Exception as e:
+                print(f"  {path}: ERROR {e}")
             watcher = LogWatcher(path, MonitorConfig.POLL_INTERVAL)
             self._log_watchers[app_name].append(watcher)
 
@@ -1340,6 +1361,21 @@ class RemoteAccessMonitor:
         for _, event, _src in all_events:
             tracker.on_event(event)
 
+        # Clear stale sessions: if the backfill left an "active" session whose
+        # start_time is older than 10 minutes, it belongs to a previous run —
+        # not a currently live session. Keep it only if it started very recently
+        # (agent restarted mid-session). Stale sessions cause a false session_started
+        # to fire immediately, blocking detection of the real next session.
+        cur = tracker.get_current_session()
+        if cur and cur.active and cur.start_time:
+            age_secs = (datetime.now() - cur.start_time).total_seconds()
+            if age_secs > 600:
+                tracker.on_event({"event": "session_stopped", "timestamp": datetime.now()})
+                print(
+                    f"[REMOTE-MONITOR] {app_name}: backfill cleared stale session "
+                    f"(age={age_secs:.0f}s, dir={cur.direction}, id={cur.remote_id!r})"
+                )
+
         if DEBUG_MODE:
             cur = tracker.get_current_session()
             dir_after = cur.direction if cur else "none"
@@ -1360,15 +1396,20 @@ class RemoteAccessMonitor:
         if not tracker:
             return
 
+        print(f"[ANYDESK-DIAG] tail started: {watcher.path} (pos={watcher._pos})")
         for line in watcher.tail(from_start=False):
             if not self._running:
                 break
 
+            if app_name == 'anydesk':
+                print(f"[ANYDESK-DIAG] new line from {watcher.path.name}: {line.rstrip()!r}")
+
             event = self._log_parser.parse_line(line)
             if event:
+                print(f"[REMOTE-MONITOR][LOG] {app_name} | event={event.get('event')} | raw={line.rstrip()!r}")
                 change_type = tracker.on_event(event)
-                if change_type and DEBUG_MODE:
-                    print(f"[REMOTE-MONITOR] {app_name}: {change_type}")
+                if change_type:
+                    print(f"[REMOTE-MONITOR][STATE] {app_name}: {change_type}")
 
     def stop_realtime_monitoring(self):
         """Stop real-time monitoring."""
@@ -1479,6 +1520,7 @@ class RemoteAccessMonitor:
         self,
         processes: List[psutil.Process],
         listen_ports: List[int],
+        check_outgoing: bool = True,
     ) -> str:
         """
         Infer session direction from connection topology, when log parsing
@@ -1488,6 +1530,10 @@ class RemoteAccessMonitor:
                   `listen_ports` — we initiated a connection to a remote server.
         INCOMING: a process owns an ESTABLISHED conn whose LOCAL port is in
                   `listen_ports` — a remote client connected to our listener.
+
+        check_outgoing=False skips the raddr check. Use for AnyDesk: its
+        reverse hole-punch (local→remote:7070) creates raddr:7070 connections
+        even during INCOMING sessions, which would falsely read as OUTGOING.
         """
         if not processes or not listen_ports:
             return SessionDirection.UNKNOWN
@@ -1497,7 +1543,7 @@ class RemoteAccessMonitor:
                 for c in proc.net_connections():
                     if c.status != 'ESTABLISHED':
                         continue
-                    if c.raddr and c.raddr.port in port_set:
+                    if check_outgoing and c.raddr and c.raddr.port in port_set:
                         return SessionDirection.OUTGOING
                     if c.laddr and c.laddr.port in port_set:
                         return SessionDirection.INCOMING
@@ -1660,9 +1706,18 @@ class RemoteAccessMonitor:
         if log_direction == SessionDirection.UNKNOWN:
             listen_ports_cfg = app_config.get('listen_ports', [])
             if listen_ports_cfg:
-                log_direction = self._infer_direction_from_processes(
+                inferred = self._infer_direction_from_processes(
                     processes, listen_ports_cfg
                 )
+                # AnyDesk maintains raddr:7070 (relay hole-punch) even in standby —
+                # topology always returns OUTGOING, making has_active_session=True
+                # permanently while AnyDesk is open. This blocks session_started
+                # from firing on the 2nd+ session. Now that log watchers run,
+                # the log is the reliable source; topology OUTGOING is discarded.
+                if app_name == 'anydesk' and inferred == SessionDirection.OUTGOING:
+                    pass  # leave as UNKNOWN — log watcher will confirm direction
+                else:
+                    log_direction = inferred
 
         # AnyDesk-specific fallback: outgoing AnyDesk traffic goes to relay on
         # port 443, not 7070, so topology inference returns UNKNOWN. Read the
@@ -1740,14 +1795,6 @@ class RemoteAccessMonitor:
                     break
 
         # Build signals for confidence calculation
-        # `direction_known` — direction was successfully resolved (incoming /
-        # outgoing). Producing a non-UNKNOWN direction requires a positive
-        # signal from one of: log parser session-start lines, topology
-        # inference (peer on listen-port), or AnyDesk connection_trace. All
-        # of those imply a session is happening — so we treat it as a
-        # session-active signal in its own right. This fills the gap where
-        # AnyDesk relays via port 443 (filtered out of suspicious_conn by
-        # INFRASTRUCTURE_PORTS) and the log parser missed the start line.
         direction_known = (log_direction or '').lower() in ('incoming', 'outgoing')
 
         signals = {
@@ -1759,15 +1806,11 @@ class RemoteAccessMonitor:
         }
 
         confidence = calculate_confidence(signals)
-        # Session is "active" on any strong signal — a live network connection,
-        # an explicit "session started" log entry, OR a resolved direction
-        # (which itself only happens when one of those signals fired upstream).
-        # CPU usage is too noisy (idle GUI activity), so it stays a confidence
-        # booster only.
+
         has_active_session = any([
             signals['active_connection'],
             signals['log_session_active'],
-            signals['direction_known'],
+            direction_known,
         ])
 
         final_remote_ip = remote_ip or log_remote_ip
@@ -1873,8 +1916,12 @@ class RemoteAccessMonitor:
             return pending_seconds
 
         if last_results:
-            for s in last_results.values():
+            for app_name, s in last_results.items():
                 if s.is_running or s.has_active_session:
+                    # AnyDesk relay incoming: session appears only when log parser
+                    # fires (~2-3 s after connect). Poll faster so we don't miss it.
+                    if app_name == 'anydesk' and s.is_running:
+                        return min(active_seconds, 2.0)
                     return active_seconds
 
         return idle_seconds

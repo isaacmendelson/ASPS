@@ -285,10 +285,12 @@ class CenteredToast(ctk.CTkToplevel):
         )
         self._view_btn.pack(side="right", padx=(8, 0))
 
-        # Close button — only present in 'cleared' mode
+        # Dismiss/Close button — always present (label differs by mode)
         self._close_btn: Optional[ctk.CTkButton] = None
-        if mode == "cleared":
-            self._add_close_button()
+        self._add_close_button(label="Close" if mode == "cleared" else "Dismiss")
+
+        # Details-window singleton tracker (Bug 3: prevent duplicate DangerDetailsWindow)
+        self._details_window: Optional["DangerDetailsWindow"] = None
 
         # Countdown bar (drives auto-dismiss in 'cleared' mode only)
         self._countdown = ctk.CTkProgressBar(
@@ -353,12 +355,12 @@ class CenteredToast(ctk.CTkToplevel):
             return  # ignore
         self._close()
 
-    def _add_close_button(self):
+    def _add_close_button(self, label: str = "Close"):
         if self._close_btn is not None:
             return
         self._close_btn = ctk.CTkButton(
             self._buttons,
-            text="Close",
+            text=label,
             command=self._close,
             fg_color=COLORS["bg_section"],
             hover_color=COLORS["separator"],
@@ -377,6 +379,15 @@ class CenteredToast(ctk.CTkToplevel):
             self.lift()
         except Exception:
             pass
+        # Bug 4: lift DangerDetailsWindow above us whenever it's open
+        details_win = getattr(self, "_details_window", None)
+        if details_win is not None:
+            try:
+                if details_win.winfo_exists():
+                    details_win.attributes("-topmost", True)
+                    details_win.lift()
+            except Exception:
+                pass
         self._lift_after_id = self.after(self.LIFT_INTERVAL_MS, self._lift_loop)
 
     # ─── Drag ────────────────────────────────────────────────────────────
@@ -425,15 +436,24 @@ class CenteredToast(ctk.CTkToplevel):
 
     # ─── Buttons ─────────────────────────────────────────────────────────
     def _handle_view_details(self):
-        # If we have a details dict, prefer the in-app DangerDetailsWindow
-        # (no browser, no admin login required, all data is local).
+        # If we have a details dict, prefer the in-app DangerDetailsWindow.
+        # Bug 3: singleton — if already open, bring to front instead of creating another.
         if self._details:
             try:
-                DangerDetailsWindow(self.master, self._details)
+                if self._details_window is not None:
+                    try:
+                        if self._details_window.winfo_exists():
+                            self._details_window.attributes("-topmost", True)
+                            self._details_window.lift()
+                            self._details_window.focus_force()
+                            return
+                    except Exception:
+                        pass
+                    self._details_window = None
+                self._details_window = DangerDetailsWindow(self.master, self._details)
                 return
             except Exception as e:
                 logger.error(f"DangerDetailsWindow failed: {e}")
-                # fall through to optional callback
 
         if self._on_view_details_cb:
             try:
@@ -486,6 +506,8 @@ class CenteredToast(ctk.CTkToplevel):
             except Exception as e:
                 logger.warning(f"update_content[{label}]: {e}")
 
+        print(f"[TOAST] update_content: risk_level={risk_level!r} mode={mode!r} title={title!r}")
+
         _try("title",      lambda: self._title_label.configure(text=title))
         _try("message",    lambda: self._message_label.configure(text=message))
         _try("icon",       lambda: self._icon_label.configure(text=icon, text_color=color))
@@ -494,10 +516,11 @@ class CenteredToast(ctk.CTkToplevel):
         _try("countdown",  lambda: self._countdown.configure(progress_color=color))
         _try("countdown_set", lambda: self._countdown.set(1.0))
 
-        # Add Close button if entering cleared mode
         if mode == "cleared":
-            self._add_close_button()
-            # Optionally start auto-dismiss
+            # Bug 1: make the green state visually obvious — tint the window background
+            _try("window_bg", lambda: self.configure(fg_color="#0d1f0d"))
+            # Relabel dismiss→close and start auto-dismiss timer if configured
+            _try("close_label", lambda: self._close_btn.configure(text="Close") if self._close_btn else None)
             self._auto_dismiss_seconds = max(0, int(auto_dismiss_seconds))
             self._remaining_ms = self._auto_dismiss_seconds * 1000
             if self._auto_dismiss_seconds > 0 and not self._tick_after_id:
@@ -573,7 +596,9 @@ def transform_to_cleared(
 
     def _build():
         existing = _get_active()
-        if existing is not None and existing.winfo_exists():
+        exists_alive = existing is not None and existing.winfo_exists()
+        print(f"[TOAST] transform_to_cleared: active={existing is not None} alive={exists_alive} title={title!r}")
+        if exists_alive:
             existing.update_content(title=title, message=message,
                                     risk_level="none", mode="cleared",
                                     auto_dismiss_seconds=auto_dismiss_seconds)

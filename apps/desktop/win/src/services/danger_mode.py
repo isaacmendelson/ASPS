@@ -21,11 +21,13 @@ import threading
 from datetime import datetime, timezone
 from typing import Optional
 
+from config import IMMEDIATE_DANGER_POLL_INTERVAL_SECONDS
+
 logger = logging.getLogger(__name__)
 
 
 class DangerMode:
-    POLL_INTERVAL_SECONDS = 2.0
+    POLL_INTERVAL_SECONDS = IMMEDIATE_DANGER_POLL_INTERVAL_SECONDS
 
     def __init__(self):
         self._active = False

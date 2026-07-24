@@ -94,6 +94,10 @@ MONITOR_INTERVAL = 5  # seconds between checks (fast polling for quick detection
 # the normal adaptive polling.
 IMMEDIATE_DANGER_ALERT_INTERVAL_SECONDS = 10
 
+# Main-loop poll interval while ImmediateDanger is active (overrides the normal
+# adaptive interval of 5 s). Lower = faster tab-change detection by the backend.
+IMMEDIATE_DANGER_POLL_INTERVAL_SECONDS = 3
+
 # Default policy for including BrowserTabs in a RemoteAccessAlert.
 # At runtime, the backend can temporarily override this default by sending a
 # `SetBrowserTabsPolicyNotification` (see services.browser_tabs_policy). After
