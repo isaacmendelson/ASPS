@@ -136,6 +136,7 @@ cache/
 .env
 .env.local
 .env.*.local
+/ACCESS_KEYS.env
 
 # Database dumps (large files - track intentionally if needed)
 # Note: *.sql is NOT ignored - database dumps may be intentional

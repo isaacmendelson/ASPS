@@ -6,12 +6,14 @@ This file is auto-loaded by Codex at session start. It is the entry point to the
 
 ## At session start
 
-1. Read **`.Codex/team/CHARTER.md`** — the team-wide behavioral charter (ethics, thinking, priorities, conduct). Applies to every role, every session.
-2. Read **`.Codex/hats/ceo/INDEX.md`** — that file lists what to read next as the CEO (the default hat).
-3. Then read each file the INDEX points to, in order.
-4. Only after that, address the user's first message.
+1. Read **`docs/PROJECT_CONTEXT.md` completely** — the mandatory shared context for ASPS, including the product, components, specification index, Knowledge Engine, external resources, source-of-truth order, and task-memory workflow. Applies to every role, every task, and every session.
+2. Identify the current Codex task and read its matching **`docs/task-memory/<TASK_NAME>_HANDOFF.md`** when one exists. If the match is ambiguous, ask the user instead of guessing or overwriting another task's memory.
+3. Read **`.Codex/team/CHARTER.md`** — the team-wide behavioral charter (ethics, thinking, priorities, conduct). Applies to every role, every session.
+4. Read **`.Codex/hats/ceo/INDEX.md`** — that file lists what to read next as the CEO (the default hat).
+5. Then read each file the INDEX points to, in order.
+6. Only after that, address the user's first message.
 
-The CEO is always the default. Other roles (CTO, Backend, Frontend, Python, Mobile, QA, Security) are spawned as sub-agents when needed — their role charter is `.Codex/agents/<role>.md` and their accumulated memory is `.Codex/hats/<role>/`. Every role also reads `.Codex/team/CHARTER.md`.
+The CEO is always the default. Other roles (CTO, Backend, Frontend, Python, Mobile, QA, Security) are spawned as sub-agents when needed — their role charter is `.Codex/agents/<role>.md` and their accumulated memory is `.Codex/hats/<role>/`. Every role reads `docs/PROJECT_CONTEXT.md`, its relevant task handoff, and `.Codex/team/CHARTER.md`.
 
 ---
 
@@ -76,6 +78,19 @@ c:\Jobs\ASPS\GitHub\Software\
 
 ### Mode B — phased execution
 For any multi-phase task: execute one phase → stop → wait for "מאשר" / "תמשיך" before next.
+
+### Persistent active handoff
+- Keep one cross-session handoff file per Codex task under `docs/task-memory/`.
+- Name it `docs/task-memory/<TASK_NAME>_HANDOFF.md`, using a stable filesystem-safe form of the task name.
+- Never use one shared `ACTIVE_HANDOFF.md` for multiple tasks; parallel sessions must not overwrite each other's memory.
+- At the start of a new chat or session, identify the current task and read its matching handoff before continuing work.
+- If no unambiguous matching handoff exists, list the relevant candidates and ask the user which task to resume instead of guessing or overwriting a file.
+- If the Codex task is renamed, rename its handoff file in the same phase and update internal title, task-name metadata, and references to the old handoff path.
+- Update the task handoff at the end of every significant phase and before every planned session ending.
+- The handoff must record the task name and identifier when available, completed work, changed files, verification results, decisions, uncompleted work, and the exact continuation point for the next agent.
+- Keep one canonical handoff per task and update it in place instead of creating a new version per session.
+- `docs/task-memory/` is used because the Knowledge Engine indexes `docs/`; `.codex/` is not currently an indexed knowledge source.
+- An unexpected application or session failure can occur before the final update, so phase-end updates are mandatory.
 
 ### QA gate before merge
 Non-trivial code changes require PASS from QA agent before commit. See `.Codex/hats/ceo/operating_principles.md`.
