@@ -8,10 +8,10 @@ services:
       MYSQL_ROOT_PASSWORD: zappa22
       MYSQL_DATABASE: ASPSBackend2DB
     ports:
-      - "3307:3306"
+      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./aspsbackend2db_20260130.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./aspsbackend2db_20260130.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pzappa22"]
       interval: 10s
@@ -30,14 +30,14 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-    environment:
-      ConnectionStrings__DefaultConnection: "server=mysql;port=3306;database=aspsbackend2db;user=root;password=zappa22;AllowPublicKeyRetrieval=True;SslMode=None;"
-      Security__KeysFilePath: /app/keys/curve-server-keys.json
     ports:
       - "5555:5555"
       - "5556:5556"
       - "50001:50001"
       - "50002:50002"
+    environment:
+      ConnectionStrings__DefaultConnection: server=mysql;port=3306;database=aspsbackend2db;user=root;password=zappa22;AllowPublicKeyRetrieval=True;SslMode=None;
+      Security__KeysFilePath: /app/keys/curve-server-keys.json
     volumes:
       - curve_keys:/app/keys
     networks:
@@ -51,22 +51,14 @@ services:
       - start-dev
       - --hostname=http://localhost:8081
       - --hostname-backchannel-dynamic=true
+      - --hostname-debug=true
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
-      KC_HTTP_ENABLED: "true"
     ports:
       - "8081:8080"
     volumes:
       - keycloak_data:/opt/keycloak/data
-    healthcheck:
-      test:
-        - CMD-SHELL
-        - "exec 3<>/dev/tcp/127.0.0.1/8080; echo -e 'GET /realms/master HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3; grep -q 'HTTP/1.1 200' <&3"
-      interval: 10s
-      timeout: 5s
-      retries: 20
-      start_period: 30s
     networks:
       - asps-network
 
@@ -77,13 +69,10 @@ services:
     container_name: asps-webapi
     restart: unless-stopped
     depends_on:
-      backend:
-        condition: service_started
-      keycloak:
-        condition: service_healthy
+      - backend
+      - keycloak
     environment:
       ASPNETCORE_ENVIRONMENT: Docker
-      ASPNETCORE_URLS: http://0.0.0.0:8080
     ports:
       - "8080:8080"
     networks:

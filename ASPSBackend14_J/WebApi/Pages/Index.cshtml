@@ -230,7 +230,11 @@
                     </div>
                     <div class="text-muted small">
                         <i class="fab fa-git-alt me-2"></i>
-                        <strong>Commit:</strong> <code class="text-muted">@Model.GitCommitId.Substring(0, 8)</code>
+                        <strong>Commit:</strong> <code class="text-muted">
+                            @Model.GitCommitId.Length > 8
+                            ? Model.GitCommitId.Substring(0, 8)
+                            : Model.GitCommitId)
+                        </code>
                     </div>
                 </div>
                 <div class="border-top pt-2 mt-2">

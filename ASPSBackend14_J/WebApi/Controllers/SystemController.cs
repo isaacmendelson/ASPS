@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Reflection;
 
 namespace WebApi.Controllers;
 
@@ -18,8 +19,13 @@ public class SystemController : ControllerBase
         {
             Version = ThisAssembly.AssemblyInformationalVersion,
             BuildDate = DateTime.UtcNow,
-            GitCommitId = ThisAssembly.GitCommitId,
-            IsPrerelease = ThisAssembly.IsPrerelease,
+            //GitCommitId = ThisAssembly.GitCommitId,
+            //GitCommitId = ThisAssembly.AssemblyInformationalVersion
+            GitCommitId = typeof(SystemController).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion
+        ?? "unknown",
+        IsPrerelease = ThisAssembly.IsPrerelease,
             IsPublicRelease = ThisAssembly.IsPublicRelease
         });
     }

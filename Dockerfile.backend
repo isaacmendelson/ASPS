@@ -69,7 +69,8 @@ COPY --from=build /app/publish .
 COPY ASPSBackend14_J/ASPSBackend/appsettings.Docker.json ./appsettings.Docker.json
 
 # Copy Python analyzer
-COPY basic-url-analyzer/basic-url-analyzer/basic-url-analyzer/ /app/analyzer/
+# COPY basic-url-analyzer/basic-url-analyzer/basic-url-analyzer/ /app/analyzer/
+COPY Analyzers/basic-url-analyzer/ /app/analyzer/
 
 # Symlink so the C# code can find it at /app/analyzer/basic-url-analyzer
 RUN ln -s /app/analyzer /app/analyzer/basic-url-analyzer

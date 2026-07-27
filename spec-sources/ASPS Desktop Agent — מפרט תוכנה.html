@@ -1,0 +1,1147 @@
+
+<!-- saved from url=(0151)file:///C:/Users/Isaac/AppData/Local/Temp/claude/c-%2DJobs-ASPS-GitHub-Software/02b0a334-1593-4678-81e0-3c5d60c5c8b0/scratchpad/desktop-agent-spec.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>ASPS Desktop Agent — מפרט תוכנה</title>
+<style>
+:root {
+  --bg:        #0d1117;
+  --surface:   #161b27;
+  --surface2:  #1c2236;
+  --border:    #21283a;
+  --border2:   #2d3a52;
+  --text:      #cdd5e0;
+  --text-muted:#6e7d96;
+  --text-dim:  #4a5568;
+  --heading:   #edf0f5;
+  --accent:    #4a9fd8;
+  --accent2:   #2d7ab0;
+  --danger:    #e05c5c;
+  --success:   #4aad7a;
+  --warn:      #d4913a;
+  --code-bg:   #111827;
+  --tag-bg:    #1a2d44;
+  --tag-text:  #6eb4e8;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg:        #f4f6f9;
+    --surface:   #ffffff;
+    --surface2:  #eef1f6;
+    --border:    #d0d8e8;
+    --border2:   #b8c4d8;
+    --text:      #1e2a3a;
+    --text-muted:#5a6880;
+    --text-dim:  #9aaabf;
+    --heading:   #0d1520;
+    --accent:    #1a6faa;
+    --accent2:   #155a8a;
+    --danger:    #c0392b;
+    --success:   #27745a;
+    --warn:      #a05c10;
+    --code-bg:   #1e293b;
+    --tag-bg:    #dbeeff;
+    --tag-text:  #1a5c8a;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#0d1117;--surface:#161b27;--surface2:#1c2236;--border:#21283a;--border2:#2d3a52;
+  --text:#cdd5e0;--text-muted:#6e7d96;--text-dim:#4a5568;--heading:#edf0f5;
+  --accent:#4a9fd8;--accent2:#2d7ab0;--danger:#e05c5c;--success:#4aad7a;--warn:#d4913a;
+  --code-bg:#111827;--tag-bg:#1a2d44;--tag-text:#6eb4e8;
+}
+:root[data-theme="light"] {
+  --bg:#f4f6f9;--surface:#ffffff;--surface2:#eef1f6;--border:#d0d8e8;--border2:#b8c4d8;
+  --text:#1e2a3a;--text-muted:#5a6880;--text-dim:#9aaabf;--heading:#0d1520;
+  --accent:#1a6faa;--accent2:#155a8a;--danger:#c0392b;--success:#27745a;--warn:#a05c10;
+  --code-bg:#1e293b;--tag-bg:#dbeeff;--tag-text:#1a5c8a;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.65;
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ── SIDEBAR ─────────────────────────────────────────── */
+nav {
+  width: 230px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 24px 0 40px;
+}
+nav .nav-logo {
+  padding: 0 16px 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+nav .nav-logo .product { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+nav .nav-logo .title   { font-size: 13px; font-weight: 700; color: var(--heading); margin-top: 2px; }
+nav .nav-logo .version { font-size: 11px; color: var(--accent); margin-top: 1px; font-family: monospace; }
+nav ul { list-style: none; padding: 0 8px; }
+nav ul li { margin: 1px 0; }
+nav ul li a {
+  display: block;
+  padding: 5px 10px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 12.5px;
+  transition: background .1s, color .1s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+nav ul li a:hover { background: var(--surface2); color: var(--text); }
+nav .nav-section { padding: 14px 18px 4px; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-dim); }
+
+/* ── MAIN ────────────────────────────────────────────── */
+main {
+  flex: 1;
+  min-width: 0;
+  max-width: 860px;
+  padding: 40px 48px 80px;
+}
+
+/* ── PAGE HEADER ─────────────────────────────────────── */
+.page-header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 24px;
+  margin-bottom: 40px;
+}
+.page-header .eyebrow {
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.page-header h1 {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--heading);
+  letter-spacing: -.02em;
+  line-height: 1.2;
+}
+.page-header .meta {
+  margin-top: 10px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.meta-item { font-size: 12px; color: var(--text-muted); }
+.meta-item strong { color: var(--text); }
+
+/* ── SECTIONS ────────────────────────────────────────── */
+section { margin-bottom: 48px; scroll-margin-top: 20px; }
+section + section { border-top: 1px solid var(--border); padding-top: 40px; }
+
+h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--heading);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+h2 .sec-num {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--tag-bg);
+  padding: 2px 7px;
+  border-radius: 3px;
+  letter-spacing: .05em;
+  font-family: monospace;
+}
+h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--heading);
+  margin: 24px 0 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--border);
+}
+h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 18px 0 8px;
+}
+p { margin-bottom: 10px; color: var(--text); }
+p:last-child { margin-bottom: 0; }
+
+/* ── TABLES ──────────────────────────────────────────── */
+.tbl-wrap { overflow-x: auto; margin: 12px 0 20px; border-radius: 5px; border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  background: var(--surface2);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+tbody tr { border-bottom: 1px solid var(--border); }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--surface2); }
+td { padding: 8px 12px; vertical-align: top; font-variant-numeric: tabular-nums; }
+td:first-child { font-family: 'Menlo', 'Consolas', 'Monaco', monospace; font-size: 12px; color: var(--accent); white-space: nowrap; }
+
+/* ── CODE ────────────────────────────────────────────── */
+code {
+  font-family: 'Menlo', 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+  background: var(--code-bg);
+  color: #a8d5f7;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 16px;
+  overflow-x: auto;
+  margin: 12px 0 20px;
+  font-family: 'Menlo', 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #a8d5f7;
+}
+pre code { background: none; border: none; padding: 0; color: inherit; }
+
+/* ── CALLOUTS ────────────────────────────────────────── */
+.callout {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 5px;
+  margin: 12px 0 18px;
+  font-size: 13px;
+  border: 1px solid;
+}
+.callout-danger  { background: #1f0f0f; border-color: #5a2020; color: #f4a0a0; }
+.callout-warn    { background: #1f1500; border-color: #5a3a00; color: #e8c47a; }
+.callout-info    { background: #0a1826; border-color: #1a3a5a; color: #80b8e0; }
+.callout-icon    { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.callout-body strong { color: inherit; }
+
+/* ── BADGES ──────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+  vertical-align: middle;
+  font-family: monospace;
+}
+.badge-in    { background: #0a2a1a; color: var(--success); border: 1px solid #1a4a2a; }
+.badge-out   { background: #1a1a0a; color: var(--warn);    border: 1px solid #3a3000; }
+.badge-both  { background: #1a1226; color: #9a7fd8;        border: 1px solid #2d1f4a; }
+.badge-req   { background: #0a1826; color: var(--accent);  border: 1px solid #1a3050; }
+.badge-note  { background: #1a1000; color: #c89a3a;        border: 1px solid #3a2500; }
+.badge-sec   { background: #200a0a; color: var(--danger);  border: 1px solid #500000; }
+
+/* ── MISC ────────────────────────────────────────────── */
+ul.body-list { padding-left: 18px; margin: 8px 0 14px; }
+ul.body-list li { margin: 4px 0; font-size: 13px; }
+ul.body-list li::marker { color: var(--accent); }
+.flow-steps { counter-reset: step; padding: 0; list-style: none; margin: 10px 0 18px; }
+.flow-steps li {
+  display: flex;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  align-items: flex-start;
+}
+.flow-steps li:last-child { border-bottom: none; }
+.flow-steps li::before {
+  counter-increment: step;
+  content: counter(step);
+  min-width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent2);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.port-badge {
+  display: inline-block;
+  font-family: monospace;
+  font-size: 11px;
+  padding: 1px 6px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  color: var(--warn);
+}
+hr.thin { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+@media (max-width: 768px) {
+  nav { display: none; }
+  main { padding: 24px 20px 60px; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+
+</head><body><nav>
+  <div class="nav-logo">
+    <div class="product">ASPS System</div>
+    <div class="title">Desktop Agent</div>
+    <div class="version">v0.1.1.1</div>
+  </div>
+  <div class="nav-section">תוכן עניינים</div>
+  <ul>
+    <li><a href="file:///C:/Users/Isaac/AppData/Local/Temp/claude/c--Jobs-ASPS-GitHub-Software/02b0a334-1593-4678-81e0-3c5d60c5c8b0/scratchpad/desktop-agent-spec.html#s1">1. סקירה כללית</a></li>
+    <li><a href="file:///C:/Users/Isaac/AppData/Local/Temp/claude/c--Jobs-ASPS-GitHub-Software/02b0a334-1593-4678-81e0-3c5d60c5c8b0/scratchpad/desktop-agent-spec.html#s2">2. ארכיטקטורה</a></li>
+    <li><a href="file:///C:/Users/Isaac/AppData/Local/Temp/claude/c--Jobs-ASPS-GitHub-Software/02b0a334-1593-4678-81e0-3c5d60c5c8b0/scratchpad/desktop-agent-spec.html#s3">3. קונפיגורציה</a></li>
+    <li><a href="file:///C:/Users/Isaac/AppData/Local/Temp/claude/c--Jobs-ASPS-GitHub-Software/02b0a334-1593-4678-81e0-3c5d60c5c8b0/scratchpad/desktop-agent-spec.html#s4">4. Enumerations</a></li>
+    <li><a href="file:///C:/Users/Isaac/AppData/Local/Temp/claude/c--Jobs-ASPS-GitHub-Software/02b0a334-1593-4678-81e0-3c5d60c5c8b0/scratchpad/desktop-agent-spec.html#s5">5. אובייקטי נתונים</a></li>
+    <li><a href="file:///C:/Users/Isaac/AppData/Local/Temp/claude/c--Jobs-ASPS-GitHub-Software/02b0a334-1593-4678-81e0-3c5d60c5c8b0/scratchpad/desktop-agent-spec.html#s6">6. שירותים</a></li>
+    <li><a href="file:///C:/Users/Isaac/AppData/Local/Temp/claude/c--Jobs-ASPS-GitHub-Software/02b0a334-1593-4678-81e0-3c5d60c5c8b0/scratchpad/desktop-agent-spec.html#s7">7. תקשורת — Backend</a></li>
+    <li><a href="file:///C:/Users/Isaac/AppData/Local/Temp/claude/c--Jobs-ASPS-GitHub-Software/02b0a334-1593-4678-81e0-3c5d60c5c8b0/scratchpad/desktop-agent-spec.html#s8">8. תקשורת — Extension</a></li>
+    <li><a href="file:///C:/Users/Isaac/AppData/Local/Temp/claude/c--Jobs-ASPS-GitHub-Software/02b0a334-1593-4678-81e0-3c5d60c5c8b0/scratchpad/desktop-agent-spec.html#s9">9. Remote Access Monitor</a></li>
+    <li><a href="file:///C:/Users/Isaac/AppData/Local/Temp/claude/c--Jobs-ASPS-GitHub-Software/02b0a334-1593-4678-81e0-3c5d60c5c8b0/scratchpad/desktop-agent-spec.html#s10">10. ImmediateDanger Mode</a></li>
+    <li><a href="file:///C:/Users/Isaac/AppData/Local/Temp/claude/c--Jobs-ASPS-GitHub-Software/02b0a334-1593-4678-81e0-3c5d60c5c8b0/scratchpad/desktop-agent-spec.html#s11">11. אבטחה ואימות</a></li>
+    <li><a href="file:///C:/Users/Isaac/AppData/Local/Temp/claude/c--Jobs-ASPS-GitHub-Software/02b0a334-1593-4678-81e0-3c5d60c5c8b0/scratchpad/desktop-agent-spec.html#s12">12. Browser Tab Tracking</a></li>
+    <li><a href="file:///C:/Users/Isaac/AppData/Local/Temp/claude/c--Jobs-ASPS-GitHub-Software/02b0a334-1593-4678-81e0-3c5d60c5c8b0/scratchpad/desktop-agent-spec.html#s13">13. ממשק משתמש</a></li>
+    <li><a href="file:///C:/Users/Isaac/AppData/Local/Temp/claude/c--Jobs-ASPS-GitHub-Software/02b0a334-1593-4678-81e0-3c5d60c5c8b0/scratchpad/desktop-agent-spec.html#s14">14. Startup / Shutdown</a></li>
+  </ul>
+</nav>
+
+<main>
+  <div class="page-header">
+    <div class="eyebrow">ASPS — Anti-Scam Protection System</div>
+    <h1>Desktop Agent — מפרט תוכנה מלא</h1>
+    <div class="meta">
+      <span class="meta-item"><strong>גרסה:</strong> 0.1.1.1</span>
+      <span class="meta-item"><strong>פלטפורמה:</strong> Windows 10/11</span>
+      <span class="meta-item"><strong>שפה:</strong> Python 3.11</span>
+      <span class="meta-item"><strong>מיקום:</strong> <code>apps/desktop/win/src/</code></span>
+      <span class="meta-item"><strong>תאריך:</strong> יולי 2026</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ 1. סקירה ═══════════════════════════════ -->
+  <section id="s1">
+    <h2><span class="sec-num">01</span> סקירה כללית</h2>
+    <p>ה-Desktop Agent הוא תהליך Windows הרץ ברקע ומהווה את הזרוע המקומית של מערכת ASPS. תפקידו לזהות חיבורי גישה מרחוק (AnyDesk, TeamViewer וכד'), לבדוק URLs חשודים, לתקשר עם ה-Backend בענן, ולהתאם לתוסף Chrome המוצמד לדפדפן.</p>
+    <p>האיום המרכזי שהמערכת מגנה מפניו: רמאי מחייג לקורבן, משכנע אותו להתקין אפליקציית גישה מרחוק, ואז ניגש לחשבון הבנק שלו. ה-Agent מזהה את החיבור הנכנס בזמן אמת ומפעיל התראה.</p>
+
+    <h3>אחריות עיקרית</h3>
+    <ul class="body-list">
+      <li><strong>Remote Access Detection</strong> — ניטור AnyDesk/TeamViewer/RustDesk/RDP ו-7 אפליקציות נוספות</li>
+      <li><strong>URL Analysis</strong> — בדיקת URLs שה-Extension שולח, תוך שימוש בcache מקומי ובקריאה לBackend</li>
+      <li><strong>ImmediateDanger Mode</strong> — מצב חירום כאשר session נכנס פעיל ויש דפדפן עם כניסה לאתר רגיש</li>
+      <li><strong>Extension Relay</strong> — WebSocket server מקומי לתוסף Chrome; ממסר נתוני tabs, תוצאות ניתוח, ואירועי גישה מרחוק</li>
+      <li><strong>Browser History Scanning</strong> — סריקת היסטוריית Chrome/Edge/Firefox כל 30 שניות</li>
+      <li><strong>Windows UI</strong> — System Tray, Popup סטטוס, ו-CenteredToast (חלון ImmediateDanger)</li>
+    </ul>
+  </section>
+
+  <!-- ═══════════════════════════════ 2. ארכיטקטורה ═══════════════════════════════ -->
+  <section id="s2">
+    <h2><span class="sec-num">02</span> ארכיטקטורה</h2>
+
+    <h3>מבנה תהליכים</h3>
+    <p>ה-Agent רץ כתהליך Python בודד. ה-UI (pystray + customtkinter) רץ ב-Main Thread. כל הלוגיקה האסינכרונית רצה ב-Thread נפרד עם <code>asyncio</code> event loop. תקשורת ZMQ SUB (Backend notifications) רצה ב-daemon thread משלה.</p>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Thread / Task</th><th>מה רץ בו</th></tr></thead>
+        <tbody>
+          <tr><td>Main Thread</td><td>pystray icon + customtkinter root.mainloop() — חייב להיות main thread</td></tr>
+          <tr><td>asyncio Thread</td><td>כל הasync tasks: remote monitor, browser history, tray update, danger loop</td></tr>
+          <tr><td>ZMQ SUB Thread</td><td>NotificationClient._listen() — blocking recv loop</td></tr>
+          <tr><td>Log Watcher Threads</td><td>אחד לכל קובץ log שנצפה (AnyDesk, TeamViewer, VNC...)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>תלויות עיקריות (requirements.txt)</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>ספרייה</th><th>שימוש</th></tr></thead>
+        <tbody>
+          <tr><td>pyzmq</td><td>תקשורת ZMQ עם Backend (REQ/REP + PUB/SUB + CURVE)</td></tr>
+          <tr><td>websockets</td><td>WebSocket server לתוסף Chrome</td></tr>
+          <tr><td>pystray</td><td>System Tray icon</td></tr>
+          <tr><td>customtkinter</td><td>TrayPopup + CenteredToast (UI)</td></tr>
+          <tr><td>winotify / win10toast</td><td>Windows Toast notifications</td></tr>
+          <tr><td>psutil</td><td>Process list, CPU, network connections</td></tr>
+          <tr><td>geoip2</td><td>GeoLite2 country lookup לפי IP</td></tr>
+          <tr><td>keyring</td><td>אחסון טוקן ב-Windows Credential Manager</td></tr>
+          <tr><td>requests</td><td>HTTP fallback לgeo lookup</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>מיקום קבצים מרכזיים</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>קובץ</th><th>תפקיד</th></tr></thead>
+        <tbody>
+          <tr><td>main.py</td><td>Entry point — AntiScamApp orchestrator, startup/shutdown</td></tr>
+          <tr><td>config.py</td><td>כל פרמטרי הקונפיגורציה (מייבא config_override.py)</td></tr>
+          <tr><td>core/container.py</td><td>DI Container — lazy singleton properties לכל הרכיבים</td></tr>
+          <tr><td>zmq_client.py</td><td>ZMQ REQ/REP — כל הודעות יוצאות לBackend</td></tr>
+          <tr><td>notification_client.py</td><td>ZMQ SUB — notifications נכנסים מBackend</td></tr>
+          <tr><td>extension_server.py</td><td>WebSocket server לתוסף Chrome</td></tr>
+          <tr><td>remote_monitor.py</td><td>מנוע זיהוי גישה מרחוק (~3,000 שורות)</td></tr>
+          <tr><td>auth_manager.py</td><td>מחזור חיי הטוקן</td></tr>
+          <tr><td>services/monitor_service.py</td><td>Async tasks: RA monitor, browser history, tray</td></tr>
+          <tr><td>services/danger_mode.py</td><td>Singleton flag — מצב ImmediateDanger</td></tr>
+          <tr><td>handlers/notification_handler.py</td><td>נתב notifications נכנסים מBackend</td></tr>
+          <tr><td>handlers/extension_handler.py</td><td>נתב הודעות נכנסות מExtension</td></tr>
+          <tr><td>hardware_id.py</td><td>Device ID — fingerprint מבוסס hardware, cached לדיסק</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════ 3. קונפיגורציה ═══════════════════════════════ -->
+  <section id="s3">
+    <h2><span class="sec-num">03</span> קונפיגורציה</h2>
+    <p><code>config.py</code> הוא הקובץ הראשי. בסיום ייבוא, הוא מבצע <code>from config_override import *</code> שמאפשר ל-<code>config_dev.py</code> / <code>config_prod.py</code> לדרוס כל ערך. <code>config_override.py</code> נוצר בזמן build.</p>
+
+    <h3>פרמטרים — תקשורת ורשת</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>פרמטר</th><th>ברירת מחדל</th><th>תיאור</th></tr></thead>
+        <tbody>
+          <tr><td>BACKEND_HOST</td><td><code>"127.0.0.1"</code></td><td>כתובת ה-Backend (dev=local, prod=app.asps.io)</td></tr>
+          <tr><td>BACKEND_REQ_PORT</td><td><code>50001</code></td><td>ZMQ REQ/REP — alerts יוצאים</td></tr>
+          <tr><td>BACKEND_SUB_PORT</td><td><code>50002</code></td><td>ZMQ PUB/SUB — notifications נכנסים</td></tr>
+          <tr><td>BACKEND_SERVER_PUBLIC_KEY_Z85</td><td>מקובץ</td><td>מפתח CURVE ציבורי של השרת (Z85). ראה סעיף אבטחה</td></tr>
+          <tr><td>EXTENSION_PORTS</td><td><code>[8080,8181,8282,8383,8484]</code></td><td>פורטים לנסות עבור WebSocket server לExtension</td></tr>
+          <tr><td>WEBAPI_URL</td><td><code>http://localhost:5001</code></td><td>כתובת WebApi לרישום מכשיר (פותח בדפדפן)</td></tr>
+          <tr><td>WHITELIST_IPS</td><td><code>["127.0.0.1","100.86.253.55"]</code></td><td>IPים שמתעלמים מהם בבדיקת חשד</td></tr>
+          <tr><td>WHITELIST_PORTS</td><td><code>[50001,49569]</code></td><td>פורטים שמתעלמים מהם בבדיקת חשד</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>פרמטרים — ניטור</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>פרמטר</th><th>ברירת מחדל</th><th>תיאור</th></tr></thead>
+        <tbody>
+          <tr><td>MONITOR_INTERVAL</td><td><code>5</code></td><td>מרווח polling ברירת מחדל (שניות) כאשר אין adaptive</td></tr>
+          <tr><td>IMMEDIATE_DANGER_POLL_INTERVAL_SECONDS</td><td><code>3</code></td><td>מרווח polling בזמן ImmediateDanger (מחליף את האדפטיבי)</td></tr>
+          <tr><td>IMMEDIATE_DANGER_ALERT_INTERVAL_SECONDS</td><td><code>10</code></td><td>כל כמה שניות ה-danger loop שולח RemoteAccessAlert מלא עם tabs</td></tr>
+          <tr><td>BROWSER_TABS_DEFAULT_MODE</td><td><code>"incoming_only"</code></td><td>מדיניות ברירת מחדל לצירוף browser tabs להתראות</td></tr>
+          <tr><td>BROWSER_TABS_URL_FILTER</td><td><code>["","localhost","127.0.0.1"]</code></td><td>URLים שיסוננו מרשימת tabs</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>פרמטרים — אחסון מקומי</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>פרמטר</th><th>ערך</th><th>תיאור</th></tr></thead>
+        <tbody>
+          <tr><td>DATA_DIR</td><td><code>%APPDATA%\AntiScam</code></td><td>תיקיית נתונים מקומית; כל קבצי runtime</td></tr>
+          <tr><td>CACHE_FILE</td><td><code>cache.json</code></td><td>cache לתוצאות URL, TTL=3600s</td></tr>
+          <tr><td>LOG_FILE</td><td><code>events.jsonl</code></td><td>לוג אירועים בפורמט JSONL</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>REMOTE_APPS — אפליקציות גישה מרחוק</h3>
+    <p>מילון שמגדיר לכל אפליקציה: <code>id</code> (int), <code>process_names</code>, <code>listen_ports</code>, <code>service_names</code>, נתיבי log files. אפליקציות מוגדרות: <strong>anydesk, teamviewer, rustdesk, chrome_remote_desktop, quick_assist, logmein, connectwise, remotepc, splashtop, rdp</strong>.</p>
+
+    <h3>CURVE Key Discovery — סדר עדיפויות</h3>
+    <ol class="flow-steps">
+      <li>משתנה סביבה <code>ANTISCAM_CURVE_PUBLIC_KEY</code></li>
+      <li>קובץ <code>~/.antiscam/curve-public-key.txt</code></li>
+      <li>קובץ <code>%LOCALAPPDATA%\ASPS\curve-server-public-key.txt</code></li>
+      <li>ריק — חיבור ראשון ללא הצפנה; המפתח מתקבל בתשובת <code>RequestToken</code></li>
+    </ol>
+  </section>
+
+  <!-- ═══════════════════════════════ 4. Enums ═══════════════════════════════ -->
+  <section id="s4">
+    <h2><span class="sec-num">04</span> Enumerations</h2>
+    <p>כל ה-enums מוגדרים ב-<code>enums.py</code> כ-<code>IntEnum</code> ומשקפים את <code>Common.Enums</code> ב-Backend.</p>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Enum</th><th>ערכים</th></tr></thead>
+        <tbody>
+          <tr><td>RemoteAccessApp</td><td>Unknown=0, AnyDesk=1, TeamViewer=2, ChromeRemoteDesktop=3, RemotePC=4, LogMeIn=5, Splashtop=6, VNC=7</td></tr>
+          <tr><td>SessionStatus</td><td>Unknown=0, Open=1, Closed=2</td></tr>
+          <tr><td>ConnectionStatus</td><td>Unknown=0, Open=1, Closed=2</td></tr>
+          <tr><td>AlertFlagType</td><td>NONE=0, RemoteAccess_AppRunning=1, RemoteAccess_ConnectionOpen=2, RemoteAccess_SessionActive=3</td></tr>
+          <tr><td>ProtectiveActionType</td><td>NONE=0, DisplayNotification=1, EmailNotification=2, SoundAlert=3, BlockUrl=4, UserDisplayNotification=5, QuarantineDevice=6, BlockRemoteAccess=7</td></tr>
+          <tr><td>ProtectiveActionSubject</td><td>NONE=0, Device=1, User=2, Protector=3</td></tr>
+          <tr><td>DeviceMonitoringStatus</td><td>Disabled=0, Enabled=1</td></tr>
+          <tr><td>DeviceType</td><td>Unknown=0, PersonalComputer=1, SmartPhone=2, Other=3</td></tr>
+          <tr><td>OperatingSystemType</td><td>Unknown=0, Windows=1, Linux=2, Mac=3, Android=4, IOS=5</td></tr>
+          <tr><td>Priority</td><td>Low=0, Medium=1, High=2, Critical=3</td></tr>
+          <tr><td>ResultStatusCode</td><td>Success=200, InvalidOperation=400, ValidationError=422, ServerError=500, Unauthenticated=401, Unauthorized=403, NotFound=404</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════ 5. אובייקטי נתונים ═══════════════════════════════ -->
+  <section id="s5">
+    <h2><span class="sec-num">05</span> אובייקטי נתונים</h2>
+
+    <h3>DeviceInfo — משודר בכל הודעה יוצאת</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>שדה</th><th>סוג</th><th>תיאור</th></tr></thead>
+        <tbody>
+          <tr><td>DeviceUid</td><td>str</td><td><code>PC-{16 hex chars}</code> — fingerprint חומרה, cached לדיסק</td></tr>
+          <tr><td>DeviceType</td><td>int</td><td>PersonalComputer=1</td></tr>
+          <tr><td>OperatingSystem</td><td>int</td><td>Windows=1</td></tr>
+          <tr><td>MACAddress</td><td>str</td><td>כתובת MAC הראשונה שנמצאה</td></tr>
+          <tr><td>IP</td><td>str</td><td>IP מקומי — מאוכלס ב-ZMQClient לפני שליחה</td></tr>
+          <tr><td>ImmediateDanger</td><td>bool</td><td>True כאשר danger_mode.active; מוצמד ל-DeviceInfo בכל שליחה</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>RemoteAppStatus — תוצאת זיהוי לאפליקציה אחת</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>שדה</th><th>סוג</th><th>תיאור</th></tr></thead>
+        <tbody>
+          <tr><td>app_name</td><td>str</td><td>שם קצר: "anydesk", "teamviewer", "rdp"...</td></tr>
+          <tr><td>app_id</td><td>int</td><td>RemoteAccessApp enum value</td></tr>
+          <tr><td>is_running</td><td>bool</td><td>התהליך קיים בזיכרון</td></tr>
+          <tr><td>has_active_session</td><td>bool</td><td>session פעיל (חיבור קיים)</td></tr>
+          <tr><td>process_count</td><td>int</td><td>מספר instances</td></tr>
+          <tr><td>connection_count</td><td>int</td><td>מספר חיבורי רשת פעילים</td></tr>
+          <tr><td>direction</td><td>str?</td><td>"incoming" / "outgoing" / "unknown" / None</td></tr>
+          <tr><td>confidence</td><td>str</td><td>"low" / "medium" / "high"</td></tr>
+          <tr><td>remote_ip</td><td>str?</td><td>IP של הצד המרוחק</td></tr>
+          <tr><td>remote_country</td><td>str?</td><td>שם מדינה (GeoIP)</td></tr>
+          <tr><td>remote_country_code</td><td>str?</td><td>קוד מדינה ISO 3166</td></tr>
+          <tr><td>connection_type</td><td>str?</td><td>"direct" / "relay"</td></tr>
+          <tr><td>remote_id</td><td>str?</td><td>AnyDesk ID מספרי / TeamViewer Partner ID</td></tr>
+          <tr><td>remote_name</td><td>str?</td><td>שם מוצג של הצד המרוחק</td></tr>
+          <tr><td>remote_os</td><td>str?</td><td>מערכת הפעלה של הצד המרוחק</td></tr>
+          <tr><td>remote_version</td><td>str?</td><td>גרסת תוכנת גישה מרחוק אצל הצד המרוחק</td></tr>
+          <tr><td>file_transfer_active</td><td>bool</td><td>האם העברת קבצים פעילה</td></tr>
+          <tr><td>file_transfers</td><td>int</td><td>מספר העברות קבצים שזוהו</td></tr>
+          <tr><td>logged_user</td><td>str?</td><td>משתמש Windows שהיה מחובר בזמן session (TeamViewer)</td></tr>
+          <tr><td>connection_id</td><td>str?</td><td>GUID session record (TeamViewer)</td></tr>
+          <tr><td>software</td><td>str?</td><td>"AnyDesk" / "TeamViewer" / "VNC" / "ChromeRD"</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>StateChange — שינוי מצב שזוהה</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>שדה</th><th>ערכים / תיאור</th></tr></thead>
+        <tbody>
+          <tr><td>app_name</td><td>שם האפליקציה</td></tr>
+          <tr><td>change_type</td><td>"opened" / "closed" / "session_started" / "session_ended"</td></tr>
+          <tr><td>timestamp</td><td>datetime UTC</td></tr>
+          <tr><td>status</td><td>RemoteAppStatus בעת השינוי</td></tr>
+          <tr><td>late_detection</td><td>True כאשר זוהה בזמן Startup Scan או חיבור Extension מאוחר</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>CacheEntry — רשומת cache לURL</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>שדה</th><th>תיאור</th></tr></thead>
+        <tbody>
+          <tr><td>url</td><td>domain (netloc) מנורמל</td></tr>
+          <tr><td>score</td><td>0–100 — ציון סיכון</td></tr>
+          <tr><td>risk_type</td><td>list of int — סוגי סיכון</td></tr>
+          <tr><td>protective_action</td><td>int — פעולה מומלצת</td></tr>
+          <tr><td>ttl</td><td>שניות לתוקף (default 3600)</td></tr>
+          <tr><td>saved_at</td><td>Unix timestamp בעת שמירה</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>auth.json — <code>%APPDATA%\AntiScam\auth.json</code></h3>
+    <pre><code>{
+  "token":        null,          // null כאשר keyring זמין; אחרת — ערך הטוקן
+  "user_id":      12345,
+  "expires_at":   "2026-08-01T12:00:00Z",
+  "is_authorized": true,
+  "email":        "user@example.com"
+  // server_public_key — לא נשמר בכוונה; נקרא תמיד מהקובץ
+}</code></pre>
+  </section>
+
+  <!-- ═══════════════════════════════ 6. שירותים ═══════════════════════════════ -->
+  <section id="s6">
+    <h2><span class="sec-num">06</span> שירותים</h2>
+
+    <h3>ZMQClient</h3>
+    <p>ממשק יוצא לBackend. כל שליחה: <code>connect() → send() → recv() → close()</code>. ה-socket לא נשמר בין קריאות. <code>threading.Lock</code> מסדר גישה.</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>מתודה</th><th>תיאור</th></tr></thead>
+        <tbody>
+          <tr><td>send_request_token(device_uid, email)</td><td>אימות מכשיר; מקבל טוקן + מפתח CURVE</td></tr>
+          <tr><td>send_refresh_token(device_uid, old_token)</td><td>חידוש טוקן שפג</td></tr>
+          <tr><td>send_url_alert(...)</td><td>בדיקת URL חשוד</td></tr>
+          <tr><td>send_track_url_alert(...)</td><td>אירוע ניווט בדפדפן</td></tr>
+          <tr><td>send_remote_access_alert(...)</td><td>שינוי מצב גישה מרחוק + כל השדות</td></tr>
+          <tr><td>send_tab_closed_alert(tab_id, url, ip)</td><td>טאב נסגר (בזמן ImmediateDanger)</td></tr>
+          <tr><td>send_tab_changed_alert(tab_id, url, ...)</td><td>URL שונה בטאב (בזמן remote control)</td></tr>
+          <tr><td>set_server_public_key(key)</td><td>הפעל CURVE; <code>clear_server_public_key()</code> לנטרל</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout callout-info">
+      <span class="callout-icon">ℹ</span>
+      <div class="callout-body"><strong>Priority elevation:</strong> כאשר <code>danger_mode.active == True</code>, כל ה-alerts יוצאים עם Priority=CRITICAL, ללא קשר למה שהקורא ביקש.</div>
+    </div>
+
+    <h3>NotificationClient</h3>
+    <p>ZMQ SUB socket. מנוי על topic <code>"device:{DeviceUid}"</code>. רץ ב-daemon thread. RCVTIMEO=5000ms. לוג heartbeat כל ~2 דקות בשקט.</p>
+
+    <h3>ExtensionServer</h3>
+    <p>WebSocket server. מנסה פורטים לפי <code>EXTENSION_PORTS</code>. מנהל multi-client (כמה חלונות Chrome יכולים להתחבר). הודעות <code>heartbeat_ping</code>, <code>keepalive</code>, <code>browser_tabs_response</code> — מטופלות בתוכו ולא מועברות.</p>
+    <p><strong>request_browser_tabs(timeout=3.0)</strong>: שולח <code>get_browser_tabs</code> לכל לקוח, ממתין ל-Futures, ממזג תוצאות.</p>
+
+    <h3>AuthManager</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>מתודה</th><th>תיאור</th></tr></thead>
+        <tbody>
+          <tr><td>ensure_authenticated(max_retries=3)</td><td>עם exponential backoff 2/4/8 שניות</td></tr>
+          <tr><td>authenticate()</td><td>RequestToken; פותח דפדפן ל-DeviceLogin אם DeviceNotRecognized</td></tr>
+          <tr><td>refresh_token()</td><td>RefreshToken; fallback ל-authenticate() אם נכשל</td></tr>
+          <tr><td>handle_auth_response(response)</td><td>מזהה InvalidToken/TokenExpired ב-alert response; מבצע re-auth ומחזיר True/False</td></tr>
+          <tr><td>is_expired()</td><td>בודק פקיעה עם buffer של 5 דקות</td></tr>
+          <tr><td>get_token()</td><td>מחזיר טוקן רק אם valid; None אחרת</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>MonitorService</h3>
+    <p>מתאם את כל asyncio tasks. <code>start()</code> מפעיל 3 tasks:</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Task</th><th>מרווח</th><th>תיאור</th></tr></thead>
+        <tbody>
+          <tr><td>_monitor_remote_access()</td><td>adaptive (1/2/5/30s); 3s בdanger</td><td>loop ראשי לזיהוי RA; מעבד StateChange</td></tr>
+          <tr><td>_monitor_browser_history()</td><td>30s</td><td>סורק היסטוריית SQLite של Chrome/Edge/Firefox</td></tr>
+          <tr><td>_update_tray_status()</td><td>5s</td><td>מרענן תמונת tray וסטטוס popup</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>Adaptive Poll Intervals</h4>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>מרווח</th><th>מצב</th></tr></thead>
+        <tbody>
+          <tr><td>1s</td><td>pending debounced close/session-end (תגובה מהירה לשינוי)</td></tr>
+          <tr><td>2s</td><td>AnyDesk רץ (log parser lag compensation)</td></tr>
+          <tr><td>5s</td><td>אפליקציית RA פעילה / session פתוח</td></tr>
+          <tr><td>30s</td><td>idle — אין אפליקציות RA</td></tr>
+          <tr><td>3s (override)</td><td>danger_mode.active == True</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>ScanService</h3>
+    <p>זרימת בדיקת URL: <strong>Cache hit → return</strong>. אחרת: <strong>auth check → send_url_alert → process_response</strong>. Local URLs (localhost/127.x/::1) מדולגים ללא קריאה לBackend. על <code>InvalidToken</code>/<code>TokenExpired</code> בתשובה: re-auth ו-retry אחד.</p>
+
+    <h3>BrowserTabsPolicy</h3>
+    <p>Singleton thread-safe. מצבים: <code>incoming_only</code> (ברירת מחדל) / <code>always</code> / <code>never</code>. Backend יכול לשלוח <code>SetBrowserTabsPolicyNotification</code> עם <code>ValidUntil</code> לעקוף זמנית. ה-override מנקה את עצמו עם פקיעה.</p>
+
+    <h3>DangerMode</h3>
+    <p>Singleton thread-safe עם <code>activate()</code> / <code>deactivate()</code>. כאשר active:</p>
+    <ul class="body-list">
+      <li>ZMQClient — Priority=CRITICAL על כל alert</li>
+      <li>DebouncedStateTracker — עוקף debounce (שינויי session מדווחים מיד)</li>
+      <li>MonitorService — poll קבוע 3s</li>
+      <li>DeviceInfo.ImmediateDanger = True בכל הודעה</li>
+    </ul>
+
+    <h3>ProtectionService</h3>
+    <p>מבצע ProtectiveActions שמגיעות מBackend. <code>BlockRemoteAccess</code> → קורא ל-<code>RemoteAccessMonitor.disconnect_remote_session("anydesk")</code> → <code>AnyDesk.exe --disconnect</code>.</p>
+  </section>
+
+  <!-- ═══════════════════════════════ 7. תקשורת Backend ═══════════════════════════════ -->
+  <section id="s7">
+    <h2><span class="sec-num">07</span> תקשורת — Backend (ZMQ)</h2>
+
+    <h3>ערוץ REQ/REP — פורט <span class="port-badge">50001</span></h3>
+    <p>כל בקשה: connect → send JSON → recv JSON → close. אין socket פתוח קבוע. Timeout: 5000ms send+recv. LINGER=0.</p>
+
+    <h4>סוגי הודעות יוצאות</h4>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>AlertType / MessageType</th><th>כיוון</th><th>נשלח כאשר</th></tr></thead>
+        <tbody>
+          <tr><td>RequestToken</td><td><span class="badge badge-out">OUT</span></td><td>startup auth; <code>{MessageType, DeviceUid, Email}</code></td></tr>
+          <tr><td>RefreshToken</td><td><span class="badge badge-out">OUT</span></td><td>טוקן פג; <code>{MessageType, DeviceUid, Token, Timestamp}</code></td></tr>
+          <tr><td>UrlAlert</td><td><span class="badge badge-out">OUT</span></td><td>Extension מדווח URL לבדיקה</td></tr>
+          <tr><td>TrackUrlAlert</td><td><span class="badge badge-out">OUT</span></td><td>אירוע ניווט — FromUrl, Duration, ScamInProgressKey</td></tr>
+          <tr><td>RemoteAccessAlert</td><td><span class="badge badge-out">OUT</span></td><td>שינוי מצב session; כולל כל שדות RemoteAppStatus + BrowserTabs?</td></tr>
+          <tr><td>TabClosedAlert</td><td><span class="badge badge-out">OUT</span></td><td>טאב נסגר בזמן ImmediateDanger</td></tr>
+          <tr><td>TabChangedAlert</td><td><span class="badge badge-out">OUT</span></td><td>URL שונה בטאב בזמן remote control; + IsSensitiveWebsite, IsLoggedIn</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>מבנה RemoteAccessAlert</h4>
+    <pre><code>{
+  "AlertType":          "RemoteAccessAlert",
+  "AlertId":            "uuid",
+  "Timestamp":          "ISO-8601",
+  "Priority":           2,          // Critical=3 כאשר danger_mode.active
+  "Token":              "...",
+  "DeviceInfo":         { DeviceUid, DeviceType, OperatingSystem, MACAddress, IP, ImmediateDanger },
+
+  // RemoteAccess fields
+  "RemoteAccessApp":    1,           // RemoteAccessApp enum
+  "ConnectionStatus":   1,           // Open=1
+  "SessionStatus":      1,           // Open=1
+  "Direction":          "incoming",
+  "Confidence":         "high",
+  "RemoteId":           "123456789",
+  "RemoteCountry":      "Israel",
+  "RemoteCountryCode":  "IL",
+  "RemoteOS":           "Windows",
+  "RemoteVersion":      "8.0.0",
+  "ConnectionType":     "relay",
+  "FileTransferActive": false,
+  "FileTransfers":      0,
+  "Software":           "AnyDesk",
+
+  // Browser tabs (רק כאשר policy מאפשר ו-direction==incoming)
+  "BrowserTabs": [
+    { "TabId": 1, "Url": "https://bankhapoalim.co.il/...",
+      "IsSensitiveWebsite": true, "LoggedIn": true, "Timestamp": "..." }
+  ]
+}</code></pre>
+
+    <h4>מבנה תשובות</h4>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>תרחיש</th><th>מבנה תשובה</th></tr></thead>
+        <tbody>
+          <tr><td>Async (חדש)</td><td><code>{"success": true, "message": "..."}</code> — תוצאה תגיע ב-SUB</td></tr>
+          <tr><td>Sync (legacy)</td><td><code>{"Score": int, "RiskType": [...], "ProtectiveAction": int}</code></td></tr>
+          <tr><td>Auth error</td><td><code>{"status": "InvalidToken" | "TokenExpired"}</code></td></tr>
+          <tr><td>Token response</td><td><code>{"status": "TokenCreated|ExistingToken|TokenRefreshed|DeviceNotRecognized", "token": "...", "expiration": "ISO", "serverPublicKey": "Z85"}</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>ערוץ PUB/SUB — פורט <span class="port-badge">50002</span></h3>
+    <p>SUB socket. מנוי: <code>"device:{DeviceUid}"</code>. מקבל שני חלקים: topic bytes + JSON bytes.</p>
+
+    <h4>סוגי Notifications נכנסים</h4>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Type</th><th>כיוון</th><th>פעולה</th></tr></thead>
+        <tbody>
+          <tr><td>ImmediateDangerNotification</td><td><span class="badge badge-in">IN</span></td><td>מפעיל DangerMode, loop התראות, CenteredToast נעול, broadcast לExtension</td></tr>
+          <tr><td>ImmediateDangerEndedNotification</td><td><span class="badge badge-in">IN</span></td><td>מכבה DangerMode, עוצר loop, מעביר CenteredToast ל"ירוק"</td></tr>
+          <tr><td>SetBrowserTabsPolicyNotification</td><td><span class="badge badge-in">IN</span></td><td>עדכון מדיניות BrowserTabs (mode + ValidUntil)</td></tr>
+          <tr><td>SetTrackedDomainsNotification</td><td><span class="badge badge-in">IN</span></td><td>מעביר tracked domains לExtension</td></tr>
+          <tr><td>(URL analysis result)</td><td><span class="badge badge-in">IN</span></td><td>תוצאת ניתוח async — מעדכן cache, מבצע ProtectiveActions, broadcast לExtension</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>מעטפת Notification</h4>
+    <pre><code>{
+  "Type":      "ImmediateDangerNotification",
+  "Timestamp": "ISO-8601",
+  "DeviceUid": "PC-...",
+  "Data":      { ... }
+}</code></pre>
+  </section>
+
+  <!-- ═══════════════════════════════ 8. תקשורת Extension ═══════════════════════════════ -->
+  <section id="s8">
+    <h2><span class="sec-num">08</span> תקשורת — Chrome Extension (WebSocket)</h2>
+    <p>Agent = שרת. Extension = לקוח. JSON לשני הכיוונים. Agent מנסה פורטים <code>[8080, 8181, 8282, 8383, 8484]</code> בסדר. Extension אחראי על reconnect.</p>
+
+    <h3>הודעות נכנסות (Extension → Agent)</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>type</th><th>שדות נוספים</th><th>פעולה</th></tr></thead>
+        <tbody>
+          <tr><td>url_check</td><td>url, trackers, iframes, tabId, ipAddress</td><td>בדיקת URL → ScanService</td></tr>
+          <tr><td>track_url_alert</td><td>Url, FromUrl, Duration, ScamInProgressKey, TabId, Timezone</td><td>ניווט → TrackUrlAlert לBackend</td></tr>
+          <tr><td>tab_closed_alert</td><td>tabId, url, ipAddress</td><td>טאב נסגר (ImmediateDanger) → TabClosedAlert</td></tr>
+          <tr><td>tab_changed_alert</td><td>tabId, url, isSensitiveWebsite, isLoggedIn, ipAddress</td><td>URL שינוי (remote control) → TabChangedAlert</td></tr>
+          <tr><td>ping</td><td>—</td><td>חוזר <code>pong</code> עם email + IP</td></tr>
+          <tr><td>user_auth</td><td>email</td><td>שמירת email משתמש</td></tr>
+          <tr><td>get_user</td><td>—</td><td>מחזיר device_id, signed_in, email</td></tr>
+          <tr><td>heartbeat_ping</td><td>—</td><td>מטופל ישירות ע"י ExtensionServer → pong</td></tr>
+          <tr><td>browser_tabs_response</td><td>requestId, tabs[]</td><td>מטופל ישירות → resolves Future</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>הודעות יוצאות (Agent → Extension — broadcast)</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>type</th><th>מתי נשלח</th><th>שדות מרכזיים</th></tr></thead>
+        <tbody>
+          <tr><td>url_result</td><td>תוצאת ניתוח (sync או async)</td><td>url, score, riskType, protectiveAction, isSensitiveWebsite, fromCache</td></tr>
+          <tr><td>remote_access_alert</td><td>session_started</td><td>toolId, toolName, direction, remoteIP, remote_country, confidence, session_active</td></tr>
+          <tr><td>remote_access_session_end</td><td>session_ended</td><td>toolId, toolName</td></tr>
+          <tr><td>remote_access_app_closed</td><td>app closed</td><td>toolId, toolName</td></tr>
+          <tr><td>set_remote_controlled</td><td>כאשר IsDeviceRemoteControlled משתנה</td><td>isDeviceRemoteControlled: bool</td></tr>
+          <tr><td>immediate_danger_started</td><td>ImmediateDangerNotification</td><td>dangerKey, userKey, deviceUid, timestamp, protectiveActions[]</td></tr>
+          <tr><td>immediate_danger_ended</td><td>ImmediateDangerEndedNotification</td><td>dangerKey, userKey, deviceUid, endTime</td></tr>
+          <tr><td>tracked_domains:set</td><td>SetTrackedDomainsNotification</td><td>domains[], alwaysSendFormSubmits</td></tr>
+          <tr><td>get_browser_tabs</td><td>Agent מבקש tabs</td><td>requestId (UUID) — Extension עונה browser_tabs_response</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-info">
+      <span class="callout-icon">ℹ</span>
+      <div class="callout-body">כאשר Extension מתחבר לאחר Startup (חיבור מאוחר), ה-Agent ממתין 2s לService Worker, מנסה לאסוף tabs עד פעמיים, ואז שולח <code>RemoteAccessAlert</code> עם <code>late_detection=True</code>.</div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════ 9. Remote Access Monitor ═══════════════════════════════ -->
+  <section id="s9">
+    <h2><span class="sec-num">09</span> Remote Access Monitoring</h2>
+
+    <h3>ארכיטקטורת זיהוי</h3>
+    <p>שני pipelines מקבילים מתמזגים לתוצאה אחת:</p>
+    <ul class="body-list">
+      <li><strong>Real-time Log Watchers</strong> — threads שמנטרים קבצי log בזמן אמת (tail)</li>
+      <li><strong>Periodic Process/Network Poll</strong> — <code>check_all_with_changes()</code> בכל מחזור adaptive</li>
+    </ul>
+
+    <h3>קבצי Log שנצפים</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>אפליקציה</th><th>קבצים</th></tr></thead>
+        <tbody>
+          <tr><td>AnyDesk</td><td><code>%PROGRAMDATA%\AnyDesk\ad_svc.trace</code>, <code>%APPDATA%\AnyDesk\ad.trace</code>, <code>connection_trace.txt</code></td></tr>
+          <tr><td>TeamViewer</td><td><code>%APPDATA%\TeamViewer\Connections_incoming.txt</code>, <code>Connections.txt</code>, <code>TeamViewer15_Logfile.log</code></td></tr>
+          <tr><td>VNC</td><td>TigerVNC, UltraVNC, TightVNC — נתיבי log ספציפיים</td></tr>
+          <tr><td>Chrome Remote Desktop</td><td><code>%APPDATA%\Google\Chrome Remote Desktop\logs\*.log</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Startup Backfill</h3>
+    <p>לפני התחלת tail threads, קורא 500 שורות אחרונות מכל log files, ממיין לפי timestamp, ומעביר דרך SessionTracker. Sessions שהתחילו מעל 10 דקות לפני Startup נמחקים מיד.</p>
+
+    <h3>זיהוי כיוון (Direction)</h3>
+    <p>סדר עדיפויות:</p>
+    <ol class="flow-steps">
+      <li><strong>Log Parser</strong> — מזהה אירועי <code>incoming_request</code>, <code>outgoing_start</code>, <code>session_started</code>, <code>session_stopped</code></li>
+      <li><strong>Network Topology</strong> — ESTABLISHED connection: local port ב-listen_ports → INCOMING; remote port → OUTGOING</li>
+      <li><strong>AnyDesk connection_trace.txt</strong> — fallback לרשומות תוך 30 דקות</li>
+      <li><strong>System port scan</strong> — לאפליקציות המנוהלות ע"י svchost (כמו RDP)</li>
+    </ol>
+
+    <div class="callout callout-warn">
+      <span class="callout-icon">⚠</span>
+      <div class="callout-body"><strong>AnyDesk Relay Race Fix:</strong> הלוג מציג "Connecting to &lt;ID&gt;" (~1.25s לפני "Incoming session request"). כאשר <code>direction="outgoing"</code> ב-session_started, ה-Agent ממתין עד 1.5s (6×0.25s) ובודק אם הכיוון מתוקן ל-"incoming".</div>
+    </div>
+
+    <h3>DebouncedStateTracker — Debounce</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>שינוי</th><th>Debounce</th><th>בdanger_mode</th></tr></thead>
+        <tbody>
+          <tr><td>opened</td><td>אין</td><td>—</td></tr>
+          <tr><td>closed</td><td>1s</td><td>מיידי</td></tr>
+          <tr><td>session_started</td><td>אין</td><td>—</td></tr>
+          <tr><td>session_ended</td><td>4s</td><td>מיידי</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Confidence Scoring</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>סיגנל</th><th>ניקוד</th></tr></thead>
+        <tbody>
+          <tr><td>active_connection (ESTABLISHED בפורט)</td><td>+2</td></tr>
+          <tr><td>log_session_active (log parser מאשר session)</td><td>+2</td></tr>
+          <tr><td>cpu_active (CPU usage גבוה לתהליך)</td><td>+1</td></tr>
+          <tr><td>service_running (Windows service קיים)</td><td>+1</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>סכום ≥4 → "high" | ≥2 → "medium" | &lt;2 → "low"</p>
+
+    <h3>GeoIP</h3>
+    <p><strong>Primary:</strong> <code>GeoLocator</code> singleton עם <code>GeoLite2-Country.mmdb</code> (מ-<code>src/data/</code>). <strong>Fallback:</strong> HTTP ל-<code>ip-api.com</code> (3s timeout, cached). IPs פרטיים (10.x, 192.168.x, 172.16–31.x, 127.x, 100.x) מדולגים.</p>
+
+    <h3>AnyDesk CLI Integration</h3>
+    <p><code>AnyDeskCLI</code> עוטף <code>AnyDesk.exe</code> בפקודות: <code>--get-id</code>, <code>--get-status</code>, <code>--disconnect</code>. ה-disconnect מופעל על ידי <code>BlockRemoteAccess</code> ProtectiveAction מהBackend.</p>
+
+    <h3>TeamViewer Forensics</h3>
+    <p><code>Connections_incoming.txt</code>: tab-separated, פורמט <code>dd-MM-yyyy HH:mm:ss</code>. מתעד: PartnerID, DisplayName, StartDate, EndDate, LoggedOnUser, ConnectionType, ConnectionID. מאכלס <code>RemoteAppStatus.logged_user</code>, <code>remote_name</code>, <code>connection_id</code>.</p>
+  </section>
+
+  <!-- ═══════════════════════════════ 10. ImmediateDanger ═══════════════════════════════ -->
+  <section id="s10">
+    <h2><span class="sec-num">10</span> ImmediateDanger Mode</h2>
+
+    <h3>מה מפעיל</h3>
+    <p>Backend שולח <code>ImmediateDangerNotification</code> כאשר: session RA נכנס פעיל <strong>ו</strong>אתר רגיש (בנק/קריפטו/ממשל וכד') פתוח בדפדפן <strong>ו</strong>המשתמש מחובר (<code>LoggedIn==true</code> מהExtension).</p>
+
+    <h3>5 שלבי ה-Handler (notification_handler)</h3>
+    <ol class="flow-steps">
+      <li><strong>danger_mode.activate()</strong> — כל האפקטים המתוארים בסעיף 6</li>
+      <li><strong>start_immediate_danger_loop()</strong> — task כל 10s: אוסף tabs → שולח RemoteAccessAlert מלא</li>
+      <li><strong>_build_immediate_danger_details()</strong> — מחלץ danger_key, sensitive_url, protective_actions</li>
+      <li><strong>show_display_notification_actions()</strong> — CenteredToast ב-LOCKED mode (אדום, ללא כפתור סגירה, always-on-top, תוך 2s lift loop)</li>
+      <li><strong>broadcast immediate_danger_started</strong> — Extension עובר למצב ImmediateDanger, שולח tab_closed/tab_changed על כל אירוע</li>
+    </ol>
+
+    <div class="callout callout-danger">
+      <span class="callout-icon">!</span>
+      <div class="callout-body"><strong>כל שלב עטוף ב-try/except</strong> — כישלון באחד לא מבטל את השאר. המשתמש מוגן גם אם UI נכשל.</div>
+    </div>
+
+    <h3>סגירת ImmediateDanger</h3>
+    <p>Backend שולח <code>ImmediateDangerEndedNotification</code> בשני תרחישים:</p>
+    <ul class="body-list">
+      <li>Session RA הסתיים</li>
+      <li>האתר הרגיש נסגר / המשתמש התנתק (Backend מזהה <code>HasSensitiveBrowserPages=false</code> ב-periodic alert)</li>
+    </ul>
+    <p>ה-Handler: <code>danger_mode.deactivate()</code> → עצור loop → <code>transform_to_cleared()</code> (אותו חלון, עכשיו ירוק עם כפתור Close) → broadcast לExtension.</p>
+
+    <h3>Extension בזמן ImmediateDanger</h3>
+    <p>Agent שולח <code>set_remote_controlled: true</code> → Extension שולח לAgent על כל:</p>
+    <ul class="body-list">
+      <li><code>tab_closed_alert</code> — כל סגירת טאב</li>
+      <li><code>tab_changed_alert</code> — כל שינוי URL, עם <code>isSensitiveWebsite</code> ו-<code>isLoggedIn</code></li>
+    </ul>
+    <p>Agent מעביר אותם לBackend כ-<code>TabClosedAlert</code> / <code>TabChangedAlert</code> ללא המתנה ל-periodic tick.</p>
+  </section>
+
+  <!-- ═══════════════════════════════ 11. אבטחה ═══════════════════════════════ -->
+  <section id="s11">
+    <h2><span class="sec-num">11</span> אבטחה ואימות</h2>
+
+    <h3>Device ID</h3>
+    <p>נוצר פעם אחת ב-<code>hardware_id.py</code>. פורמט: <code>PC-{16 hex chars של SHA-256}</code>. מקור: Win32_BaseBoard + Win32_BIOS + Win32_DiskDrive → fallback ל-MachineGuid → fallback לplatform.node(). Cached ב-<code>%APPDATA%\AntiScam\device_id</code>.</p>
+
+    <h3>CURVE ZMQ Encryption</h3>
+    <div class="callout callout-info">
+      <span class="callout-icon">🔑</span>
+      <div class="callout-body">כל תקשורת ZMQ (REQ/REP + PUB/SUB) מוצפנת עם <strong>CurveZMQ</strong> (X25519 + ChaCha20-Poly1305 ברמת transport).</div>
+    </div>
+    <p>זרימת CURVE:</p>
+    <ol class="flow-steps">
+      <li>Agent קורא מפתח ציבורי שרת (Z85) מקובץ בסדר עדיפויות (ראה סעיף 3)</li>
+      <li>ב-<code>ZMQClient.connect()</code>: מייצר ephemeral keypair (<code>zmq.curve_keypair()</code>), מגדיר CURVE_PUBLICKEY/SECRETKEY/SERVERKEY על ה-socket</li>
+      <li>לאחר אימות ראשוני: <code>container.apply_curve_keys()</code> מעביר את המפתח גם ל-NotificationClient (SUB)</li>
+      <li>אם התשובה ל-RequestToken/RefreshToken מכילה <code>serverPublicKey</code>, ZMQClient מתעדכן לקריאות הבאות</li>
+      <li>המפתח <strong>לא נשמר ב-auth.json</strong> — נקרא תמיד מחדש מהקובץ בStartup</li>
+    </ol>
+
+    <h3>אחסון טוקן</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>שכבה</th><th>פרטים</th></tr></thead>
+        <tbody>
+          <tr><td>ראשי — OS Keyring</td><td>Windows Credential Manager. Service: <code>"AntiScamApp"</code>, Account: device_uid</td></tr>
+          <tr><td>Fallback</td><td>auth.json (עם אזהרה) כאשר keyring לא זמין</td></tr>
+          <tr><td>לא נשמר</td><td>server_public_key — מניעת שמירת מפתח CURVE בדיסק</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>מחזור חיי הטוקן</h3>
+    <ol class="flow-steps">
+      <li>Startup: <code>ensure_authenticated(max_retries=3)</code> עם backoff 2/4/8s</li>
+      <li>כל בדיקת token: buffer פקיעה 5 דקות (<code>is_expired()</code>)</li>
+      <li>תשובת <code>DeviceNotRecognized</code>: פתיחת דפדפן ל-<code>{WEBAPI_URL}/DeviceLogin?deviceUid={uid}</code> (פעם אחת בלבד)</li>
+      <li>תשובת <code>InvalidToken</code>/<code>TokenExpired</code> בזמן alert: <code>handle_auth_response()</code> → re-auth → retry פעם אחת</li>
+      <li>אימות נכשל לחלוטין: background thread מנסה שוב כל 30s</li>
+    </ol>
+
+    <h3>נקודות תשומת לב אבטחה</h3>
+    <div class="callout callout-warn">
+      <span class="callout-icon">⚠</span>
+      <div class="callout-body">
+        <strong>חוב אבטחה ידוע:</strong><br>
+        • WebSocket לExtension רץ על <code>ws://</code> (ללא TLS) — סיכון ל-localhost loopback interception<br>
+        • ZMQ ports 5555/5556 ב-Backend כרגע bound ל-<code>*:</code> (ראה CLAUDE.md)<br>
+        • <code>WHITELIST_IPS</code> hardcoded עם IP ספציפי (<code>100.86.253.55</code>) — לבדוק עם צמיחת infrastructure
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════ 12. Browser Tabs ═══════════════════════════════ -->
+  <section id="s12">
+    <h2><span class="sec-num">12</span> Browser Tab Tracking</h2>
+
+    <h3>מתי נאספים tabs</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>אירוע</th><th>מה נשלח</th><th>Policy</th></tr></thead>
+        <tbody>
+          <tr><td>session_started</td><td>tabs נוכחיים</td><td>לפי policy</td></tr>
+          <tr><td>session_ended</td><td><code>[]</code> (רשימה ריקה)</td><td>תמיד (ניקוי cache Backend)</td></tr>
+          <tr><td>app_opened (עם session פעיל)</td><td>tabs נוכחיים</td><td>לפי policy</td></tr>
+          <tr><td>Extension connected (מאוחר)</td><td>tabs נוכחיים</td><td>לפי policy</td></tr>
+          <tr><td>ImmediateDanger periodic (כל 10s)</td><td>tabs נוכחיים</td><td>תמיד (ללא תלות בpolicy)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-info">
+      <span class="callout-icon">ℹ</span>
+      <div class="callout-body"><strong>Session end שולח []</strong> — מנקה את cache BrowserTabs ב-Backend. בלי זה, tabs מסשן ישן יישארו ויגרמו ל-false positive ImmediateDanger ב-session הבא.</div>
+    </div>
+
+    <h3>מדיניות BrowserTabs</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Mode</th><th>התנהגות</th></tr></thead>
+        <tbody>
+          <tr><td>incoming_only (default)</td><td>אוסף tabs רק כאשר direction == "incoming"</td></tr>
+          <tr><td>always</td><td>אוסף tabs בכל RemoteAccessAlert</td></tr>
+          <tr><td>never</td><td>מחזיר None — שדה BrowserTabs לא נשלח כלל</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Backend יכול לשנות מדיניות זמנית ב-<code>SetBrowserTabsPolicyNotification</code> עם <code>ValidUntil</code>. Override מנקה עצמו עם פקיעה.</p>
+
+    <h3>סינון URLs</h3>
+    <p>URLs שמתחילים ב-<code>BROWSER_TABS_URL_FILTER</code> (ריק/"localhost"/"127.0.0.1") מסוננים לפני שליחה לBackend.</p>
+
+    <h3>Browser History Scanning (פאסיבי)</h3>
+    <p>כל 30s, <code>BrowserHistoryMonitor</code> קורא SQLite history files של Chrome/Edge/Firefox (via temp-file copy לחמוק מlock). מסנן 5 דקות אחרונות, deduplication ב-<code>_seen_urls</code> set. URLs חדשים → UrlAlert לBackend. עובד גם כאשר Extension לא מחובר.</p>
+
+    <h3>BrowserTab — מבנה מהExtension</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>שדה</th><th>סוג</th><th>תיאור</th></tr></thead>
+        <tbody>
+          <tr><td>TabId</td><td>int</td><td>Chrome tab ID</td></tr>
+          <tr><td>Url</td><td>str</td><td>URL נוכחי</td></tr>
+          <tr><td>IsSensitiveWebsite</td><td>bool</td><td>Extension זיהה כאתר רגיש</td></tr>
+          <tr><td>LoggedIn</td><td>bool?</td><td>true=מחובר | false=לא מחובר | null=לא ידוע</td></tr>
+          <tr><td>Timestamp</td><td>ISO-8601</td><td>זמן דיווח</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout callout-info">
+      <span class="callout-icon">ℹ</span>
+      <div class="callout-body"><strong>LoggedIn semantics:</strong> Backend מפעיל ImmediateDanger רק כאשר <code>LoggedIn==true</code> (מפורש). <code>null</code> (לא ידוע) <strong>לא</strong> מפעיל — זה מונע false positives מאתרי ממשלה שיש להם session cookies אבל לא ניתן לקבוע מצב כניסה.</div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════ 13. UI ═══════════════════════════════ -->
+  <section id="s13">
+    <h2><span class="sec-num">13</span> ממשק משתמש</h2>
+
+    <h3>System Tray Icon</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>צבע</th><th>מצב</th></tr></thead>
+        <tbody>
+          <tr><td>אפור</td><td>מתחיל / לא מוגן</td></tr>
+          <tr><td>ירוק</td><td>Backend מחובר — מוגן</td></tr>
+          <tr><td>צהוב</td><td>Extension מחובר אבל לא Backend — מוגן חלקית</td></tr>
+          <tr><td>אדום</td><td>Session נכנס פעיל / ImmediateDanger</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>תפריט ימני:</strong> Show Status (ברירת מחדל), Dashboard, Preferences (Settings / View Logs), About, Exit.</p>
+
+    <h3>TrayPopup (borderless window)</h3>
+    <p>280×320px. Borderless (<code>overrideredirect=True</code>). Always-on-top. 97% opacity. מוצג ליד cursor. סגירה על focus-out אחרי 150ms. מכיל:</p>
+    <ul class="body-list">
+      <li>Hero row — dot צבעוני + מצב ("Protected" / "Remote control detected")</li>
+      <li>Remote Access section — "No active sessions" / שם app + direction + כפתור "Stop Session"</li>
+      <li>System Status — Extension / Agent / Backend</li>
+      <li>Footer — Preferences, Exit, גרסה</li>
+    </ul>
+
+    <h3>CenteredToast — חלון ImmediateDanger</h3>
+    <p>Singleton (<code>centered_toast._active_alert</code>). לכל היותר חלון אחד על המסך.</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>מצב</th><th>התנהגות</th></tr></thead>
+        <tbody>
+          <tr><td>LOCKED (danger פעיל)</td><td>אדום. ללא כפתור סגירה. Alt+F4 חסום. Draggable. Lift loop כל 2s. כפתור "View Details" → DangerDetailsWindow</td></tr>
+          <tr><td>CLEARED (danger הסתיים)</td><td>ירוק. כפתור Close. ממתין לסגירה ידנית. <strong>אותו חלון</strong>, עדכון in-place</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>DangerDetailsWindow:</strong> CTkToplevel 560×420px. מציג: Started, Remote App, Direction, Sensitive URL, Device, User, Danger Key, Protective Actions. גוף scrollable.</p>
+
+    <h3>Windows Toast (NotificationManager)</h3>
+    <p>ספרייה: <code>winotify</code> (מועדפת) / <code>win10toast</code> (fallback). Risk levels → audio: none/low=Default, medium=Reminder, high/critical=LoopingAlarm. action_buttons מותאמות לפי הקשר.</p>
+  </section>
+
+  <!-- ═══════════════════════════════ 14. Startup/Shutdown ═══════════════════════════════ -->
+  <section id="s14">
+    <h2><span class="sec-num">14</span> Startup / Shutdown</h2>
+
+    <h3>רצף Startup</h3>
+    <ol class="flow-steps">
+      <li><code>get_or_create_device_id()</code> — hardware fingerprint, cached לדיסק</li>
+      <li><code>AntiScamApp.__init__()</code> — Container DI, wireup callbacks</li>
+      <li><code>extension_server.start()</code> — WebSocket server על הפורט הראשון הפנוי</li>
+      <li><code>auth_manager.ensure_authenticated()</code> — עד 3 ניסיונות עם backoff</li>
+      <li><code>container.apply_curve_keys()</code> — מעביר CURVE key ל-NotificationClient</li>
+      <li><code>notification_client.start()</code> — daemon thread לZMQ SUB</li>
+      <li>אם auth נכשל: <code>_background_reconnect()</code> thread — מנסה כל 30s</li>
+      <li><code>monitor_service.start()</code> — מפעיל 3 asyncio tasks</li>
+      <li><code>remote_monitor.startup_scan()</code> — בדיקת מצב נוכחי, שליחת alerts על מצבים קיימים</li>
+      <li><code>tray_icon.run_blocking()</code> — <strong>Main Thread blocking</strong> — pystray + customtkinter mainloop</li>
+    </ol>
+
+    <h3>רצף Shutdown</h3>
+    <ol class="flow-steps">
+      <li>Tray Exit / KeyboardInterrupt → <code>_on_exit()</code></li>
+      <li><code>self._running = False</code> — asyncio loop מסתיים</li>
+      <li><code>monitor_service.stop()</code> — cancel לכל tasks</li>
+      <li><code>extension_server.stop()</code> — סגירת כל WebSocket clients</li>
+      <li><code>notification_client.stop()</code> — עצירת SUB thread, cleanup ZMQ</li>
+      <li><code>zmq_client.destroy()</code> — ביטול ZMQ Context</li>
+      <li><code>tray.stop()</code> — destroy popup, עצירת pystray, quit CTk root</li>
+    </ol>
+
+    <div class="callout callout-info">
+      <span class="callout-icon">ℹ</span>
+      <div class="callout-body"><strong>Build:</strong> <code>build_release.py --env prod</code> מעתיק <code>config_prod.py → config_override.py</code>, ואז PyInstaller יוצר EXE יחיד. Installer: Inno Setup. מתקין כ-<code>AntiScam.exe</code> תחת Program Files, רישום ב-Startup, סמל Desktop.</div>
+    </div>
+  </section>
+</main>
+</body></html>

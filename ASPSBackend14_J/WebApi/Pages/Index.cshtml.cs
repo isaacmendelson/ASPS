@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using WebApi.Services;
 using Business.Queries;
+using System.Reflection;
 
 namespace WebApi.Pages
 {
@@ -23,9 +24,16 @@ namespace WebApi.Pages
         public int PhishingWebsitesCount { get; set; }
         public string? ErrorMessage { get; set; }
         public string SystemVersion { get; set; } = ThisAssembly.AssemblyInformationalVersion;
-        public string GitCommitId { get; set; } = ThisAssembly.GitCommitId;
-        public bool IsPrerelease { get; set; } = ThisAssembly.IsPrerelease;
+        //public string GitCommitId { get; set; } = ThisAssembly.GitCommitId;
         
+        public string GitCommitId { get; set; } =
+            typeof(IndexModel).Assembly
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                .InformationalVersion
+            ?? "unknown";
+
+        public bool IsPrerelease { get; set; } = ThisAssembly.IsPrerelease;
+
         // Component versions
         public string BackendVersion { get; set; } = "N/A";
         public string WebApiVersion { get; set; } = ThisAssembly.AssemblyInformationalVersion;

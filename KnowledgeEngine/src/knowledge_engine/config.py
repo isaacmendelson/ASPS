@@ -23,6 +23,13 @@ ASPS_CLAUDE = Path(
     )
 )
 
+SPEC_SOURCES = Path(
+    os.getenv(
+        "SPEC_SOURCES",
+        str(PROJECT_ROOT / "documents" / "spec-sources")
+    )
+)
+
 TOP_K = int(os.getenv("TOP_K", "5"))
 
 COLLECTION_NAME = os.getenv(
@@ -33,4 +40,5 @@ COLLECTION_NAME = os.getenv(
 KNOWLEDGE_SOURCES = [
     ASPS_DOCS,
     ASPS_CLAUDE,
+    SPEC_SOURCES,
 ]
