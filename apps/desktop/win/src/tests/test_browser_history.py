@@ -8,8 +8,10 @@ from unittest.mock import Mock, patch, MagicMock
 import sys
 import os
 import sqlite3
+import tempfile
 from contextlib import contextmanager
 from datetime import datetime
+from pathlib import Path
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -39,7 +41,12 @@ class TestBrowserHistoryMonitor(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.monitor = BrowserHistoryMonitor()
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.state_file = Path(self.temp_dir.name) / 'browser-history-delivery.json'
+        self.monitor = BrowserHistoryMonitor(state_file=self.state_file)
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
 
     #region Constructor / instantiation
 
@@ -260,22 +267,22 @@ class TestBrowserHistoryMonitor(unittest.TestCase):
         """is_url_seen returns False when the URL has never been processed."""
         self.assertFalse(self.monitor.is_url_seen('https://brand-new.example.com'))
 
-    def test_mark_url_as_sent_causes_is_url_seen_to_return_true(self):
-        """mark_url_as_sent causes is_url_seen to return True for that URL."""
+    def test_acknowledged_delivery_causes_is_url_seen_to_return_true(self):
+        """Only explicit delivery acknowledgement causes seen=True."""
         url = 'https://sent.example.com'
-        self.monitor.mark_url_as_sent(url, 'chrome')
+        self.monitor.mark_delivery_acknowledged(url, 'chrome')
         self.assertTrue(self.monitor.is_url_seen(url))
 
     def test_seen_url_key_stored_with_browser_prefix(self):
         """_seen_urls uses 'browser:url' keys so the same URL is tracked per browser."""
         url = 'https://shared.example.com'
-        self.monitor.mark_url_as_sent(url, 'edge')
+        self.monitor.mark_delivery_acknowledged(url, 'edge')
         self.assertIn('edge:https://shared.example.com', self.monitor._seen_urls)
 
     def test_get_new_entries_skips_already_seen_urls(self):
         """get_new_entries omits entries whose browser:url key is already in _seen_urls."""
         entry = HistoryEntry('https://already-seen.com', 'Seen', datetime.now(), 'chrome')
-        self.monitor.mark_url_as_sent('https://already-seen.com', 'chrome')
+        self.monitor.mark_delivery_acknowledged('https://already-seen.com', 'chrome')
 
         with patch.object(self.monitor, 'get_all_history', return_value=[entry]):
             new_entries = self.monitor.get_new_entries()
@@ -292,14 +299,87 @@ class TestBrowserHistoryMonitor(unittest.TestCase):
         self.assertEqual(len(new_entries), 1)
         self.assertEqual(new_entries[0].url, 'https://brand-new.com')
 
-    def test_get_new_entries_adds_returned_urls_to_seen_set(self):
-        """get_new_entries adds newly returned URLs to _seen_urls so they are not repeated."""
+    def test_get_new_entries_queues_without_marking_url_seen(self):
+        """Discovery must not mark a URL seen before backend acknowledgement."""
         entry = HistoryEntry('https://once-only.com', 'Once', datetime.now(), 'chrome')
 
         with patch.object(self.monitor, 'get_all_history', return_value=[entry]):
             self.monitor.get_new_entries()
 
-        self.assertIn('chrome:https://once-only.com', self.monitor._seen_urls)
+        self.assertFalse(self.monitor.is_url_seen(entry.url))
+        self.assertEqual(
+            self.monitor.get_delivery_state(entry.url, entry.browser),
+            'queued',
+        )
+
+    def test_failed_delivery_is_returned_for_retry(self):
+        entry = HistoryEntry('https://retry.example.com', 'Retry', datetime.now(), 'chrome')
+        with patch.object(self.monitor, 'get_all_history', return_value=[entry]):
+            self.monitor.get_new_entries()
+
+        self.monitor.mark_delivery_sent(entry.url, entry.browser)
+        self.monitor.mark_delivery_failed(entry.url, entry.browser)
+
+        with patch.object(self.monitor, 'get_all_history', return_value=[]):
+            retry_entries = self.monitor.get_new_entries()
+
+        self.assertEqual([candidate.url for candidate in retry_entries], [entry.url])
+
+    def test_acknowledged_delivery_survives_restart_and_suppresses_duplicate(self):
+        entry = HistoryEntry('https://durable.example.com', 'Durable', datetime.now(), 'edge')
+        with patch.object(self.monitor, 'get_all_history', return_value=[entry]):
+            self.monitor.get_new_entries()
+        self.monitor.mark_delivery_sent(entry.url, entry.browser)
+        self.monitor.mark_delivery_acknowledged(entry.url, entry.browser)
+
+        restarted = BrowserHistoryMonitor(state_file=self.state_file)
+        with patch.object(restarted, 'get_all_history', return_value=[entry]):
+            self.assertEqual(restarted.get_new_entries(), [])
+        self.assertTrue(restarted.is_url_seen(entry.url))
+
+    def test_restart_recovers_unacknowledged_sent_delivery_as_failed(self):
+        entry = HistoryEntry('https://crash-recovery.example.com', 'Recovery', datetime.now(), 'firefox')
+        with patch.object(self.monitor, 'get_all_history', return_value=[entry]):
+            self.monitor.get_new_entries()
+        self.monitor.mark_delivery_sent(entry.url, entry.browser)
+
+        restarted = BrowserHistoryMonitor(state_file=self.state_file)
+        with patch.object(restarted, 'get_all_history', return_value=[]):
+            retry_entries = restarted.get_new_entries()
+
+        self.assertEqual([candidate.url for candidate in retry_entries], [entry.url])
+        self.assertEqual(
+            restarted.get_delivery_state(entry.url, entry.browser),
+            'failed',
+        )
+
+    def test_same_url_discovered_in_two_browsers_is_queued_once(self):
+        now = datetime.now()
+        chrome = HistoryEntry('https://shared.example.com', 'Shared', now, 'chrome')
+        edge = HistoryEntry('https://shared.example.com', 'Shared', now, 'edge')
+
+        with patch.object(self.monitor, 'get_all_history', return_value=[chrome, edge]):
+            candidates = self.monitor.get_new_entries()
+
+        self.assertEqual([entry.url for entry in candidates], [chrome.url])
+
+    def test_state_pruning_never_drops_failed_delivery(self):
+        self.monitor.MAX_ACKNOWLEDGED_RECORDS = 1
+        first = HistoryEntry('https://first.example.com', 'First', datetime.now(), 'chrome')
+        second = HistoryEntry('https://second.example.com', 'Second', datetime.now(), 'edge')
+        failed = HistoryEntry('https://pending.example.com', 'Pending', datetime.now(), 'firefox')
+        with patch.object(self.monitor, 'get_all_history', return_value=[first, second, failed]):
+            self.monitor.get_new_entries()
+        self.monitor.mark_delivery_acknowledged(first.url, first.browser)
+        self.monitor.mark_delivery_acknowledged(second.url, second.browser)
+        self.monitor.mark_delivery_failed(failed.url, failed.browser)
+
+        restarted = BrowserHistoryMonitor(state_file=self.state_file)
+
+        self.assertEqual(
+            restarted.get_delivery_state(failed.url, failed.browser),
+            'failed',
+        )
 
     #endregion
 

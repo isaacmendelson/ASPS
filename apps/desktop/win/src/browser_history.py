@@ -4,18 +4,21 @@ Reads browser history directly from SQLite files
 """
 
 import os
+import json
 import sqlite3
 import shutil
 import tempfile
 import platform
 import glob
+import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional, Set, Generator
+from pathlib import Path
+from typing import List, Dict, Optional, Set, Generator, Union
 from dataclasses import dataclass
 import logging
 
-from config import BROWSER_HISTORY
+from config import BROWSER_HISTORY, DATA_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -70,11 +73,126 @@ class HistoryEntry:
 
 class BrowserHistoryMonitor:
     """Monitor browser history across multiple browsers"""
-    
-    def __init__(self):
+
+    DISCOVERED = "discovered"
+    QUEUED = "queued"
+    SENT = "sent"
+    ACKNOWLEDGED = "acknowledged"
+    FAILED = "failed"
+    MAX_ACKNOWLEDGED_RECORDS = 5000
+
+    def __init__(self, state_file: Optional[Union[str, Path]] = None):
         self.system = platform.system()
-        self._seen_urls: Set[str] = set()  # Track URLs we've already processed
+        self._state_file = Path(
+            state_file or Path(os.path.expanduser(DATA_DIR)) / "browser-history-delivery.json"
+        )
+        self._delivery_state: Dict[str, Dict] = {}
+        self._seen_urls: Set[str] = set()  # Acknowledged 'browser:url' keys (index into _delivery_state)
         self._last_check: Dict[str, datetime] = {}  # Last check time per browser
+        self._load_delivery_state()
+
+    @staticmethod
+    def _url_key(url: str, browser: str) -> str:
+        return f"{browser}:{url}"
+
+    def _load_delivery_state(self) -> None:
+        """Load durable delivery state and recover interrupted sends for retry."""
+        if not self._state_file.exists():
+            return
+
+        try:
+            with self._state_file.open("r", encoding="utf-8") as state_stream:
+                raw_state = json.load(state_stream)
+            if not isinstance(raw_state, dict):
+                raise ValueError("delivery state must be a JSON object")
+
+            recovered_sent = False
+            for key, record in raw_state.items():
+                if not isinstance(record, dict):
+                    continue
+                status = record.get("status")
+                if status not in {
+                    self.DISCOVERED, self.QUEUED, self.SENT,
+                    self.ACKNOWLEDGED, self.FAILED,
+                }:
+                    continue
+                if status == self.SENT:
+                    record["status"] = self.FAILED
+                    recovered_sent = True
+                elif status == self.DISCOVERED:
+                    record["status"] = self.QUEUED
+                    recovered_sent = True
+                self._delivery_state[key] = record
+
+            self._refresh_seen_index()
+            if recovered_sent:
+                self._save_delivery_state()
+        except (OSError, ValueError, TypeError, json.JSONDecodeError) as error:
+            logger.warning("Cannot load browser-history delivery state %s: %s",
+                           self._state_file, error)
+            self._delivery_state = {}
+            self._seen_urls = set()
+
+    def _save_delivery_state(self) -> None:
+        """Persist state atomically so a restart cannot observe partial JSON."""
+        try:
+            self._prune_acknowledged_state()
+            self._state_file.parent.mkdir(parents=True, exist_ok=True)
+            temp_file = self._state_file.with_suffix(self._state_file.suffix + ".tmp")
+            with temp_file.open("w", encoding="utf-8") as state_stream:
+                json.dump(self._delivery_state, state_stream, indent=2, sort_keys=True)
+            os.replace(temp_file, self._state_file)
+        except OSError as error:
+            logger.error("Cannot save browser-history delivery state %s: %s",
+                         self._state_file, error)
+
+    def _prune_acknowledged_state(self) -> None:
+        """Bound completed dedup state without ever dropping pending retries."""
+        acknowledged = [
+            (key, record) for key, record in self._delivery_state.items()
+            if record.get("status") == self.ACKNOWLEDGED
+        ]
+        overflow = len(acknowledged) - self.MAX_ACKNOWLEDGED_RECORDS
+        if overflow <= 0:
+            return
+        acknowledged.sort(key=lambda item: item[1].get("updated_at", 0))
+        for key, _ in acknowledged[:overflow]:
+            del self._delivery_state[key]
+        self._refresh_seen_index()
+
+    def _refresh_seen_index(self) -> None:
+        """Rebuild the fast-lookup index of acknowledged 'browser:url' keys."""
+        self._seen_urls = {
+            key for key, record in self._delivery_state.items()
+            if record.get("status") == self.ACKNOWLEDGED
+        }
+
+    def _record_entry(self, entry: HistoryEntry) -> None:
+        key = self._url_key(entry.url, entry.browser)
+        if key in self._delivery_state:
+            return
+        self._delivery_state[key] = {
+            "status": self.QUEUED,
+            "url": entry.url,
+            "browser": entry.browser,
+            "title": entry.title,
+            "visit_time": entry.visit_time.isoformat(),
+            "visit_count": entry.visit_count,
+            "updated_at": time.time(),
+        }
+
+    @staticmethod
+    def _entry_from_record(record: Dict) -> Optional[HistoryEntry]:
+        try:
+            return HistoryEntry(
+                url=record["url"],
+                title=record.get("title", ""),
+                visit_time=datetime.fromisoformat(record["visit_time"]),
+                browser=record["browser"],
+                visit_count=int(record.get("visit_count", 1)),
+            )
+        except (KeyError, TypeError, ValueError):
+            return None
         
     def _get_history_path(self, browser: str) -> Optional[str]:
         """Get history file path for a browser"""
@@ -286,36 +404,100 @@ class BrowserHistoryMonitor:
         return all_entries
     
     def get_new_entries(self) -> List[HistoryEntry]:
-        """Get only new entries since last check"""
+        """Discover entries and return durable queued/failed delivery candidates."""
         # Get entries from last 5 minutes
         since = datetime.now() - timedelta(minutes=5)
         all_entries = self.get_all_history(since)
-        
-        # Filter out already seen URLs
-        new_entries = []
+
+        state_changed = False
         for entry in all_entries:
-            url_key = f"{entry.browser}:{entry.url}"
-            if url_key not in self._seen_urls:
-                self._seen_urls.add(url_key)
-                new_entries.append(entry)
-                
-        # Limit seen URLs cache size
-        if len(self._seen_urls) > 10000:
-            self._seen_urls = set(list(self._seen_urls)[-5000:])
-            
-        return new_entries
-    
-    def mark_url_as_sent(self, url: str, browser: str):
-        """Mark a URL as already sent to server"""
-        url_key = f"{browser}:{url}"
-        self._seen_urls.add(url_key)
+            url_key = self._url_key(entry.url, entry.browser)
+            if url_key not in self._delivery_state and not self.is_url_seen(entry.url):
+                self._record_entry(entry)
+                state_changed = True
+
+        if state_changed:
+            self._save_delivery_state()
+
+        candidates = []
+        candidate_urls = set()
+        for record in self._delivery_state.values():
+            if record.get("status") not in (self.QUEUED, self.FAILED):
+                continue
+            url = record.get("url")
+            if not url or url in candidate_urls or self.is_url_seen(url):
+                continue
+            entry = self._entry_from_record(record)
+            if entry:
+                candidates.append(entry)
+                candidate_urls.add(url)
+
+        candidates.sort(key=lambda entry: entry.visit_time, reverse=True)
+        return candidates
+
+    def queue_url_for_delivery(self, url: str, browser: str) -> None:
+        """Durably queue a URL without treating discovery as acknowledgement."""
+        key = self._url_key(url, browser)
+        if key in self._delivery_state or self.is_url_seen(url):
+            return
+        self._delivery_state[key] = {
+            "status": self.QUEUED,
+            "url": url,
+            "browser": browser,
+            "title": "",
+            "visit_time": datetime.now().isoformat(),
+            "visit_count": 1,
+            "updated_at": time.time(),
+        }
+        self._save_delivery_state()
+
+    def _set_delivery_status(self, url: str, browser: str, status: str) -> None:
+        key = self._url_key(url, browser)
+        record = self._delivery_state.get(key)
+        if record is None:
+            record = {
+                "url": url,
+                "browser": browser,
+                "title": "",
+                "visit_time": datetime.now().isoformat(),
+                "visit_count": 1,
+                "updated_at": time.time(),
+            }
+            self._delivery_state[key] = record
+        record["status"] = status
+        record["updated_at"] = time.time()
+        self._refresh_seen_index()
+        self._save_delivery_state()
+
+    def mark_delivery_sent(self, url: str, browser: str) -> None:
+        self._set_delivery_status(url, browser, self.SENT)
+
+    def mark_delivery_acknowledged(self, url: str, browser: str) -> None:
+        # Equivalent discoveries from other browsers represent the same backend
+        # URL delivery and are acknowledged together.
+        matching_keys = [
+            key for key, record in self._delivery_state.items()
+            if record.get("url") == url
+        ]
+        if not matching_keys:
+            self._set_delivery_status(url, browser, self.ACKNOWLEDGED)
+            return
+        for key in matching_keys:
+            self._delivery_state[key]["status"] = self.ACKNOWLEDGED
+            self._delivery_state[key]["updated_at"] = time.time()
+        self._refresh_seen_index()
+        self._save_delivery_state()
+
+    def mark_delivery_failed(self, url: str, browser: str) -> None:
+        self._set_delivery_status(url, browser, self.FAILED)
+
+    def get_delivery_state(self, url: str, browser: str) -> Optional[str]:
+        record = self._delivery_state.get(self._url_key(url, browser))
+        return record.get("status") if record else None
     
     def is_url_seen(self, url: str) -> bool:
-        """Check if we've already processed this URL"""
-        for browser in ['chrome', 'edge', 'firefox']:
-            if f"{browser}:{url}" in self._seen_urls:
-                return True
-        return False
+        """Return True only after the backend acknowledged delivery."""
+        return any(key.endswith(f":{url}") for key in self._seen_urls)
 
 
 # For standalone testing

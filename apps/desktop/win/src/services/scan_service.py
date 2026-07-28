@@ -129,6 +129,9 @@ class ScanService:
         if cached:
             print(f"[SCAN] CACHE HIT! Score: {cached.score}")
             print("~" * 60 + "\n")
+            # A cache entry exists only after a completed analysis. It is safe
+            # to suppress the equivalent browser-history discovery.
+            self.browser_monitor.mark_delivery_acknowledged(url, 'extension')
             return self._create_result(
                 url=url,
                 score=cached.score,
@@ -139,8 +142,9 @@ class ScanService:
 
         print("[SCAN] CACHE MISS - asking server")
 
-        # Mark URL as seen
-        self.browser_monitor.mark_url_as_sent(url, 'extension')
+        # Discovery is durable, but must not become "seen" until the backend
+        # explicitly accepts this delivery.
+        self.browser_monitor.queue_url_for_delivery(url, 'extension')
 
         # Step 2: Check authentication
         print("[SCAN] Step 2: Checking authentication...")
@@ -159,16 +163,22 @@ class ScanService:
         # Track pending URL for notification matching
         ScanService.set_pending_url(url)
 
-        response = self.zmq_client.send_url_alert(
-            device_uid=self.device_id,
-            url=url,
-            token=token,
-            trackers=trackers,
-            iframes=iframes,
-            ip_address=ip_address,
-            tab_id=tab_id,
-            envelope=envelope
-        )
+        self.browser_monitor.mark_delivery_sent(url, 'extension')
+        try:
+            response = self.zmq_client.send_url_alert(
+                device_uid=self.device_id,
+                url=url,
+                token=token,
+                trackers=trackers,
+                iframes=iframes,
+                ip_address=ip_address,
+                tab_id=tab_id,
+                envelope=envelope
+            )
+        except Exception as error:
+            logger.error("URL delivery failed for %s: %s", url, error)
+            self._mark_delivery_failed(url)
+            return self._create_error(url, str(error))
 
         self.event_logger.log_sent('SuspiciousUrlAlert', {'url': url})
 
@@ -185,18 +195,26 @@ class ScanService:
                 # Re-authenticated successfully, retry the request
                 print("[SCAN] Re-authenticated, retrying request...")
                 token = self.auth_manager.get_token()
-                new_response = self.zmq_client.send_url_alert(
-                    device_uid=self.device_id,
-                    url=url,
-                    token=token or "",
-                    ip_address=ip_address
-                )
+                self.browser_monitor.mark_delivery_sent(url, 'extension')
+                try:
+                    new_response = self.zmq_client.send_url_alert(
+                        device_uid=self.device_id,
+                        url=url,
+                        token=token or "",
+                        ip_address=ip_address
+                    )
+                except Exception as error:
+                    logger.error("URL delivery retry failed for %s: %s", url, error)
+                    self._mark_delivery_failed(url)
+                    return self._create_error(url, str(error))
                 return self._process_response(new_response, url, retry=False, ip_address=ip_address)
             else:
+                self._mark_delivery_failed(url)
                 return self._create_error(url, "Authentication failed")
 
         # New format: success response (async analysis)
         if response and response.get('messageType') == 'url_scan.accepted':
+            self.browser_monitor.mark_delivery_acknowledged(url, 'extension')
             payload = response.get('payload', {})
             return {
                 **response,
@@ -206,7 +224,8 @@ class ScanService:
                 'message': payload.get('message', 'Analysis in progress')
             }
 
-        if response and response.get('success'):
+        if response and response.get('success') is True:
+            self.browser_monitor.mark_delivery_acknowledged(url, 'extension')
             print(f"[SCAN] Backend accepted alert")
             print(f"[SCAN] Message: {response.get('message', 'N/A')}")
             print(f"[SCAN] Waiting for notification with analysis results...")
@@ -220,7 +239,11 @@ class ScanService:
             }
 
         # Old format: immediate result - use server values directly
-        if response and not response.get('HasError'):
+        if response and (
+            not response.get('HasError', False) and
+            any(field in response for field in ('Score', 'RiskType', 'ProtectiveAction'))
+        ):
+            self.browser_monitor.mark_delivery_acknowledged(url, 'extension')
             # Use values directly from server
             score = response.get('Score')
             risk_type = response.get('RiskType', [])
@@ -256,9 +279,16 @@ class ScanService:
 
         # Error
         error_msg = response.get('ErrorMessage', 'Unknown error') if response else 'No response'
+        if response and error_msg == 'Unknown error':
+            error_msg = response.get('message', error_msg)
+        self._mark_delivery_failed(url)
         print(f"[SCAN] ERROR: {error_msg}")
         print("~" * 60 + "\n")
         return self._create_error(url, str(error_msg))
+
+    def _mark_delivery_failed(self, url: str) -> None:
+        self.browser_monitor.mark_delivery_failed(url, 'extension')
+        ScanService.clear_pending_url(url)
 
     def _create_result(
         self,

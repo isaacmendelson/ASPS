@@ -925,25 +925,54 @@ class MonitorService:
 
         return response
 
+    @staticmethod
+    def _url_delivery_was_acknowledged(response: Optional[Dict[str, Any]]) -> bool:
+        """Return True only for an explicit backend acceptance response."""
+        if not response:
+            return False
+        if response.get('messageType') == 'url_scan.accepted':
+            return True
+        return response.get('success') is True and not response.get('HasError', False)
+
+    async def _process_browser_history_once(self):
+        """Run one recoverable browser-history discovery/delivery cycle."""
+        new_entries = self.browser_monitor.get_new_entries()
+
+        for entry in new_entries:
+            if self.browser_monitor.is_url_seen(entry.url):
+                continue
+            if self.cache.has(entry.url):
+                # A valid analysis cache is equivalent to an already completed
+                # URL delivery and should durably suppress repeated history work.
+                self.browser_monitor.mark_delivery_acknowledged(entry.url, entry.browser)
+                continue
+
+            logger.debug(f"New URL from history: {entry.url}")
+
+            # Authentication loss is not a delivery attempt. Keep the durable
+            # entry queued so it is picked up after authentication recovers.
+            if not self.auth_manager.is_valid():
+                continue
+
+            self.browser_monitor.mark_delivery_sent(entry.url, entry.browser)
+            try:
+                response = await self._send_url_alert_with_retry(entry.url)
+            except Exception:
+                self.browser_monitor.mark_delivery_failed(entry.url, entry.browser)
+                raise
+
+            if self._url_delivery_was_acknowledged(response):
+                self.browser_monitor.mark_delivery_acknowledged(entry.url, entry.browser)
+            else:
+                self.browser_monitor.mark_delivery_failed(entry.url, entry.browser)
+
     async def _monitor_browser_history(self):
         """Monitor browser history for new URLs"""
         print("[MONITOR] Browser history monitor started")
 
         while self._running:
             try:
-                new_entries = self.browser_monitor.get_new_entries()
-
-                for entry in new_entries:
-                    if self.browser_monitor.is_url_seen(entry.url):
-                        continue
-                    if self.cache.has(entry.url):
-                        continue
-
-                    logger.debug(f"New URL from history: {entry.url}")
-
-                    # Send if authenticated (with retry on auth errors)
-                    if self.auth_manager.is_valid():
-                        await self._send_url_alert_with_retry(entry.url)
+                await self._process_browser_history_once()
 
             except Exception as e:
                 logger.error(f"Browser history monitor error: {e}")
