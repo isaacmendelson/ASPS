@@ -106,6 +106,12 @@ async def analyze_url(request: AnalyzeRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/analyze/raw")
+async def analyze_url_raw(request: AnalyzeRequest):
+    """Return the complete CLI-compatible result over the private Unix socket."""
+    return analyzer.analyze_url(request.url)
+
+
 @app.get("/analyze")
 async def analyze_url_get(url: str):
     """

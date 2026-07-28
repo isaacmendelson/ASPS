@@ -11,7 +11,7 @@ services:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./aspsbackend2db_20260130.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./aspsbackend2db_20260728.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pzappa22"]
       interval: 10s
@@ -30,6 +30,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      analyzer:
+        condition: service_started
     environment:
       ConnectionStrings__DefaultConnection: "server=mysql;port=3306;database=aspsbackend2db;user=root;password=zappa22;AllowPublicKeyRetrieval=True;SslMode=None;"
       Security__KeysFilePath: /app/keys/curve-server-keys.json
@@ -43,6 +45,7 @@ services:
     volumes:
       - curve_keys:/app/keys
       - curve_public_keys:/app/public-keys
+      - analyzer_socket:/run/asps-analyzer
     networks:
       - asps-network
 
@@ -97,12 +100,45 @@ services:
     volumes:
       - curve_public_keys:/app/public-keys:ro
 
+  analyzer:
+    build:
+      context: .
+      dockerfile: Dockerfile.analyzer
+    container_name: asps-analyzer
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_ADMIN
+      - SETUID
+      - SETGID
+      - SETPCAP
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=256m
+      - /home/analyzer/.cache:rw,noexec,nosuid,nodev,size=64m
+      - /run:rw,noexec,nosuid,nodev,size=1m
+    pids_limit: 128
+    mem_limit: 1g
+    cpus: 1.0
+    volumes:
+      - analyzer_socket:/run/asps-analyzer
+    networks:
+      - analyzer-egress
+
 volumes:
   mysql_data:
   curve_keys:
   curve_public_keys:
   keycloak_data:
+  analyzer_socket:
 
 networks:
   asps-network:
     driver: bridge
+  analyzer-egress:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "false"

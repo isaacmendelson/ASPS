@@ -1,5 +1,33 @@
 # Scam Analyzer
 
+## Security boundary
+
+The analyzer treats every submitted URL and browser request as attacker-controlled.
+It resolves each HTTP(S) destination before navigation and blocks any loopback,
+private, link-local, multicast, unspecified, documentation, reserved, or otherwise
+non-global IP address. Redirects and subresources pass through the same policy,
+and Chromium's reported connected peer is checked to detect DNS rebinding.
+Browser CSP, TLS verification, site isolation, web security, and the Chromium
+sandbox remain enabled.
+
+These application checks are defense in depth. The Docker deployment runs the
+Analyzer in its own unprivileged hardened container, communicates with Backend
+only over a shared Unix-domain socket, mounts no Backend keys, and attaches only
+to the dedicated `analyzer-egress` network. Chromium is forced through a loopback
+filtering proxy which resolves, validates, and connects to the exact approved IP
+so DNS rebinding cannot change the destination between validation and connect.
+Production must preserve:
+
+- no host networking or mounted credentials;
+- outbound firewall/network-policy denial for RFC1918, loopback, link-local,
+  cloud metadata, cluster/service and management networks (IPv4 and IPv6);
+- Internet egress only through a filtering proxy or equivalent allow policy;
+- read-only root filesystem and disposable browser profile/tmp storage;
+- process, memory, CPU and execution-time limits.
+
+If a non-Docker platform cannot enforce equivalent boundaries, it must not
+process attacker-controlled URLs.
+
 Comprehensive URL scam detection tool that analyzes websites for fraud indicators using WHOIS data, content analysis, and pattern matching.
 
 ## Features

@@ -1,10 +1,9 @@
 """
 Test real sites from user's test data - check scores and categories
 """
-import sys, io, json, time
+import sys, json, time
 from pathlib import Path
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 

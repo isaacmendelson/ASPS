@@ -1,0 +1,22 @@
+FROM mcr.microsoft.com/playwright/python:v1.61.0-noble
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends iptables util-linux \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd --gid 10001 analyzer \
+    && useradd --uid 10001 --gid analyzer --create-home analyzer
+
+WORKDIR /app/analyzer
+COPY Analyzers/basic-url-analyzer/requirements.txt .
+RUN python -m pip install --no-cache-dir -r requirements.txt
+COPY --chown=analyzer:analyzer Analyzers/basic-url-analyzer/ .
+RUN chmod 0555 /app/analyzer/scripts/analyzer-entrypoint.sh
+
+RUN mkdir -p /run/asps-analyzer \
+    && chown analyzer:analyzer /run/asps-analyzer
+
+# Entrypoint runs iptables as root, then drops to UID 10001 via setpriv.
+ENV HOME=/home/analyzer
+ENTRYPOINT ["/app/analyzer/scripts/analyzer-entrypoint.sh"]
+CMD ["python", "-m", "uvicorn", "api:app", "--uds", "/run/asps-analyzer/analyzer.sock", "--workers", "1"]
