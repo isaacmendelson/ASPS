@@ -152,22 +152,37 @@ class ZMQClient:
         print(f"[ZMQ] CURVE disabled — no server public key")
 
     def connect(self) -> bool:
-        """Open a new REQ socket. Context is reused — only socket is created here."""
+        """Open a new REQ socket. Context is reused — only socket is created here.
+
+        CURVE encryption is mandatory — this method raises RuntimeError if the
+        server public key has not been set.  There is no plaintext fallback.
+        """
+        # Enforce CURVE before touching the socket.
+        if not self.server_public_key:
+            msg = (
+                "[ZMQ] FATAL: Refusing to connect without a CURVE server public key. "
+                "Set the key via AuthManager before calling connect()."
+            )
+            print(msg)
+            logger.error(msg)
+            raise RuntimeError(msg)
+
         try:
             self.socket = self.context.socket(zmq.REQ)
             self.socket.setsockopt(zmq.RCVTIMEO, self.timeout)
             self.socket.setsockopt(zmq.SNDTIMEO, self.timeout)
             self.socket.setsockopt(zmq.LINGER, 0)  # Don't wait on close
 
-            # Apply CURVE encryption if server key is available
-            if self.server_public_key:
-                client_public, client_secret = zmq.curve_keypair()
-                self.socket.setsockopt(zmq.CURVE_PUBLICKEY, client_public)
-                self.socket.setsockopt(zmq.CURVE_SECRETKEY, client_secret)
-                self.socket.setsockopt(zmq.CURVE_SERVERKEY, self.server_public_key)
+            # Apply CURVE encryption — always required.
+            client_public, client_secret = zmq.curve_keypair()
+            self.socket.setsockopt(zmq.CURVE_PUBLICKEY, client_public)
+            self.socket.setsockopt(zmq.CURVE_SECRETKEY, client_secret)
+            self.socket.setsockopt(zmq.CURVE_SERVERKEY, self.server_public_key)
 
             self.socket.connect(f"tcp://{self.host}:{self.port}")
             return True
+        except RuntimeError:
+            raise
         except Exception as e:
             print(f"[ZMQ] ERROR: Connection failed: {e}")
             logger.error(f"ZMQ connection error: {e}")

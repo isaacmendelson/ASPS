@@ -38,18 +38,43 @@ BACKEND_SUB_PORT = 50002  # Notifications (PUB/SUB pattern)
 import os as _os, pathlib as _pl
 
 def _load_curve_public_key() -> str:
+    """
+    Load the backend CURVE server public key (Z85, 40 characters).
+
+    Search order:
+      1. Environment variable: ANTISCAM_CURVE_PUBLIC_KEY
+      2. User-distributed key file: ~/.antiscam/curve-public-key.txt
+      3. Backend-written public key file (same machine, dev/local):
+           Windows: %LOCALAPPDATA%\\ASPS\\curve-server-public-key.txt
+           Linux/macOS: ~/.asps/curve-server-public-key.txt
+
+    If the key is not found in any source, startup is aborted with a clear
+    error.  There is NO plaintext fallback — every connection must use CURVE.
+
+    Key provisioning options:
+      A) Same-machine dev: backend writes curve-server-public-key.txt on
+         startup; the agent reads it automatically (source 3).
+      B) Deployed install: embed the key in the installer and write it to
+         ~/.antiscam/curve-public-key.txt (source 2).
+      C) Environment variable: set ANTISCAM_CURVE_PUBLIC_KEY before launch
+         (source 1).
+    """
     import platform as _platform
 
     # 1. Environment variable
     env_key = _os.environ.get("ANTISCAM_CURVE_PUBLIC_KEY", "")
     if env_key:
-        return env_key.strip()
+        key = env_key.strip()
+        if key:
+            print("[CONFIG] CURVE public key loaded from environment variable")
+            return key
 
     # 2. Manually distributed key file
     local_file = _pl.Path(_os.path.expanduser("~")) / ".antiscam" / "curve-public-key.txt"
     if local_file.exists():
         key = local_file.read_text().strip()
         if key:
+            print(f"[CONFIG] CURVE public key loaded from: {local_file}")
             return key
 
     # 3. Backend public key file (same machine — dev/local setup).
@@ -66,11 +91,36 @@ def _load_curve_public_key() -> str:
             if key:
                 print(f"[CONFIG] CURVE public key loaded from: {backend_pubkey}")
                 return key
+            # File exists but is empty — backend has CURVE disabled.
+            # This is a configuration error: the agent requires CURVE.
+            raise SystemExit(
+                "[CONFIG] FATAL: CURVE public key file exists but is empty.\n"
+                f"  File: {backend_pubkey}\n"
+                "  The backend may have CURVE disabled (Security:CurveEnabled=false).\n"
+                "  ASPS requires CURVE encryption. Enable CurveEnabled on the backend,\n"
+                "  then restart the agent."
+            )
+        except SystemExit:
+            raise
         except Exception as e:
-            print(f"[CONFIG] Failed to read CURVE public key file: {e}")
+            raise SystemExit(
+                f"[CONFIG] FATAL: Could not read CURVE public key file: {e}\n"
+                f"  File: {backend_pubkey}"
+            ) from e
 
-    # 4. No key — first connection is unencrypted; key received from backend RequestToken response
-    return ""
+    # No key found in any source.
+    raise SystemExit(
+        "[CONFIG] FATAL: CURVE server public key not found.\n"
+        "  The agent cannot start without the server's public key.\n"
+        "  Provisioning options:\n"
+        "    A) Same-machine (dev): start the backend first — it writes\n"
+        f"       {backend_pubkey}\n"
+        "    B) Deployed install: place the key in\n"
+        "       ~/.antiscam/curve-public-key.txt\n"
+        "    C) Environment variable: set ANTISCAM_CURVE_PUBLIC_KEY=<Z85 key>\n"
+        "  Obtain the key from the backend startup log or from the admin UI.\n"
+        "  There is NO plaintext fallback — all connections must use CURVE."
+    )
 
 BACKEND_SERVER_PUBLIC_KEY_Z85 = _load_curve_public_key()
 

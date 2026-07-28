@@ -32,13 +32,19 @@ class AuthManager:
     Manages device authentication against the backend.
 
     Flow:
-    1. Load saved auth data from disk (token + server public key if previously obtained)
-    2. Send RequestToken to backend (first request may be unencrypted if no key yet)
-       - If TokenCreated/ExistingToken -> store token AND server public key
-       - If DeviceNotRecognized -> open browser to WebApi login page
-       - If TokenExpired -> attempt RefreshToken
-    3. All subsequent connections use CURVE encryption with the server's public key
-    4. All subsequent alerts include the real token
+    1. Load saved auth data from disk.
+    2. Apply the CURVE server public key from config — the agent refuses to start
+       if the key is missing (enforced in config._load_curve_public_key).
+    3. Send RequestToken to backend over an encrypted CURVE channel.
+       - If TokenCreated/ExistingToken -> store token.
+       - If DeviceNotRecognized -> open browser to WebApi login page.
+       - If TokenExpired -> attempt RefreshToken.
+    4. All subsequent connections use the same CURVE channel.
+    5. All alerts include the auth token.
+
+    Security invariant: every outbound ZMQ connection uses CURVE encryption.
+    There is no plaintext fallback — a missing server key is a fatal startup
+    error, not a degraded mode.
     """
 
     def __init__(self, zmq_client, device_info: dict, email: str = ""):
@@ -68,20 +74,22 @@ class AuthManager:
         self._load_token()
 
         # Apply server key to zmq_client.
-        # The curve-server-public-key.txt is the authoritative source —
-        # always re-read it fresh so that if the backend restarts with
-        # CurveEnabled=false (and clears the file), we don't use a stale key
-        # from auth.json and get a CURVE mismatch timeout.
-        live_key = BACKEND_SERVER_PUBLIC_KEY_Z85  # reads from txt file at import time
-        if live_key:
-            self.server_public_key = live_key.encode('utf-8')
-            self.zmq_client.set_server_public_key(self.server_public_key)
-            print(f"[AUTH] CURVE enabled — server public key loaded from key file")
-        else:
-            # Key file is empty or missing → backend has CURVE disabled
-            self.server_public_key = None
-            self.zmq_client.clear_server_public_key()
-            print(f"[AUTH] CURVE disabled — connecting without encryption")
+        # config._load_curve_public_key() has already aborted startup (SystemExit)
+        # if the key is absent — so BACKEND_SERVER_PUBLIC_KEY_Z85 is guaranteed
+        # to be a non-empty Z85 string at this point.
+        live_key = BACKEND_SERVER_PUBLIC_KEY_Z85  # resolved at import time
+        if not live_key:
+            # Guard: should never reach here because config raises SystemExit
+            # when the key is missing.  Raise explicitly rather than silently
+            # downgrading to plaintext.
+            raise RuntimeError(
+                "[AUTH] CURVE server public key is empty at AuthManager init. "
+                "This is a configuration error — the agent cannot connect without "
+                "CURVE encryption. Check ANTISCAM_CURVE_PUBLIC_KEY or the key file."
+            )
+        self.server_public_key = live_key.encode('utf-8')
+        self.zmq_client.set_server_public_key(self.server_public_key)
+        print("[AUTH] CURVE enabled — server public key applied to ZMQ client")
 
     def _load_token(self):
         """Load token from secure storage (keyring) and metadata from disk."""
@@ -198,11 +206,10 @@ class AuthManager:
                 except ValueError:
                     self.expires_at = datetime.utcnow() + timedelta(hours=24)
 
-            # Update server public key if returned
-            spk = response.get("serverPublicKey", "")
-            if spk:
-                self.server_public_key = spk.encode('utf-8') if isinstance(spk, str) else spk
-                self.zmq_client.set_server_public_key(self.server_public_key)
+            # Note: server public key is NOT updated from token responses.
+            # The key must be provisioned before first connection (via config).
+            # Accepting a key over-the-wire would allow a MITM to replace the
+            # trust anchor during the first authenticated exchange.
 
             self._save_token()
             print(f"[AUTH] Token updated and saved!")
