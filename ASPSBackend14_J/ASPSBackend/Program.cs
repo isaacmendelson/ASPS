@@ -160,8 +160,6 @@ class Program
                 services.AddScoped<RoadmapCommandHandlers>();
                 services.AddScoped<TrackedDomainCommandHandlers>(); // ASPS-371
 
-                // Add CQRS Gateway (listens for Commands/Queries from WebApi)
-                services.AddSingleton<CQRSGateway>();
                 services.AddScoped<UserDeviceCommandHandlers>();
 
                 // Add Views
@@ -171,6 +169,31 @@ class Program
                 // Add Token Store and CurveZMQ Key Manager
                 services.AddSingleton<TokenStore>();
                 services.AddSingleton<CurveKeyManager>();
+                services.AddSingleton(sp =>
+                {
+                    var configuration = sp.GetRequiredService<IConfiguration>();
+                    var allowedCommands = configuration.GetSection("CQRS:AllowedCommands").Get<string[]>()
+                        ?? CqrsChannelSecurityOptions.GatewayCommandTypes;
+                    return new CqrsChannelSecurity(new CqrsChannelSecurityOptions
+                    {
+                        SharedSecret = configuration["CQRS:SharedSecret"] ?? string.Empty,
+                        AllowedClientIds = new HashSet<string>(
+                            configuration.GetSection("CQRS:AllowedClientIds").Get<string[]>()
+                                ?? new[] { "asps-webapi" },
+                            StringComparer.Ordinal),
+                        AllowedCommands = new HashSet<string>(allowedCommands, StringComparer.Ordinal)
+                    });
+                });
+                services.AddSingleton(sp =>
+                {
+                    var configuration = sp.GetRequiredService<IConfiguration>();
+                    return new CQRSGateway(
+                        sp,
+                        sp.GetRequiredService<ILogger<CQRSGateway>>(),
+                        configuration["CQRS:BindEndpoint"] ?? "tcp://127.0.0.1:5556",
+                        sp.GetRequiredService<CurveKeyManager>(),
+                        sp.GetRequiredService<CqrsChannelSecurity>());
+                });
 
                 // Add Notification Publisher
                 services.AddSingleton<Business.Messaging.NotificationPublisher>();

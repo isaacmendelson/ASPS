@@ -1,4 +1,5 @@
 using Business.Services;
+using Business.Messaging;
 using Common.Messaging;
 using NetMQ;
 using NetMQ.Sockets;
@@ -15,20 +16,27 @@ public class CQRSClient : ICQRSClient
     private readonly string _endpoint;
     private readonly ILogger<CQRSClient> _logger;
     private readonly CurveKeyManager? _curveKeyManager;
+    private readonly CqrsChannelSecurity? _channelSecurity;
     private readonly object _lock = new object();
     private readonly TimeSpan _timeout = TimeSpan.FromSeconds(10);
 
-    public CQRSClient(string endpoint, ILogger<CQRSClient> logger, CurveKeyManager? curveKeyManager = null)
+    public CQRSClient(string endpoint, ILogger<CQRSClient> logger, CurveKeyManager? curveKeyManager = null,
+        CqrsChannelSecurity? channelSecurity = null)
     {
         _endpoint = endpoint;
         _logger = logger;
         _curveKeyManager = curveKeyManager;
+        _channelSecurity = channelSecurity;
     }
 
     private RequestSocket CreateSocket()
     {
         var socket = new RequestSocket();
-        // No CURVE on internal localhost channel — encryption is on external ports 50001/50002
+        if (_curveKeyManager?.IsEnabled != true)
+            throw new InvalidOperationException("CQRS client requires CURVE encryption.");
+        if (_channelSecurity is null)
+            throw new InvalidOperationException("CQRS client requires authenticated channel security.");
+        _curveKeyManager.ApplyClientCurve(socket);
         socket.Connect(_endpoint);
         return socket;
     }
@@ -37,11 +45,10 @@ public class CQRSClient : ICQRSClient
     {
         return await Task.Run(() =>
         {
-            // Create a new socket for each request to avoid state issues
-            using var socket = CreateSocket();
-            
             try
             {
+                // Create a new socket for each request to avoid state issues
+                using var socket = CreateSocket();
                 // Serialize query
                 var queryJson = JsonConvert.SerializeObject(query, new JsonSerializerSettings
                 {
@@ -54,7 +61,7 @@ public class CQRSClient : ICQRSClient
                 lock (_lock)
                 {
                     // Send query
-                    var sent = socket.TrySendFrame(_timeout, queryJson);
+                    var sent = socket.TrySendFrame(_timeout, _channelSecurity!.Protect(queryJson));
                     
                     if (!sent)
                     {
@@ -78,10 +85,8 @@ public class CQRSClient : ICQRSClient
                         query.GetType().Name, responseJson.Length);
 
                     // Deserialize response with type information
-                    var result = JsonConvert.DeserializeObject<TResult>(responseJson, new JsonSerializerSettings
-                    {
-                        TypeNameHandling = TypeNameHandling.Auto
-                    });
+                    var result = JsonConvert.DeserializeObject<TResult>(
+                        responseJson, CqrsJsonSerialization.CreateSettings());
 
                     if (result == null)
                     {
@@ -124,11 +129,10 @@ public class CQRSClient : ICQRSClient
     {
         return await Task.Run(() =>
         {
-            // Create a new socket for each request to avoid state issues
-            using var socket = CreateSocket();
-            
             try
             {
+                // Create a new socket for each request to avoid state issues
+                using var socket = CreateSocket();
                 // Serialize command
                 var commandJson = JsonConvert.SerializeObject(command, new JsonSerializerSettings
                 {
@@ -141,7 +145,7 @@ public class CQRSClient : ICQRSClient
                 lock (_lock)
                 {
                     // Send command
-                    var sent = socket.TrySendFrame(_timeout, commandJson);
+                    var sent = socket.TrySendFrame(_timeout, _channelSecurity!.Protect(commandJson));
                     
                     if (!sent)
                     {
@@ -165,10 +169,8 @@ public class CQRSClient : ICQRSClient
                         command.GetType().Name, responseJson.Length);
 
                     // Deserialize response with type information
-                    var result = JsonConvert.DeserializeObject<TResult>(responseJson, new JsonSerializerSettings
-                    {
-                        TypeNameHandling = TypeNameHandling.Auto
-                    });
+                    var result = JsonConvert.DeserializeObject<TResult>(
+                        responseJson, CqrsJsonSerialization.CreateSettings());
 
                     if (result == null)
                     {

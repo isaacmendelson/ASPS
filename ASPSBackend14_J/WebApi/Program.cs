@@ -1,4 +1,5 @@
 using Business.Services;
+using Business.Messaging;
 using WebApi.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -207,6 +208,15 @@ else
 // CQRS CLIENT
 // ========================================
 builder.Services.AddSingleton<CurveKeyManager>();
+builder.Services.AddSingleton(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    return new CqrsChannelSecurity(new CqrsChannelSecurityOptions
+    {
+        ClientId = configuration["CQRS:ClientId"] ?? "asps-webapi",
+        SharedSecret = configuration["CQRS:SharedSecret"] ?? string.Empty
+    });
+});
 
 var cqrsEndpoint = builder.Configuration.GetValue<string>("CQRS:Endpoint") ?? "tcp://localhost:5556";
 
@@ -214,7 +224,8 @@ builder.Services.AddSingleton<ICQRSClient>(sp =>
 {
     var logger = sp.GetRequiredService<ILogger<CQRSClient>>();
     var curveKeyManager = sp.GetRequiredService<CurveKeyManager>();
-    return new CQRSClient(cqrsEndpoint, logger, curveKeyManager);
+    var channelSecurity = sp.GetRequiredService<CqrsChannelSecurity>();
+    return new CQRSClient(cqrsEndpoint, logger, curveKeyManager, channelSecurity);
 });
 
 Console.WriteLine($"✓ CQRS Client configured: {cqrsEndpoint}");

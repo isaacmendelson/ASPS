@@ -26,6 +26,7 @@ public class CurveKeyManager
     private readonly bool _curveEnabled;
     private readonly string _keysFilePath;
     private readonly string _publicKeyFilePath;
+    private readonly bool _clientOnly;
 
     public byte[] ServerPublicKey { get; private set; } = Array.Empty<byte>();
     public byte[] ServerSecretKey { get; private set; } = Array.Empty<byte>();
@@ -36,11 +37,16 @@ public class CurveKeyManager
         _logger = logger;
         _curveEnabled = configuration.GetValue<bool>("Security:CurveEnabled", true);
         _keysFilePath = ResolveKeysFilePath(configuration.GetValue<string>("Security:KeysFilePath"));
-        _publicKeyFilePath = Path.Combine(Path.GetDirectoryName(_keysFilePath)!, "curve-server-public-key.txt");
+        _publicKeyFilePath = configuration.GetValue<string>("Security:ServerPublicKeyFilePath")
+            ?? Path.Combine(Path.GetDirectoryName(_keysFilePath)!, "curve-server-public-key.txt");
+        _clientOnly = configuration.GetValue<bool>("Security:CurveClientOnly", false);
 
         if (_curveEnabled)
         {
-            LoadOrGenerateKeys();
+            if (_clientOnly)
+                LoadClientPublicKey();
+            else
+                LoadOrGenerateKeys();
         }
         else
         {
@@ -53,11 +59,16 @@ public class CurveKeyManager
     }
 
     public bool IsEnabled => _curveEnabled;
+    public bool HasServerKeyPair =>
+        _curveEnabled && ServerPublicKey.Length == 32 && ServerSecretKey.Length == 32;
 
     /// <summary>Apply CURVE server options to a REP/PUB socket.</summary>
     public void ApplyServerCurve(NetMQSocket socket)
     {
-        if (!_curveEnabled || ServerSecretKey.Length == 0) return;
+        if (!_curveEnabled)
+            throw new InvalidOperationException("CURVE encryption is disabled.");
+        if (!HasServerKeyPair)
+            throw new InvalidOperationException("Valid CURVE server public and private keys are required.");
 
         socket.Options.CurveServer = true;
         socket.Options.CurveCertificate = new NetMQCertificate(ServerSecretKey, ServerPublicKey);
@@ -86,6 +97,20 @@ public class CurveKeyManager
 
         _logger.LogWarning("CURVE keys not found at {Path} — generating new keypair", _keysFilePath);
         GenerateAndSaveKeys();
+    }
+
+    private void LoadClientPublicKey()
+    {
+        if (!File.Exists(_publicKeyFilePath))
+            throw new InvalidOperationException(
+                $"CURVE server public key was not found at {_publicKeyFilePath}.");
+
+        ServerPublicKeyZ85 = File.ReadAllText(_publicKeyFilePath).Trim();
+        if (ServerPublicKeyZ85.Length != 40)
+            throw new InvalidOperationException("CURVE server public key must be a 40-character Z85 value.");
+        ServerPublicKey = Z85.Decode(ServerPublicKeyZ85);
+        ServerSecretKey = Array.Empty<byte>();
+        _logger.LogInformation("CURVE server public key loaded for client use from {Path}", _publicKeyFilePath);
     }
 
     private bool TryLoadKeysFromFile()

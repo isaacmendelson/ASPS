@@ -1,273 +1,215 @@
-using Xunit;
-using Moq;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.DependencyInjection;
 using Business.Messaging;
-using Business.Handlers;
-using Business.Queries;
-using Business.Commands;
 using Business.Services;
-using Business.Views;
-using Newtonsoft.Json;
-using System;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
+using NetMQ;
+using NetMQ.Sockets;
+using Newtonsoft.Json.Linq;
 
 namespace ASPS.Tests.Business.Messaging;
 
-public class CQRSGatewayTests : IDisposable
+public sealed class CQRSGatewayTests : IDisposable
 {
-    private readonly ILogger<CQRSGateway> _logger;
-    private readonly IServiceProvider _serviceProvider;
+    private const string Secret = "0123456789abcdef0123456789abcdef";
+    private readonly ServiceProvider _services = new ServiceCollection().BuildServiceProvider();
+    private readonly string _keysPath = Path.Combine(Path.GetTempPath(), $"asps-cqrs-{Guid.NewGuid():N}", "keys.json");
     private CQRSGateway? _gateway;
 
-    public CQRSGatewayTests()
-    {
-        // Use NullLogger instead of Mock for ILogger
-        _logger = NullLogger<CQRSGateway>.Instance;
-        
-        // Create a minimal service provider
-        // The gateway doesn't need handlers during construction, only at runtime
-        var services = new ServiceCollection();
-        
-        // Add logger
-        services.AddSingleton(_logger);
-        
-        _serviceProvider = services.BuildServiceProvider();
-    }
-
-    #region Constructor Tests
-
     [Fact]
-    public void Constructor_WithValidParameters_CreatesGateway()
+    public void Start_RejectsMissingCurveEncryption()
     {
-        // Act
-        _gateway = new CQRSGateway(_serviceProvider, _logger);
+        var security = CreateSecurity();
+        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance,
+            "tcp://127.0.0.1:45556", null, security);
 
-        // Assert
-        Assert.NotNull(_gateway);
+        var exception = Assert.Throws<InvalidOperationException>(() => _gateway.Start());
+        Assert.Contains("CURVE", exception.Message);
     }
 
     [Fact]
-    public void Constructor_WithCustomEndpoint_CreatesGateway()
+    public void Start_RejectsMissingApplicationAuthentication()
     {
-        // Arrange
-        var customEndpoint = "tcp://*:7777";
+        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance,
+            "tcp://127.0.0.1:45557", CreateCurveManager(), null);
 
-        // Act
-        _gateway = new CQRSGateway(_serviceProvider, _logger, customEndpoint);
-
-        // Assert
-        Assert.NotNull(_gateway);
+        var exception = Assert.Throws<InvalidOperationException>(() => _gateway.Start());
+        Assert.Contains("authenticated", exception.Message);
     }
 
     [Fact]
-    public void Constructor_WithNullCurveKeyManager_CreatesGateway()
+    public void Start_WithCurveAndAuthentication_StartsAndStops()
     {
-        // Act - CurveKeyManager can be null (optional parameter)
-        _gateway = new CQRSGateway(
-            _serviceProvider, 
-            _logger, 
-            "tcp://*:15556",  // Use different port to avoid collision
-            null);
+        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance,
+            "tcp://127.0.0.1:45558", CreateCurveManager(), CreateSecurity());
 
-        // Assert
-        Assert.NotNull(_gateway);
-    }
-
-    [Fact]
-    public void Constructor_WithNullServiceProvider_CreatesGateway()
-    {
-        // The constructor may not validate null - it's a design choice
-        // If validation is needed, it would happen during Start()
-        
-        // Act & Assert - Should create gateway (validation happens later)
-        var gateway = new CQRSGateway(null!, _logger, "tcp://*:25556");
-        Assert.NotNull(gateway);
-    }
-
-    [Fact]
-    public void Constructor_WithNullLogger_CreatesGateway()
-    {
-        // The constructor may not validate null - it's a design choice
-        
-        // Act & Assert - Should create gateway (validation happens later)
-        var gateway = new CQRSGateway(_serviceProvider, null!, "tcp://*:35556");
-        Assert.NotNull(gateway);
-    }
-
-    #endregion
-
-    #region Start/Stop Tests
-
-    [Fact]
-    public void Start_StartsGatewaySuccessfully()
-    {
-        // Arrange - Use unique port to avoid collision
-        _gateway = new CQRSGateway(_serviceProvider, _logger, "tcp://*:45556");
-
-        // Act & Assert - Should not throw
         _gateway.Start();
-
-        // Cleanup
         _gateway.Stop();
     }
 
     [Fact]
-    public void Stop_StopsGatewaySuccessfully()
+    public void DefaultEndpoint_IsRestrictedToLoopback()
     {
-        // Arrange - Use unique port to avoid collision
-        _gateway = new CQRSGateway(_serviceProvider, _logger, "tcp://*:45557");
+        var field = typeof(CQRSGateway).GetField("_endpoint",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance);
+
+        Assert.Equal("tcp://127.0.0.1:5556", field!.GetValue(_gateway));
+    }
+
+    [Fact]
+    public void Start_WithClientOnlyCurveMaterial_RejectsBeforeBind()
+    {
+        var serverKeys = CreateCurveManager();
+        var publicKeyPath = Path.Combine(Path.GetDirectoryName(_keysPath)!,
+            "curve-server-public-key.txt");
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?>
+            {
+                ["Security:CurveEnabled"] = "true",
+                ["Security:CurveClientOnly"] = "true",
+                ["Security:ServerPublicKeyFilePath"] = publicKeyPath
+            }).Build();
+        var clientOnly = new CurveKeyManager(configuration, NullLogger<CurveKeyManager>.Instance);
+        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance,
+            "tcp://127.0.0.1:45559", clientOnly, CreateSecurity());
+
+        var exception = Assert.Throws<InvalidOperationException>(() => _gateway.Start());
+
+        Assert.Contains("public and private", exception.Message);
+        Assert.False(clientOnly.HasServerKeyPair);
+        Assert.True(serverKeys.HasServerKeyPair);
+    }
+
+    [Fact]
+    public void RunningGateway_RejectsPlaintextClient()
+    {
+        var endpoint = StartGateway(45560, out _);
+        using var socket = new RequestSocket();
+        socket.Connect(endpoint);
+
+        Assert.True(socket.TrySendFrame(TimeSpan.FromSeconds(1),
+            """{"MessageType":"Query","QueryType":"GetVersionQuery"}"""));
+        Assert.False(socket.TryReceiveFrameString(TimeSpan.FromMilliseconds(500), out _));
+    }
+
+    [Fact]
+    public void RunningGateway_RejectsUnsignedEnvelope()
+    {
+        var endpoint = StartGateway(45561, out var curve);
+        using var socket = CreateCurveClient(endpoint, curve);
+
+        var response = SendAndReceive(socket,
+            """{"MessageType":"Query","QueryType":"GetVersionQuery"}""");
+
+        Assert.Contains("Invalid authenticated CQRS envelope", response);
+    }
+
+    [Fact]
+    public void RunningGateway_RejectsTamperedPayload()
+    {
+        var endpoint = StartGateway(45562, out var curve);
+        using var socket = CreateCurveClient(endpoint, curve);
+        var envelope = JObject.Parse(CreateSecurity().Protect(
+            """{"MessageType":"Query","QueryType":"GetVersionQuery"}"""));
+        envelope["Payload"] = """{"MessageType":"Command","CommandType":"DeleteUserCommand"}""";
+
+        var response = SendAndReceive(socket, envelope.ToString());
+
+        Assert.Contains("Invalid authenticated CQRS envelope", response);
+    }
+
+    [Fact]
+    public void RunningGateway_RejectsReplayedNonce()
+    {
+        var endpoint = StartGateway(45563, out var curve);
+        using var socket = CreateCurveClient(endpoint, curve);
+        var envelope = CreateSecurity().Protect(
+            """{"MessageType":"Command","CommandType":"UpdateUserCommand"}""");
+
+        _ = SendAndReceive(socket, envelope);
+        var replayResponse = SendAndReceive(socket, envelope);
+
+        Assert.Contains("already been used", replayResponse);
+    }
+
+    [Fact]
+    public void RunningGateway_RejectsUnauthorizedClient()
+    {
+        var endpoint = StartGateway(45564, out var curve);
+        using var socket = CreateCurveClient(endpoint, curve);
+        var envelope = CreateSecurity("attacker").Protect(
+            """{"MessageType":"Query","QueryType":"GetVersionQuery"}""");
+
+        var response = SendAndReceive(socket, envelope);
+
+        Assert.Contains("not authorized", response);
+    }
+
+    [Fact]
+    public void RunningGateway_RejectsUnauthorizedCommand()
+    {
+        var endpoint = StartGateway(45565, out var curve);
+        using var socket = CreateCurveClient(endpoint, curve);
+        var envelope = CreateSecurity().Protect(
+            """{"MessageType":"Command","CommandType":"DeleteUserCommand"}""");
+
+        var response = SendAndReceive(socket, envelope);
+
+        Assert.Contains("Command is not authorized", response);
+    }
+
+    private CqrsChannelSecurity CreateSecurity(string clientId = "asps-webapi") =>
+        new(new CqrsChannelSecurityOptions
+        {
+            ClientId = clientId,
+            SharedSecret = Secret,
+            AllowedCommands = new HashSet<string>(StringComparer.Ordinal) { "UpdateUserCommand" }
+        });
+
+    private string StartGateway(int port, out CurveKeyManager curve)
+    {
+        curve = CreateCurveManager();
+        var endpoint = $"tcp://127.0.0.1:{port}";
+        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance,
+            endpoint, curve, CreateSecurity());
         _gateway.Start();
-
-        // Act & Assert - Should not throw
-        _gateway.Stop();
+        Thread.Sleep(100);
+        return endpoint;
     }
 
-    [Fact]
-    public void Stop_CanBeCalledMultipleTimes()
+    private static RequestSocket CreateCurveClient(string endpoint, CurveKeyManager curve)
     {
-        // Arrange - Use unique port to avoid collision
-        _gateway = new CQRSGateway(_serviceProvider, _logger, "tcp://*:45558");
-        _gateway.Start();
-
-        // Act & Assert - Should not throw
-        _gateway.Stop();
-        _gateway.Stop();
+        var socket = new RequestSocket();
+        socket.Options.Linger = TimeSpan.Zero;
+        curve.ApplyClientCurve(socket);
+        socket.Connect(endpoint);
+        return socket;
     }
 
-    [Fact]
-    public void Dispose_CallsStopSuccessfully()
+    private static string SendAndReceive(RequestSocket socket, string message)
     {
-        // Arrange - Use unique port to avoid collision
-        _gateway = new CQRSGateway(_serviceProvider, _logger, "tcp://*:45559");
-        _gateway.Start();
-
-        // Act & Assert - Should not throw
-        _gateway.Dispose();
+        Assert.True(socket.TrySendFrame(TimeSpan.FromSeconds(2), message));
+        Assert.True(socket.TryReceiveFrameString(TimeSpan.FromSeconds(2), out var response));
+        return response!;
     }
 
-    #endregion
-
-    #region Message Processing Error Handling
-
-    [Fact]
-    public async Task ProcessMessage_WithInvalidJson_ReturnsErrorResponse()
+    private CurveKeyManager CreateCurveManager()
     {
-        // This tests error handling indirectly via the private ProcessMessageAsync method
-        // We verify that invalid messages are logged as errors
-        
-        // Arrange
-        _gateway = new CQRSGateway(_serviceProvider, _logger);
-
-        // Act - Create gateway (which will handle invalid messages internally)
-        
-        // Assert - Gateway should be created successfully
-        Assert.NotNull(_gateway);
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Security:CurveEnabled"] = "true",
+            ["Security:KeysFilePath"] = _keysPath
+        }).Build();
+        return new CurveKeyManager(configuration, NullLogger<CurveKeyManager>.Instance);
     }
-
-    [Fact]
-    public void Gateway_WithMissingMessageType_HandlesGracefully()
-    {
-        // Arrange
-        _gateway = new CQRSGateway(_serviceProvider, _logger);
-        
-        // Act - Create gateway
-        
-        // Assert - Gateway handles missing MessageType internally
-        Assert.NotNull(_gateway);
-    }
-
-    [Fact]
-    public void Gateway_WithUnknownMessageType_HandlesGracefully()
-    {
-        // Arrange
-        _gateway = new CQRSGateway(_serviceProvider, _logger);
-        
-        // Act - Create gateway
-        
-        // Assert - Gateway handles unknown MessageType internally
-        Assert.NotNull(_gateway);
-    }
-
-    #endregion
-
-    #region Query Routing Tests
-
-    [Fact]
-    public void Gateway_SupportsQueryRouting()
-    {
-        // Arrange
-        _gateway = new CQRSGateway(_serviceProvider, _logger);
-        
-        // Act - Gateway should be ready to route queries
-        
-        // Assert
-        Assert.NotNull(_gateway);
-    }
-
-    [Fact]
-    public void Gateway_SupportsCommandRouting()
-    {
-        // Arrange
-        _gateway = new CQRSGateway(_serviceProvider, _logger);
-        
-        // Act - Gateway should be ready to route commands
-        
-        // Assert
-        Assert.NotNull(_gateway);
-    }
-
-    #endregion
-
-    #region Edge Cases
-
-    [Fact]
-    public void Gateway_WithDefaultEndpoint_StartsSuccessfully()
-    {
-        // Arrange & Act - Use unique port
-        _gateway = new CQRSGateway(_serviceProvider, _logger, "tcp://*:45560");
-        
-        // Act & Assert - Should start with default endpoint without errors
-        _gateway.Start();
-        Assert.NotNull(_gateway);
-
-        // Cleanup
-        _gateway.Stop();
-    }
-
-    [Fact]
-    public void Gateway_StartsOnInternalChannel()
-    {
-        // Arrange & Act - Use unique port
-        _gateway = new CQRSGateway(_serviceProvider, _logger, "tcp://*:45561");
-        
-        // Act & Assert - Should start on internal channel
-        _gateway.Start();
-        Assert.NotNull(_gateway);
-
-        // Cleanup
-        _gateway.Stop();
-    }
-
-    [Fact]
-    public void Gateway_WithNullCurveKeyManager_WorksCorrectly()
-    {
-        // Arrange & Act - Use unique port
-        _gateway = new CQRSGateway(_serviceProvider, _logger, "tcp://*:45562", null);
-        
-        // Act & Assert - Should work with null CurveKeyManager
-        _gateway.Start();
-        Assert.NotNull(_gateway);
-
-        // Cleanup
-        _gateway.Stop();
-    }
-
-    #endregion
 
     public void Dispose()
     {
         _gateway?.Dispose();
+        _services.Dispose();
+        var directory = Path.GetDirectoryName(_keysPath);
+        if (directory is not null && Directory.Exists(directory))
+            Directory.Delete(directory, true);
     }
 }

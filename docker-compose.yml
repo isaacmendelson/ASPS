@@ -33,13 +33,16 @@ services:
     environment:
       ConnectionStrings__DefaultConnection: "server=mysql;port=3306;database=aspsbackend2db;user=root;password=zappa22;AllowPublicKeyRetrieval=True;SslMode=None;"
       Security__KeysFilePath: /app/keys/curve-server-keys.json
+      Security__ServerPublicKeyFilePath: /app/public-keys/curve-server-public-key.txt
+      CQRS__BindEndpoint: "tcp://*:5556"
+      CQRS__SharedSecret: "${CQRS_SHARED_SECRET:?CQRS_SHARED_SECRET must be set}"
     ports:
       - "5555:5555"
-      - "5556:5556"
       - "50001:50001"
       - "50002:50002"
     volumes:
       - curve_keys:/app/keys
+      - curve_public_keys:/app/public-keys
     networks:
       - asps-network
 
@@ -84,14 +87,20 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Docker
       ASPNETCORE_URLS: http://0.0.0.0:8080
+      Security__CurveClientOnly: "true"
+      Security__ServerPublicKeyFilePath: /app/public-keys/curve-server-public-key.txt
+      CQRS__SharedSecret: "${CQRS_SHARED_SECRET:?CQRS_SHARED_SECRET must be set}"
     ports:
       - "8080:8080"
     networks:
       - asps-network
+    volumes:
+      - curve_public_keys:/app/public-keys:ro
 
 volumes:
   mysql_data:
   curve_keys:
+  curve_public_keys:
   keycloak_data:
 
 networks:

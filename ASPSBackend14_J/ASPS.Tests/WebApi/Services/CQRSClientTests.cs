@@ -36,7 +36,7 @@ public class CQRSClientTests
     #region SendQueryAsync Tests
 
     [Fact]
-    public async Task SendQueryAsync_WithTimeout_ReturnsErrorResult()
+    public async Task SendQueryAsync_WithoutSecurityConfiguration_FailsClosed()
     {
         // Arrange
         var sut = new CQRSClient("tcp://localhost:65534", _loggerMock.Object);
@@ -48,7 +48,7 @@ public class CQRSClientTests
         // Assert
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
-        result.Message.Should().Contain("timeout"); // no server is listening
+        result.Message.Should().Contain("CURVE");
     }
 
     #endregion
@@ -56,7 +56,7 @@ public class CQRSClientTests
     #region SendCommandAsync Tests
 
     [Fact]
-    public async Task SendCommandAsync_WithTimeout_ReturnsErrorResult()
+    public async Task SendCommandAsync_WithoutSecurityConfiguration_FailsClosed()
     {
         // Arrange
         var sut = new CQRSClient("tcp://localhost:55001", _loggerMock.Object);
@@ -68,7 +68,7 @@ public class CQRSClientTests
         // Assert
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
-        result.Message.Should().Contain("timeout"); // no server is listening
+        result.Message.Should().Contain("CURVE");
     }
 
     #endregion
