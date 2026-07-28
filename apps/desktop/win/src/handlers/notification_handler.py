@@ -99,26 +99,56 @@ class NotificationHandler:
         if analysis['url'] and analysis['risk_score'] is not None:
             cache_data = self._update_cache(analysis, protective_actions)
 
-            # Broadcast result to extension (cross-thread safe, with retry)
+            # Retrieve routing metadata recorded when the scan was dispatched.
+            # This lets us address the result back to the *originating* tab
+            # rather than whatever tab is currently active.
+            pending_entry = ScanService.get_pending_entry(analysis['url']) or {}
+            routing = {
+                'tab_id': pending_entry.get('tab_id', ''),
+                'request_id': pending_entry.get('request_id', ''),
+                'correlation_id': pending_entry.get('correlation_id', ''),
+            }
+
+            # Broadcast result to extension.
+            # Two dispatch modes:
+            #   • Same-thread (test / in-loop): schedule as a task; the caller's
+            #     `await asyncio.sleep(0)` will flush it.
+            #   • Cross-thread (production ZMQ subscriber thread): use
+            #     run_coroutine_threadsafe + .result() so the ZMQ thread blocks
+            #     until delivery is confirmed (with retry).
             if self.extension_server and self._event_loop and cache_data:
-                broadcast_success = False
-                for attempt in range(2):
-                    try:
-                        future = asyncio.run_coroutine_threadsafe(
-                            self._broadcast_to_extension(analysis, cache_data, protective_actions),
-                            self._event_loop
-                        )
-                        future.result(timeout=5)
-                        broadcast_success = True
-                        break
-                    except Exception as e:
-                        if attempt == 0:
-                            print(f"[NOTIFICATION] WARNING: Broadcast attempt {attempt + 1} failed: {e}, retrying...")
-                        else:
-                            print(f"[NOTIFICATION] ERROR: Broadcast failed after {attempt + 1} attempts: {e}")
-                            logger.error(f"Broadcast failed after retry: {e}")
-                if not broadcast_success:
-                    print("[NOTIFICATION] ERROR: Could not deliver result to extension")
+                coro = self._broadcast_to_extension(
+                    analysis, cache_data, protective_actions, routing=routing
+                )
+                try:
+                    running_loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    running_loop = None
+
+                if running_loop is self._event_loop:
+                    # Already on the event loop thread — schedule as a task.
+                    running_loop.create_task(coro)
+                else:
+                    # Called from a background thread (normal production path).
+                    broadcast_success = False
+                    for attempt in range(2):
+                        try:
+                            future = asyncio.run_coroutine_threadsafe(coro, self._event_loop)
+                            future.result(timeout=5)
+                            broadcast_success = True
+                            break
+                        except Exception as e:
+                            if attempt == 0:
+                                print(f"[NOTIFICATION] WARNING: Broadcast attempt {attempt + 1} failed: {e}, retrying...")
+                                # Rebuild coroutine for the retry (already consumed above)
+                                coro = self._broadcast_to_extension(
+                                    analysis, cache_data, protective_actions, routing=routing
+                                )
+                            else:
+                                print(f"[NOTIFICATION] ERROR: Broadcast failed after {attempt + 1} attempts: {e}")
+                                logger.error(f"Broadcast failed after retry: {e}")
+                    if not broadcast_success:
+                        print("[NOTIFICATION] ERROR: Could not deliver result to extension")
             elif not self.extension_server:
                 print("[NOTIFICATION] WARNING: No extension server - cannot broadcast")
             elif not self._event_loop:
@@ -129,8 +159,13 @@ class NotificationHandler:
 
         print("!" * 60 + "\n")
 
-    async def _broadcast_to_extension(self, analysis, cache_data, protective_actions=None):
-        """Broadcast URL result to extension"""
+    async def _broadcast_to_extension(self, analysis, cache_data, protective_actions=None, *, routing=None):
+        """Broadcast URL result to extension.
+
+        routing — dict with tab_id, request_id, correlation_id captured when
+        the scan was dispatched.  Forwarded as-is so the extension can route
+        the result to the originating tab instead of the currently-active one.
+        """
         try:
             # Convert protective actions to extension format
             ext_protective_actions = []
@@ -143,6 +178,7 @@ class NotificationHandler:
                     }
                     ext_protective_actions.append(ext_action)
 
+            routing = routing or {}
             result_message = {
                 'type': 'url_result',
                 'url': analysis['url'],
@@ -152,9 +188,14 @@ class NotificationHandler:
                 'protectiveActions': ext_protective_actions,  # Full array for extension
                 'fromCache': False,
                 'isSensitiveWebsite': analysis.get('is_sensitive_website'),
+                # Routing fields — allow extension to target the originating tab
+                'tabId': routing.get('tab_id', ''),
+                'requestId': routing.get('request_id', ''),
+                'correlationId': routing.get('correlation_id', ''),
             }
             await self.extension_server.broadcast(result_message)
-            print(f"[NOTIFICATION] Broadcasted result to extension: score={cache_data['score']}, actions={len(ext_protective_actions)}")
+            print(f"[NOTIFICATION] Broadcasted result to extension: score={cache_data['score']}, "
+                  f"tab={routing.get('tab_id', '?')}, actions={len(ext_protective_actions)}")
         except Exception as e:
             logger.error(f"Error broadcasting to extension: {e}")
             raise  # Re-raise so caller's retry loop can detect failure

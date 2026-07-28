@@ -443,11 +443,14 @@ function handleUrlResult(data) {
     // Update icon based on protective action from server (with score fallback)
     iconService.setColorByAction(result.protectiveAction, result.score);
 
-    // Execute protective action from server
+    // Execute protective action on the originating tab, not the active tab.
+    // result.tabId is set by ScanService.handleResult from the pending scan
+    // entry that recorded the tabId when the scan was initiated.
     protectionService.executeAction(
       result.protectiveAction,
       result.riskType,
-      result.score
+      result.score,
+      result.tabId ?? null
     );
   }
 }

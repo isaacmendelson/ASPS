@@ -6,14 +6,24 @@
 import { MSG, PROTECTIVE_ACTION, WARNING_STYLE } from '../messaging/MessageTypes.js';
 
 class ProtectionService {
-  // Execute protective action on current tab
-  async executeAction(action, riskType, score) {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tabs[0]) return;
+  // Execute protective action on the specified tab.
+  //
+  // targetTabId — the numeric Chrome tab ID of the tab that originated the
+  //   scan.  When provided the action targets that tab directly.  Pass null
+  //   (or omit) only as a last resort; in that case we fall back to the
+  //   currently-active tab (the old behaviour, which was the DT-6/EX-2 bug).
+  async executeAction(action, riskType, score, targetTabId = null) {
+    let tabId;
+    if (targetTabId != null && !Number.isNaN(Number(targetTabId))) {
+      tabId = Number(targetTabId);
+    } else {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tabs[0]) return;
+      tabId = tabs[0].id;
+      console.warn('[ProtectionService] No targetTabId supplied — falling back to active tab:', tabId);
+    }
 
-    const tabId = tabs[0].id;
-
-    console.log(`[ProtectionService] Executing action: ${action}`);
+    console.log(`[ProtectionService] Executing action: ${action} on tab ${tabId}`);
 
     switch (action) {
       case PROTECTIVE_ACTION.WARN_BANNER:

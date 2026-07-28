@@ -4,6 +4,7 @@ Handles URL scanning and analysis requests
 """
 
 import logging
+import threading
 from typing import Dict, Optional, Any
 
 logger = logging.getLogger(__name__)
@@ -18,8 +19,9 @@ class ScanService:
     """
 
     # Class-level pending URLs tracking - supports multiple concurrent scans
-    _pending_urls: Dict[str, float] = {}  # url -> timestamp
-    _pending_lock = None  # Will be initialized on first use
+    # url -> {timestamp, tab_id, request_id, correlation_id}
+    _pending_urls: Dict[str, Dict] = {}
+    _pending_lock = threading.Lock()
 
     def __init__(
         self,
@@ -39,30 +41,53 @@ class ScanService:
 
     @classmethod
     def _get_lock(cls):
-        """Get or create thread lock"""
-        import threading
-        if cls._pending_lock is None:
-            cls._pending_lock = threading.Lock()
         return cls._pending_lock
 
     @classmethod
-    def set_pending_url(cls, url: str):
-        """Add URL to pending set with timestamp"""
+    def set_pending_url(cls, url: str, *, tab_id: str = '', request_id: str = '', correlation_id: str = ''):
+        """Add URL to pending set with routing metadata.
+
+        tab_id, request_id and correlation_id come from the ASPS-611 envelope
+        so that when the backend notification arrives the result can be routed
+        back to the exact tab that originated the scan rather than to the
+        globally-most-recent URL.
+        """
         import time
         with cls._get_lock():
-            cls._pending_urls[url] = time.time()
-            # Cleanup old entries (> 60 seconds)
+            cls._pending_urls[url] = {
+                'timestamp': time.time(),
+                'tab_id': tab_id,
+                'request_id': request_id,
+                'correlation_id': correlation_id,
+            }
+            # Cleanup stale entries (older than 60 seconds)
             cutoff = time.time() - 60
-            cls._pending_urls = {u: t for u, t in cls._pending_urls.items() if t > cutoff}
+            cls._pending_urls = {
+                u: entry for u, entry in cls._pending_urls.items()
+                if entry['timestamp'] > cutoff
+            }
 
     @classmethod
-    def get_pending_url(cls) -> str:
-        """Get the most recent pending URL (backward compatibility)"""
+    def get_pending_url(cls) -> Optional[str]:
+        """Return the most-recently added pending URL.
+
+        Kept for backward compatibility with notification paths that have no
+        URL in the backend payload.  Prefer get_pending_entry(url) when the
+        URL is known.
+        """
         with cls._get_lock():
             if not cls._pending_urls:
                 return None
-            # Return most recent
-            return max(cls._pending_urls.items(), key=lambda x: x[1])[0]
+            return max(cls._pending_urls.items(), key=lambda x: x[1]['timestamp'])[0]
+
+    @classmethod
+    def get_pending_entry(cls, url: str) -> Optional[Dict[str, Any]]:
+        """Return the full pending entry for *url*, or None if not pending.
+
+        The entry dict has keys: timestamp, tab_id, request_id, correlation_id.
+        """
+        with cls._get_lock():
+            return cls._pending_urls.get(url)
 
     @classmethod
     def is_pending(cls, url: str) -> bool:
@@ -160,8 +185,18 @@ class ScanService:
         # Step 3: Send to backend
         print("[SCAN] Step 3: Sending to backend (ZMQ)...")
 
-        # Track pending URL for notification matching
-        ScanService.set_pending_url(url)
+        # Track pending URL for notification matching.
+        # Record routing metadata from the ASPS-611 envelope (if present) so
+        # that when the backend notification arrives the result can be directed
+        # to the originating tab rather than the currently-active one.
+        _request_id = (envelope or {}).get('requestId', '')
+        _correlation_id = (envelope or {}).get('correlationId', '')
+        ScanService.set_pending_url(
+            url,
+            tab_id=tab_id,
+            request_id=_request_id,
+            correlation_id=_correlation_id,
+        )
 
         self.browser_monitor.mark_delivery_sent(url, 'extension')
         try:

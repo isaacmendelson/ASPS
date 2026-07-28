@@ -68,7 +68,8 @@ describe('ScanService messaging v1', () => {
       score: 91,
       riskType: [],
       protectiveAction: 0,
-      fromCache: false
+      fromCache: false,
+      tabId: 12
     });
     expect(resolve).toHaveBeenCalledWith(result);
     expect(scanService.pendingScans.has(requestId)).toBe(false);

@@ -154,6 +154,10 @@ class ScanService {
   // Handle scan result from desktop app
   // Uses server values directly - no local calculations
   handleResult(data, fromCache = false) {
+    // originatingPending is resolved here so it's available to the whole
+    // method regardless of which code path we follow (envelope vs legacy).
+    let originatingPending = null;
+
     if (data?.schemaVersion) {
       try {
         messagingV1.validateEnvelope(data, true);
@@ -168,6 +172,9 @@ class ScanService {
         console.warn('[ScanService] Stale or mismatched result:', data.requestId);
         return null;
       }
+
+      // Record the originating pending entry before we may overwrite `data`.
+      originatingPending = pending;
 
       if (data.messageType === 'url_scan.accepted') {
         return data;
@@ -230,49 +237,65 @@ class ScanService {
       'scan.error': null
     });
 
-    // Save to storage for popup - per-tab and global
-    // Get current active tab to save per-tab data
-    chrome.tabs.query({ active: true, currentWindow: true }).then(tabs => {
-      if (tabs[0]) {
-        const tabId = tabs[0].id;
-        chrome.storage.local.set({
-          [`tab_${tabId}_score`]: score,
-          [`tab_${tabId}_riskType`]: riskType,
-          [`tab_${tabId}_action`]: protectiveAction,
-          [`tab_${tabId}_scanning`]: false,
-          // Also update global for current tab
-          currentPageScore: score,
-          currentPageRiskType: riskType,
-          currentPageAction: protectiveAction,
-          currentPageScanning: false
-        });
-      } else {
-        // No active tab, just save global
-        chrome.storage.local.set({
-          currentPageScore: score,
-          currentPageRiskType: riskType,
-          currentPageAction: protectiveAction,
-          currentPageScanning: false
-        });
-      }
-    });
+    // Resolve the originating pending entry for the legacy (non-envelope) path.
+    // The desktop agent now includes `tabId` and `requestId` in legacy url_result
+    // messages; fall back to URL-keyed lookup when requestId is absent.
+    if (!originatingPending) {
+      const pendingKey = data.requestId
+        ? data.requestId
+        : [...this.pendingScans.keys()].find(k => this.pendingScans.get(k).url === data.url);
+      originatingPending = pendingKey ? this.pendingScans.get(pendingKey) : null;
+    }
+
+    // Save to storage for popup - per-tab and global.
+    // Use the originating tab's ID so that a tab switch during analysis does
+    // not misroute the result to whichever tab happens to be active on arrival.
+    // The tabId may come from the pending entry (envelope path) or from the
+    // desktop-agent-injected `tabId` field on the legacy message.
+    const rawTabId = (originatingPending && originatingPending.tabId)
+      || (data.tabId ? String(data.tabId) : null);
+    const originatingTabId = rawTabId ? parseInt(rawTabId, 10) : null;
+
+    if (originatingTabId && !Number.isNaN(originatingTabId)) {
+      chrome.storage.local.set({
+        [`tab_${originatingTabId}_score`]: score,
+        [`tab_${originatingTabId}_riskType`]: riskType,
+        [`tab_${originatingTabId}_action`]: protectiveAction,
+        [`tab_${originatingTabId}_scanning`]: false,
+        // Also update global so any UI reading currentPage* stays consistent
+        currentPageScore: score,
+        currentPageRiskType: riskType,
+        currentPageAction: protectiveAction,
+        currentPageScanning: false
+      });
+    } else {
+      // No originating tab known — fall back to global-only write
+      chrome.storage.local.set({
+        currentPageScore: score,
+        currentPageRiskType: riskType,
+        currentPageAction: protectiveAction,
+        currentPageScanning: false
+      });
+    }
 
     // Cache the result if not already cached
     if (!fromCache && data.url) {
       cacheService.set(data.url, { score, riskType, protectiveAction, ttl });
     }
 
-    // Resolve pending scan if exists
-    const pendingKey = data.requestId || [...this.pendingScans.entries()]
-      .find(([, pending]) => pending.url === data.url)?.[0];
-    if (pendingKey && this.pendingScans.has(pendingKey)) {
-      const { resolve, timeoutId } = this.pendingScans.get(pendingKey);
+    // Resolve the Promise from scan() and remove from pendingScans map.
+    const resolveKey = (originatingPending && [...this.pendingScans.entries()]
+      .find(([, v]) => v === originatingPending)?.[0])
+      || data.requestId
+      || [...this.pendingScans.entries()].find(([, v]) => v.url === data.url)?.[0];
+    if (resolveKey && this.pendingScans.has(resolveKey)) {
+      const { resolve, timeoutId } = this.pendingScans.get(resolveKey);
       clearTimeout(timeoutId);
-      this.pendingScans.delete(pendingKey);
-      resolve({ score, riskType, protectiveAction, fromCache });
+      this.pendingScans.delete(resolveKey);
+      resolve({ score, riskType, protectiveAction, fromCache, tabId: originatingTabId });
     }
 
-    return { score, riskType, protectiveAction, fromCache };
+    return { score, riskType, protectiveAction, fromCache, tabId: originatingTabId };
   }
 
   // Scan current active tab
