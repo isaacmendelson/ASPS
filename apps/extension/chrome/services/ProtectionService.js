@@ -2,6 +2,18 @@
 // AntiScam Extension - Protection Service
 // Handles warning display and page blocking
 // ============================================
+//
+// CANONICAL RISK SCALE (ASPS-624)
+//   Higher score = more dangerous.  0-20: safe, 21-40: low concern,
+//   41-60: moderate, 61-80: high, 81-100: critical.
+//
+//   The Backend provides the protective action directly (protectiveAction field
+//   in scan results).  PROTECTIVE_ACTION constants are in ascending severity:
+//   NONE(0) < NOTIFY(1) < WARN_BANNER(2) < WARN_MODAL(3) < BLOCK(4).
+//
+//   There is intentionally no client-side score→action mapping.  Any such
+//   mapping must live in the Backend scoring policy, not here.
+// ============================================
 
 import { MSG, PROTECTIVE_ACTION, WARNING_STYLE } from '../messaging/MessageTypes.js';
 
@@ -137,18 +149,6 @@ class ProtectionService {
     return names[action] || 'Unknown';
   }
 
-  // Determine action based on score
-  determineAction(score) {
-    if (score <= 20) {
-      return PROTECTIVE_ACTION.BLOCK;
-    } else if (score <= 40) {
-      return PROTECTIVE_ACTION.WARN_MODAL;
-    } else if (score <= 60) {
-      return PROTECTIVE_ACTION.WARN_BANNER;
-    } else {
-      return PROTECTIVE_ACTION.NONE;
-    }
-  }
 }
 
 // Singleton instance

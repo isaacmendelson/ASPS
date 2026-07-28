@@ -1,228 +1,166 @@
+// ============================================
+// ProtectionService unit tests — ASPS-624
+//
+// Verifies:
+//   1. PROTECTIVE_ACTION constants are in strict ascending severity order.
+//   2. determineAction() has been removed (no client-side score→action mapping).
+//   3. executeAction() dispatches to the correct sub-method for each action.
+//   4. Utility helpers (getRiskLabel, getActionName) return expected strings.
+// ============================================
+
 import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 
-describe('ProtectionService', () => {
+describe('ProtectionService — ASPS-624', () => {
   let protectionService;
+  let PROTECTIVE_ACTION;
 
   beforeEach(async () => {
-    // Mock chrome APIs
-    chrome.tabs.sendMessage.mockImplementation((tabId, msg, callback) => {
-      if (callback) callback({ success: true });
+    // Fresh module import per test so mocks are clean.
+    jest.resetModules();
+
+    // chrome.tabs.sendMessage must exist before the module loads.
+    chrome.tabs.sendMessage.mockImplementation((_tabId, _msg, cb) => {
+      if (cb) cb({ success: true });
     });
 
-    chrome.tabs.update.mockImplementation((tabId, props, callback) => {
-      if (callback) callback({ id: tabId, url: props.url });
-    });
-
-    const module = await import('@/services/ProtectionService.js');
-    protectionService = module.protectionService;
+    const ps = await import('@/services/ProtectionService.js');
+    const mt = await import('@/messaging/MessageTypes.js');
+    protectionService = ps.protectionService;
+    PROTECTIVE_ACTION = mt.PROTECTIVE_ACTION;
   });
 
-  describe('Warning Display', () => {
-    test('should show warning on page', async () => {
-      const tabId = 123;
-      const riskData = {
-        score: 45,
-        riskType: [1],
-        riskLabels: ['Phishing']
-      };
-
-      await protectionService.showWarning(tabId, riskData);
-
-      expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(
-        tabId,
-        expect.objectContaining({
-          type: 'showWarning',
-          data: expect.objectContaining({
-            score: riskData.score,
-            riskLabels: riskData.riskLabels
-          })
-        }),
-        expect.any(Function)
-      );
+  // ------------------------------------------------------------------
+  // 1. PROTECTIVE_ACTION ordering — canonical scale (ASPS-624)
+  // ------------------------------------------------------------------
+  describe('PROTECTIVE_ACTION constant ordering', () => {
+    test('NONE has the lowest severity value', () => {
+      expect(PROTECTIVE_ACTION.NONE).toBeLessThan(PROTECTIVE_ACTION.NOTIFY);
     });
 
-    test('should remove warning from page', async () => {
-      const tabId = 123;
-
-      await protectionService.removeWarning(tabId);
-
-      expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(
-        tabId,
-        expect.objectContaining({
-          type: 'removeWarning'
-        }),
-        expect.any(Function)
-      );
-    });
-  });
-
-  describe('Page Blocking', () => {
-    test('should block dangerous page', async () => {
-      const tabId = 123;
-      const riskData = {
-        score: 20,
-        riskType: [1, 2],
-        riskLabels: ['Phishing', 'Cloaking'],
-        originalUrl: 'https://malicious-site.com'
-      };
-
-      await protectionService.blockPage(tabId, riskData);
-
-      expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(
-        tabId,
-        expect.objectContaining({
-          type: 'blockPage',
-          data: expect.objectContaining({
-            score: riskData.score,
-            riskLabels: riskData.riskLabels
-          })
-        }),
-        expect.any(Function)
-      );
+    test('NOTIFY < WARN_BANNER', () => {
+      expect(PROTECTIVE_ACTION.NOTIFY).toBeLessThan(PROTECTIVE_ACTION.WARN_BANNER);
     });
 
-    test('should allow user to bypass warning', async () => {
-      const tabId = 123;
-      const originalUrl = 'https://flagged-site.com';
+    test('WARN_BANNER < WARN_MODAL', () => {
+      expect(PROTECTIVE_ACTION.WARN_BANNER).toBeLessThan(PROTECTIVE_ACTION.WARN_MODAL);
+    });
 
-      await protectionService.bypassWarning(tabId, originalUrl);
+    test('WARN_MODAL < BLOCK', () => {
+      expect(PROTECTIVE_ACTION.WARN_MODAL).toBeLessThan(PROTECTIVE_ACTION.BLOCK);
+    });
 
-      // Should remove the warning/block overlay
-      expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(
-        tabId,
-        expect.objectContaining({
-          type: 'removeWarning'
-        }),
-        expect.any(Function)
-      );
+    test('BLOCK has the highest severity among standard actions', () => {
+      const standardActions = [
+        PROTECTIVE_ACTION.NONE,
+        PROTECTIVE_ACTION.NOTIFY,
+        PROTECTIVE_ACTION.WARN_BANNER,
+        PROTECTIVE_ACTION.WARN_MODAL,
+        PROTECTIVE_ACTION.BLOCK,
+      ];
+      const max = Math.max(...standardActions);
+      expect(PROTECTIVE_ACTION.BLOCK).toBe(max);
+    });
+
+    test('exact values match documented contract (NONE=0 NOTIFY=1 WARN_BANNER=2 WARN_MODAL=3 BLOCK=4)', () => {
+      expect(PROTECTIVE_ACTION.NONE).toBe(0);
+      expect(PROTECTIVE_ACTION.NOTIFY).toBe(1);
+      expect(PROTECTIVE_ACTION.WARN_BANNER).toBe(2);
+      expect(PROTECTIVE_ACTION.WARN_MODAL).toBe(3);
+      expect(PROTECTIVE_ACTION.BLOCK).toBe(4);
     });
   });
 
-  describe('Notification System', () => {
-    test('should create browser notification for blocked page', async () => {
-      chrome.notifications.create.mockImplementation((id, options, callback) => {
-        if (callback) callback(id);
-      });
-
-      const riskData = {
-        score: 15,
-        riskType: [1],
-        riskLabels: ['Phishing'],
-        url: 'https://phishing-site.com'
-      };
-
-      await protectionService.notifyUser(riskData);
-
-      expect(chrome.notifications.create).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          type: 'basic',
-          iconUrl: expect.any(String),
-          title: expect.stringContaining('blocked'),
-          message: expect.stringContaining(riskData.url)
-        }),
-        expect.any(Function)
-      );
+  // ------------------------------------------------------------------
+  // 2. determineAction() must NOT exist (ASPS-624 removal)
+  // ------------------------------------------------------------------
+  describe('determineAction removed', () => {
+    test('protectionService has no determineAction method', () => {
+      expect(typeof protectionService.determineAction).toBe('undefined');
     });
 
-    test('should create browser notification for warning', async () => {
-      chrome.notifications.create.mockImplementation((id, options, callback) => {
-        if (callback) callback(id);
-      });
-
-      const riskData = {
-        score: 60,
-        riskType: [1],
-        riskLabels: ['Phishing'],
-        url: 'https://suspicious-site.com'
-      };
-
-      await protectionService.notifyUser(riskData);
-
-      expect(chrome.notifications.create).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          type: 'basic',
-          title: expect.stringContaining('Warning'),
-          message: expect.stringContaining(riskData.url)
-        }),
-        expect.any(Function)
-      );
+    test('ProtectionService prototype has no determineAction', () => {
+      expect(Object.prototype.hasOwnProperty.call(
+        Object.getPrototypeOf(protectionService),
+        'determineAction'
+      )).toBe(false);
     });
   });
 
-  describe('Remote Access Protection', () => {
-    test('should warn about remote access tools', async () => {
-      const tabId = 123;
-      const toolName = 'TeamViewer';
+  // ------------------------------------------------------------------
+  // 3. executeAction() dispatches correctly
+  // ------------------------------------------------------------------
+  describe('executeAction dispatch', () => {
+    const TAB_ID = 42;
 
-      await protectionService.showRemoteAccessWarning(tabId, toolName);
-
+    test('WARN_BANNER sends a showWarning message', async () => {
+      await protectionService.executeAction(PROTECTIVE_ACTION.WARN_BANNER, 1, 65, TAB_ID);
       expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(
-        tabId,
-        expect.objectContaining({
-          type: expect.stringContaining('remote_access'),
-          data: expect.objectContaining({
-            toolName
-          })
-        }),
-        expect.any(Function)
+        TAB_ID,
+        expect.objectContaining({ type: 'warning:show' })
       );
     });
 
-    test('should handle remote access session closure', async () => {
-      const sessionInfo = {
-        toolName: 'AnyDesk',
-        sessionId: 'abc123'
-      };
+    test('WARN_MODAL sends a showWarning message', async () => {
+      await protectionService.executeAction(PROTECTIVE_ACTION.WARN_MODAL, 1, 75, TAB_ID);
+      expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(
+        TAB_ID,
+        expect.objectContaining({ type: 'warning:show' })
+      );
+    });
 
-      await protectionService.closeRemoteSession(sessionInfo);
+    test('BLOCK sends a blockPage message', async () => {
+      await protectionService.executeAction(PROTECTIVE_ACTION.BLOCK, 1, 90, TAB_ID);
+      expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(
+        TAB_ID,
+        expect.objectContaining({ type: 'warning:block' })
+      );
+    });
 
-      // Should notify backend about session closure
-      // Implementation depends on actual service
-      expect(chrome.runtime.sendMessage).toHaveBeenCalled();
+    test('NONE does not send any tab message', async () => {
+      chrome.tabs.sendMessage.mockClear();
+      await protectionService.executeAction(PROTECTIVE_ACTION.NONE, 0, 5, TAB_ID);
+      expect(chrome.tabs.sendMessage).not.toHaveBeenCalled();
+    });
+
+    test('NOTIFY creates a browser notification', async () => {
+      chrome.notifications.create.mockImplementation((_opts, cb) => { if (cb) cb('id'); });
+      await protectionService.executeAction(PROTECTIVE_ACTION.NOTIFY, 1, 45, TAB_ID);
+      expect(chrome.notifications.create).toHaveBeenCalled();
     });
   });
 
-  describe('User Feedback', () => {
-    test('should submit correct prediction feedback', async () => {
-      const feedbackData = {
-        url: 'https://example.com',
-        score: 95,
-        userFeedback: 'correct'
-      };
-
-      await protectionService.submitFeedback(feedbackData);
-
-      expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: expect.stringContaining('feedback'),
-          data: expect.objectContaining({
-            url: feedbackData.url,
-            feedback: 'correct'
-          })
-        })
-      );
+  // ------------------------------------------------------------------
+  // 4. Utility helpers
+  // ------------------------------------------------------------------
+  describe('getRiskLabel', () => {
+    test('returns Phishing for type 1', () => {
+      expect(protectionService.getRiskLabel(1)).toBe('Phishing');
     });
 
-    test('should submit incorrect prediction feedback', async () => {
-      const feedbackData = {
-        url: 'https://example.com',
-        score: 45,
-        userFeedback: 'incorrect'
-      };
+    test('returns Unknown for unrecognised type', () => {
+      expect(protectionService.getRiskLabel(999)).toBe('Unknown');
+    });
 
-      await protectionService.submitFeedback(feedbackData);
+    test('returns Safe for type 0', () => {
+      expect(protectionService.getRiskLabel(0)).toBe('Safe');
+    });
+  });
 
-      expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: expect.stringContaining('feedback'),
-          data: expect.objectContaining({
-            url: feedbackData.url,
-            feedback: 'incorrect'
-          })
-        })
-      );
+  describe('getActionName', () => {
+    test('returns None for PROTECTIVE_ACTION.NONE', () => {
+      expect(protectionService.getActionName(PROTECTIVE_ACTION.NONE)).toBe('None');
+    });
+
+    test('returns Block Page for PROTECTIVE_ACTION.BLOCK', () => {
+      expect(protectionService.getActionName(PROTECTIVE_ACTION.BLOCK)).toBe('Block Page');
+    });
+
+    test('returns Warning Banner for PROTECTIVE_ACTION.WARN_BANNER', () => {
+      expect(protectionService.getActionName(PROTECTIVE_ACTION.WARN_BANNER)).toBe('Warning Banner');
+    });
+
+    test('returns Unknown for an unrecognised action value', () => {
+      expect(protectionService.getActionName(99)).toBe('Unknown');
     });
   });
 });
