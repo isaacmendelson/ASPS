@@ -52,10 +52,14 @@ public class Program
 
         // Start Real-Time Alert Listener
         var alertListener = host.Services.GetRequiredService<RealTimeAlertListener>();
-        
+
+        // ASPS-620: Inject reconnect snapshot service
+        var reconnectSnapshotService = host.Services.GetRequiredService<Business.Messaging.ReconnectSnapshotService>();
+        alertListener.SetReconnectSnapshotService(reconnectSnapshotService);
+
         // Initialize UDAnalysisManagers for active users
         await InitializeAnalysisManagersAsync(host.Services, alertListener);
-        
+
         alertListener.Start();
 
         // Start CQRS Gateway (for WebApi Commands/Queries)
@@ -88,13 +92,13 @@ public class Program
                 options.ValidateScopes = true;
                 options.ValidateOnBuild = true;
             })
-            .ConfigureAppConfiguration((ctx, config) =>
-            {
-                // Always load appsettings.Development.json if it exists (local dev overrides).
-                // This supplements the default env-based loading in case DOTNET_ENVIRONMENT
-                // is not set (e.g., Visual Studio multi-startup projects).
-                config.AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: true);
-            })
+            //.ConfigureAppConfiguration((ctx, config) =>
+            //{
+            //    // Always load appsettings.Development.json if it exists (local dev overrides).
+            //    // This supplements the default env-based loading in case DOTNET_ENVIRONMENT
+            //    // is not set (e.g., Visual Studio multi-startup projects).
+            //    config.AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: true);
+            //})
             .ConfigureServices((hostContext, services) =>
             {
                 var configuration = hostContext.Configuration;
@@ -107,6 +111,12 @@ public class Program
                         "Create appsettings.Development.json with your DB connection string, " +
                         "or set ASPNETCORE_ENVIRONMENT=Development so the file is loaded. " +
                         "See appsettings.Example.json for the required format.");
+
+                var csb = new MySqlConnector.MySqlConnectionStringBuilder(connectionString);
+
+                Console.WriteLine(
+                    $"[CONFIG] DB server={csb.Server}, " +
+                    $"database={csb.Database}, user={csb.UserID}");
 
                 var serverVersion = new MySqlServerVersion(new Version(8, 0, 44));
                 var isDevelopment = hostContext.HostingEnvironment.IsDevelopment();
@@ -140,6 +150,7 @@ public class Program
                 services.AddScoped<IWebsiteCategoryRepository, WebsiteCategoryRepository>(); // SCRUM-820
                 services.AddScoped<IRoadmapRepository, RoadmapRepository>();
                 services.AddScoped<IImmediateDangerRepository, ImmediateDangerRepository>();
+                services.AddScoped<INotificationOutboxRepository, NotificationOutboxRepository>(); // ASPS-620
 
                 // Add Handlers
                 services.AddScoped<UserCommandHandlers>();
@@ -195,6 +206,10 @@ public class Program
                 // Add Notification Publisher
                 services.AddSingleton<Business.Messaging.NotificationPublisher>();
 
+                // ASPS-620: Outbox-aware publisher + reconnect snapshot service
+                services.AddSingleton<Business.Messaging.OutboxNotificationPublisher>();
+                services.AddSingleton<Business.Messaging.ReconnectSnapshotService>();
+
                 // Add Event Handlers for Analysis Results
                 services.AddSingleton<IDomainEventHandler, AlertPersistenceActor>();
                 services.AddSingleton<IDomainEventHandler, AnalysisPersistenceActor>();
@@ -219,12 +234,15 @@ public class Program
                     sp.GetRequiredService<ASView>(),
                     sp.GetServices<IDomainEventHandler>(),
                     sp.GetRequiredService<IServiceScopeFactory>(),
-                    sp.GetService<Business.Messaging.NotificationPublisher>()));
+                    sp.GetRequiredService<Business.Messaging.OutboxNotificationPublisher>()));
 
                 // Add SimulationRunner (background service for simulations)
                 // Register as Singleton first so it can be injected into handlers
                 services.AddSingleton<SimulationRunner>();
                 services.AddHostedService(provider => provider.GetRequiredService<SimulationRunner>());
+
+                // ASPS-620 Major-3: Periodic outbox prune (hourly, 7-day retention)
+                services.AddHostedService<Business.Services.OutboxPruningService>();
 
                 // Add Messaging
                 services.AddSingleton(sp => new NetMQMessageProcessor(

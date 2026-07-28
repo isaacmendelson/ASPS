@@ -30,7 +30,7 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
     private UDUserAnalyzer _userAnalyzer;
     private readonly ASView _aSView;
     private bool isInitialized = false;
-    private readonly NotificationPublisher? _notificationPublisher;
+    private readonly OutboxNotificationPublisher? _notificationPublisher;
 
     public UDAnalysisManager(
         UDUser udUser,
@@ -40,7 +40,7 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         IConfiguration configuration,
         List<IDomainEventHandler> eventHandlers,
         IServiceScopeFactory serviceScopeFactory,
-        NotificationPublisher? notificationPublisher = null)
+        OutboxNotificationPublisher? notificationPublisher = null)
     {
         _udUser = udUser;
         _userAnalyzer = userAnalyzer;

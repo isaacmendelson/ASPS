@@ -415,6 +415,32 @@ public class NotificationPublisher : IDisposable
         }
     }
 
+    /// <summary>
+    /// Publish raw pre-serialized JSON on the device topic.
+    /// Used by <see cref="ReconnectSnapshotService"/> to replay outbox entries
+    /// and send reconnect snapshots without re-serializing.
+    /// ASPS-620.
+    /// </summary>
+    public virtual void PublishSnapshot(string deviceUid, string json)
+    {
+        if (!_isRunning || string.IsNullOrEmpty(deviceUid) || string.IsNullOrEmpty(json))
+            return;
+
+        try
+        {
+            var deviceTopic = $"device:{deviceUid}";
+            lock (_sendLock)
+            {
+                _publisherSocket.SendMoreFrame(deviceTopic).SendFrame(json);
+            }
+            _logger.LogDebug("[NotificationPublisher] Snapshot frame sent to '{Topic}'", deviceTopic);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error publishing snapshot to device {DeviceUid}", deviceUid);
+        }
+    }
+
     public virtual void Stop()
     {
         _isRunning = false;

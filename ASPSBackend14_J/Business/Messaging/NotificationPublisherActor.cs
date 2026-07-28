@@ -12,12 +12,12 @@ namespace Business.Messaging;
 /// </summary>
 public class NotificationPublisherActor : IDomainEventHandler
 {
-    private readonly NotificationPublisher _notificationPublisher;
+    private readonly OutboxNotificationPublisher _notificationPublisher;
     private readonly ILogger<NotificationPublisherActor> _logger;
     private readonly ASView _asView;
 
     public NotificationPublisherActor(
-        NotificationPublisher notificationPublisher,
+        OutboxNotificationPublisher notificationPublisher,
         ILogger<NotificationPublisherActor> logger,
         ASView asView)
     {

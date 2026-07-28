@@ -52,6 +52,10 @@ public class AppDbContext : DbContext
     public DbSet<UserRiskScoreHistory> UserRiskScoreHistories { get; set; }
     public DbSet<UserRiskProfile> UserRiskProfiles { get; set; }
 
+    // ASPS-620: Notification outbox + per-device cursor
+    public DbSet<OutboxNotificationEntity> OutboxNotifications { get; set; }
+    public DbSet<DeviceNotificationCursorEntity> DeviceNotificationCursors { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -951,6 +955,46 @@ public class AppDbContext : DbContext
             entity.Property(e => e.TimeDecayFactor)
                 .UsePropertyAccessMode(PropertyAccessMode.Field)
                 .IsRequired();
+        });
+
+        // ─────────────────────────────────────────────────────────────────────
+        // ASPS-620: Notification outbox
+        // ─────────────────────────────────────────────────────────────────────
+
+        modelBuilder.Entity<OutboxNotificationEntity>(entity =>
+        {
+            entity.ToTable("OutboxNotifications");
+            entity.HasKey(e => e.MessageId);
+            entity.Property(e => e.MessageId)
+                .HasColumnType("char(36)")
+                .IsRequired();
+
+            entity.Property(e => e.DeviceUid).HasMaxLength(255).IsRequired(false);
+            entity.Property(e => e.UserKeyField).HasMaxLength(36).IsRequired(false);
+            entity.Property(e => e.NotificationType).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.PayloadJson).HasColumnType("LONGTEXT").IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.AcknowledgedAt).IsRequired(false);
+            entity.Property(e => e.DeliveryAttempts).IsRequired().HasDefaultValue(0);
+
+            entity.HasIndex(e => e.DeviceUid);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.AcknowledgedAt);
+            // Composite index for "pending per device" query
+            entity.HasIndex(e => new { e.DeviceUid, e.AcknowledgedAt });
+        });
+
+        // ASPS-620: Per-device notification cursor
+        modelBuilder.Entity<DeviceNotificationCursorEntity>(entity =>
+        {
+            entity.ToTable("DeviceNotificationCursors");
+            entity.HasKey(e => e.DeviceUid);
+            entity.Property(e => e.DeviceUid).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.LastAcknowledgedMessageId)
+                .HasColumnType("char(36)")
+                .IsRequired(false);
+            entity.Property(e => e.LastAcknowledgedAt).IsRequired(false);
+            entity.Property(e => e.TotalAcknowledged).IsRequired().HasDefaultValue(0L);
         });
     }
 }

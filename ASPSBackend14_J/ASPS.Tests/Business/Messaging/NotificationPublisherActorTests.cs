@@ -3,6 +3,7 @@ using Moq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Business.Messaging;
 using Business.DomainEvents;
 using Business.RealtimeAnalysis.UserDomain;
@@ -24,7 +25,8 @@ public class NotificationPublisherActorTests : IDisposable
 {
     private readonly ILogger<NotificationPublisherActor> _logger;
     private NotificationPublisherActor? _actor;
-    private readonly List<Mock<NotificationPublisher>> _publisherMocks = new();
+    private readonly List<Mock<OutboxNotificationPublisher>> _publisherMocks = new();
+    private readonly List<NotificationPublisher> _innerPublishers = new();
     private static int _portCounter = 50200;
     private readonly ASView _asView;
 
@@ -40,40 +42,41 @@ public class NotificationPublisherActorTests : IDisposable
             configurationMock.Object).Object;
     }
 
-    private Mock<NotificationPublisher> CreateMockNotificationPublisher()
+    private Mock<OutboxNotificationPublisher> CreateMockNotificationPublisher()
     {
         var port = System.Threading.Interlocked.Increment(ref _portCounter);
         var endpoint = $"tcp://localhost:{port}";
-        
+
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 { "ZeroMQ:NotificationPublisher:Endpoint", endpoint }
             })
             .Build();
-        
-        var mock = new Mock<NotificationPublisher>(
+
+        // Inner publisher binds the socket; OutboxNotificationPublisher wraps it.
+        var innerPublisher = new NotificationPublisher(
             configuration,
             NullLogger<NotificationPublisher>.Instance,
             endpoint,
             null);
-        
+        _innerPublishers.Add(innerPublisher);
+
+        var scopeFactoryMock = new Mock<IServiceScopeFactory>();
+        var mock = new Mock<OutboxNotificationPublisher>(
+            innerPublisher,
+            scopeFactoryMock.Object,
+            NullLogger<OutboxNotificationPublisher>.Instance);
+
         _publisherMocks.Add(mock);
         return mock;
     }
 
     public void Dispose()
     {
-        foreach (var mock in _publisherMocks)
+        foreach (var publisher in _innerPublishers)
         {
-            try
-            {
-                mock.Object?.Dispose();
-            }
-            catch
-            {
-                // Ignore disposal errors in tests
-            }
+            try { publisher.Dispose(); } catch { }
         }
     }
 

@@ -29,7 +29,7 @@ public class UserDomainManagerService
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly IWebsiteCategoryRepository _websiteCategoryRepo;
     private readonly ASView _aSView;
-    private readonly NotificationPublisher? _notificationPublisher;
+    private readonly OutboxNotificationPublisher? _notificationPublisher;
 
     public UserDomainManagerService(
         ILoggerFactory loggerFactory,
@@ -37,7 +37,7 @@ public class UserDomainManagerService
         ASView aSView,
         IEnumerable<IDomainEventHandler> eventHandlers,
         IServiceScopeFactory serviceScopeFactory,
-        NotificationPublisher? notificationPublisher = null)
+        OutboxNotificationPublisher? notificationPublisher = null)
     {
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<UserDomainManagerService>();

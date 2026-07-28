@@ -50,8 +50,16 @@ public class RealTimeAlertListener : IDisposable
     private readonly DomainEventPublisher _domainEventPublisher;
     private readonly MessageDeduplicator _messageDeduplicator;
     private readonly MessagingCompatibilityOptions _messagingCompatibility;
+    private ReconnectSnapshotService? _reconnectSnapshotService;
     public bool AcceptLegacyV0 => _messagingCompatibility.AcceptLegacyV0;
     internal Action<DeviceAlertReceived>? DomainDispatchObserver { get; set; }
+
+    /// <summary>
+    /// Inject the reconnect snapshot service after construction.
+    /// ASPS-620: keeps constructor signature backward-compatible.
+    /// </summary>
+    public void SetReconnectSnapshotService(ReconnectSnapshotService service)
+        => _reconnectSnapshotService = service;
 
     public RealTimeAlertListener(
         ILoggerFactory _loggerFactory,
@@ -261,9 +269,10 @@ public class RealTimeAlertListener : IDisposable
 
             return messageType switch
             {
-                "RequestToken" => HandleRequestToken(jObject),
-                "RegisterDevice" => await HandleRegisterDevice(jObject),
+                "RequestToken" => await HandleRequestTokenWithSnapshotAsync(jObject),
+                "RegisterDevice" => await HandleRegisterDeviceWithSnapshotAsync(jObject),
                 "RefreshToken" => HandleRefreshToken(jObject),
+                "NotificationAck" => await HandleNotificationAckAsync(jObject),
                 _ => await ProcessLegacyAlertAsync(message, jObject)
             };
         }
@@ -620,6 +629,78 @@ public class RealTimeAlertListener : IDisposable
             deviceUid,
             serverPublicKey = _curveKeyManager?.ServerPublicKeyZ85 ?? string.Empty
         };
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // ASPS-620: Snapshot-on-reconnect wrappers for RequestToken / RegisterDevice
+    // ─────────────────────────────────────────────────────────────────────
+
+    private Task<object> HandleRequestTokenWithSnapshotAsync(JObject jObject)
+    {
+        var result = HandleRequestToken(jObject);
+        // Trigger snapshot if auth succeeded
+        if (result is { } r && r.GetType().GetProperty("status")?.GetValue(r)?.ToString() == "TokenCreated")
+        {
+            var deviceUid = jObject["DeviceUid"]?.ToString();
+            if (!string.IsNullOrEmpty(deviceUid) && _reconnectSnapshotService != null)
+                _ = Task.Run(() => _reconnectSnapshotService.SendSnapshotAsync(deviceUid));
+        }
+        return Task.FromResult(result);
+    }
+
+    private async Task<object> HandleRegisterDeviceWithSnapshotAsync(JObject jObject)
+    {
+        var result = await HandleRegisterDevice(jObject);
+        if (result is { } r && r.GetType().GetProperty("status")?.GetValue(r)?.ToString() == "Registered")
+        {
+            var deviceUid = jObject["DeviceUid"]?.ToString();
+            if (!string.IsNullOrEmpty(deviceUid) && _reconnectSnapshotService != null)
+                _ = Task.Run(() => _reconnectSnapshotService.SendSnapshotAsync(deviceUid));
+        }
+        return result;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // ASPS-620: NotificationAck — device ACKs a received notification
+    // ─────────────────────────────────────────────────────────────────────
+
+    private async Task<object> HandleNotificationAckAsync(JObject jObject)
+    {
+        var deviceUid = jObject["DeviceUid"]?.ToString();
+        var messageIdStr = jObject["MessageId"]?.ToString();
+
+        if (string.IsNullOrEmpty(deviceUid))
+            return new { status = "Error", message = "DeviceUid is required" };
+
+        if (!Guid.TryParse(messageIdStr, out var messageId))
+            return new { status = "Error", message = "MessageId must be a valid GUID" };
+
+        // Validate the device token before accepting the ACK
+        var token = jObject["Token"]?.ToString();
+        var tokenValidation = _tokenStore.ValidateToken(deviceUid, token);
+        if (tokenValidation == TokenValidationResult.InvalidToken)
+            return new { status = "InvalidToken", message = "Token is invalid." };
+        if (tokenValidation == TokenValidationResult.TokenExpired)
+            return new { status = "TokenExpired", message = "Token has expired." };
+
+        try
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var outboxRepo = scope.ServiceProvider.GetRequiredService<Interface.Repositories.INotificationOutboxRepository>();
+            await outboxRepo.AcknowledgeAsync(deviceUid, messageId);
+
+            _logger.LogInformation(
+                "[ASPS-620] NotificationAck processed — device={Device} messageId={MessageId}",
+                deviceUid, messageId);
+
+            return new { status = "Acknowledged", messageId = messageId.ToString() };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "[ASPS-620] Error processing NotificationAck from device={Device}", deviceUid);
+            return new { status = "Error", message = "Failed to process ACK" };
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────
