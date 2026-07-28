@@ -3,6 +3,7 @@ Playwright-based web scraper
 """
 
 import json
+import ipaddress
 import re
 import time
 from pathlib import Path
@@ -12,6 +13,9 @@ from .base_scraper import BaseScraper
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
 from utils.logger import setup_logger
+from utils.validators import URLSecurityPolicy, UnsafeURLException
+from .egress_proxy import PinnedEgressProxy
+from .deadline import install_sigterm_handler
 
 
 # Blocked page indicators in title
@@ -187,11 +191,19 @@ class PlaywrightScraper(BaseScraper):
             settings = json.load(f)
 
         self.timeout = settings['scraping']['timeout_seconds'] * 1000  # Convert to ms
+        self.deadline_seconds = settings['scraping']['deadline_seconds']
         self.user_agent = settings['scraping']['user_agent']
         self.headless = settings['scraping']['headless']
+        self.security_policy = URLSecurityPolicy()
 
         self.playwright = None
         self.browser = None
+        self.egress_proxy = None
+
+        # Register SIGTERM handler so Backend's process.Kill() triggers cleanup.
+        # The state dict is updated in fetch() once Playwright is launched.
+        self._sigterm_state: dict = {}
+        install_sigterm_handler(self._sigterm_state)
 
     def _is_blocked(self, page) -> bool:
         """Check if the page appears to be blocked/captcha'd"""
@@ -204,17 +216,86 @@ class PlaywrightScraper(BaseScraper):
         except Exception:
             return False
 
+    def _authorize_browser_url(self, url: str) -> None:
+        """Apply the shared SSRF policy to a browser network destination."""
+        if url.startswith("ws://"):
+            url = "http://" + url[5:]
+        elif url.startswith("wss://"):
+            url = "https://" + url[6:]
+        self.security_policy.validate_destination(url)
+
+    def _install_context_security(self, context):
+        """Install guards on the context so popups/new pages cannot bypass them."""
+        blocked_requests = []
+        unsafe_peers = []
+
+        def validate_request(route):
+            request_url = route.request.url
+            scheme = request_url.split(":", 1)[0].lower()
+            if scheme in ("data", "blob"):
+                route.continue_()
+                return
+            try:
+                self._authorize_browser_url(request_url)
+                route.continue_()
+            except UnsafeURLException as exc:
+                blocked_requests.append(f"{request_url}: {exc}")
+                self.logger.warning(f"Blocked unsafe browser request: {request_url}: {exc}")
+                route.abort("blockedbyclient")
+
+        def validate_websocket(web_socket):
+            try:
+                self._authorize_browser_url(web_socket.url)
+                web_socket.connect_to_server()
+            except UnsafeURLException as exc:
+                blocked_requests.append(f"{web_socket.url}: {exc}")
+                self.logger.warning(f"Blocked unsafe WebSocket: {web_socket.url}: {exc}")
+                # A routed WebSocket does not create a server connection unless
+                # connect_to_server() is called. Keep it locally drained instead
+                # of calling close() synchronously from Playwright's callback.
+                web_socket.on_message(lambda _message: None)
+
+        def validate_response(response):
+            try:
+                server = response.server_addr()
+                address = server.get("ipAddress") if server else None
+                if address:
+                    peer = ipaddress.ip_address(address)
+                    # With the mandatory filtering proxy Chromium's peer is the
+                    # trusted loopback proxy, not the remote destination.
+                    if not (self.egress_proxy and peer.is_loopback):
+                        self.security_policy.validate_connected_address(address)
+            except UnsafeURLException as exc:
+                unsafe_peers.append(str(exc))
+                self.logger.error(
+                    f"Chromium connected to an unsafe peer for {response.url}: {exc}"
+                )
+            except Exception:
+                return
+
+        context.route("**/*", validate_request)
+        context.route_web_socket("**/*", validate_websocket)
+        context.on("response", validate_response)
+        return blocked_requests, unsafe_peers
+
     def _fetch_with_ua(self, url: str, user_agent: str) -> Dict:
         """
         Attempt to fetch a URL with a specific User-Agent.
         Returns the result dict. Caller manages playwright lifecycle.
         """
+        # Validate before Chromium sees the target. The request route below repeats
+        # this for redirects and subresources so a DNS change to a private address
+        # is rejected at every network boundary.
+        self._authorize_browser_url(url)
         context = self.browser.new_context(
             user_agent=user_agent,
             viewport={'width': 1920, 'height': 1080},
             java_script_enabled=True,
-            bypass_csp=True,
-            ignore_https_errors=True,
+            bypass_csp=False,
+            ignore_https_errors=False,
+            service_workers='block',
+            accept_downloads=False,
+            permissions=[],
             locale='en-US',
             timezone_id='America/New_York',
             extra_http_headers={
@@ -236,37 +317,45 @@ class PlaywrightScraper(BaseScraper):
 
         page = context.new_page()
         page.add_init_script(ANTI_DETECTION_SCRIPT)
+        blocked_requests, unsafe_peers = self._install_context_security(context)
 
-        # Navigate to URL - try networkidle first with fallback
         try:
-            response = page.goto(url, timeout=8000, wait_until='networkidle')
-        except PlaywrightTimeout:
-            self.logger.warning(f"networkidle timeout for {url}, falling back to domcontentloaded")
-            response = page.goto(url, timeout=self.timeout, wait_until='domcontentloaded')
-            page.wait_for_timeout(2000)
+            # Navigate to URL - try networkidle first with fallback
+            try:
+                response = page.goto(url, timeout=8000, wait_until='networkidle')
+            except PlaywrightTimeout:
+                self.logger.warning(f"networkidle timeout for {url}, falling back to domcontentloaded")
+                response = page.goto(url, timeout=self.timeout, wait_until='domcontentloaded')
+                page.wait_for_timeout(2000)
 
-        final_url = page.url
-        html = page.content()
+            if unsafe_peers:
+                raise UnsafeURLException(unsafe_peers[0])
+            if blocked_requests and (response is None or page.url == "about:blank"):
+                raise UnsafeURLException(blocked_requests[0])
 
-        text_content = re.sub(r'<[^>]+>', ' ', html)
-        words = len(text_content.split())
-        if words < 50:
-            self.logger.warning(f"Minimal content extracted ({words} words) - JS may not have fully rendered")
+            final_url = page.url
+            self._authorize_browser_url(final_url)
+            html = page.content()
 
-        status_code = response.status if response else 0
-        blocked = self._is_blocked(page)
+            text_content = re.sub(r'<[^>]+>', ' ', html)
+            words = len(text_content.split())
+            if words < 50:
+                self.logger.warning(f"Minimal content extracted ({words} words) - JS may not have fully rendered")
 
-        context.close()
+            status_code = response.status if response else 0
+            blocked = self._is_blocked(page)
 
-        return {
-            'success': True,
-            'html': html,
-            'status_code': status_code,
-            'final_url': final_url,
-            'word_count': words,
-            'error': '',
-            '_blocked': blocked
-        }
+            return {
+                'success': True,
+                'html': html,
+                'status_code': status_code,
+                'final_url': final_url,
+                'word_count': words,
+                'error': '',
+                '_blocked': blocked
+            }
+        finally:
+            context.close()
 
     def fetch(self, url: str) -> Dict:
         """
@@ -282,15 +371,20 @@ class PlaywrightScraper(BaseScraper):
             self.logger.info(f"Fetching URL: {url}")
 
             # Start Playwright
+            self.egress_proxy = PinnedEgressProxy(self.security_policy)
+            proxy_url = self.egress_proxy.start()
             self.playwright = sync_playwright().start()
+            # Keep the SIGTERM state current so the handler can close these.
+            self._sigterm_state["playwright"] = self.playwright
             self.browser = self.playwright.chromium.launch(
                 headless=self.headless,
+                # Chromium normally bypasses proxies for loopback destinations.
+                # `<-loopback>` removes that implicit bypass so metadata/private
+                # targets cannot evade the pinned filtering proxy.
+                proxy={"server": proxy_url, "bypass": "<-loopback>"},
                 args=[
                     '--disable-blink-features=AutomationControlled',
                     '--disable-dev-shm-usage',
-                    '--no-sandbox',
-                    '--disable-web-security',
-                    '--disable-features=IsolateOrigins,site-per-process',
                     '--disable-infobars',
                     '--window-size=1920,1080',
                     '--disable-extensions',
@@ -300,6 +394,9 @@ class PlaywrightScraper(BaseScraper):
                     '--disable-renderer-backgrounding'
                 ]
             )
+
+            # Update SIGTERM state now that browser is live.
+            self._sigterm_state["browser"] = self.browser
 
             # First attempt with primary User-Agent
             result = self._fetch_with_ua(url, self.user_agent)
@@ -355,5 +452,7 @@ class PlaywrightScraper(BaseScraper):
                 self.browser.close()
             if self.playwright:
                 self.playwright.stop()
+            if self.egress_proxy:
+                self.egress_proxy.close()
         except Exception as e:
             self.logger.error(f"Error closing Playwright: {str(e)}")
