@@ -342,6 +342,7 @@ class ScamAnalyzer:
             )
 
             result.update({
+                'success': True,
                 'risk_assessment': {
                     'risk_score': risk_score,  # New scale: 0 = error, 1 = safe, 100 = dangerous
                     'risk_level': risk_level,
@@ -754,11 +755,34 @@ class ScamAnalyzer:
         return result
 
     def _error_response(self, url: str, error: str) -> Dict:
-        """Generate error response"""
+        """Generate error response.
+
+        Contract (ASPS-612):
+        - ``success`` is always ``False``.
+        - ``error`` is a structured object with ``code`` and ``message``,
+          NOT a bare string, so the C# ``UrlAnalysisResult`` deserialiser
+          can populate ``ErrorMessage`` correctly and set ``Success=false``.
+        """
+        # Derive a machine-readable code from the message heuristically so
+        # callers don't have to pass a separate code parameter.
+        lower = error.lower()
+        if 'invalid url' in lower or 'bad scheme' in lower or 'browser internal' in lower:
+            code = 'analyzer.invalid_url'
+        elif 'timeout' in lower or 'timed out' in lower:
+            code = 'analyzer.timeout'
+        elif 'scraper' in lower or 'scraping' in lower:
+            code = 'analyzer.scraper_failed'
+        else:
+            code = 'analyzer.internal_error'
+
         return {
+            'success': False,
             'url': url,
             'analyzed_at': datetime.now().isoformat(),
-            'error': error,
+            'error': {
+                'code': code,
+                'message': error,
+            },
             'risk_assessment': {
                 'risk_score': 0,  # Error = 0 (new scale: 0=error, 1=safe, 100=dangerous)
                 'risk_level': 'UNKNOWN',
