@@ -79,6 +79,38 @@ c:\Jobs\ASPS\GitHub\Software\
 ### Mode B — phased execution
 For any multi-phase task: execute one phase → stop → wait for "מאשר" / "תמשיך" before next.
 
+### TDD — mandatory for implementation agents
+All agents that change production code must use Test-Driven Development:
+
+1. **Translate acceptance first:** before production-code changes, turn the Jira
+   acceptance criteria, security invariants, and failure modes into an explicit
+   test checklist. For cross-component work, include contract and end-to-end
+   scenarios, not only unit tests.
+2. **Red:** add or modify the smallest relevant automated test and run it. Record
+   evidence that it fails for the intended missing behavior or regression.
+3. **Green:** make the smallest production-code change that makes that test pass.
+4. **Refactor:** improve structure without changing behavior, keeping the relevant
+   test suite green.
+5. Repeat Red → Green → Refactor in small slices. Do not implement an entire Jira
+   issue and add tests afterward.
+6. Security work must begin with negative tests for bypass, unauthenticated input,
+   tampering, replay, malformed data, unauthorized actions, and fail-open behavior
+   whenever they apply.
+7. Bug fixes must begin with a regression test that reproduces the bug. Legacy
+   behavior that is not yet testable must first receive a characterization test or
+   a documented test seam.
+8. Never weaken, delete, skip, or rewrite a valid failing test merely to obtain
+   Green unless the requirement itself changed and the CEO/root explicitly
+   confirms that change.
+9. Generated code, documentation-only changes, and purely declarative configuration
+   may use validation or contract checks instead of unit-level Red/Green. The agent
+   must document why conventional TDD does not apply and use the strongest
+   automated verification available.
+10. The implementation handoff must include the acceptance-test checklist, Red
+    evidence, Green evidence, refactoring performed, and exact final test commands
+    with passed/failed/skipped counts. Missing Red evidence requires an explicit
+    justification and CEO/root approval before QA.
+
 ### Persistent active handoff
 - Keep one cross-session handoff file per Codex task under `docs/task-memory/`.
 - Name it `docs/task-memory/<TASK_NAME>_HANDOFF.md`, using a stable filesystem-safe form of the task name.
@@ -94,6 +126,30 @@ For any multi-phase task: execute one phase → stop → wait for "מאשר" / "
 
 ### QA gate before merge
 Non-trivial code changes require PASS from QA agent before commit. See `.Codex/hats/ceo/operating_principles.md`.
+
+For Jira-backed implementation work, the following completion workflow is mandatory:
+
+1. The implementing agent reports completion to the CEO/root agent with the Jira issue ID and exact title, changed files, implementation summary, and verification results.
+2. Before requesting QA, the implementing agent must run all unit tests relevant to the changed code. The handoff to QA must include the exact test commands, passed/failed/skipped counts, and the final result.
+3. The implementing agent must not hand work to QA while a relevant unit test is failing. A failure may be treated as pre-existing only when the agent documents it, reproduces it without the task changes or provides equivalent baseline evidence, and demonstrates that the task did not introduce or worsen it.
+4. If the component has no relevant unit tests or the test environment cannot run, the implementing agent must document the gap and run the strongest available alternative verification. The CEO/root agent decides whether the evidence is sufficient to enter QA; absence of tests is not an automatic pass.
+5. After the pre-QA test gate passes, the implementing agent must request an independent QA-agent review against the Jira acceptance criteria and the original requirement.
+6. If QA returns `FAIL`, the issue returns to implementation and must be reviewed again after the fixes. The implementing agent must rerun the relevant unit tests before every QA resubmission. A previous PASS does not cover later material changes.
+7. The CEO/root agent independently verifies the reported files, test evidence, and the final QA result.
+8. A Jira issue must not be treated as complete or moved to `Done`, and its code must not be committed, until the CEO/root agent has confirmed a documented `QA PASS`.
+9. When a commit is requested or otherwise authorized, the CEO/root agent owns the commit and its message. The commit message must contain:
+   - the Jira issue ID;
+   - the exact Jira issue title;
+   - a concise description of the implementation included in the commit.
+10. Preferred commit-message format:
+
+   ```text
+   <JIRA-ID> <Exact Jira issue title>
+
+   <Concise description of the implemented changes and relevant verification>
+   ```
+
+11. The CEO/root agent records the commit hash and QA PASS evidence in the Jira issue before moving it to `Done`.
 
 ### Trust-but-verify
 When a sub-agent reports work done — open the actual files and confirm before relaying to user.

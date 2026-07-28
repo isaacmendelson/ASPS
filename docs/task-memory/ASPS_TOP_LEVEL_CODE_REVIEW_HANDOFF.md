@@ -464,7 +464,8 @@ The final report must assess these components separately:
 
 - Project: `ASPS`
 - Epic: `ASPS-607` — `[CODE REVIEW] ASPS Top-Level Remediation`
-- Tasks: `ASPS-608` through `ASPS-627`
+- Remediation tasks: `ASPS-608` through `ASPS-627`
+- Independent security audit: `ASPS-628` — `[CODE REVIEW] Perform independent security audit of ASPS-607 remediation`
 - Created: 2026-07-28
 - All 20 tasks:
   - are linked to `ASPS-607`;
@@ -476,6 +477,8 @@ The final report must assess these components separately:
   - Tasks: 3 Highest, 14 High, 3 Medium.
   - Epic: Highest.
 - Read-back verification returned 21 issues total, one Epic and 20 Tasks, with no missing parent, label, source prefix or description.
+- `ASPS-628` was added afterwards at High priority with labels `agent-security`, `ciso` and `security-audit`; it is linked to `ASPS-607`.
+- Scheduling decision: defer ASPS-628 to the final audit phase. During implementation waves, the first available agent slot is reserved for independent QA so completed fixes can pass the mandatory QA gate without waiting for every implementation agent to finish.
 
 ## Exact continuation point
 
