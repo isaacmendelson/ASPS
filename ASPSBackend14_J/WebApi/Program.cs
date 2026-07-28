@@ -7,7 +7,9 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using WebApi.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,11 +48,15 @@ builder.Services.AddRazorPages(options =>
 // Authorization policy - require Admin role (set from Keycloak Administrators group)
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("AdminPolicy", policy =>
-    {
-        policy.RequireAuthenticatedUser();
-        policy.RequireRole("Admin");
-    });
+    var adminPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .RequireRole("Admin")
+        .Build();
+
+    options.AddPolicy("AdminPolicy", adminPolicy);
+    options.AddPolicy("NotificationsHubPolicy", policy =>
+        policy.AddRequirements(new NotificationsHubRequirement()));
+    options.FallbackPolicy = adminPolicy;
 });
 
 // Claims transformer to add Admin role based on username/groups
@@ -82,6 +88,7 @@ if (keycloakEnabled)
         options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.Cookie.Name = "ASPS.Auth";
+        ApiCookieAuthentication.Configure(options);
     })
     .AddOpenIdConnect(options =>
     {
@@ -199,6 +206,7 @@ else
             options.ExpireTimeSpan = TimeSpan.FromHours(8);
             options.Cookie.HttpOnly = true;
             options.Cookie.Name = "ASPS.Auth";
+            ApiCookieAuthentication.Configure(options);
         });
 
     Console.WriteLine("⚠ Keycloak not configured — running with cookie-only auth (dev mode)");
@@ -227,6 +235,10 @@ builder.Services.AddSingleton<ICQRSClient>(sp =>
     var channelSecurity = sp.GetRequiredService<CqrsChannelSecurity>();
     return new CQRSClient(cqrsEndpoint, logger, curveKeyManager, channelSecurity);
 });
+builder.Services.AddSingleton<IAuthorizationHandler, NotificationsHubAuthorizationHandler>();
+builder.Services.AddSingleton<
+    IAuthorizationMiddlewareResultHandler,
+    ApiAuthorizationMiddlewareResultHandler>();
 
 Console.WriteLine($"✓ CQRS Client configured: {cqrsEndpoint}");
 
@@ -276,7 +288,8 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapRazorPages();
-app.MapHub<WebApi.Hubs.NotificationsHub>("/notificationshub");
+app.MapHub<WebApi.Hubs.NotificationsHub>("/notificationshub")
+    .RequireAuthorization("NotificationsHubPolicy");
 
 var webApiVersion = typeof(Program).Assembly.GetName().Version?.ToString() ?? "0.0.0.1";
 Console.WriteLine("========================================");

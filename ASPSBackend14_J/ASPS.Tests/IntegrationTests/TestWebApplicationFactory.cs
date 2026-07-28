@@ -1,10 +1,18 @@
+using System.Security.Claims;
+using System.Text.Encodings.Web;
 using Business.Data.EF;
+using Microsoft.AspNetCore.Authentication;
 using Common.Entities;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Moq;
+using WebApi.Services;
 
 namespace ASPS.Tests.IntegrationTests;
 
@@ -16,8 +24,35 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.ConfigureLogging(logging =>
+        {
+            logging.ClearProviders();
+            logging.AddConsole();
+        });
         builder.ConfigureServices(services =>
         {
+            services
+                .AddAuthentication(options =>
+                {
+                    options.DefaultAuthenticateScheme = "IntegrationTest";
+                    options.DefaultChallengeScheme = "IntegrationTest";
+                    options.DefaultForbidScheme = "IntegrationTest";
+                })
+                .AddScheme<AuthenticationSchemeOptions, IntegrationTestAuthHandler>(
+                    "IntegrationTest",
+                    _ => { });
+
+            services.RemoveAll<ICQRSClient>();
+            services.AddSingleton(
+                new Mock<ICQRSClient>(MockBehavior.Strict).Object);
+
+            foreach (var hostedService in services
+                .Where(descriptor => descriptor.ServiceType == typeof(IHostedService))
+                .ToArray())
+            {
+                services.Remove(hostedService);
+            }
+
             // Remove the existing AppDbContext registration
             var descriptor = services.SingleOrDefault(
                 d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
@@ -57,6 +92,33 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
                 }
             }
         });
+    }
+
+    private sealed class IntegrationTestAuthHandler
+        : AuthenticationHandler<AuthenticationSchemeOptions>
+    {
+        public IntegrationTestAuthHandler(
+            IOptionsMonitor<AuthenticationSchemeOptions> options,
+            ILoggerFactory logger,
+            UrlEncoder encoder)
+            : base(options, logger, encoder)
+        {
+        }
+
+        protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+        {
+            var identity = new ClaimsIdentity(
+                new[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, "integration-test-admin"),
+                    new Claim(ClaimTypes.Role, "Admin")
+                },
+                Scheme.Name);
+            var ticket = new AuthenticationTicket(
+                new ClaimsPrincipal(identity),
+                Scheme.Name);
+            return Task.FromResult(AuthenticateResult.Success(ticket));
+        }
     }
 
     /// <summary>

@@ -1,76 +1,28 @@
-using Business.Queries;
 using Microsoft.AspNetCore.SignalR;
-using WebApi.Services;
+using WebApi.Security;
 
 namespace WebApi.Hubs
 {
     /// <summary>
     /// SignalR Hub for sending real-time notifications to connected clients.
-    /// Validates device tokens on connection when deviceUid/token query params are provided.
-    /// Admin page connections (no token) are allowed through.
+    /// Connections are authorized by NotificationsHubPolicy before the hub runs.
+    /// Notification-group membership is derived only from trusted claims.
     /// </summary>
     public class NotificationsHub : Hub
     {
         private readonly ILogger<NotificationsHub> _logger;
-        private readonly ICQRSClient _cqrsClient;
-
-        private const string DeviceUidKey = "ValidatedDeviceUid";
-        private const string UserKeyFieldKey = "ValidatedUserKeyField";
-
-        public NotificationsHub(ILogger<NotificationsHub> logger, ICQRSClient cqrsClient)
+        public NotificationsHub(ILogger<NotificationsHub> logger)
         {
             _logger = logger;
-            _cqrsClient = cqrsClient;
         }
 
         public override async Task OnConnectedAsync()
         {
-            var httpContext = Context.GetHttpContext();
-            var deviceUid = httpContext?.Request.Query["deviceUid"].ToString();
-            var token = httpContext?.Request.Query["token"].ToString();
-
-            // If device credentials are provided, validate them
-            if (!string.IsNullOrEmpty(deviceUid) && !string.IsNullOrEmpty(token))
-            {
-                try
-                {
-                    var query = new ValidateDeviceTokenQuery
-                    {
-                        DeviceUid = deviceUid,
-                        TokenValue = token
-                    };
-
-                    var result = await _cqrsClient.SendQueryAsync<ValidateDeviceTokenQueryResult>(query);
-
-                    if (!result.Success || !result.IsValid)
-                    {
-                        _logger.LogWarning(
-                            "SignalR connection rejected for device {DeviceUid}: invalid token",
-                            deviceUid);
-                        Context.Abort();
-                        return;
-                    }
-
-                    // Store validated identity for subscription checks
-                    Context.Items[DeviceUidKey] = deviceUid;
-                    Context.Items[UserKeyFieldKey] = result.UserKeyField;
-
-                    _logger.LogInformation(
-                        "Device {DeviceUid} authenticated for SignalR connection {ConnectionId}",
-                        deviceUid, Context.ConnectionId);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error validating device token for SignalR connection");
-                    Context.Abort();
-                    return;
-                }
-            }
-            else
-            {
-                _logger.LogInformation("Client connected without device token (admin): {ConnectionId}",
-                    Context.ConnectionId);
-            }
+            var deviceUid = Context.User?.FindFirst(HubClaimTypes.DeviceUid)?.Value;
+            _logger.LogInformation(
+                "Authorized SignalR client connected: {ConnectionId}, device {DeviceUid}",
+                Context.ConnectionId,
+                deviceUid ?? "admin");
 
             await base.OnConnectedAsync();
         }
@@ -87,20 +39,22 @@ namespace WebApi.Hubs
         /// </summary>
         public async Task SubscribeToNotifications(string clientId)
         {
-            // If this connection was authenticated with a device token, enforce ownership
-            if (Context.Items.TryGetValue(DeviceUidKey, out var validatedDeviceUid))
+            var requestedGroup = $"client_{clientId}";
+            var allowedGroups = Context.User?
+                .FindAll(HubClaimTypes.NotificationGroup)
+                .Select(claim => claim.Value);
+
+            if (allowedGroups == null ||
+                !allowedGroups.Contains(requestedGroup, StringComparer.Ordinal))
             {
-                var deviceUid = validatedDeviceUid?.ToString();
-                if (!string.Equals(clientId, deviceUid, StringComparison.OrdinalIgnoreCase))
-                {
-                    _logger.LogWarning(
-                        "Device {DeviceUid} attempted to subscribe to group for {ClientId} - denied",
-                        deviceUid, clientId);
-                    return;
-                }
+                _logger.LogWarning(
+                    "SignalR client {ConnectionId} attempted to subscribe to unauthorized group {Group}",
+                    Context.ConnectionId,
+                    requestedGroup);
+                throw new HubException("Not authorized for the requested notification group");
             }
 
-            await Groups.AddToGroupAsync(Context.ConnectionId, $"client_{clientId}");
+            await Groups.AddToGroupAsync(Context.ConnectionId, requestedGroup);
             _logger.LogInformation("Client {ClientId} subscribed with connection {ConnectionId}",
                 clientId, Context.ConnectionId);
         }
@@ -110,7 +64,21 @@ namespace WebApi.Hubs
         /// </summary>
         public async Task UnsubscribeFromNotifications(string clientId)
         {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"client_{clientId}");
+            var requestedGroup = $"client_{clientId}";
+            var isAllowed = Context.User?
+                .FindAll(HubClaimTypes.NotificationGroup)
+                .Any(claim => string.Equals(
+                    claim.Value,
+                    requestedGroup,
+                    StringComparison.Ordinal)) == true;
+
+            if (!isAllowed)
+            {
+                throw new HubException(
+                    "Not authorized for the requested notification group");
+            }
+
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, requestedGroup);
             _logger.LogInformation("Client {ClientId} unsubscribed", clientId);
         }
     }
