@@ -6,6 +6,12 @@ Handles protective actions from backend
 import logging
 from typing import List, Dict, Any, Optional
 
+# Backend serializes SubjectKey.Type as the entity class TypeName, not the
+# generic category name "Device".  All known device entity type names must map
+# to ProtectiveActionSubject.Device.  "device" is included for forward-compat
+# in case the backend ever sends the category name directly.
+_DEVICE_TYPE_NAMES = {"personalcomputer", "smartphone", "userdevice", "device"}
+
 from enums import (
     ProtectiveActionType, ProtectiveActionSubject,
     get_protective_action_name, get_severity_name, get_subject_name
@@ -38,6 +44,35 @@ class ProtectionService:
             ProtectiveActionType.BlockRemoteAccess: 4,
         }
 
+    @staticmethod
+    def _resolve_subject(action: Dict) -> int:
+        """Resolve the subject of a ProtectiveAction dict.
+
+        The backend serializes the subject as `SubjectKey` — a Key object
+        `{"Type": "Device"|"User"|"Protector", "Value": "...", ...}`.
+        The legacy field name `Subject` (an integer enum) is kept for
+        backward-compatibility during transition.
+
+        Resolution order:
+          1. `SubjectKey.Type`  — new backend contract (primary)
+          2. `Subject`          — legacy integer field (fallback)
+        """
+        # New contract: SubjectKey is a Key object whose Type matches the
+        # subject kind.
+        subject_key = action.get('SubjectKey')
+        if isinstance(subject_key, dict):
+            key_type = subject_key.get('Type') or subject_key.get('type') or ''
+            normalized = key_type.strip().lower()
+            if normalized in _DEVICE_TYPE_NAMES:
+                return ProtectiveActionSubject.Device
+            if normalized == 'user':
+                return ProtectiveActionSubject.User
+            if normalized in ('protector', 'guardian'):
+                return ProtectiveActionSubject.Protector
+
+        # Legacy fallback: integer Subject field sent by older backend versions.
+        return action.get('Subject', 0)
+
     def execute_actions(
         self,
         actions: List[Dict],
@@ -47,7 +82,7 @@ class ProtectionService:
         """Execute list of protective actions"""
         for action in actions:
             action_type = action.get('ActionType', 0)
-            subject = action.get('Subject', 0)
+            subject = self._resolve_subject(action)
             message = action.get('Message', 'Security alert')
             level = action.get('Level', 1)
 
@@ -222,7 +257,8 @@ class ProtectionService:
                     len(actions),
                     [{'ActionType': a.get('ActionType'),
                       'Message': _message(a),
-                      'Subject': a.get('Subject'),
+                      'SubjectKey': a.get('SubjectKey'),
+                      'Subject': a.get('Subject'),  # legacy field — kept for diagnostics
                       'Level': a.get('Level')} for a in actions],
                 )
             except Exception:
@@ -301,7 +337,7 @@ class ProtectionService:
 
             for action in protective_actions:
                 action_type = action.get('ActionType', 0)
-                subject = action.get('Subject', 0)
+                subject = self._resolve_subject(action)
 
                 # Only consider device/user actions
                 if subject in [ProtectiveActionSubject.Device, ProtectiveActionSubject.User]:
