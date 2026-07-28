@@ -10,8 +10,10 @@ using Common.Exceptions;
 using Common.Interfaces;
 using Common.Models;
 using Common.Models.Alerts;
+using Common.Generated.Messaging.V1;
 using Interface.Repositories;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using NetMQ;
 using NetMQ.Sockets;
@@ -46,6 +48,10 @@ public class RealTimeAlertListener : IDisposable
     private readonly SocketMode _mode;
     private readonly AlertPersistenceActor _alertPersistenceActor;
     private readonly DomainEventPublisher _domainEventPublisher;
+    private readonly MessageDeduplicator _messageDeduplicator;
+    private readonly MessagingCompatibilityOptions _messagingCompatibility;
+    public bool AcceptLegacyV0 => _messagingCompatibility.AcceptLegacyV0;
+    internal Action<DeviceAlertReceived>? DomainDispatchObserver { get; set; }
 
     public RealTimeAlertListener(
         ILoggerFactory _loggerFactory,
@@ -55,7 +61,8 @@ public class RealTimeAlertListener : IDisposable
         TokenStore tokenStore,
         CurveKeyManager? curveKeyManager = null,
         int port = 50001,
-        SocketMode mode = SocketMode.Router)
+        SocketMode mode = SocketMode.Router,
+        IConfiguration? configuration = null)
     {
         this._logger = _loggerFactory.CreateLogger<RealTimeAlertListener>();
         _serviceProvider = serviceProvider;
@@ -66,6 +73,13 @@ public class RealTimeAlertListener : IDisposable
         _rateLimiter = new RateLimiter();
         _port = port;
         _mode = mode;
+        _messageDeduplicator = new MessageDeduplicator(
+            TimeSpan.FromMinutes(15), capacity: 100_000);
+        _messagingCompatibility = new MessagingCompatibilityOptions
+        {
+            AcceptLegacyV0 = configuration?.GetValue<bool>(
+                "Messaging:AcceptLegacyV0", false) ?? false
+        };
         var scope = _serviceProvider.CreateScope();
         var deviceAlertRepository = scope.ServiceProvider.GetRequiredService<IDeviceAlertRepository>();
         _alertPersistenceActor = new AlertPersistenceActor(deviceAlertRepository, _loggerFactory, _asView, _serviceProvider);
@@ -201,7 +215,9 @@ public class RealTimeAlertListener : IDisposable
     {
         try
         {
-            var json  = JsonConvert.SerializeObject(response);
+            var json = response is MessageEnvelopeV1
+                ? System.Text.Json.JsonSerializer.Serialize(response)
+                : JsonConvert.SerializeObject(response);
             var reply = new NetMQMessage();
             reply.Append(identity);
             reply.AppendEmptyFrame();
@@ -227,6 +243,8 @@ public class RealTimeAlertListener : IDisposable
         try
         {
             var jObject = JObject.Parse(message);
+            if (jObject["schemaVersion"] != null)
+                return await ProcessEnvelopeAsync(message, jObject);
             var messageType = jObject["MessageType"]?.ToString();
 
             // Rate limit token endpoints
@@ -248,7 +266,7 @@ public class RealTimeAlertListener : IDisposable
                 "RequestToken" => HandleRequestToken(jObject),
                 "RegisterDevice" => await HandleRegisterDevice(jObject),
                 "RefreshToken" => HandleRefreshToken(jObject),
-                _ => await ProcessAlertAsync(message, jObject) // No MessageType = alert
+                _ => await ProcessLegacyAlertAsync(message, jObject)
             };
         }
         catch (JsonException ex)
@@ -261,6 +279,116 @@ public class RealTimeAlertListener : IDisposable
             _logger.LogError(ex, "Error routing message");
             return new { success = false, message = "Error processing message" };
         }
+    }
+
+    private async Task<object> ProcessLegacyAlertAsync(string message, JObject alert)
+    {
+        try
+        {
+            MessagingCompatibility.AdaptLegacyIngress(
+                alert, _messagingCompatibility);
+        }
+        catch (MessagingCompatibilityException ex)
+        {
+            return new { success = false, code = ex.Code, message = ex.Message };
+        }
+        return await ProcessAlertAsync(alert.ToString(Formatting.None), alert);
+    }
+
+    internal async Task<object> ProcessEnvelopeAsync(string message, JObject wire)
+    {
+        var validation = MessageEnvelopeValidator.DeserializeAndValidate(
+            message, out var envelope, requireDeviceId: true);
+        if (!validation.IsValid)
+            return CreateEnvelopeError(wire, validation.ErrorCode!, validation.ErrorMessage!);
+
+        if (envelope!.MessageType != "url_scan.request")
+            return CreateEnvelopeError(wire, "protocol.unsupported_message_type", "Backend ingress accepts url_scan.request only.");
+
+        var alertToken = wire["payload"]?["alert"];
+        if (alertToken is not JObject alertObject)
+            return CreateEnvelopeError(wire, "protocol.invalid_payload", "payload.alert is required.");
+
+        var alertDeviceId = alertObject["DeviceInfo"]?["DeviceUid"]?.ToString();
+        var alertUrl = alertObject["Url"]?.ToString();
+        var alertTabId = alertObject["TabId"]?.ToString();
+        if (!string.Equals(alertDeviceId, envelope.Context.DeviceId, StringComparison.Ordinal) ||
+            !string.Equals(alertUrl, envelope.Context.Url, StringComparison.Ordinal) ||
+            !string.Equals(alertTabId, envelope.Context.TabId, StringComparison.Ordinal))
+            return CreateEnvelopeError(wire, "validation.immutable_context_mismatch", "payload.alert does not match immutable context.");
+
+        var typedAlert = JsonConvert.DeserializeObject<Common.Models.Alerts.UrlAlert>(
+            alertObject.ToString(Formatting.None));
+        if (typedAlert is null)
+            return CreateEnvelopeError(wire, "protocol.invalid_payload", "payload.alert is invalid.");
+
+        // Claim only after the complete envelope, payload and immutable context
+        // have passed validation. A malformed first attempt cannot poison a
+        // corrected retry that reuses the same wire messageId.
+        if (!_messageDeduplicator.TryBegin(envelope.MessageId))
+        {
+            return new MessageEnvelopeV1
+            {
+                MessageId = Guid.NewGuid(),
+                CorrelationId = envelope.CorrelationId,
+                RequestId = envelope.RequestId,
+                MessageType = "url_scan.accepted",
+                SentAt = DateTimeOffset.UtcNow,
+                Source = "backend",
+                Context = envelope.Context,
+                Outcome = null,
+                Payload = System.Text.Json.JsonSerializer.SerializeToElement(
+                    new { accepted = true, duplicate = true })
+            };
+        }
+
+        typedAlert.MessagingIdentity = new MessageIdentityV1(
+            envelope.MessageId, envelope.CorrelationId, envelope.RequestId,
+            envelope.Context.DeviceId!, envelope.Context.TabId, envelope.Context.Url);
+        alertObject = JObject.FromObject(typedAlert);
+
+        var legacyResult = await ProcessAlertAsync(alertObject.ToString(Formatting.None), alertObject);
+        var resultJson = System.Text.Json.JsonSerializer.SerializeToElement(legacyResult);
+        return new MessageEnvelopeV1
+        {
+            MessageId = Guid.NewGuid(),
+            CorrelationId = envelope.CorrelationId,
+            RequestId = envelope.RequestId,
+            MessageType = "url_scan.accepted",
+            SentAt = DateTimeOffset.UtcNow,
+            Source = "backend",
+            Context = envelope.Context,
+            Outcome = null,
+            Payload = resultJson
+        };
+    }
+
+    private static MessageEnvelopeV1 CreateEnvelopeError(JObject wire, string code, string message)
+    {
+        static Guid ReadGuid(JToken? token) => Guid.TryParse(token?.ToString(), out var value) ? value : Guid.NewGuid();
+        var contextToken = wire["context"];
+        var context = new MessageContextV1
+        {
+            DeviceId = contextToken?["deviceId"]?.Type == JTokenType.Null ? null : contextToken?["deviceId"]?.ToString(),
+            TabId = contextToken?["tabId"]?.Type == JTokenType.Null ? null : contextToken?["tabId"]?.ToString(),
+            Url = contextToken?["url"]?.ToString() ?? "https://invalid.local/"
+        };
+        return new MessageEnvelopeV1
+        {
+            MessageId = Guid.NewGuid(),
+            CorrelationId = ReadGuid(wire["correlationId"]),
+            RequestId = ReadGuid(wire["requestId"]),
+            MessageType = "url_scan.error",
+            SentAt = DateTimeOffset.UtcNow,
+            Source = "backend",
+            Context = context,
+            Outcome = new MessageOutcomeV1
+            {
+                Status = "error",
+                Error = new MessageErrorV1 { Code = code, Message = message, Retryable = false }
+            },
+            Payload = System.Text.Json.JsonSerializer.SerializeToElement(new { })
+        };
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -354,6 +482,20 @@ public class RealTimeAlertListener : IDisposable
 
     private async Task<object> HandleRegisterDevice(JObject jObject)
     {
+        var peerMajors = jObject["SupportedSchemaMajors"] is JArray majors
+            ? majors.Values<int>()
+            : new[] { 0 };
+        MessagingNegotiationResult negotiation;
+        try
+        {
+            negotiation = MessagingCompatibility.Negotiate(
+                peerMajors, _messagingCompatibility);
+        }
+        catch (MessagingCompatibilityException ex)
+        {
+            return new { status = "Error", code = ex.Code, message = ex.Message };
+        }
+
         var deviceUid = jObject["DeviceUid"]?.ToString();
         var email = jObject["Email"]?.ToString();
         var deviceTypeInt = jObject["DeviceType"]?.Value<int>() ?? (int)DeviceType.PersonalComputer;
@@ -398,6 +540,8 @@ public class RealTimeAlertListener : IDisposable
                 token = token.TokenValue,
                 expiration = token.Expiration.ToString("o"),
                 deviceUid,
+                schemaMajor = negotiation.SchemaMajor,
+                supportedSchemaMajors = MessagingCompatibility.SupportedSchemaMajors,
                 serverPublicKey = _curveKeyManager?.ServerPublicKeyZ85 ?? string.Empty
             };
         }
@@ -435,6 +579,8 @@ public class RealTimeAlertListener : IDisposable
                 token = token.TokenValue,
                 expiration = token.Expiration.ToString("o"),
                 deviceUid,
+                schemaMajor = negotiation.SchemaMajor,
+                supportedSchemaMajors = MessagingCompatibility.SupportedSchemaMajors,
                 serverPublicKey = _curveKeyManager?.ServerPublicKeyZ85 ?? string.Empty
             };
         }
@@ -588,6 +734,7 @@ public class RealTimeAlertListener : IDisposable
     {
         try
   {
+            DomainDispatchObserver?.Invoke(domainEvent);
 
             this._domainEventPublisher.Register(domainEvent);
             this._domainEventPublisher.RaiseAll();

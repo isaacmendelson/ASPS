@@ -60,6 +60,12 @@ public abstract class DeviceAlertEntity : Entity, IDeviceAlert
     public Priority Priority { get; set; }
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     public string Token { get; set; } = string.Empty;
+    // ASPS-611 immutable wire identity. Null only for dual-read legacy v0 traffic.
+    public string? SchemaVersion { get; set; }
+    public Guid? MessageId { get; set; }
+    public Guid? CorrelationId { get; set; }
+    public Guid? RequestId { get; set; }
+    public string? CanonicalUrl { get; set; }
     
     // Device Information (flattened for database storage)
     public string DeviceUid { get; set; } = string.Empty;

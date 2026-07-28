@@ -12,6 +12,7 @@ import threading
 import uuid
 from typing import Optional, Dict, Any, List
 from datetime import datetime
+from generated.messaging.v1.message_envelope import create_envelope, validate_envelope
 
 logger = logging.getLogger(__name__)
 
@@ -265,7 +266,8 @@ class ZMQClient:
                        mac: str = "00:11:22:33:44:55",
                        device_type: int = 1, os_type: int = 1,
                        ip_address: str = "",
-                       tab_id: str = "") -> Optional[Dict[str, Any]]:
+                       tab_id: str = "",
+                       envelope: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
         """
         Send a UrlAlert.
 
@@ -312,13 +314,31 @@ class ZMQClient:
             "UserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
             "TabId": tab_id
         }
+        wire_message = alert
+        if envelope is not None:
+            validate_envelope(envelope)
+            context = dict(envelope["context"])
+            context["deviceId"] = device_uid
+            if context["url"] != url or context["tabId"] != tab_id:
+                raise ValueError("validation.immutable_context_mismatch")
+            wire_message = create_envelope(
+                "url_scan.request", "desktop", context, {"alert": alert},
+                request_id=envelope["requestId"],
+                correlation_id=envelope["correlationId"])
 
         with self._send_lock:
             if not self.connect():
                 return None
 
             try:
-                return self.send_alert(alert)
+                response = self.send_alert(wire_message)
+                if envelope is not None and response is not None:
+                    validate_envelope(response, require_device_id=True)
+                    if (response["requestId"] != envelope["requestId"] or
+                            response["correlationId"] != envelope["correlationId"] or
+                            response["context"] != context):
+                        raise ValueError("validation.immutable_context_mismatch")
+                return response
             finally:
                 self.close()
 

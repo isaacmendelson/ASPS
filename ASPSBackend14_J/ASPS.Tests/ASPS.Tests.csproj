@@ -29,6 +29,7 @@
     <ProjectReference Include="..\Business\Business.csproj" />
     <ProjectReference Include="..\Common\Common.csproj" />
     <ProjectReference Include="..\WebApi\WebApi.csproj" />
+    <ProjectReference Include="..\ASPSBackend\ASPSBackend.csproj" />
   </ItemGroup>
 
 </Project>

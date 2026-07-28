@@ -229,6 +229,12 @@ namespace Business.Migrations
                     b.Property<string>("AnalysisKeyField")
                         .HasColumnType("longtext");
 
+                    b.Property<string>("CanonicalUrl")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CorrelationId")
+                        .HasColumnType("char(36)");
+
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("datetime(6)");
 
@@ -271,11 +277,21 @@ namespace Business.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
+                    b.Property<Guid?>("MessageId")
+                        .HasColumnType("char(36)");
+
                     b.Property<int>("OperatingSystem")
                         .HasColumnType("int");
 
                     b.Property<int>("Priority")
                         .HasColumnType("int");
+
+                    b.Property<Guid?>("RequestId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("SchemaVersion")
+                        .HasMaxLength(16)
+                        .HasColumnType("varchar(16)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -298,7 +314,14 @@ namespace Business.Migrations
 
                     b.HasIndex("DeviceUid");
 
+                    b.HasIndex("CorrelationId");
+
+                    b.HasIndex("MessageId")
+                        .IsUnique();
+
                     b.HasIndex("Priority");
+
+                    b.HasIndex("RequestId");
 
                     b.HasIndex("Timestamp");
 

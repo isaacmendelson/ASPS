@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://asps.local/contracts/messaging/v1/envelope.schema.json",
+  "title": "ASPS versioned message envelope v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "messageId", "correlationId", "requestId",
+    "messageType", "sentAt", "source", "context", "outcome", "payload"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string", "pattern": "^1\\.[0-9]+$" },
+    "messageId": { "$ref": "#/$defs/uuid" },
+    "correlationId": { "$ref": "#/$defs/uuid" },
+    "requestId": { "$ref": "#/$defs/uuid" },
+    "messageType": {
+      "enum": ["url_scan.request", "url_scan.accepted", "url_scan.result", "url_scan.error"]
+    },
+    "sentAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+    },
+    "source": { "enum": ["extension", "desktop", "backend", "analyzer"] },
+    "context": { "$ref": "#/$defs/context" },
+    "outcome": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/successOutcome" },
+        { "$ref": "#/$defs/errorOutcome" }
+      ]
+    },
+    "payload": { "type": "object" }
+  },
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["deviceId", "tabId", "url"],
+      "properties": {
+        "deviceId": { "type": ["string", "null"], "minLength": 1 },
+        "tabId": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "string", "pattern": "^[0-9]+$" }
+          ]
+        },
+        "url": { "type": "string", "format": "uri", "pattern": "^https?://" }
+      }
+    },
+    "successOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "result"],
+      "properties": {
+        "status": { "const": "success" },
+        "result": { "type": "object" }
+      }
+    },
+    "errorOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "error"],
+      "properties": {
+        "status": { "const": "error" },
+        "error": { "$ref": "#/$defs/error" }
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "retryable"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$" },
+        "message": { "type": "string", "minLength": 1 },
+        "retryable": { "type": "boolean" },
+        "details": { "type": "object" }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "messageType": { "enum": ["url_scan.request", "url_scan.accepted"] } } },
+      "then": { "properties": { "outcome": { "type": "null" } } }
+    },
+    {
+      "if": { "properties": { "messageType": { "const": "url_scan.result" } } },
+      "then": { "properties": { "outcome": { "$ref": "#/$defs/successOutcome" } } }
+    },
+    {
+      "if": { "properties": { "messageType": { "const": "url_scan.error" } } },
+      "then": { "properties": { "outcome": { "$ref": "#/$defs/errorOutcome" } } }
+    }
+  ]
+}

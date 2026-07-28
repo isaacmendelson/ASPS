@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "messageId": "ec422d46-2376-4111-bd40-7d846a82e45c",
+  "correlationId": "6b7a9fa7-e3f0-4c5c-86cc-3914f42b262f",
+  "requestId": "7afe6cba-7916-40e1-91dc-666f40f760db",
+  "messageType": "url_scan.error",
+  "sentAt": "2026-07-28T10:15:31.123Z",
+  "source": "analyzer",
+  "context": {
+    "deviceId": "device-stable-id",
+    "tabId": "384",
+    "url": "https://example.com/account?step=1"
+  },
+  "outcome": {
+    "status": "error",
+    "error": {
+      "code": "analyzer.timeout",
+      "message": "URL analysis exceeded its deadline",
+      "retryable": true,
+      "details": {}
+    }
+  },
+  "payload": {}
+}

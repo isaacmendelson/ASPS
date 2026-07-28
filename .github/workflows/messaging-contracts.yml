@@ -1,0 +1,43 @@
+name: Messaging contract drift
+on:
+  pull_request:
+    paths:
+      - "contracts/messaging/**"
+      - "scripts/generate_messaging_contracts.py"
+      - "ASPSBackend14_J/Common/Generated/Messaging/**"
+      - "apps/desktop/win/src/generated/messaging/**"
+      - "apps/extension/chrome/generated/messaging/**"
+      - "Analyzers/basic-url-analyzer/generated/messaging/**"
+  push:
+    paths:
+      - "contracts/messaging/**"
+      - "scripts/generate_messaging_contracts.py"
+      - "ASPSBackend14_J/Common/Generated/Messaging/**"
+      - "apps/desktop/win/src/generated/messaging/**"
+      - "apps/extension/chrome/generated/messaging/**"
+      - "Analyzers/basic-url-analyzer/generated/messaging/**"
+jobs:
+  generated-bindings:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - run: python -m pip install pytest
+      - run: npm ci
+        working-directory: apps/extension/chrome/tests
+      - run: python scripts/generate_messaging_contracts.py --check
+      - run: python -m unittest tests.contracts.test_messaging_v1 -v
+      - run: python -m unittest tests.contracts.test_desktop_v1_runtime -v
+      - run: python -m pytest Analyzers/basic-url-analyzer/tests/test_messaging_v1_stdio.py -q
+      - run: node --check apps/extension/chrome/services/ScanService.js
+      - run: npm test -- --runInBand unit/services/ScanService.messaging-v1.test.js
+        working-directory: apps/extension/chrome/tests
+      - run: dotnet test ASPSBackend14_J/ASPS.Tests/ASPS.Tests.csproj --filter "FullyQualifiedName~Messaging|FullyQualifiedName~MessageEnvelope" --nologo

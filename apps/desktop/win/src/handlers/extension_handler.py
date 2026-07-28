@@ -7,6 +7,7 @@ import asyncio
 import logging
 from typing import Dict, Any, Optional
 from zmq_client import get_local_ip
+from generated.messaging.v1.message_envelope import ContractError, validate_envelope
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,16 @@ class ExtensionHandler:
         Handle incoming message from extension
         Returns response dict
         """
+        if 'schemaVersion' in data:
+            try:
+                validate_envelope(data)
+                if data['messageType'] != 'url_scan.request':
+                    raise ContractError('protocol.unsupported_message_type', 'Desktop accepts url_scan.request')
+                return await asyncio.get_running_loop().run_in_executor(
+                    None, self._handle_url_scan_envelope, data)
+            except ContractError as exc:
+                return {'type': 'error', 'code': exc.code, 'message': str(exc)}
+
         msg_type = data.get('type', '')
         print(f"\n[EXTENSION] Received: {msg_type}")
 
@@ -51,6 +62,17 @@ class ExtensionHandler:
 
         logger.warning(f"Unknown message type: {msg_type}")
         return {'type': 'error', 'message': 'Unknown message type'}
+
+    def _handle_url_scan_envelope(self, envelope: Dict[str, Any]) -> Dict[str, Any]:
+        payload = envelope['payload']
+        context = envelope['context']
+        return self.scan_service.check_url(
+            context['url'],
+            payload.get('trackers', []),
+            payload.get('iframes', []),
+            ip_address=payload.get('ipAddress', '') or self._local_ip,
+            tab_id=context['tabId'] or '',
+            envelope=envelope)
 
     def _handle_url_check(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Handle URL check request"""
@@ -128,6 +150,7 @@ class ExtensionHandler:
         return {
             'type': 'pong',
             'status': 'ok',
+            'supportedSchemaMajors': [1],
             'email': self.auth_manager.email or '',
             'ipAddress': self._local_ip
         }

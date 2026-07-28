@@ -147,11 +147,23 @@ public class NotificationPublisherActor : IDomainEventHandler
 
 
             // Publish notification
-            _notificationPublisher.PublishAnalysisResult(
-                analysisEvent.DeviceUid,
-                analysisEvent.UserKeyField,
-                notification
-            );
+            if (analysisEvent.MessagingIdentity is null)
+            {
+                _notificationPublisher.PublishAnalysisResult(
+                    analysisEvent.DeviceUid,
+                    analysisEvent.UserKeyField,
+                    notification
+                );
+            }
+            else
+            {
+                _notificationPublisher.PublishAnalysisResult(
+                    analysisEvent.DeviceUid,
+                    analysisEvent.UserKeyField,
+                    notification,
+                    analysisEvent.MessagingIdentity
+                );
+            }
 
             _logger.LogInformation(
                 $"[NotificationPublisherActor] Published notification for device {analysisEvent.DeviceUid}, " +

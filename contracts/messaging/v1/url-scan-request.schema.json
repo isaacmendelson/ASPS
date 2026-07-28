@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://asps.local/contracts/messaging/v1/url-scan-request.schema.json",
+  "title": "ASPS URL scan request v1",
+  "allOf": [
+    { "$ref": "envelope.schema.json" },
+    {
+      "properties": {
+        "messageType": { "const": "url_scan.request" },
+        "outcome": { "type": "null" }
+      }
+    }
+  ]
+}

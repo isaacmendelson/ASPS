@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using NetMQ;
 using NetMQ.Sockets;
 using Newtonsoft.Json;
+using Common.Generated.Messaging.V1;
 
 namespace Business.Messaging;
 
@@ -258,7 +259,17 @@ public class NotificationPublisher : IDisposable
         }
     }
 
-    public virtual void PublishAnalysisResult(string? deviceUid, string? userKeyField, AnalysisResultNotification? analysisResultNotification)
+    public virtual void PublishAnalysisResult(
+        string? deviceUid,
+        string? userKeyField,
+        AnalysisResultNotification? analysisResultNotification) =>
+        PublishAnalysisResult(deviceUid, userKeyField, analysisResultNotification, null);
+
+    public virtual void PublishAnalysisResult(
+        string? deviceUid,
+        string? userKeyField,
+        AnalysisResultNotification? analysisResultNotification,
+        MessageIdentityV1? messagingIdentity)
     {
         if (!_isRunning || analysisResultNotification == null)
         {
@@ -275,13 +286,15 @@ public class NotificationPublisher : IDisposable
         try
         {
             // Create notification message
-            var notification = new
-            {
-                Type = "AnalysisResult",
-                Timestamp = DateTime.UtcNow,
-                DeviceUid = deviceUid ?? string.Empty,
-                Data = analysisResultNotification
-            };
+            object notification = messagingIdentity is null
+                ? new
+                {
+                    Type = "AnalysisResult",
+                    Timestamp = DateTime.UtcNow,
+                    DeviceUid = deviceUid ?? string.Empty,
+                    Data = analysisResultNotification
+                }
+                : MessageEnvelopeFactoryV1.CreateSuccess(messagingIdentity, analysisResultNotification);
 
             // Use Newtonsoft.Json with TypeNameHandling to properly serialize polymorphic types
             var jsonSettings = new JsonSerializerSettings
@@ -292,7 +305,9 @@ public class NotificationPublisher : IDisposable
                 Formatting = Formatting.None
             };
 
-            var json = JsonConvert.SerializeObject(notification, jsonSettings);
+            var json = notification is MessageEnvelopeV1
+                ? System.Text.Json.JsonSerializer.Serialize(notification)
+                : JsonConvert.SerializeObject(notification, jsonSettings);
 
             lock (_sendLock)
             {

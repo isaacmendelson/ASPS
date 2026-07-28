@@ -1,0 +1,11 @@
+{
+  "artifacts": {
+    "ASPSBackend14_J/Common/Generated/Messaging/V1/MessageEnvelope.cs": "3041e517cea06fd82c292589454373232285caa23ec5cfd08a5d8d76629b5f3d",
+    "ASPSBackend14_J/Common/Generated/Messaging/V1/MessageEnvelopeFactory.cs": "147ee940d31a45429907e8b2dbfd77ed57af1b78652988aa554a6a946b0f75a7",
+    "ASPSBackend14_J/Common/Generated/Messaging/V1/MessageEnvelopeValidator.cs": "778092f5e3019d039f89bde264472e047ce9e76ad31682018990d78298a7c952",
+    "Analyzers/basic-url-analyzer/generated/messaging/v1/message_envelope.py": "2560f981e4d948c4af961ea6bfe554faad2c815deeeddcd884d4b68e5658fafa",
+    "apps/desktop/win/src/generated/messaging/v1/message_envelope.py": "2560f981e4d948c4af961ea6bfe554faad2c815deeeddcd884d4b68e5658fafa",
+    "apps/extension/chrome/generated/messaging/v1/message-envelope.js": "f5831444de7af75e9596a8339e3a0e875924d68a09df8304d6a14dc5268513b9"
+  },
+  "bundleSha256": "19cd31af58cf9afa385c830a18e7cee4f7afbb663ae51c8945beb656fbb4f9d5"
+}

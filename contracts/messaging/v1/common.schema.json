@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://asps.local/contracts/messaging/v1/common.schema.json",
+  "title": "ASPS messaging v1 common definitions",
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["deviceId", "tabId", "url"],
+      "properties": {
+        "deviceId": { "type": ["string", "null"] },
+        "tabId": { "type": ["string", "null"], "pattern": "^[0-9]+$" },
+        "url": { "type": "string", "format": "uri" }
+      }
+    }
+  }
+}

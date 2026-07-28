@@ -1,9 +1,13 @@
 using Common.Enums;
+using Common.Generated.Messaging.V1;
 
 namespace Common.Models;
 
 public abstract class DeviceMessage
 {
+    [Newtonsoft.Json.JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore]
+    public MessageIdentityV1? MessagingIdentity { get; set; }
     public Priority Priority { get; set; }
     public DeviceInfo DeviceInfo { get; set; } = new DeviceInfo();
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;

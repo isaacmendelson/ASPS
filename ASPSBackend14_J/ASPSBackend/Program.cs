@@ -17,7 +17,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ASPSBackend;
 
-class Program
+public class Program
 {
     static async Task Main(string[] args)
     {
@@ -81,7 +81,7 @@ class Program
         await host.RunAsync();
     }
 
-    static IHostBuilder CreateHostBuilder(string[] args) =>
+    public static IHostBuilder CreateHostBuilder(string[] args) =>
         Host.CreateDefaultBuilder(args)
             .UseDefaultServiceProvider((context, options) =>
             {
@@ -240,7 +240,9 @@ class Program
                         ? parsedMode
                         : SocketMode.Router;
 
-                    return new RealTimeAlertListener(loggerFactory, sp, asView, userDomainService, tokenStore, curveKeyManager, port, mode);
+                    return new RealTimeAlertListener(
+                        loggerFactory, sp, asView, userDomainService, tokenStore,
+                        curveKeyManager, port, mode, configuration);
                 });
 
                 // Add Logging

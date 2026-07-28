@@ -373,6 +373,7 @@ public class UDAnalysis : IBackgroundTask, IDomainEventHandler
             AnalysisTimestamp = result.AnalysisTimestamp,
             AlertType = activeAlert.Alert.AlertType,
             Timestamp = activeAlert.Alert.Timestamp
+            ,MessagingIdentity = activeAlert.Alert.MessagingIdentity
         };
 
         this._domainEventPublisher.Register(analysisEvent);

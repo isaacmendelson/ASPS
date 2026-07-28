@@ -101,7 +101,8 @@ class ScanService:
         trackers: list = None,
         iframes: list = None,
         ip_address: str = "",
-        tab_id: str = ""
+        tab_id: str = "",
+        envelope: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Check a URL for risks
@@ -165,7 +166,8 @@ class ScanService:
             trackers=trackers,
             iframes=iframes,
             ip_address=ip_address,
-            tab_id=tab_id
+            tab_id=tab_id,
+            envelope=envelope
         )
 
         self.event_logger.log_sent('SuspiciousUrlAlert', {'url': url})
@@ -194,6 +196,16 @@ class ScanService:
                 return self._create_error(url, "Authentication failed")
 
         # New format: success response (async analysis)
+        if response and response.get('messageType') == 'url_scan.accepted':
+            payload = response.get('payload', {})
+            return {
+                **response,
+                'type': 'url_result',
+                'url': url,
+                'analyzing': bool(payload.get('success')),
+                'message': payload.get('message', 'Analysis in progress')
+            }
+
         if response and response.get('success'):
             print(f"[SCAN] Backend accepted alert")
             print(f"[SCAN] Message: {response.get('message', 'N/A')}")

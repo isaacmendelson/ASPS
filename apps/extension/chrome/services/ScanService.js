@@ -7,6 +7,9 @@ import stateManager from '../state/StateManager.js';
 import connectionService from './ConnectionService.js';
 import cacheService from './CacheService.js';
 import { MSG, PROTECTIVE_ACTION } from '../messaging/MessageTypes.js';
+import '../generated/messaging/v1/message-envelope.js';
+
+const messagingV1 = globalThis.AspsMessagingV1;
 
 class ScanService {
   constructor() {
@@ -87,14 +90,17 @@ class ScanService {
     await this.saveTabData(tabId, domain, pageInfo);
 
     // Send to desktop app
-    const message = {
-      type: MSG.WS_URL_CHECK,
-      url: url,
+    const canonicalUrl = messagingV1.canonicalizeUrl(url);
+    const message = messagingV1.createEnvelope(
+      'url_scan.request',
+      'extension',
+      { deviceId: null, tabId: tabId.toString(), url: canonicalUrl },
+      {
       trackers: pageInfo?.trackers || [],
       iframes: pageInfo?.iframes || [],
       ipAddress: connectionService.getDeviceIpAddress(),
-      tabId: tabId.toString()
-    };
+      originalUrl: url
+      });
 
     if (!connectionService.send(message)) {
       console.log('[ScanService] Not connected to desktop app');
@@ -108,7 +114,7 @@ class ScanService {
     // Wait for result (with timeout)
     return new Promise((resolve) => {
       const timeoutId = setTimeout(() => {
-        this.pendingScans.delete(domain);
+        this.pendingScans.delete(message.requestId);
         stateManager.update({
           'scan.loading': false,
           'scan.error': 'Scan timeout'
@@ -116,7 +122,10 @@ class ScanService {
         resolve(null);
       }, this.scanTimeout);
 
-      this.pendingScans.set(domain, { resolve, timeoutId, url });
+      this.pendingScans.set(message.requestId, {
+        resolve, timeoutId, url: canonicalUrl, tabId: tabId.toString(),
+        correlationId: message.correlationId
+      });
     });
   }
 
@@ -145,6 +154,39 @@ class ScanService {
   // Handle scan result from desktop app
   // Uses server values directly - no local calculations
   handleResult(data, fromCache = false) {
+    if (data?.schemaVersion) {
+      try {
+        messagingV1.validateEnvelope(data, true);
+      } catch (error) {
+        console.warn('[ScanService] Invalid v1 result:', error.code);
+        return null;
+      }
+
+      const pending = this.pendingScans.get(data.requestId);
+      if (!pending || pending.correlationId !== data.correlationId ||
+          pending.url !== data.context.url || pending.tabId !== data.context.tabId) {
+        console.warn('[ScanService] Stale or mismatched result:', data.requestId);
+        return null;
+      }
+
+      if (data.messageType === 'url_scan.accepted') {
+        return data;
+      }
+
+      data = data.messageType === 'url_scan.error'
+        ? {
+            error: true,
+            message: data.outcome.error.message,
+            url: data.context.url,
+            requestId: data.requestId
+          }
+        : {
+            ...data.outcome.result,
+            url: data.context.url,
+            requestId: data.requestId
+          };
+    }
+
     console.log('[ScanService] Result received (from server):', data);
 
     // Skip if still analyzing (no final result yet)
@@ -221,11 +263,12 @@ class ScanService {
     }
 
     // Resolve pending scan if exists
-    const domain = this.extractDomain(data.url);
-    if (this.pendingScans.has(domain)) {
-      const { resolve, timeoutId } = this.pendingScans.get(domain);
+    const pendingKey = data.requestId || [...this.pendingScans.entries()]
+      .find(([, pending]) => pending.url === data.url)?.[0];
+    if (pendingKey && this.pendingScans.has(pendingKey)) {
+      const { resolve, timeoutId } = this.pendingScans.get(pendingKey);
       clearTimeout(timeoutId);
-      this.pendingScans.delete(domain);
+      this.pendingScans.delete(pendingKey);
       resolve({ score, riskType, protectiveAction, fromCache });
     }
 

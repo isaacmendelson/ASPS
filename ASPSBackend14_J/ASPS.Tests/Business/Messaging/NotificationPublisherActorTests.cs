@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Common.Generated.Messaging.V1;
 
 namespace ASPS.Tests.Business.Messaging;
 
@@ -132,7 +133,7 @@ public class NotificationPublisherActorTests : IDisposable
 
         // Assert
         handleableEvents.Should().NotBeNull();
-        handleableEvents.Should().HaveCount(1);
+        handleableEvents.Should().HaveCount(4);
         handleableEvents.Should().Contain(typeof(AnalysisResultReceived));
     }
 
@@ -179,6 +180,25 @@ public class NotificationPublisherActorTests : IDisposable
                 It.IsAny<string>(),
                 It.IsAny<AnalysisResultNotification>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WithV1Identity_PublishesNotificationWithImmutableIdentity()
+    {
+        var mockPublisher = CreateMockNotificationPublisher();
+        _actor = new NotificationPublisherActor(mockPublisher.Object, _logger, _asView);
+        var analysisEvent = CreateValidAnalysisResultReceivedEvent();
+        analysisEvent.MessagingIdentity = new MessageIdentityV1(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            analysisEvent.DeviceUid, "12", "https://example.com/");
+
+        await _actor.Handle(analysisEvent);
+
+        mockPublisher.Verify(x => x.PublishAnalysisResult(
+            analysisEvent.DeviceUid,
+            analysisEvent.UserKeyField,
+            It.IsAny<AnalysisResultNotification>(),
+            analysisEvent.MessagingIdentity), Times.Once);
     }
 
     [Fact]

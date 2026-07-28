@@ -6,6 +6,7 @@ using Common.Enums;
 using Common.Interfaces;
 using Common.Models;
 using Common.Models.Alerts;
+using Common.Generated.Messaging.V1;
 using Interface.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -176,7 +177,7 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
                 }
                 else
                 {
-                    result = await this.RunPythonAnalyzerAsync(analyzer, url);
+                    result = await RunPythonAnalyzerV1Async(analyzer, urlAlert);
                 }
 
                 if (result != null)
@@ -338,6 +339,37 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
             );
         }
     }
+
+    private async Task<UrlAnalysisResult?> RunPythonAnalyzerV1Async(
+        ExternalAnalyzer analyzer,
+        UrlAlert alert)
+    {
+        var analyzerDirectory = Path.Combine(_analyzersFolder, analyzer.ScriptFile);
+        var identity = alert.MessagingIdentity ?? new MessageIdentityV1(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            alert.DeviceInfo?.DeviceUid ?? "legacy-unknown",
+            alert.TabId,
+            alert.Url);
+
+        var response = await new AnalyzerV1ProcessClient().RunAsync(
+            _pythonPath,
+            analyzerDirectory,
+            identity,
+            TimeSpan.FromSeconds(30));
+        var result = System.Text.Json.JsonSerializer.Deserialize<UrlAnalysisResult>(
+            response.Outcome!.Result!.Value.GetRawText(),
+            new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+        if (result is null)
+            throw new InvalidOperationException("Analyzer result payload is invalid.");
+        result.IsFromCache = false;
+        return result;
+    }
+
     private async Task<UrlAnalysisResult?> RunPythonAnalyzerAsync(ExternalAnalyzer analyzer, string url)
     {
         // Build path to analyzer directory and analyze.py script

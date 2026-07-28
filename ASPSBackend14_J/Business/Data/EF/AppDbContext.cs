@@ -245,6 +245,8 @@ public class AppDbContext : DbContext
             entity.Property(e => e.DeviceUid).HasMaxLength(255);
             entity.Property(e => e.MAC).HasMaxLength(50);
             entity.Property(e => e.IPAddress).HasMaxLength(50);
+            entity.Property(e => e.SchemaVersion).HasMaxLength(16);
+            entity.Property(e => e.CanonicalUrl).HasColumnType("TEXT");
             
             // Configure foreign key relationships
             entity.HasOne(e => e.User)
@@ -269,6 +271,9 @@ public class AppDbContext : DbContext
             entity.HasIndex(e => e.UserKeyField);
             entity.HasIndex(e => e.DeviceKeyField);
             entity.HasIndex(e => e.Priority);
+            entity.HasIndex(e => e.MessageId).IsUnique();
+            entity.HasIndex(e => e.CorrelationId);
+            entity.HasIndex(e => e.RequestId);
         });
 
         // RemoteAccessAlertEntity specific configuration

@@ -409,8 +409,17 @@ Examples:
         action='store_true',
         help='Skip LLM explanation generation (faster execution)'
     )
+    parser.add_argument(
+        '--contract-version',
+        choices=('1',),
+        help='Read one messaging envelope from stdin and write one envelope to stdout'
+    )
 
     args = parser.parse_args()
+
+    if args.contract_version == '1':
+        from v1_stdio import main as v1_main
+        return v1_main()
     
     # Clear cache command
     if args.clear_cache:

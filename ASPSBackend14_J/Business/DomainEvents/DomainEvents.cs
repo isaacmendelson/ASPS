@@ -8,6 +8,7 @@ using Common.Entities;
 using Common.Enums;
 using Common.Interfaces;
 using Common.Models;
+using Common.Generated.Messaging.V1;
 using Microsoft.Extensions.Configuration;
 
 namespace Business.DomainEvents;
@@ -103,6 +104,7 @@ public class DeviceAlertReceived : DomainEvent
 
 public class AnalysisResultReceived : DomainEvent
 {
+    public MessageIdentityV1? MessagingIdentity { get; set; }
     public string UserKeyField { get; set; } = string.Empty;
     public string DeviceAlertKeyField { get; set; } = string.Empty;
     public string DeviceUid { get; set; } = string.Empty;

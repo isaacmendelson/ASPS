@@ -206,6 +206,14 @@ namespace Business.RealtimeAnalysis
             if (alertEntity != null)
             {
                 alertEntity.ImmediateDanger = vm.DeviceInfo.ImmediateDanger;
+                if (vm.MessagingIdentity is { } identity)
+                {
+                    alertEntity.SchemaVersion = Common.Generated.Messaging.V1.MessagingContractV1.SchemaVersion;
+                    alertEntity.MessageId = identity.MessageId;
+                    alertEntity.CorrelationId = identity.CorrelationId;
+                    alertEntity.RequestId = identity.RequestId;
+                    alertEntity.CanonicalUrl = identity.Url;
+                }
             
 
                 // Save alert entity to database using scoped repository
