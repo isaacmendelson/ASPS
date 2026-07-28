@@ -6,6 +6,95 @@
 - Decision owners: Architect; implementation owners listed below
 - Depends on: ADR-001 / ASPS-611 envelope v1; ASPS-619 for Desktop–Backend enrollment
 
+## Security dependency gate — 2026-07-28
+
+**Gate result: BLOCKED.** The trust model and fail-closed cutover are approved
+in principle, but implementation must not start from the SPAKE2+ wording below
+until the following dependency/protocol amendment is accepted.
+
+No maintained, independently audited SPAKE2+ package pair was identified for
+both Python 3.11 and Chrome MV3. The available Python `spake2` package implements
+balanced SPAKE2, not SPAKE2+; the available SPAKE2+ Python and JavaScript
+packages are small or pre-1.0 implementations without an independent audit,
+and one explicitly warns against production deployment before such an audit.
+WebCrypto supplies P-256 ECDH but not the arbitrary point operations required
+to implement SPAKE2+, so it cannot safely fill this gap.
+
+The sanctioned dependency direction is one shared audited PAKE core, not two
+independent cryptographic implementations:
+
+- use RFC 9807 OPAQUE through pinned `opaque-ke` `4.0.1` Rust sources;
+- expose only a narrow ASPS-owned state-machine adapter, compiled from the same
+  source revision as a PyO3 `abi3-py311` wheel for Desktop and a packaged
+  `wasm-bindgen` module for the MV3 service worker;
+- pin the complete Cargo lockfile and crate checksums, generate an SBOM, build
+  both artifacts reproducibly, forbid network/dynamic code loading at runtime,
+  and review the adapter plus all security-relevant changes since the audited
+  `opaque-ke` release line;
+- require an implementation spike to pass RFC 9807 Appendix C vectors on both
+  targets and byte-for-byte ASPS cross-runtime fixtures before this gate can
+  become PASS.
+
+This is not permission to implement OPAQUE or elliptic-curve operations in
+ASPS. If the shared-core build cannot support Python 3.11 and packaged MV3
+WebAssembly, this ticket remains blocked and must use Native Messaging with an
+installer-provisioned random credential under a separate approved ADR.
+
+The protocol amendment must also resolve these blocking details:
+
+1. Generate a random `pairingAttemptId` before PAKE and bind that value into
+   the PAKE identifiers/context. `pairId` is generated only after successful
+   confirmation and is returned in a PAKE-key-authenticated finish message.
+   The current text binds `pairId` before it exists.
+2. Freeze one binary context encoding: ASCII domain label, protocol version,
+   16-byte attempt ID, exact lowercase 32-character runtime extension ID,
+   16-byte Desktop device ID, unsigned-16 server port and unsigned-64 UTC
+   expiry seconds, all fixed-width/network byte order. The Origin extension ID
+   must equal `chrome.runtime.id` and the installer allow-list. Unicode,
+   locale-dependent case conversion, JSON and formatted timestamps are
+   forbidden in this context.
+3. Replace object-level JCS signing with a fixed positional frame whose MAC
+   covers fixed-width header fields plus the exact UTF-8 ASPS-611 envelope
+   bytes. Parse the envelope strictly only after MAC verification. This avoids
+   cross-runtime numeric/Unicode reserialization and makes unknown wrapper
+   fields impossible. If JCS is retained instead, the gate requires pinned
+   RFC 8785 implementations and pre-parse rejection of duplicate names,
+   non-I-JSON input, lone surrogates and negative zero.
+4. Before storing any secret, set `chrome.storage.local` access to
+   `TRUSTED_CONTEXTS` and prove a content script cannot read, write, clear or
+   enumerate the pair record. Existing content-script storage access must move
+   behind allowlisted service-worker messages. Never use `sync`.
+5. Desktop must select and verify the Windows Credential Manager backend
+   explicitly. Missing, null, fail, third-party or write/read-back failure
+   aborts pairing; environment-selected keyring backends and plaintext fallback
+   are forbidden.
+6. Specify an ASCII-only, single-use code format with a checksum and at least
+   30 bits of entropy; canonicalize only by removing permitted visual
+   separators and uppercasing ASCII. Three failures invalidate the attempt.
+   The popup must show expiry and a Desktop label, and success is displayed
+   only after mutual key confirmation.
+7. Reset, suspected compromise, profile/extension-ID change and Desktop
+   identity change immediately close old sessions and delete the old record on
+   both sides. The five-minute drain is permitted only for planned age
+   rotation, never for revocation; the first implementation should prefer no
+   drain.
+8. Logging uses an allowlist of event name, reason code, attempt/pair hash
+   prefix and counters only. Codes, keys, PAKE state, shares, confirmations,
+   proofs, MACs, full frames, emails, tokens and full URLs are forbidden in
+   logs, exception strings and telemetry. Every dependency/storage/parse/state
+   error closes the socket and leaves no partially committed pair.
+
+Primary review evidence:
+
+- [RFC 9383 SPAKE2+ and Appendix C vectors](https://www.rfc-editor.org/rfc/rfc9383.html)
+- [RFC 9807 OPAQUE and Appendix C vectors](https://www.rfc-editor.org/rfc/rfc9807.html)
+- [`opaque-ke` 4.0.1 documentation and audit lineage](https://docs.rs/crate/opaque-ke/4.0.1)
+- [NCC Group `opaque-ke` assessment](https://www.nccgroup.com/media/0uspzge5/_ncc_group_whatsappllc_opaque_report_2021-12-10_v13.pdf)
+- [Chrome storage access-level behavior](https://developer.chrome.com/docs/extensions/reference/api/storage)
+- [Chrome MV3 packaged WebAssembly requirement](https://developer.chrome.com/docs/extensions/whats-new#chrome-103-wasm)
+- [Python keyring backend and null-backend behavior](https://keyring.readthedocs.io/en/latest/)
+- [RFC 8785 JCS constraints](https://www.rfc-editor.org/rfc/rfc8785.html)
+
 ## Context
 
 The Desktop agent currently binds a WebSocket listener to the first available
