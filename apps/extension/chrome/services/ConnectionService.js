@@ -164,6 +164,12 @@ class ConnectionService {
     // Re-send stored email to agent on every connect/reconnect
     await this.sendStoredEmail();
 
+    // Request authoritative state snapshot from the agent so the extension
+    // can reconcile drift caused by a service-worker restart mid-session.
+    // The agent responds by re-pushing WS_IMMEDIATE_DANGER_STARTED/_ENDED,
+    // WS_SET_REMOTE_CONTROLLED, and tracked_domains:set as appropriate.
+    this.send({ type: MSG.WS_STATE_SYNC_REQUEST });
+
     // Send initial ping
     this.send({ type: MSG.WS_PING });
   }

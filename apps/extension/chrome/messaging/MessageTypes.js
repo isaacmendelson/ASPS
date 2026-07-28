@@ -94,6 +94,14 @@ export const MSG = {
   // uses it as a gate for WS_TAB_CHANGED_ALERT / WS_TAB_CLOSED_ALERT.
   WS_SET_REMOTE_CONTROLLED: 'set_remote_controlled',
 
+  // Sent by the extension to the agent on every reconnect to request an
+  // authoritative state snapshot (danger mode, remote-controlled flag,
+  // tracked domains). The agent responds by re-pushing the relevant messages
+  // (WS_IMMEDIATE_DANGER_STARTED/_ENDED, WS_SET_REMOTE_CONTROLLED,
+  // tracked_domains:set) so the extension can reconcile any drift caused by
+  // a service-worker restart during a live session.
+  WS_STATE_SYNC_REQUEST: 'state_sync_request',
+
   // ==========================================
   // Remote Access Warning Messages
   // ==========================================

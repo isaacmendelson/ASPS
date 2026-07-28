@@ -13,6 +13,7 @@ import { protectionService } from './services/ProtectionService.js';
 import { iconService } from './services/IconService.js';
 import { authService } from './services/AuthService.js';
 import { messageQueueService } from './services/MessageQueueService.js';
+import { dangerStateService, serializeMap } from './services/DangerStateService.js';
 
 // ============================================
 // Connection Status for Badge
@@ -180,10 +181,12 @@ function setupWebSocketHandlers() {
   connectionService.onMessage(MSG.WS_IMMEDIATE_DANGER_STARTED, () => {
     immediateDangerMode = true;
     console.log('[Background] ImmediateDanger mode ON');
+    dangerStateService.persist({ immediateDangerMode, isDeviceRemoteControlled, trackedDomains, sensitiveDomainCache });
   });
   connectionService.onMessage(MSG.WS_IMMEDIATE_DANGER_ENDED, () => {
     immediateDangerMode = false;
     console.log('[Background] ImmediateDanger mode OFF');
+    dangerStateService.persist({ immediateDangerMode, isDeviceRemoteControlled, trackedDomains, sensitiveDomainCache });
   });
 
   // ─── IsDeviceRemoteControlled gate ──────────────────────────────────
@@ -195,6 +198,7 @@ function setupWebSocketHandlers() {
     if (next === isDeviceRemoteControlled) return;
     isDeviceRemoteControlled = next;
     console.log('[Background] IsDeviceRemoteControlled =', next);
+    dangerStateService.persist({ immediateDangerMode, isDeviceRemoteControlled, trackedDomains, sensitiveDomainCache });
 
     // On transition to remote-controlled: scan all already-open tabs and
     // report any sensitive ones immediately. Without this, a bank tab that
@@ -349,6 +353,11 @@ function setupWebSocketHandlers() {
       }
       console.log(`[Background] In-memory trackedDomains Map rebuilt: ${trackedDomains.size} root domain(s)`);
 
+      // ASPS-622: Persist the rebuilt trackedDomains Map so a future
+      // service-worker restart can restore it without waiting for the next
+      // backend push.
+      dangerStateService.persist({ immediateDangerMode, isDeviceRemoteControlled, trackedDomains, sensitiveDomainCache });
+
       // Notify all content scripts to reload tracked domains
       const tabs = await chrome.tabs.query({});
       for (const tab of tabs) {
@@ -378,6 +387,9 @@ function handleUrlResult(data) {
     const root = _safeRootDomain(data.url);
     if (root) {
       sensitiveDomainCache.set(root, data.isSensitiveWebsite);
+      // ASPS-622: Persist the updated sensitiveDomainCache so it survives
+      // a service-worker restart.
+      dangerStateService.persist({ immediateDangerMode, isDeviceRemoteControlled, trackedDomains, sensitiveDomainCache });
       // Back-fill any open tab on the same root so a still-open bank tab
       // becomes "known sensitive" once the analysis result lands.
       for (const [tid, ctrl] of tabControls) {
@@ -724,6 +736,11 @@ const tabActivationTimes = new Map();
 // (or login transition on an already-sensitive tab) fires
 // WS_TAB_CHANGED_ALERT — so the backend can re-evaluate ImmediateDanger
 // without waiting for the next 10s RA poll.
+//
+// ASPS-622: These are initialised from chrome.storage.session in init()
+// (via dangerStateService.restore()) BEFORE any message handler is set up,
+// so that a service-worker restart in the middle of a live session picks up
+// the correct state automatically.
 let immediateDangerMode = false;
 let isDeviceRemoteControlled = false;
 
@@ -734,6 +751,7 @@ const tabControls = new Map();
 // rootDomain → bool. Cached from the backend's `isSensitiveWebsite` flag
 // in WS_URL_RESULT. New tabs/onUpdated events look up sensitivity here
 // without a round-trip.
+// ASPS-622: persisted and restored alongside danger state.
 const sensitiveDomainCache = new Map();
 
 function _safeRootDomain(url) {
@@ -1400,6 +1418,31 @@ async function init() {
 
   // Initialize auth
   await authService.init();
+
+  // ASPS-622: Restore persisted danger/tracking state BEFORE any message
+  // handler is registered.  This ensures that if a tab-close or URL-change
+  // event fires within the first few milliseconds of the service-worker
+  // restart (Chrome can deliver queued events immediately), the flags are
+  // already set to their correct values and we don't silently drop an alert.
+  {
+    const restored = await dangerStateService.restore();
+    immediateDangerMode      = restored.immediateDangerMode;
+    isDeviceRemoteControlled = restored.isDeviceRemoteControlled;
+    // Rebuild in-memory Maps from persisted entries (pruning expired ones)
+    trackedDomains.clear();
+    for (const [k, v] of restored.trackedDomains) {
+      trackedDomains.set(k, v);
+    }
+    sensitiveDomainCache.clear();
+    for (const [k, v] of restored.sensitiveDomainCache) {
+      sensitiveDomainCache.set(k, v);
+    }
+    console.log(
+      '[Background] Restored danger state: dangerMode=%s rc=%s tracked=%d sensitive=%d',
+      immediateDangerMode, isDeviceRemoteControlled,
+      trackedDomains.size, sensitiveDomainCache.size
+    );
+  }
 
   // Setup handlers
   setupWebSocketHandlers();
