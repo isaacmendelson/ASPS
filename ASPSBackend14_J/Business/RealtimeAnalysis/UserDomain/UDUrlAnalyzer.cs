@@ -9,6 +9,7 @@ using Common.Models.Alerts;
 using Common.Generated.Messaging.V1;
 using Interface.Repositories;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
@@ -24,7 +25,8 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
 {
     private readonly ILogger<UDUrlAnalyzer> _logger;
     private IConfiguration _configuration;
-    private readonly IKnownPhishingWebsiteRepository _phishingRepo;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IKnownPhishingWebsiteRepository? _directPhishingRepo;
     private readonly ASView _asView;
     private string _pythonPath;
     private string _analyzersFolder;
@@ -39,12 +41,12 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
     public UDUrlAnalyzer(
         ILogger<UDUrlAnalyzer> logger,
         IConfiguration configuration,
-        IKnownPhishingWebsiteRepository phishingRepo,
+        IServiceScopeFactory serviceScopeFactory,
         ASView asView)
     {
         this._logger = logger;
         this.LoadConfiguration(configuration);
-        this._phishingRepo = phishingRepo;
+        _serviceScopeFactory = serviceScopeFactory;
         this._asView = asView;
 
         // Define external analyzers
@@ -340,6 +342,19 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
         }
     }
 
+    public UDUrlAnalyzer(
+        ILogger<UDUrlAnalyzer> logger,
+        IConfiguration configuration,
+        IKnownPhishingWebsiteRepository phishingRepo,
+        ASView asView)
+    {
+        _logger = logger;
+        LoadConfiguration(configuration);
+        _directPhishingRepo = phishingRepo;
+        _asView = asView;
+        ExternalAnalyzers = new[] { new ExternalAnalyzer { ScriptFile = "basic-url-analyzer", Order = 1, Weight = 1.0f } };
+    }
+
     private async Task<UrlAnalysisResult?> RunPythonAnalyzerV1Async(
         ExternalAnalyzer analyzer,
         UrlAlert alert)
@@ -501,10 +516,12 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
             var domain = Common.Entities.KnownPhishingWebsite.GetDomainFromUrl(url);
 
             // Check if exact URL is in database
-            var isKnownPhishing = await _phishingRepo.IsPhishingUrlAsync(url);
+            using var scope = _serviceScopeFactory?.CreateScope();
+            var phishingRepo = scope?.ServiceProvider.GetRequiredService<IKnownPhishingWebsiteRepository>() ?? _directPhishingRepo!;
+            var isKnownPhishing = await phishingRepo.IsPhishingUrlAsync(url);
 
             // Check if domain is in database
-            var isKnownPhishingDomain = await _phishingRepo.IsPhishingDomainAsync(domain);
+            var isKnownPhishingDomain = await phishingRepo.IsPhishingDomainAsync(domain);
 
             // Get count and source info if domain is phishing
             PhishingCheckResultSource? source = PhishingCheckResultSource.Unknown;
@@ -513,7 +530,7 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
             if (isKnownPhishingDomain)
             {
 
-                var phishingUrls = await _phishingRepo.GetByDomainAsync(domain);
+                var phishingUrls = await phishingRepo.GetByDomainAsync(domain);
                 var phishingUrlsList = phishingUrls.ToList();
                 matchCount = phishingUrlsList.Count;
 

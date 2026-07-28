@@ -80,9 +80,7 @@ public class RealTimeAlertListener : IDisposable
             AcceptLegacyV0 = configuration?.GetValue<bool>(
                 "Messaging:AcceptLegacyV0", false) ?? false
         };
-        var scope = _serviceProvider.CreateScope();
-        var deviceAlertRepository = scope.ServiceProvider.GetRequiredService<IDeviceAlertRepository>();
-        _alertPersistenceActor = new AlertPersistenceActor(deviceAlertRepository, _loggerFactory, _asView, _serviceProvider);
+        _alertPersistenceActor = new AlertPersistenceActor(_loggerFactory, _asView, _serviceProvider);
         this.RegisterEventHandler(_alertPersistenceActor);
         this.RegisterEventHandler(_asView);
 

@@ -10,6 +10,7 @@ using Common.Models;
 using Common.Models.Alerts;
 using Interface.Repositories;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Business.RealtimeAnalysis.UserDomain;
@@ -29,8 +30,6 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
     private UDUserAnalyzer _userAnalyzer;
     private readonly ASView _aSView;
     private bool isInitialized = false;
-    private readonly IKnownPhishingWebsiteRepository _phishingRepo;
-    private readonly ISafeDomainRepository _safeDomainRepo;
     private readonly NotificationPublisher? _notificationPublisher;
 
     public UDAnalysisManager(
@@ -40,8 +39,7 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         ASView aSView,
         IConfiguration configuration,
         List<IDomainEventHandler> eventHandlers,
-        IKnownPhishingWebsiteRepository phishingRepo,
-        ISafeDomainRepository safeDomainRepo,
+        IServiceScopeFactory serviceScopeFactory,
         NotificationPublisher? notificationPublisher = null)
     {
         _udUser = udUser;
@@ -50,8 +48,6 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         _loggerFactory = loggerFactory;
         _logger = _loggerFactory.CreateLogger<UDAnalysisManager>();
         _configuration = configuration;
-        _phishingRepo = phishingRepo;
-        _safeDomainRepo = safeDomainRepo;
         _notificationPublisher = notificationPublisher;
 
         // Initialize analyzers
@@ -59,7 +55,7 @@ public class UDAnalysisManager : IDomainEventHandler, IBackgroundTask
         {
             new UDRemoteAccessAnalyzer(loggerFactory.CreateLogger<UDRemoteAccessAnalyzer>()),
             new UDPhishingAnalyzer(loggerFactory.CreateLogger<UDPhishingAnalyzer>()),
-            new UDUrlAnalyzer(loggerFactory.CreateLogger<UDUrlAnalyzer>(), configuration, phishingRepo, aSView),
+            new UDUrlAnalyzer(loggerFactory.CreateLogger<UDUrlAnalyzer>(), configuration, serviceScopeFactory, aSView),
             new UDTrackUrlAnalyzer(loggerFactory.CreateLogger<UDTrackUrlAnalyzer>(), configuration, aSView)
         };
         

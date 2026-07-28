@@ -58,15 +58,17 @@ public class UserDomainManagerServiceTests : IDisposable
         _safeDomainRepoMock = new Mock<ISafeDomainRepository>();
 
         var eventHandlers = new List<IDomainEventHandler>();
+        services.AddSingleton(_context);
+        services.AddSingleton(_phishingRepoMock.Object);
+        services.AddSingleton(_safeDomainRepoMock.Object);
+        serviceProvider = services.BuildServiceProvider();
 
         _sut = new UserDomainManagerService(
             _loggerFactoryMock.Object,
             _configuration,
-            _context,
             _asView,
             eventHandlers,
-            _phishingRepoMock.Object,
-            _safeDomainRepoMock.Object);
+            serviceProvider.GetRequiredService<IServiceScopeFactory>());
     }
 
     #region GetOrCreateManagerForUser Tests

@@ -85,11 +85,8 @@ public class Program
         Host.CreateDefaultBuilder(args)
             .UseDefaultServiceProvider((context, options) =>
             {
-                // DI scope validation is disabled — singleton/scoped mismatches
-                // exist in this codebase and are handled manually via IServiceScopeFactory.
-                // TODO: refactor singletons that consume scoped services.
-                options.ValidateScopes = false;
-                options.ValidateOnBuild = false;
+                options.ValidateScopes = true;
+                options.ValidateOnBuild = true;
             })
             .ConfigureAppConfiguration((ctx, config) =>
             {
@@ -212,10 +209,17 @@ public class Program
                 services.AddSingleton<IDomainEventHandler>(sp =>
                     sp.GetRequiredService<Business.Services.UserRiskScoreService>());
 
-                services.AddSingleton<IDomainEventsContext, DomainEventsContext>();
+                services.AddScoped<IDomainEventsContext>(_ =>
+                    new DomainEventsContext(new Common.Models.Key("Tenant", "system")));
 
                 // Add UserDomainManagerService (manages per-user analysis instances)
-                services.AddSingleton<UserDomainManagerService>();
+                services.AddSingleton(sp => new UserDomainManagerService(
+                    sp.GetRequiredService<ILoggerFactory>(),
+                    sp.GetRequiredService<IConfiguration>(),
+                    sp.GetRequiredService<ASView>(),
+                    sp.GetServices<IDomainEventHandler>(),
+                    sp.GetRequiredService<IServiceScopeFactory>(),
+                    sp.GetService<Business.Messaging.NotificationPublisher>()));
 
                 // Add SimulationRunner (background service for simulations)
                 // Register as Singleton first so it can be injected into handlers
@@ -223,7 +227,11 @@ public class Program
                 services.AddHostedService(provider => provider.GetRequiredService<SimulationRunner>());
 
                 // Add Messaging
-                services.AddSingleton<NetMQMessageProcessor>();
+                services.AddSingleton(sp => new NetMQMessageProcessor(
+                    sp.GetRequiredService<ILogger<NetMQMessageProcessor>>(),
+                    sp.GetRequiredService<IServiceScopeFactory>(),
+                    configuration["NetMQ:BusinessEndpoint"] ?? "tcp://*:5555",
+                    sp.GetService<CurveKeyManager>()));
                 services.AddSingleton<RealTimeAlertListener>(sp =>
                 {
                     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
@@ -245,13 +253,25 @@ public class Program
                         curveKeyManager, port, mode, configuration);
                 });
 
-                // Add Logging
-                services.AddLogging(builder =>
-                {
-                    builder.AddConsole();
-                    builder.SetMinimumLevel(LogLevel.Information);
+
+                foreach (var descriptor in services
+                   .Where(d => d.ServiceType == typeof(NetMQMessageProcessor)))
+                    {
+                        Console.WriteLine("========================================");
+                        Console.WriteLine("NetMQMessageProcessor DI registration:");
+                        Console.WriteLine($"Lifetime: {descriptor.Lifetime}");
+                        Console.WriteLine($"ImplementationType: {descriptor.ImplementationType}");
+                        Console.WriteLine($"ImplementationFactory: {descriptor.ImplementationFactory != null}");
+                        Console.WriteLine($"ImplementationInstance: {descriptor.ImplementationInstance != null}");
+                        Console.WriteLine("========================================");
+                    }
+                    // Add Logging
+                    services.AddLogging(builder =>
+                    {
+                        builder.AddConsole();
+                        builder.SetMinimumLevel(LogLevel.Information);
+                    });
                 });
-            });
 
     static async Task InitializeAnalysisManagersAsync(IServiceProvider services, RealTimeAlertListener alertListener)
     {

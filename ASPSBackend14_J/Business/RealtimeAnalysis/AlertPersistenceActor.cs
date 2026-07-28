@@ -20,15 +20,13 @@ namespace Business.RealtimeAnalysis
 {
     public class AlertPersistenceActor : IDomainEventHandler
     {
-        private readonly IDeviceAlertRepository _deviceAlertRepository;
         private readonly ILogger<AlertPersistenceActor> _logger;
         private readonly ASView _asView;
         private readonly IServiceProvider _serviceProvider;
 
-        public AlertPersistenceActor(IDeviceAlertRepository deviceAlertRepository, ILoggerFactory _loggerFactory, ASView asView, IServiceProvider serviceProvider)
+        public AlertPersistenceActor(ILoggerFactory loggerFactory, ASView asView, IServiceProvider serviceProvider)
         {
-            _deviceAlertRepository = deviceAlertRepository;
-            this._logger = _loggerFactory.CreateLogger<AlertPersistenceActor>();
+            _logger = loggerFactory.CreateLogger<AlertPersistenceActor>();
             _asView = asView;
             _serviceProvider = serviceProvider;
         }

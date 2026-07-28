@@ -3,6 +3,7 @@ using Business.Handlers;
 using Business.Queries;
 using Business.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using NetMQ;
 using NetMQ.Sockets;
 using Newtonsoft.Json;
@@ -12,9 +13,10 @@ namespace Business.Messaging;
 public class NetMQMessageProcessor : IDisposable
 {
     private readonly ILogger<NetMQMessageProcessor> _logger;
-    private readonly UserCommandHandlers _userCommandHandlers;
-    private readonly UserQueryHandlers _userQueryHandlers;
-    private readonly UserDeviceCommandHandlers _deviceCommandHandlers;
+    private readonly UserCommandHandlers? _userCommandHandlers;
+    private readonly UserQueryHandlers? _userQueryHandlers;
+    private readonly UserDeviceCommandHandlers? _deviceCommandHandlers;
+    private readonly IServiceScopeFactory? _serviceScopeFactory;
     private readonly CurveKeyManager? _curveKeyManager;
     private readonly string _endpoint;
     private ResponseSocket? _responseSocket;
@@ -38,6 +40,19 @@ public class NetMQMessageProcessor : IDisposable
         _userCommandHandlers = userCommandHandlers;
         _userQueryHandlers = userQueryHandlers;
         _deviceCommandHandlers = deviceCommandHandlers;
+        _endpoint = endpoint;
+        _curveKeyManager = curveKeyManager;
+    }
+
+    [ActivatorUtilitiesConstructor]
+    public NetMQMessageProcessor(
+        ILogger<NetMQMessageProcessor> logger,
+        IServiceScopeFactory serviceScopeFactory,
+        string endpoint = "tcp://*:5555",
+        CurveKeyManager? curveKeyManager = null)
+    {
+        _logger = logger;
+        _serviceScopeFactory = serviceScopeFactory;
         _endpoint = endpoint;
         _curveKeyManager = curveKeyManager;
     }
@@ -80,6 +95,11 @@ public class NetMQMessageProcessor : IDisposable
     {
         try
         {
+            using var scope = _serviceScopeFactory?.CreateScope();
+            var userCommandHandlers = scope?.ServiceProvider.GetRequiredService<UserCommandHandlers>() ?? _userCommandHandlers!;
+            var userQueryHandlers = scope?.ServiceProvider.GetRequiredService<UserQueryHandlers>() ?? _userQueryHandlers!;
+            var deviceCommandHandlers = scope?.ServiceProvider.GetRequiredService<UserDeviceCommandHandlers>() ?? _deviceCommandHandlers!;
+
             // Deserialize with type information
             var baseMessage = JsonConvert.DeserializeObject(message, _jsonSettings);
             
@@ -90,35 +110,35 @@ public class NetMQMessageProcessor : IDisposable
             {
                 // User Commands
                 case CreateUserCommand cmd:
-                    result = await _userCommandHandlers.HandleAsync(cmd);
+                    result = await userCommandHandlers.HandleAsync(cmd);
                     break;
                 case UpdateUserCommand cmd:
-                    result = await _userCommandHandlers.HandleAsync(cmd);
+                    result = await userCommandHandlers.HandleAsync(cmd);
                     break;
                 case DeleteUserCommand cmd:
-                    result = await _userCommandHandlers.HandleAsync(cmd);
+                    result = await userCommandHandlers.HandleAsync(cmd);
                     break;
 
                 // User Queries
                 case GetAllUsersQuery query:
-                    result = await _userQueryHandlers.HandleAsync(query);
+                    result = await userQueryHandlers.HandleAsync(query);
                     break;
                 case GetUserByKeyQuery query:
-                    result = await _userQueryHandlers.HandleAsync(query);
+                    result = await userQueryHandlers.HandleAsync(query);
                     break;
                 case GetUserDetailsQuery query:
-                    result = await _userQueryHandlers.HandleAsync(query);
+                    result = await userQueryHandlers.HandleAsync(query);
                     break;
 
                 // Device Commands
                 case CreateUserDeviceCommand cmd:
-                    result = await _deviceCommandHandlers.HandleAsync(cmd);
+                    result = await deviceCommandHandlers.HandleAsync(cmd);
                     break;
                 case UpdateUserDeviceCommand cmd:
-                    result = await _deviceCommandHandlers.HandleAsync(cmd);
+                    result = await deviceCommandHandlers.HandleAsync(cmd);
                     break;
                 case DeleteUserDeviceCommand cmd:
-                    result = await _deviceCommandHandlers.HandleAsync(cmd);
+                    result = await deviceCommandHandlers.HandleAsync(cmd);
                     break;
 
                 default:

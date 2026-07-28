@@ -9,6 +9,7 @@ using Common.Models.Alerts;
 using Interface.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using Business.RealtimeAnalysis.ProtectivActions;
@@ -24,10 +25,8 @@ public class UserDomainManagerService
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<UserDomainManagerService> _logger;
     private readonly IConfiguration _configuration;
-    private readonly AppDbContext _dbContext;
     private readonly List<IDomainEventHandler> _eventHandlers;
-    private readonly IKnownPhishingWebsiteRepository _phishingRepo;
-    private readonly ISafeDomainRepository _safeDomainRepo;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly IWebsiteCategoryRepository _websiteCategoryRepo;
     private readonly ASView _aSView;
     private readonly NotificationPublisher? _notificationPublisher;
@@ -35,21 +34,17 @@ public class UserDomainManagerService
     public UserDomainManagerService(
         ILoggerFactory loggerFactory,
         IConfiguration configuration,
-        AppDbContext dbContext,
         ASView aSView,
         IEnumerable<IDomainEventHandler> eventHandlers,
-        IKnownPhishingWebsiteRepository phishingRepo,
-        ISafeDomainRepository safeDomainRepo,
+        IServiceScopeFactory serviceScopeFactory,
         NotificationPublisher? notificationPublisher = null)
     {
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<UserDomainManagerService>();
         _configuration = configuration;
         _aSView = aSView;
-        _dbContext = dbContext;
         _eventHandlers = eventHandlers.ToList();
-        _phishingRepo = phishingRepo;
-        _safeDomainRepo = safeDomainRepo;
+        _serviceScopeFactory = serviceScopeFactory;
         _notificationPublisher = notificationPublisher;
         _logger.LogInformation($"UserDomainManagerService initialized with {_eventHandlers.Count} event handlers");
     }
@@ -67,7 +62,9 @@ public class UserDomainManagerService
         }
 
         // Load user from database
-        var user = _dbContext.Users
+        using var scope = _serviceScopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var user = dbContext.Users
             .AsNoTracking()
             .FirstOrDefault(u => u.KeyField == userKeyStr);
 
@@ -94,7 +91,7 @@ public class UserDomainManagerService
             var alertExpiryDays = _configuration.GetValue<int>("Analysis:DeviceAlertExpiryDays", 30);
             var alertDeletionDays = _configuration.GetValue<int>("Analysis:DeviceAlertDeletionDays", 30);
             //var userAnalyzer = new UDUserAnalyzer(udUser, _aSView, alertExpiryDays, alertDeletionDays, _loggerFactory);
-            manager = new UDAnalysisManager(udUser, new UDUserAnalyzer(udUser, _aSView, alertExpiryDays, alertDeletionDays, _loggerFactory, new ProtectiveActionsFactory(), _configuration, _eventHandlers), _loggerFactory, _aSView, _configuration, _eventHandlers, _phishingRepo, _safeDomainRepo, _notificationPublisher);
+            manager = new UDAnalysisManager(udUser, new UDUserAnalyzer(udUser, _aSView, alertExpiryDays, alertDeletionDays, _loggerFactory, new ProtectiveActionsFactory(), _configuration, _eventHandlers), _loggerFactory, _aSView, _configuration, _eventHandlers, _serviceScopeFactory, _notificationPublisher);
         }
 
             // Add to dictionary
@@ -114,7 +111,9 @@ public class UserDomainManagerService
     public async Task<UDAnalysisManager?> GetManagerForDeviceAsync(string deviceUid)
     {
         // Find the device and get the user
-        var device = await _dbContext.UserDevices
+        using var scope = _serviceScopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var device = await dbContext.UserDevices
             .AsNoTracking()
             .FirstOrDefaultAsync(d => d.DeviceUid == deviceUid);
 
