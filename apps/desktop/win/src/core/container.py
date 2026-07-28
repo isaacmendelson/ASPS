@@ -262,7 +262,8 @@ class Container:
             self._extension_handler = ExtensionHandler(
                 scan_service=self.scan_service,
                 auth_manager=self.auth_manager,
-                device_id=self.device_id
+                device_id=self.device_id,
+                remote_monitor=self.remote_monitor,
             )
         return self._extension_handler
 

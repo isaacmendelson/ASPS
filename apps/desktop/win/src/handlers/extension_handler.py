@@ -17,10 +17,11 @@ class ExtensionHandler:
     Handles messages from Chrome extension via WebSocket
     """
 
-    def __init__(self, scan_service, auth_manager, device_id: str):
+    def __init__(self, scan_service, auth_manager, device_id: str, remote_monitor=None):
         self.scan_service = scan_service
         self.auth_manager = auth_manager
         self.device_id = device_id
+        self.remote_monitor = remote_monitor
         self._local_ip: str = get_local_ip()
 
     async def handle_message(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -50,11 +51,12 @@ class ExtensionHandler:
             'user_auth': self._handle_user_auth,
             'get_user': self._handle_get_user,
             'user_signout': self._handle_user_signout,
+            'remote:close_session': self._handle_close_session,
         }
 
         handler = handlers.get(msg_type)
         if handler:
-            if msg_type == 'url_check':
+            if msg_type in ('url_check', 'remote:close_session'):
                 loop = asyncio.get_running_loop()
                 return await loop.run_in_executor(None, handler, data)
             else:
@@ -181,3 +183,46 @@ class ExtensionHandler:
         self.auth_manager._save_token()
         print("[EXTENSION] User signed out, email cleared")
         return {'type': 'user_signout_ack', 'status': 'ok'}
+
+    def _handle_close_session(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Handle remote:close_session from the extension.
+
+        The extension sends the app name (e.g. 'anydesk', 'teamviewer') so
+        we know which tool to disconnect.  We call
+        RemoteAccessMonitor.disconnect_remote_session() and return the real
+        outcome so the extension can show the correct UI state.
+
+        Response shape:
+          {"type": "remote:close_session_result", "success": bool, "reason": str}
+        """
+        app_name = (data.get('app') or '').lower()
+        print(f"[EXTENSION] remote:close_session for app='{app_name}'")
+
+        if not self.remote_monitor:
+            logger.error("remote:close_session: remote_monitor not available")
+            return {
+                'type': 'remote:close_session_result',
+                'success': False,
+                'reason': 'monitor_unavailable',
+            }
+
+        try:
+            result = self.remote_monitor.disconnect_remote_session(app_name)
+        except Exception as exc:
+            logger.exception(f"disconnect_remote_session raised: {exc}")
+            return {
+                'type': 'remote:close_session_result',
+                'success': False,
+                'reason': 'exception',
+            }
+
+        logger.info(
+            f"disconnect_remote_session('{app_name}') → {result}"
+        )
+        print(f"[EXTENSION] close_session result: {result}")
+        return {
+            'type': 'remote:close_session_result',
+            'success': bool(result.get('success', False)),
+            'reason': result.get('reason', 'unknown'),
+        }

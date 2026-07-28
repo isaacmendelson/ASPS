@@ -16,10 +16,18 @@ import { WARNING_STYLES } from './warning-styles.js';
  * Generates the HTML content for the warning overlay.
  *
  * @param {string} toolName The name of the detected remote access tool
+ * @param {string|null} [statusMessage] Optional status line (e.g. disconnect failure details)
  * @returns {string} HTML string for the warning
  */
-function getWarningHTML(toolName) {
-  const toolDisplay = toolName || 'Remote access software';
+function escapeHTML(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function getWarningHTML(toolName, statusMessage) {
+  const toolDisplay = escapeHTML(toolName || 'Remote access software');
+  const statusRow = statusMessage
+    ? `<p class="status-message">${escapeHTML(statusMessage)}</p>`
+    : '';
 
   return `
     <div class="overlay">
@@ -34,6 +42,7 @@ function getWarningHTML(toolName) {
           <p><strong>Someone may be controlling your computer remotely.</strong></p>
           <p>Scammers use remote access tools to steal money, passwords, and personal information. They often pretend to be tech support, banks, or government agencies.</p>
           <p>If you didn't invite someone you personally know and trust to connect, please close this session immediately.</p>
+          ${statusRow}
         </div>
 
         <div class="checkbox-row">
@@ -92,7 +101,7 @@ class RemoteAccessWarning {
       return;
     }
 
-    const { toolName, toolId, onCloseSession, onContinue, onDismiss } = options;
+    const { toolName, toolId, onCloseSession, onContinue, onDismiss, statusMessage } = options;
 
     // Store callbacks
     this._onCloseSession = onCloseSession || null;
@@ -102,7 +111,7 @@ class RemoteAccessWarning {
     // Create shadow container
     this._container = new ShadowContainer();
     const shadowRoot = this._container.create(
-      getWarningHTML(toolName || 'Remote access software'),
+      getWarningHTML(toolName || 'Remote access software', statusMessage || null),
       WARNING_STYLES
     );
 
@@ -152,17 +161,26 @@ class RemoteAccessWarning {
   _handleCloseSession() {
     console.log('[RemoteAccessWarning] Close session clicked');
 
-    // Call callback if provided
+    // Show "disconnecting" state — keep warning visible until result arrives
+    const shadowRoot = this._container?.shadowRoot;
+    const closeBtn = shadowRoot?.querySelector('.close-session-btn');
+    if (closeBtn) {
+      closeBtn.disabled = true;
+      closeBtn.textContent = 'Disconnecting...';
+    }
+
+    // Call callback if provided — the callback decides whether to hide or re-show
     if (this._onCloseSession) {
       try {
         this._onCloseSession();
       } catch (err) {
         console.error('[RemoteAccessWarning] Error in onCloseSession callback:', err);
+        if (closeBtn) {
+          closeBtn.disabled = false;
+          closeBtn.textContent = 'Close session';
+        }
       }
     }
-
-    // Hide the warning
-    this.hide();
   }
 
   /**

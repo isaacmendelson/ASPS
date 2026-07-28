@@ -643,13 +643,27 @@ function setupMessageHandlers() {
   });
 
   // Handle close session request from content script
-  messageBus.on(MSG.REMOTE_ACCESS_CLOSE_SESSION, async () => {
+  messageBus.on(MSG.REMOTE_ACCESS_CLOSE_SESSION, async (data) => {
     console.log('[Background] Close session requested');
 
-    // Send to desktop app
-    connectionService.send({ type: MSG.REMOTE_ACCESS_CLOSE_SESSION });
+    // Resolve the tool name from stateManager (set when the RA alert arrived)
+    const appName = (data && data.app)
+      ? data.app
+      : (stateManager.get('warning.toolName') || '').toLowerCase();
 
-    return { success: true };
+    // Send to desktop and wait for the real outcome
+    try {
+      const result = await connectionService.sendAndWait(
+        { type: MSG.REMOTE_ACCESS_CLOSE_SESSION, app: appName },
+        'remote:close_session_result',
+        7000
+      );
+      console.log('[Background] Close session result:', result);
+      return { success: result.success === true, reason: result.reason || 'unknown' };
+    } catch (err) {
+      console.warn('[Background] Close session error / timeout:', err.message);
+      return { success: false, reason: 'timeout' };
+    }
   });
 
   // Handle user continued anyway (acknowledged risk)

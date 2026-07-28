@@ -320,16 +320,45 @@
      * @param {number} toolId ID of detected tool
      * @param {function} [onCloseSession] Callback for close session action
      * @param {function} [onContinue] Callback for continue anyway action
+     * @param {string} [statusMessage] Optional status line shown inside the warning
+     *   (used to surface disconnect-failure details on re-show).
      */
-    show(toolName, toolId, onCloseSession, onContinue) {
+    show(toolName, toolId, onCloseSession, onContinue, statusMessage) {
       // Dynamic import to avoid issues if module not loaded
       import('./warning/RemoteAccessWarning.js').then(({ remoteAccessWarning }) => {
         remoteAccessWarning.show({
           toolName: toolName || 'Remote access software',
           toolId: toolId,
+          statusMessage: statusMessage || null,
           onCloseSession: () => {
-            // Notify background to close session
-            chrome.runtime.sendMessage({ type: REMOTE_MSG.REMOTE_ACCESS_CLOSE_SESSION });
+            // Warning stays visible in "Disconnecting..." state (button disabled).
+            // We hide only on verified success; on failure we update the status message.
+            chrome.runtime.sendMessage(
+              { type: REMOTE_MSG.REMOTE_ACCESS_CLOSE_SESSION },
+              (response) => {
+                if (chrome.runtime.lastError) {
+                  console.warn('[Content] close_session message error:', chrome.runtime.lastError.message);
+                  RemoteAccessWarningService.show(
+                    toolName, toolId,
+                    onCloseSession, onContinue,
+                    '[Could not reach desktop agent — session may still be active]'
+                  );
+                  return;
+                }
+                if (response && response.success) {
+                  // Verified termination — safe to hide
+                  RemoteAccessWarningService.hide();
+                } else {
+                  const reason = (response && response.reason) || 'unknown';
+                  console.warn('[Content] Close session failed, reason:', reason);
+                  RemoteAccessWarningService.show(
+                    toolName, toolId,
+                    onCloseSession, onContinue,
+                    `[Could not close session (${reason}) — please close ${toolName || 'the app'} manually]`
+                  );
+                }
+              }
+            );
             if (onCloseSession) onCloseSession();
           },
           onContinue: () => {

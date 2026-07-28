@@ -274,6 +274,56 @@ class ConnectionService {
     return false;
   }
 
+  /**
+   * Send a message and wait for a specific response type.
+   *
+   * Registers a one-shot handler for `responseType`, sends `message`, and
+   * resolves with the response data.  Rejects after `timeoutMs` or when the
+   * WebSocket is not connected.
+   *
+   * @param {Object} message       - Message to send (must have a `type` field).
+   * @param {string} responseType  - The `type` value expected in the reply.
+   * @param {number} [timeoutMs=5000]
+   * @returns {Promise<Object>}    - Resolves with the response payload.
+   */
+  sendAndWait(message, responseType, timeoutMs = 5000) {
+    return new Promise((resolve, reject) => {
+      if (!this.websocket || this.websocket.readyState !== WebSocket.OPEN) {
+        reject(new Error('Not connected to desktop agent'));
+        return;
+      }
+
+      let settled = false;
+      let timer = null;
+
+      const cleanup = this.onMessage(responseType, (data) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        cleanup(); // unregister the one-shot handler
+        resolve(data);
+      });
+
+      timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(new Error(`Timeout waiting for ${responseType}`));
+      }, timeoutMs);
+
+      // Send after registering the handler so we cannot miss a fast reply
+      try {
+        this.websocket.send(JSON.stringify(message));
+        console.log('[ConnectionService] sendAndWait sending:', message.type);
+      } catch (err) {
+        settled = true;
+        clearTimeout(timer);
+        cleanup();
+        reject(err);
+      }
+    });
+  }
+
   // Start ping interval
   startPing() {
     this.stopPing();

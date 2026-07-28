@@ -263,6 +263,19 @@ export const WARNING_STYLES = `
   }
 
   /* ========================================
+   * Status message
+   * Shown when a close-session attempt failed
+   * ======================================== */
+  .status-message {
+    margin-top: 10px !important;
+    color: #fbbf24 !important;
+    font-size: 13px !important;
+    font-style: italic;
+    border-top: 1px solid rgba(251, 191, 36, 0.3);
+    padding-top: 8px;
+  }
+
+  /* ========================================
    * Responsive adjustments
    * ======================================== */
   @media (max-width: 480px) {
