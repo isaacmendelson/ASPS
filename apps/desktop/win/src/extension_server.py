@@ -41,21 +41,28 @@ class ExtensionServer:
         sent before that, with empty BrowserTabs)."""
         self._on_client_connect_callback = callback
 
+    async def _notify_client_connected(self):
+        """Run the optional connect hook without blocking message receipt."""
+        try:
+            await self._on_client_connect_callback()
+        except Exception as e:
+            logger.warning(f"on_client_connect callback failed: {e}")
+
     async def _handle_client(self, websocket: WebSocketServerProtocol):
         """Handle a client connection"""
         self.clients.add(websocket)
         client_id = id(websocket)
+        connect_callback_task: Optional[asyncio.Task] = None
         logger.info(f"Extension connected (client {client_id})")
         print(f"\n[EXTENSION] Client connected (ID: {client_id})")
 
-        # Notify subscribers that a client just attached. The handler may
-        # schedule a fresh RA alert, query tabs, etc. Best-effort — failure
-        # MUST NOT break the WebSocket loop.
+        # The callback may query tabs and wait for browser_tabs_response.
+        # Schedule it independently so this handler enters the receive loop
+        # immediately and can resolve the callback's pending Future.
         if self._on_client_connect_callback:
-            try:
-                await self._on_client_connect_callback()
-            except Exception as e:
-                logger.warning(f"on_client_connect callback failed: {e}")
+            connect_callback_task = asyncio.create_task(
+                self._notify_client_connected()
+            )
         
         try:
             async for message in websocket:
@@ -123,6 +130,12 @@ class ExtensionServer:
             print(f"\n[EXTENSION] Client disconnected (ID: {client_id})")
         finally:
             self.clients.discard(websocket)
+            if connect_callback_task and not connect_callback_task.done():
+                connect_callback_task.cancel()
+                try:
+                    await connect_callback_task
+                except asyncio.CancelledError:
+                    pass
     
     async def _try_port(self, port: int) -> bool:
         """Try to start server on a specific port"""
@@ -188,45 +201,49 @@ class ExtensionServer:
         request_id = str(uuid.uuid4())
         loop = asyncio.get_event_loop()
         futures: List[Tuple[asyncio.Future, str]] = []
+        sent_futures: List[asyncio.Future] = []
 
-        for client in list(self.clients):
-            key = f"{request_id}:{id(client)}"
-            future: asyncio.Future = loop.create_future()
-            self._tab_request_futures[key] = future
-            try:
-                await client.send(json.dumps({
-                    'type':      'get_browser_tabs',
-                    'requestId': request_id
-                }))
+        try:
+            for client in list(self.clients):
+                key = f"{request_id}:{id(client)}"
+                future: asyncio.Future = loop.create_future()
+                self._tab_request_futures[key] = future
                 futures.append((future, key))
-            except Exception as e:
-                logger.error(f"[TABS] Error sending tab request to client: {e}")
+                try:
+                    await client.send(json.dumps({
+                        'type':      'get_browser_tabs',
+                        'requestId': request_id
+                    }))
+                    sent_futures.append(future)
+                except Exception as e:
+                    logger.error(f"[TABS] Error sending tab request to client: {e}")
+                    future.cancel()
+
+            if not sent_futures:
+                return []
+
+            all_tabs: List[dict] = []
+            done, _ = await asyncio.wait(sent_futures, timeout=timeout)
+
+            for future in done:
+                try:
+                    all_tabs.extend(future.result() or [])
+                except Exception:
+                    pass
+
+            logger.info(
+                f"[TABS] Collected {len(all_tabs)} tabs "
+                f"from {len(done)} extension(s)"
+            )
+            return all_tabs
+        finally:
+            # Cancellation can occur while sending or while asyncio.wait is
+            # suspended. Always remove request IDs and cancel unresolved
+            # Futures so a disconnect cannot leak per-client request state.
+            for future, key in futures:
+                if not future.done():
+                    future.cancel()
                 self._tab_request_futures.pop(key, None)
-                future.cancel()
-
-        if not futures:
-            return []
-
-        all_tabs: List[dict] = []
-        done, pending = await asyncio.wait(
-            [f for f, _ in futures],
-            timeout=timeout
-        )
-
-        for future in done:
-            try:
-                all_tabs.extend(future.result() or [])
-            except Exception:
-                pass
-        for future in pending:
-            future.cancel()
-
-        # Cleanup futures
-        for _, key in futures:
-            self._tab_request_futures.pop(key, None)
-
-        logger.info(f"[TABS] Collected {len(all_tabs)} tabs from {len(done)} extension(s)")
-        return all_tabs
 
     async def broadcast(self, message: dict):
         """Send message to all connected extensions"""
