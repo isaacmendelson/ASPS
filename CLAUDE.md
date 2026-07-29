@@ -135,26 +135,7 @@ All agents that change production code must use Test-Driven Development:
 - An unexpected application or session failure can occur before the final update, so phase-end updates are mandatory.
 
 ### QA gate before merge
-Non-trivial code changes require PASS from QA agent before commit. See `.claude/hats/ceo/operating_principles.md`.
-
-For Jira-backed implementation work, the following completion workflow is mandatory:
-
-1. The implementing agent reports completion to the CEO with the Jira issue ID and exact title, changed files, implementation summary, and verification results.
-2. Before requesting QA, the implementing agent must run all unit tests relevant to the changed code. The handoff to QA must include the exact test commands, passed/failed/skipped counts, and the final result.
-3. The implementing agent must not hand work to QA while a relevant unit test is failing. A failure may be treated as pre-existing only when the agent documents it, reproduces it without the task changes, and demonstrates that the task did not introduce or worsen it.
-4. If the component has no relevant unit tests or the test environment cannot run, the implementing agent must document the gap and run the strongest available alternative verification.
-5. After the pre-QA test gate passes, the implementing agent must request an independent QA-agent review against the Jira acceptance criteria and the original requirement.
-6. If QA returns `FAIL`, the issue returns to implementation and must be reviewed again after the fixes. The implementing agent must rerun the relevant unit tests before every QA resubmission.
-7. The CEO independently verifies the reported files, test evidence, and the final QA result.
-8. A Jira issue must not be treated as complete or moved to `Done`, and its code must not be committed, until the CEO has confirmed a documented `QA PASS`.
-9. When a commit is requested or otherwise authorized, the CEO owns the commit and its message. The commit message must contain the Jira issue ID, the exact Jira issue title, and a concise description of the implementation.
-10. Preferred commit-message format:
-    ```
-    <JIRA-ID> <Exact Jira issue title>
-
-    <Concise description of the implemented changes and relevant verification>
-    ```
-11. The CEO records the commit hash and QA PASS evidence in the Jira issue before moving it to `Done`.
+Non-trivial code changes require PASS from QA agent before merge. The full workflow — pre-QA gate, post-QA merge request, code review, commit message format, and JIRA transitions — is defined in [`.claude/rules/task-workflow.md`](.claude/rules/task-workflow.md). Review standards (QA, code review, security review) are in [`.claude/rules/review-standards.md`](.claude/rules/review-standards.md).
 
 ### Trust-but-verify
 When a sub-agent reports work done — open the actual files and confirm before relaying to user.
