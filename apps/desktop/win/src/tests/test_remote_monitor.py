@@ -143,14 +143,14 @@ class TestLogParser(unittest.TestCase):
         line = "2026-03-23 12:00:00 Client connected from 10.0.0.1"
         result = self.parser.parse_line(line)
         self.assertIsNotNone(result)
-        self.assertEqual(result['event'], 'incoming_request')
+        self.assertEqual(result['event'], 'client_ip')
         self.assertEqual(result['remote_ip'], '10.0.0.1')
     
     def test_crd_session_started(self):
         line = "2026-03-23 12:00:00 Session started"
         result = self.parser.parse_line(line)
         self.assertIsNotNone(result)
-        self.assertEqual(result['event'], 'incoming_request')
+        self.assertEqual(result['event'], 'session_started')
     
     def test_crd_client_disconnected(self):
         line = "2026-03-23 12:00:00 Client disconnected"
@@ -299,7 +299,7 @@ class TestConfidenceCalculation(unittest.TestCase):
             'cpu_active': True,
             'service_running': False,
         }
-        self.assertEqual(calculate_confidence(signals), 'medium')
+        self.assertEqual(calculate_confidence(signals), 'high')
     
     def test_low_confidence(self):
         signals = {

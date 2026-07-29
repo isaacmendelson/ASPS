@@ -67,7 +67,8 @@ if ($existingService) {
 
 # Install dependencies
 Write-Host "Installing Python dependencies..." -ForegroundColor Yellow
-& $PythonPath -m pip install -r "$ProjectPath\requirements.txt" --quiet
+& $PythonPath -m pip install --no-deps -r "$ProjectPath\requirements.lock.txt" --quiet
+& $PythonPath -m pip check
 & $PythonPath -m pip install uvicorn fastapi --quiet
 Write-Host "Dependencies installed" -ForegroundColor Green
 

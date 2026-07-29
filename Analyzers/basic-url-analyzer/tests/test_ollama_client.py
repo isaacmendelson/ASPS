@@ -788,34 +788,50 @@ class TestNoModelsDetection:
 
     def test_is_available_false_when_no_models(self):
         """is_available should return False when Ollama has no models."""
-        with patch('core.llm_explainer.OLLAMA_SDK_AVAILABLE', True):
-            client = OllamaClient()
-            client._client = MagicMock()
-            # Simulate Ollama running but with no models
-            client._client.list.return_value = {'models': []}
+        # ASPS-626: replaced tmp_path fixture with tempfile.TemporaryDirectory() to avoid
+        # PermissionError on Windows when pytest cannot scan the pytest-of-<user> temp dir.
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config_path = Path(tmp_dir) / "settings.json"
+            config_path.write_text(
+                json.dumps({"ollama": {"enabled": True}}),
+                encoding="utf-8",
+            )
+            with patch('core.llm_explainer.OLLAMA_SDK_AVAILABLE', True):
+                client = OllamaClient(config_path=config_path)
+                client._client = MagicMock()
+                # Simulate Ollama running but with no models
+                client._client.list.return_value = {'models': []}
 
-            # Reset to force re-check
-            client._available = None
+                # Reset to force re-check
+                client._available = None
 
-            result = client.is_available()
+                result = client.is_available()
 
-            assert result is False
-            assert client._no_models_installed is True
+                assert result is False
+                assert client._no_models_installed is True
 
     def test_is_available_true_when_models_exist(self):
         """is_available should return True when models exist."""
-        with patch('core.llm_explainer.OLLAMA_SDK_AVAILABLE', True):
-            client = OllamaClient()
-            client._client = MagicMock()
-            client._client.list.return_value = {'models': [{'name': 'phi3:latest'}]}
+        # ASPS-626: replaced tmp_path fixture with tempfile.TemporaryDirectory() to avoid
+        # PermissionError on Windows when pytest cannot scan the pytest-of-<user> temp dir.
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config_path = Path(tmp_dir) / "settings.json"
+            config_path.write_text(
+                json.dumps({"ollama": {"enabled": True}}),
+                encoding="utf-8",
+            )
+            with patch('core.llm_explainer.OLLAMA_SDK_AVAILABLE', True):
+                client = OllamaClient(config_path=config_path)
+                client._client = MagicMock()
+                client._client.list.return_value = {'models': [{'name': 'phi3:latest'}]}
 
-            # Reset to force re-check
-            client._available = None
+                # Reset to force re-check
+                client._available = None
 
-            result = client.is_available()
+                result = client.is_available()
 
-            assert result is True
-            assert client._no_models_installed is False
+                assert result is True
+                assert client._no_models_installed is False
 
     def test_reset_clears_no_models_flag(self):
         """reset() should clear _no_models_installed flag."""

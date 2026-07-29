@@ -59,7 +59,8 @@ try {
 # Step 3: Update dependencies (if requirements.txt changed)
 Write-Log "Checking for new dependencies..."
 try {
-    $pipOutput = & python -m pip install -r "$ProjectPath\requirements.txt" --quiet 2>&1
+    $pipOutput = & python -m pip install --no-deps -r "$ProjectPath\requirements.lock.txt" --quiet 2>&1
+    & python -m pip check
     Write-Log "Dependencies updated"
 } catch {
     Write-Log "Warning: pip install failed - $_"

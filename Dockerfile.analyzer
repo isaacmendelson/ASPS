@@ -8,8 +8,9 @@ RUN groupadd --gid 10001 analyzer \
     && useradd --uid 10001 --gid analyzer --create-home analyzer
 
 WORKDIR /app/analyzer
-COPY Analyzers/basic-url-analyzer/requirements.txt .
-RUN python -m pip install --no-cache-dir -r requirements.txt
+COPY Analyzers/basic-url-analyzer/requirements.lock.txt .
+RUN python -m pip install --no-cache-dir --no-deps -r requirements.lock.txt \
+    && python -m pip check
 COPY --chown=analyzer:analyzer Analyzers/basic-url-analyzer/ .
 RUN chmod 0555 /app/analyzer/scripts/analyzer-entrypoint.sh
 

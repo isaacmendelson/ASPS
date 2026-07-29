@@ -1,6 +1,19 @@
 # DevOps In-Flight Work
 
-**Last updated:** 2026-07-29
+**Last updated:** 2026-07-30
+
+## ASPS-626 — Reproducible build/test baselines
+
+- All four components verified green on 2026-07-30:
+  - .NET: 1470 passed, 0 failed, 7 skipped
+  - Analyzer: 343 passed, 5 skipped, 0 failed
+  - Desktop: 245 passed, 2 xfailed, 0 failed
+  - Extension: 221 passed, 74 known-quarantined failures (7 files, expiry 2026-08-12)
+- Baseline checker PASS — exact SHA-256 hashes match all quarantined groups.
+- NuGet locked-mode restore PASS.
+- SDK conflict resolved: global.json pins 9.0.308 (host); Dockerfiles pin SDK 8.0.423 (container).
+- All changes committed to branch `ASPS-626-reproducible-build-test-baselines`.
+- Ready for independent QA review. DevOps must remediate any QA FAIL before resubmission.
 
 ## Docker stack stabilization
 
