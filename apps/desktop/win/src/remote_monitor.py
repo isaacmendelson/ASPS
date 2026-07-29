@@ -1,7 +1,7 @@
 """
 AntiScam Desktop App - Remote Access Monitor
 Enhanced detection with real-time log parsing
-Author: Tommy the Hacker 💀 + ASPS Team
+Author: Tommy the Hacker + ASPS Team
 
 Monitors: AnyDesk, TeamViewer, Chrome Remote Desktop, VNC, and more
 Features:
@@ -11,24 +11,24 @@ Features:
 - GeoIP lookup
 - File transfer detection
 - Connection type detection (direct/relay)
+
+ASPS-627: This file has been split into focused sub-modules:
+  - remote_monitor_config.py    : MonitorConfig, IS_WINDOWS
+  - remote_monitor_models.py    : RemoteAppStatus, StateChange, SessionDirection
+  - remote_monitor_geoip.py     : GeoIPLookup
+  - remote_monitor_log.py       : LogParser, LogWatcher, SessionState, SessionTracker, HistoryReader
+  - remote_monitor_detection.py : DetectionHistory, DebouncedStateTracker, calculate_confidence
+  - remote_monitor_cli.py       : AnyDeskCLI, TeamViewerCLI
+
+All public names are re-exported from here so existing importers continue to work.
 """
 
-import os
-import re
 import sys
-import time
-import json
-import shutil
 import threading
-import subprocess
-import urllib.request
-from collections import deque
-from datetime import datetime, timedelta
-from typing import Dict, Optional, List, Tuple
-from dataclasses import dataclass, field
-from pathlib import Path
-from enum import Enum
 import logging
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 import psutil
 
@@ -38,1067 +38,19 @@ from config import REMOTE_APPS, ConnectionStatus, WHITELIST_IPS, WHITELIST_PORTS
 # from detection.log_parsers import parse_tool_logs
 from detection.geolocation import get_geolocator
 
+# ── Sub-module imports (also re-exported for backward compatibility) ──────────
+from remote_monitor_config import MonitorConfig, IS_WINDOWS
+from remote_monitor_models import RemoteAppStatus, StateChange, SessionDirection
+from remote_monitor_geoip import GeoIPLookup
+from remote_monitor_log import (
+    LogParser, LogWatcher, SessionState, SessionTracker, HistoryReader
+)
+from remote_monitor_detection import (
+    DetectionHistory, DebouncedStateTracker, calculate_confidence
+)
+from remote_monitor_cli import AnyDeskCLI, TeamViewerCLI
+
 logger = logging.getLogger(__name__)
-
-# ══════════════════════════════════════════════════════════════════════════════
-# CONFIGURATION
-# ══════════════════════════════════════════════════════════════════════════════
-
-IS_WINDOWS = sys.platform == "win32"
-
-class MonitorConfig:
-    """Central configuration for monitoring."""
-    
-    APPDATA = os.environ.get("APPDATA", "C:\\Users\\Default\\AppData\\Roaming")
-    PROGRAMDATA = os.environ.get("PROGRAMDATA", "C:\\ProgramData")
-    
-    # AnyDesk paths
-    SVC_TRACE = Path(PROGRAMDATA) / "AnyDesk" / "ad_svc.trace"
-    UI_TRACE = Path(APPDATA) / "AnyDesk" / "ad.trace"
-    CONN_TRACE = Path(APPDATA) / "AnyDesk" / "connection_trace.txt"
-
-    # AnyDesk executable — auto-detected; first existing path wins
-    ANYDESK_EXE_CANDIDATES = [
-        Path(r"C:\Program Files (x86)\AnyDesk\AnyDesk.exe"),
-        Path(r"C:\Program Files\AnyDesk\AnyDesk.exe"),
-    ]
-    
-    # TeamViewer paths
-    TV_CONNECTIONS_IN = Path(APPDATA) / "TeamViewer" / "Connections_incoming.txt"
-    TV_CONNECTIONS_OUT = Path(APPDATA) / "TeamViewer" / "Connections.txt"
-    
-    # Monitoring settings
-    POLL_INTERVAL = 1.0
-    PROCESS_CHECK = 5.0
-    
-    # Ports
-    ANYDESK_PORTS = {7070, 7071, 443, 80}
-    TV_PORTS = {5938, 443, 80}
-    VNC_PORTS = {5900, 5901, 5902, 5903}
-    INFRASTRUCTURE_PORTS = [80, 443, 6568, 7070]
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# DATA MODELS
-# ══════════════════════════════════════════════════════════════════════════════
-
-@dataclass
-class RemoteAppStatus:
-    """Status of a remote access application - compatible with existing API."""
-    app_name: str
-    app_id: int
-    is_running: bool
-    has_active_session: bool
-    process_count: int
-    connection_count: int
-    connection_status: int
-    remote_ip: Optional[str] = None
-    direction: Optional[str] = None  # 'incoming', 'outgoing', 'unknown'
-    confidence: str = 'low'  # 'low', 'medium', 'high'
-    remote_country: Optional[str] = None
-    remote_country_code: Optional[str] = None
-    # New fields from enhanced detection
-    remote_os: Optional[str] = None
-    remote_version: Optional[str] = None
-    connection_type: Optional[str] = None  # 'direct' or 'relay'
-    file_transfer_active: bool = False
-    file_transfers: int = 0
-    # Session identity / forensics fields (populated when log/trace provides them)
-    remote_id: Optional[str] = None       # AnyDesk numeric ID / TV Partner ID
-    remote_name: Optional[str] = None     # Display name / hostname (TV)
-    logged_user: Optional[str] = None     # Local user logged on at session time (TV forensics)
-    connection_id: Optional[str] = None   # GUID of the session record (TV forensics)
-    software: Optional[str] = None        # 'AnyDesk' / 'TeamViewer' / 'VNC' / 'ChromeRD'
-
-
-@dataclass
-class StateChange:
-    """Represents a state change event for a remote access app."""
-    app_name: str
-    change_type: str  # 'opened', 'closed', 'session_started', 'session_ended'
-    timestamp: datetime
-    status: RemoteAppStatus
-    late_detection: bool = False
-
-
-class SessionDirection:
-    INCOMING = "incoming"
-    OUTGOING = "outgoing"
-    UNKNOWN = "unknown"
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# GEOIP LOOKUP
-# ══════════════════════════════════════════════════════════════════════════════
-
-class GeoIPLookup:
-    """GeoIP lookup using free ip-api.com service."""
-    
-    _cache: Dict[str, dict] = {}
-    
-    @classmethod
-    def lookup(cls, ip: str) -> dict:
-        """
-        Lookup GeoIP info for an IP address.
-        Returns: {"country": "...", "country_code": "...", "city": "...", "isp": "..."}
-        """
-        if not ip or ip == "?" or cls._is_private_ip(ip):
-            return {}
-        
-        if ip in cls._cache:
-            return cls._cache[ip]
-        
-        try:
-            url = f"http://ip-api.com/json/{ip}?fields=status,country,countryCode,city,isp"
-            with urllib.request.urlopen(url, timeout=3) as resp:
-                data = json.loads(resp.read().decode())
-                if data.get("status") == "success":
-                    result = {
-                        "country": data.get("country", ""),
-                        "country_code": data.get("countryCode", ""),
-                        "city": data.get("city", ""),
-                        "isp": data.get("isp", ""),
-                    }
-                    cls._cache[ip] = result
-                    return result
-        except Exception as e:
-            logger.debug(f"GeoIP lookup failed for {ip}: {e}")
-        
-        return {}
-    
-    @staticmethod
-    def _is_private_ip(ip: str) -> bool:
-        """Check if IP is private/local."""
-        return (
-            ip.startswith("10.") or
-            ip.startswith("192.168.") or
-            ip.startswith("172.16.") or
-            ip.startswith("172.17.") or
-            ip.startswith("172.18.") or
-            ip.startswith("172.19.") or
-            ip.startswith("172.2") or
-            ip.startswith("172.30.") or
-            ip.startswith("172.31.") or
-            ip.startswith("127.") or
-            ip.startswith("100.") or  # Tailscale
-            ip == "::1"
-        )
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# LOG PARSER - Enhanced regex patterns
-# ══════════════════════════════════════════════════════════════════════════════
-
-class LogParser:
-    """
-    Parses AnyDesk/TeamViewer/VNC trace files for session events.
-    Enhanced with comprehensive regex patterns.
-    """
-
-    # Timestamp patterns
-    RE_TIMESTAMP = re.compile(r'(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})')
-    
-    # ─── AnyDesk patterns ─────────────────────────────────────────────────────
-    
-    # Incoming request: "Incoming session request: - (1458399339)"
-    RE_INCOMING = re.compile(
-        r'[Ii]ncoming\s+session\s+request.*?\((\d+)\)',
-        re.IGNORECASE
-    )
-    
-    # Incoming connection with IP: "[100.87.30.66:51533] Incoming connection"
-    RE_INCOMING_IP = re.compile(
-        r'\[(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):\d+\]\s*[Ii]ncoming\s+connection',
-        re.IGNORECASE
-    )
-    
-    # Session started
-    RE_STARTED = re.compile(
-        r'[Ss]ession\s+started'
-        r'(?:.*?(?:client_id|id)\s*=\s*(\d+))?',
-        re.IGNORECASE
-    )
-    
-    # Client connected from IP (old format)
-    RE_CLIENT_IP = re.compile(
-        r'[Cc]lient\s+connected\s+from\s+([\d\.]+)',
-        re.IGNORECASE
-    )
-    
-    # Session stopped/ended
-    RE_STOPPED = re.compile(
-        r'[Ss]ession\s+(?:stopped|ended|closed|disconnected)',
-        re.IGNORECASE
-    )
-    
-    # Outgoing connection
-    RE_OUTGOING = re.compile(
-        r'[Cc]onnecting\s+to\s+(\d+)',
-        re.IGNORECASE
-    )
-    
-    # Remote OS
-    RE_REMOTE_OS = re.compile(
-        r'Remote\s+OS:\s*(\w+)',
-        re.IGNORECASE
-    )
-    
-    # Remote version
-    RE_REMOTE_VERSION = re.compile(
-        r'Remote\s+version:\s*([\d\.]+)',
-        re.IGNORECASE
-    )
-    
-    # File transfer
-    RE_FILE_TRANSFER_START = re.compile(
-        r'local_file_transfer.*(?:Starting|Started|Initializing)',
-        re.IGNORECASE
-    )
-    RE_FILE_TRANSFER_STOP = re.compile(
-        r'local_file_transfer.*(?:Stopping|stopped|completed|finished)',
-        re.IGNORECASE
-    )
-    
-    # Connection type
-    RE_CONN_TYPE_DIRECT = re.compile(
-        r'(?:direct\s+connection|connection.*direct|Route\s+type:\s*direct)',
-        re.IGNORECASE
-    )
-    RE_CONN_TYPE_RELAY = re.compile(
-        r'(?:relay|tunnel|Route\s+type:\s*tunnel)',
-        re.IGNORECASE
-    )
-    
-    # connection_trace.txt patterns
-    RE_CONN_TRACE_IN = re.compile(
-        r'[Ii]ncoming\s+(\d{4}-\d{2}-\d{2}),?\s+(\d{2}:\d{2})\s+[Uu]ser\s+(\d+)',
-        re.IGNORECASE
-    )
-    RE_CONN_TRACE_OUT = re.compile(
-        r'[Oo]utgoing\s+(\d{4}-\d{2}-\d{2}),?\s+(\d{2}:\d{2})\s+[Uu]ser\s+(\d+)',
-        re.IGNORECASE
-    )
-    
-    # ─── TeamViewer patterns ──────────────────────────────────────────────────
-
-    RE_TV_INCOMING = re.compile(
-        r'[Ii]ncoming\s+(?:connection|session).*?(?:Partner\s*ID|from)[:\s]*(\d+)',
-        re.IGNORECASE
-    )
-    # "Participant joined: 123456789"
-    RE_TV_PARTICIPANT = re.compile(
-        r'[Pp]articipant\s+joined[:\s]*(\d+)',
-        re.IGNORECASE
-    )
-    # Generic IP in TV logs: "IP: 1.2.3.4" / "address 1.2.3.4" / "from 1.2.3.4"
-    RE_TV_IP = re.compile(
-        r'(?:IP|address|from)[:\s]+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})',
-        re.IGNORECASE
-    )
-    # TeamViewer logfile patterns (TeamViewer15_Logfile.log)
-    RE_TV_PARTNER_ID = re.compile(
-        r'(?:Partner\s*ID|PartnerID)[:\s]+(\d+)',
-        re.IGNORECASE
-    )
-    RE_TV_PEER_IP = re.compile(
-        r'Peer\s+IP[:\s]+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})',
-        re.IGNORECASE
-    )
-    RE_TV_FILE_TRANSFER = re.compile(
-        r'FileTransfer[:\s]+(Started|Completed|Failed)',
-        re.IGNORECASE
-    )
-    RE_TV_DISCONNECT = re.compile(
-        r'(?:session|connection)\s+(?:ended|closed|terminated|disconnected)',
-        re.IGNORECASE
-    )
-    # Connections_incoming.txt — tab-separated forensics-style format (verified
-    # against WiredPulse/TeamViewer_Forensics):
-    #   PartnerID \t DisplayName \t StartDate \t EndDate \t LoggedOnUser \t ConnectionType \t ConnectionID
-    # Date format: dd-MM-yyyy HH:mm:ss
-    RE_TV_CONN_INCOMING = re.compile(
-        r'^(\d+)\t'                                          # PartnerID
-        r'([^\t]*)\t'                                        # DisplayName (may have spaces)
-        r'(\d{2}-\d{2}-\d{4}\s\d{2}:\d{2}:\d{2})\t'         # StartDate: dd-MM-yyyy HH:mm:ss
-        r'([^\t]*)\t'                                        # EndDate
-        r'([^\t]*)\t'                                        # LoggedOnUser
-        r'([^\t]*)\t?'                                       # ConnectionType
-        r'(.*)',                                             # ConnectionID (GUID, optional)
-        re.MULTILINE
-    )
-
-    # ─── Chrome Remote Desktop patterns ───────────────────────────────────────
-
-    RE_CRD_CONNECTION = re.compile(
-        r'(?:client\s+connected|incoming\s+connection|session\s+started)',
-        re.IGNORECASE
-    )
-    RE_CRD_DISCONNECT = re.compile(
-        r'(?:client\s+disconnected|session\s+ended|connection\s+closed)',
-        re.IGNORECASE
-    )
-
-    # ─── VNC patterns ─────────────────────────────────────────────────────────
-
-    # TigerVNC: "Connections: Accepted: [IP]::port" (IPv4 or bracketed IPv6)
-    RE_VNC_ACCEPT = re.compile(
-        r'Connections:\s+Accepted:\s+(\[?[\d:a-fA-F\.]+\]?)::(\d+)',
-        re.IGNORECASE
-    )
-    # TigerVNC: "Connections: Closed: [IP]::port"
-    RE_VNC_CLOSE = re.compile(
-        r'Connections:\s+Closed:\s+(\[?[\d:a-fA-F\.]+\]?)::(\d+)',
-        re.IGNORECASE
-    )
-    # TigerVNC disconnect with reason: "VNCSConnST: Closing [IP]::port: reason"
-    RE_VNC_DISCONNECT_REASON = re.compile(
-        r'VNCSConnST:\s+Closing\s+(\[?[\d:a-fA-F\.]+\]?)::(\d+):\s+(.+)',
-        re.IGNORECASE
-    )
-    # TigerVNC auth type: "SConnection: Client requests security type VncAuth(2)"
-    RE_VNC_AUTH_TYPE = re.compile(
-        r'SConnection:\s+Client\s+requests\s+security\s+type\s+(\w+)\((\d+)\)',
-        re.IGNORECASE
-    )
-    # x11vnc: "Got connection from client 192.168.1.100"
-    RE_VNC_X11_ACCEPT = re.compile(
-        r'Got\s+connection\s+from\s+client\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})',
-        re.IGNORECASE
-    )
-    # Windows VNC (TightVNC/UltraVNC/RealVNC): "Accepted connection from 1.2.3.4"
-    RE_VNC_WIN_ACCEPT = re.compile(
-        r'(?:Accepted|New)\s+connection\s+from\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})',
-        re.IGNORECASE
-    )
-    # TigerVNC timestamp on its own line: "Sat Feb 28 16:38:09 2026"
-    RE_VNC_TIMESTAMP = re.compile(
-        r'^(\w{3}\s+\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+\d{4})\s*$'
-    )
-
-    @staticmethod
-    def parse_timestamp(text: str) -> Optional[datetime]:
-        m = LogParser.RE_TIMESTAMP.search(text)
-        if m:
-            try:
-                return datetime.strptime(m.group(1), "%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                pass
-        return None
-
-    def parse_line(self, line: str) -> Optional[dict]:
-        """Parse a single log line. Returns dict with event info, or None."""
-        ts = self.parse_timestamp(line)
-
-        # Incoming session request
-        m = self.RE_INCOMING.search(line)
-        if m:
-            return {
-                "event": "incoming_request",
-                "timestamp": ts,
-                "remote_id": m.group(1) or "",
-                "remote_ip": "",
-                "raw": line.strip(),
-            }
-
-        # Session started
-        m = self.RE_STARTED.search(line)
-        if m:
-            return {
-                "event": "session_started",
-                "timestamp": ts,
-                "remote_id": m.group(1) or "",
-                "raw": line.strip(),
-            }
-
-        # Client connected from IP (old format)
-        m = self.RE_CLIENT_IP.search(line)
-        if m:
-            return {
-                "event": "client_ip",
-                "timestamp": ts,
-                "remote_ip": m.group(1),
-                "raw": line.strip(),
-            }
-        
-        # Incoming connection with IP (new format)
-        m = self.RE_INCOMING_IP.search(line)
-        if m:
-            return {
-                "event": "client_ip",
-                "timestamp": ts,
-                "remote_ip": m.group(1),
-                "raw": line.strip(),
-            }
-
-        # Session stopped
-        m = self.RE_STOPPED.search(line)
-        if m:
-            return {
-                "event": "session_stopped",
-                "timestamp": ts,
-                "raw": line.strip(),
-            }
-
-        # Outgoing connection
-        m = self.RE_OUTGOING.search(line)
-        if m:
-            return {
-                "event": "outgoing_start",
-                "timestamp": ts,
-                "remote_id": m.group(1),
-                "raw": line.strip(),
-            }
-
-        # Remote OS
-        m = self.RE_REMOTE_OS.search(line)
-        if m:
-            return {
-                "event": "remote_info",
-                "timestamp": ts,
-                "remote_os": m.group(1),
-                "raw": line.strip(),
-            }
-        
-        # Remote version
-        m = self.RE_REMOTE_VERSION.search(line)
-        if m:
-            return {
-                "event": "remote_info",
-                "timestamp": ts,
-                "remote_version": m.group(1),
-                "raw": line.strip(),
-            }
-
-        # File transfer
-        if self.RE_FILE_TRANSFER_START.search(line):
-            return {"event": "file_transfer_start", "timestamp": ts, "raw": line.strip()}
-        
-        if self.RE_FILE_TRANSFER_STOP.search(line):
-            return {"event": "file_transfer_stop", "timestamp": ts, "raw": line.strip()}
-
-        # Connection type
-        if self.RE_CONN_TYPE_DIRECT.search(line):
-            return {"event": "connection_type", "timestamp": ts, "conn_type": "direct", "raw": line.strip()}
-        
-        if self.RE_CONN_TYPE_RELAY.search(line):
-            return {"event": "connection_type", "timestamp": ts, "conn_type": "relay", "raw": line.strip()}
-
-        # ─── TeamViewer patterns ──────────────────────────────────────────────
-
-        # Connections_incoming.txt — tab-separated record of an entire ended
-        # session. Match BEFORE the other TV patterns because a digit-leading
-        # tab-separated line is unambiguous.
-        m = self.RE_TV_CONN_INCOMING.match(line)
-        if m:
-            try:
-                start_ts = datetime.strptime(m.group(3).strip(), "%d-%m-%Y %H:%M:%S")
-            except (ValueError, IndexError):
-                start_ts = ts
-            try:
-                end_ts = datetime.strptime(m.group(4).strip(), "%d-%m-%Y %H:%M:%S")
-            except (ValueError, IndexError):
-                end_ts = None
-            return {
-                "event": "tv_session_record",
-                "timestamp": start_ts,
-                "end_time": end_ts,
-                "remote_id": m.group(1).strip(),
-                "remote_name": m.group(2).strip() if m.group(2) else "",
-                "logged_user": m.group(5).strip() if m.group(5) else "",
-                "conn_type": m.group(6).strip() if m.group(6) else "",
-                "connection_id": m.group(7).strip() if m.group(7) else "",
-                "software": "TeamViewer",
-                "raw": line.strip(),
-            }
-
-        # TeamViewer incoming: "Incoming connection from Partner ID: 123456789"
-        m = self.RE_TV_INCOMING.search(line)
-        if m:
-            ip_match = self.RE_TV_PEER_IP.search(line) or self.RE_TV_IP.search(line)
-            return {
-                "event": "incoming_request",
-                "timestamp": ts,
-                "remote_id": m.group(1) or "",
-                "remote_ip": ip_match.group(1) if ip_match else "",
-                "raw": line.strip(),
-            }
-
-        # TeamViewer "Participant joined: 123456789"
-        m = self.RE_TV_PARTICIPANT.search(line)
-        if m:
-            return {
-                "event": "session_started",
-                "timestamp": ts,
-                "remote_id": m.group(1) or "",
-                "raw": line.strip(),
-            }
-
-        # TeamViewer file transfer (separate event so we can track activity)
-        m = self.RE_TV_FILE_TRANSFER.search(line)
-        if m:
-            phase = (m.group(1) or "").lower()
-            if phase in ("started",):
-                return {"event": "file_transfer_start", "timestamp": ts, "raw": line.strip()}
-            return {"event": "file_transfer_stop", "timestamp": ts, "raw": line.strip()}
-
-        # TeamViewer Peer IP / generic IP — emit as client_ip for any line that
-        # mentions an IP without an incoming-request marker, so the SessionTracker
-        # can attach it to the current session.
-        m = self.RE_TV_PEER_IP.search(line)
-        if m:
-            return {
-                "event": "client_ip",
-                "timestamp": ts,
-                "remote_ip": m.group(1),
-                "raw": line.strip(),
-            }
-
-        # TeamViewer Partner ID without "incoming" keyword — best-effort remote_id capture
-        m = self.RE_TV_PARTNER_ID.search(line)
-        if m:
-            return {
-                "event": "remote_info",
-                "timestamp": ts,
-                "remote_id": m.group(1),
-                "raw": line.strip(),
-            }
-
-        # TeamViewer disconnect
-        if self.RE_TV_DISCONNECT.search(line):
-            return {"event": "session_stopped", "timestamp": ts, "raw": line.strip()}
-
-        # ─── VNC patterns ─────────────────────────────────────────────────────
-
-        # TigerVNC: "Connections: Accepted: [IP]::port"
-        m = self.RE_VNC_ACCEPT.search(line)
-        if m:
-            ip = m.group(1).strip('[]')  # Remove brackets from IPv6
-            return {
-                "event": "incoming_request",
-                "timestamp": ts,
-                "remote_id": "",
-                "remote_ip": ip,
-                "raw": line.strip(),
-            }
-
-        # TigerVNC: "Connections: Closed: ..." (matches both raw close and the
-        # disconnect-with-reason variant; reason is logged but not yet routed)
-        m = self.RE_VNC_DISCONNECT_REASON.search(line)
-        if m:
-            return {"event": "session_stopped", "timestamp": ts, "raw": line.strip()}
-
-        m = self.RE_VNC_CLOSE.search(line)
-        if m:
-            return {"event": "session_stopped", "timestamp": ts, "raw": line.strip()}
-
-        # x11vnc: "Got connection from client 1.2.3.4"
-        m = self.RE_VNC_X11_ACCEPT.search(line)
-        if m:
-            return {
-                "event": "incoming_request",
-                "timestamp": ts,
-                "remote_id": "",
-                "remote_ip": m.group(1),
-                "raw": line.strip(),
-            }
-
-        # Windows VNC (TightVNC/UltraVNC/RealVNC): "Accepted connection from 1.2.3.4"
-        m = self.RE_VNC_WIN_ACCEPT.search(line)
-        if m:
-            return {
-                "event": "incoming_request",
-                "timestamp": ts,
-                "remote_id": "",
-                "remote_ip": m.group(1),
-                "raw": line.strip(),
-            }
-
-        # ─── Chrome Remote Desktop patterns ───────────────────────────────────
-
-        if self.RE_CRD_CONNECTION.search(line):
-            ip_match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', line)
-            return {
-                "event": "incoming_request",
-                "timestamp": ts,
-                "remote_id": "",
-                "remote_ip": ip_match.group(1) if ip_match else "",
-                "raw": line.strip(),
-            }
-
-        if self.RE_CRD_DISCONNECT.search(line):
-            return {"event": "session_stopped", "timestamp": ts, "raw": line.strip()}
-
-        return None
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# LOG WATCHER - Real-time log file tailing
-# ══════════════════════════════════════════════════════════════════════════════
-
-class LogWatcher:
-    """Tails a log file and yields new lines as they appear."""
-
-    def __init__(self, path: Path, poll_interval: float = 1.0):
-        self.path = path
-        self.poll_interval = poll_interval
-        self._stop = threading.Event()
-        self._pos = 0
-
-    def _seek_end(self):
-        """Start from end of file (don't replay history)."""
-        if self.path.exists():
-            self._pos = self.path.stat().st_size
-        else:
-            self._pos = 0
-
-    def read_tail_lines(self, max_lines: int = 500, max_bytes: int = 1_000_000) -> List[str]:
-        """
-        Read up to `max_lines` lines from the END of the file (bounded by
-        `max_bytes`). Used at attach-time to backfill SessionTracker from the
-        recent past — solves "session already active before agent restart".
-        Does NOT modify self._pos (the tail loop still starts from EOF).
-        """
-        if not self.path.exists():
-            return []
-        try:
-            size = self.path.stat().st_size
-            start = max(0, size - max_bytes)
-            with open(self.path, "rb") as f:
-                f.seek(start)
-                tail_bytes = f.read()
-            text = tail_bytes.decode("utf-8", errors="replace")
-            # If we cut mid-line, drop the partial first line
-            lines = text.splitlines()
-            if start > 0 and lines:
-                lines = lines[1:]
-            lines = [ln for ln in lines if ln.strip()]
-            return lines[-max_lines:] if max_lines > 0 else lines
-        except (IOError, PermissionError, OSError) as e:
-            logger.debug(f"LogWatcher read_tail_lines failed for {self.path}: {e}")
-            return []
-
-    def tail(self, from_start: bool = False):
-        """Generator: yields new lines from the log file."""
-        if not from_start:
-            self._seek_end()
-
-        while not self._stop.is_set():
-            if not self.path.exists():
-                time.sleep(self.poll_interval)
-                continue
-
-            current_size = self.path.stat().st_size
-            if current_size < self._pos:
-                # File was rotated/truncated
-                self._pos = 0
-
-            if current_size > self._pos:
-                try:
-                    with open(self.path, "r", encoding="utf-8", errors="replace") as f:
-                        f.seek(self._pos)
-                        new_data = f.read()
-                        self._pos = f.tell()
-                    for line in new_data.splitlines():
-                        if line.strip():
-                            yield line
-                except (IOError, PermissionError):
-                    pass
-
-            time.sleep(self.poll_interval)
-
-    def stop(self):
-        self._stop.set()
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SESSION TRACKER - State machine for session tracking
-# ══════════════════════════════════════════════════════════════════════════════
-
-class SessionState:
-    """Tracks the state of a single session."""
-
-    def __init__(self):
-        self.direction: str = SessionDirection.UNKNOWN
-        self.remote_id: str = ""
-        self.remote_ip: str = ""
-        self.remote_name: str = ""           # display name / hostname (TV)
-        self.remote_os: str = ""
-        self.remote_version: str = ""
-        self.connection_type: str = ""       # "direct" / "relay" / TV ConnectionType
-        self.file_transfer_active: bool = False
-        self.file_transfers: int = 0
-        self.start_time: Optional[datetime] = None
-        self.end_time: Optional[datetime] = None
-        self.active: bool = False
-        self.geoip: dict = {}
-        # Forensics fields (TeamViewer Connections_incoming.txt)
-        self.logged_user: str = ""           # local user logged on at session time
-        self.connection_id: str = ""         # GUID of the session record
-        self.software: str = ""              # "AnyDesk" / "TeamViewer" / "VNC" / "ChromeRD"
-
-
-class SessionTracker:
-    """Tracks session state based on log events."""
-
-    def __init__(self):
-        self.current: Optional[SessionState] = None
-        self.history: List[SessionState] = []
-        self._lock = threading.Lock()
-        self._pending_ip: str = ""
-
-    def on_event(self, event: dict) -> Optional[str]:
-        """
-        Process a parsed log event.
-        Returns event type if state changed: 'session_started', 'session_ended', etc.
-        """
-        with self._lock:
-            etype = event.get("event")
-
-            if etype == "incoming_request":
-                return self._start_incoming(event)
-
-            elif etype == "outgoing_start":
-                return self._start_outgoing(event)
-
-            elif etype == "session_started":
-                return self._session_started(event)
-
-            elif etype == "client_ip":
-                self._update_ip(event)
-                return None
-
-            elif etype == "session_stopped":
-                return self._session_stopped(event)
-
-            elif etype == "remote_info":
-                self._update_remote_info(event)
-                return None
-
-            elif etype == "file_transfer_start":
-                self._file_transfer_start()
-                return None
-
-            elif etype == "file_transfer_stop":
-                self._file_transfer_stop()
-                return None
-
-            elif etype == "connection_type":
-                self._update_connection_type(event)
-                return None
-
-            elif etype == "tv_session_record":
-                return self._record_tv_session(event)
-
-        return None
-
-    def _start_incoming(self, event: dict) -> str:
-        sess = SessionState()
-        sess.direction = SessionDirection.INCOMING
-        sess.remote_id = event.get("remote_id", "")
-        sess.remote_ip = event.get("remote_ip", "") or self._pending_ip
-        self._pending_ip = ""
-        sess.start_time = event.get("timestamp") or datetime.now()
-        sess.active = True
-        
-        # GeoIP lookup
-        if sess.remote_ip:
-            sess.geoip = GeoIPLookup.lookup(sess.remote_ip)
-        
-        self.current = sess
-        return "session_started"
-
-    def _start_outgoing(self, event: dict) -> Optional[str]:
-        # "Connecting to XXXXX" also appears during relay setup in INCOMING sessions.
-        # If we already have an active incoming session, protect it — don't replace
-        # it with an outgoing one from a relay line.
-        if self.current and self.current.active and self.current.direction == SessionDirection.INCOMING:
-            print(f"[REMOTE-MONITOR][PARSER] outgoing_start suppressed — incoming session already active "
-                  f"(remote_id={self.current.remote_id!r})")
-            return None
-        sess = SessionState()
-        sess.direction = SessionDirection.OUTGOING
-        sess.remote_id = event.get("remote_id", "")
-        sess.start_time = event.get("timestamp") or datetime.now()
-        sess.active = True
-        self.current = sess
-        return "session_started"
-
-    def _session_started(self, event: dict) -> Optional[str]:
-        if self.current:
-            if not self.current.remote_id and event.get("remote_id"):
-                self.current.remote_id = event["remote_id"]
-            return None
-        else:
-            sess = SessionState()
-            sess.direction = SessionDirection.UNKNOWN
-            sess.remote_id = event.get("remote_id", "")
-            sess.start_time = event.get("timestamp") or datetime.now()
-            sess.active = True
-            self.current = sess
-            return "session_started"
-
-    def _update_ip(self, event: dict):
-        ip = event.get("remote_ip", "")
-        if self.current and not self.current.remote_ip:
-            self.current.remote_ip = ip
-            if ip:
-                self.current.geoip = GeoIPLookup.lookup(ip)
-        elif ip:
-            self._pending_ip = ip
-
-    def _update_remote_info(self, event: dict):
-        if self.current:
-            if event.get("remote_os") and not self.current.remote_os:
-                self.current.remote_os = event["remote_os"]
-            if event.get("remote_version") and not self.current.remote_version:
-                self.current.remote_version = event["remote_version"]
-
-    def _file_transfer_start(self):
-        if self.current:
-            self.current.file_transfer_active = True
-            self.current.file_transfers += 1
-
-    def _file_transfer_stop(self):
-        if self.current:
-            self.current.file_transfer_active = False
-
-    def _update_connection_type(self, event: dict):
-        if self.current and not self.current.connection_type:
-            self.current.connection_type = event.get("conn_type", "")
-
-    def _session_stopped(self, event: dict) -> Optional[str]:
-        if not self.current:
-            return None
-
-        # Guard against stale stop events from a different log stream during
-        # backfill: if the stop's timestamp is OLDER than the current session's
-        # start, this stop belongs to a previous (already-finished) session and
-        # must not clobber the live one.
-        evt_ts = event.get("timestamp")
-        cur_start = self.current.start_time
-        if (
-            isinstance(evt_ts, datetime)
-            and isinstance(cur_start, datetime)
-            and evt_ts < cur_start
-        ):
-            return None
-
-        self.current.end_time = evt_ts or datetime.now()
-        self.current.active = False
-        self.history.append(self.current)
-        self.current = None
-        return "session_ended"
-
-    def _record_tv_session(self, event: dict) -> str:
-        """
-        Record a fully-finished TeamViewer session from Connections_incoming.txt.
-        The line represents a session that has already ended, so we don't touch
-        self.current — we just append a populated SessionState to history.
-        """
-        sess = SessionState()
-        sess.direction       = SessionDirection.INCOMING
-        sess.software        = event.get("software", "TeamViewer")
-        sess.remote_id       = event.get("remote_id", "")
-        sess.remote_name     = event.get("remote_name", "")
-        sess.logged_user     = event.get("logged_user", "")
-        sess.connection_type = event.get("conn_type", "")
-        sess.connection_id   = event.get("connection_id", "")
-        sess.start_time      = event.get("timestamp")
-        sess.end_time        = event.get("end_time")
-        sess.active          = False
-        self.history.append(sess)
-        return "session_ended"
-
-    def get_current_session(self) -> Optional[SessionState]:
-        with self._lock:
-            return self.current
-
-    def has_active_session(self) -> bool:
-        with self._lock:
-            return self.current is not None and self.current.active
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# DETECTION HISTORY
-# ══════════════════════════════════════════════════════════════════════════════
-
-class DetectionHistory:
-    """Rolling log of detection events for debugging."""
-
-    def __init__(self, max_events: int = 100):
-        self._events: deque = deque(maxlen=max_events)
-
-    def add(self, state_change: StateChange):
-        self._events.append({
-            'timestamp': state_change.timestamp.isoformat(),
-            'app': state_change.app_name,
-            'type': state_change.change_type,
-            'late_detection': state_change.late_detection,
-            'process_count': state_change.status.process_count,
-            'has_session': state_change.status.has_active_session,
-            'remote_ip': state_change.status.remote_ip
-        })
-
-    def get_history(self) -> List[dict]:
-        return list(reversed(self._events))
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# DEBOUNCED STATE TRACKER
-# ══════════════════════════════════════════════════════════════════════════════
-
-class DebouncedStateTracker:
-    """Tracks state changes with debouncing for close events."""
-
-    def __init__(self, close_debounce_seconds: float = 1.0, session_end_debounce_seconds: float = 4.0):
-        self._close_debounce = close_debounce_seconds
-        self._session_end_debounce = session_end_debounce_seconds
-        self._pending_closes: Dict[str, float] = {}
-        self._pending_session_ends: Dict[str, float] = {}
-        self._previous_state: Dict[str, RemoteAppStatus] = {}
-
-    @property
-    def has_pending_events(self) -> bool:
-        """True when there are debounced close/session-end events still ticking.
-        Used by the monitor loop to switch to fast-poll mode so the alert
-        fires within ~1s of the underlying state change."""
-        return bool(self._pending_closes) or bool(self._pending_session_ends)
-
-    def process_state(self, app_name: str, current_status: RemoteAppStatus) -> Optional[StateChange]:
-        """Process current state and return a StateChange if a transition occurred."""
-        prev = self._previous_state.get(app_name)
-        now = datetime.now()
-
-        # While DangerMode is active (we're inside an ImmediateDanger event),
-        # bypass debouncing entirely — every transition is reported immediately.
-        # Imported lazily to avoid pulling services.* into module init.
-        try:
-            from services.danger_mode import danger_mode
-            danger_active = danger_mode.active
-        except Exception:
-            danger_active = False
-
-        # App just closed
-        if prev and prev.is_running and not current_status.is_running:
-            self._pending_session_ends.pop(app_name, None)
-            self._previous_state[app_name] = current_status
-            if danger_active:
-                # Bypass debounce — emit the close immediately
-                return StateChange(
-                    app_name=app_name,
-                    change_type='closed',
-                    timestamp=now,
-                    status=prev,
-                )
-            # Normal: schedule a pending close (debounced)
-            self._pending_closes[app_name] = time.time()
-            return None
-
-        # App running but was in pending_closes - cancel pending close
-        if current_status.is_running and app_name in self._pending_closes:
-            del self._pending_closes[app_name]
-            self._pending_session_ends.pop(app_name, None)
-            self._previous_state[app_name] = current_status
-            return None
-
-        # App just opened
-        if current_status.is_running and (not prev or not prev.is_running):
-            self._previous_state[app_name] = current_status
-            return StateChange(
-                app_name=app_name,
-                change_type='opened',
-                timestamp=now,
-                status=current_status
-            )
-
-        # Session state changes (while app is running)
-        if prev and current_status.is_running and prev.is_running:
-            # Session just started
-            if current_status.has_active_session and not prev.has_active_session:
-                self._pending_session_ends.pop(app_name, None)
-                self._previous_state[app_name] = current_status
-                return StateChange(
-                    app_name=app_name,
-                    change_type='session_started',
-                    timestamp=now,
-                    status=current_status
-                )
-            # Session just ended
-            if not current_status.has_active_session and prev.has_active_session:
-                self._previous_state[app_name] = current_status
-                if danger_active:
-                    # Bypass debounce — emit the session_ended immediately
-                    return StateChange(
-                        app_name=app_name,
-                        change_type='session_ended',
-                        timestamp=now,
-                        status=current_status,
-                    )
-                # Normal: schedule pending session end
-                self._pending_session_ends[app_name] = time.time()
-                return None
-
-        self._previous_state[app_name] = current_status
-        return None
-
-    def check_pending_events(self) -> List[StateChange]:
-        """Check for debounced events that have completed their debounce period."""
-        now = time.time()
-        completed_events: List[StateChange] = []
-
-        # Check pending closes
-        for app_name, close_time in list(self._pending_closes.items()):
-            if now - close_time >= self._close_debounce:
-                prev_status = self._previous_state.get(app_name)
-                if prev_status:
-                    completed_events.append(StateChange(
-                        app_name=app_name,
-                        change_type='closed',
-                        timestamp=datetime.now(),
-                        status=prev_status
-                    ))
-                del self._pending_closes[app_name]
-                self._pending_session_ends.pop(app_name, None)
-
-        # Check pending session ends
-        for app_name, end_time in list(self._pending_session_ends.items()):
-            if now - end_time >= self._session_end_debounce:
-                prev_status = self._previous_state.get(app_name)
-                if prev_status:
-                    completed_events.append(StateChange(
-                        app_name=app_name,
-                        change_type='session_ended',
-                        timestamp=datetime.now(),
-                        status=prev_status
-                    ))
-                del self._pending_session_ends[app_name]
-
-        return completed_events
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# CONFIDENCE CALCULATION
-# ══════════════════════════════════════════════════════════════════════════════
-
-def calculate_confidence(signals: dict) -> str:
-    """Calculate confidence level based on detection signals."""
-    score = 0
-    
-    if signals.get('active_connection'):
-        score += 3
-    if signals.get('log_session_active'):
-        score += 3
-    if signals.get('cpu_active'):
-        score += 1
-    if signals.get('service_running'):
-        score += 1
-    
-    if score >= 4:
-        return 'high'
-    elif score >= 2:
-        return 'medium'
-    else:
-        return 'low'
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1116,30 +68,30 @@ class RemoteAccessMonitor:
         self._last_status: Dict[str, RemoteAppStatus] = {}
         self._state_tracker = DebouncedStateTracker(close_debounce_seconds=1, session_end_debounce_seconds=4)
         self._history = DetectionHistory(max_events=100)
-        
+
         # Enhanced tracking per app
         self._session_trackers: Dict[str, SessionTracker] = {}
         self._log_watchers: Dict[str, List[LogWatcher]] = {}
         self._log_parser = LogParser()
         self._watcher_threads: List[threading.Thread] = []
         self._running = False
-        
-        print(f"[REMOTE-MONITOR] Initialized on {self.system}")
+
+        logger.info(f"RemoteAccessMonitor initialized on {self.system}")
 
     def start_realtime_monitoring(self):
         """Start real-time log monitoring in background threads."""
         if self._running:
             return
-        
+
         self._running = True
-        
+
         # Start watchers for all supported apps
         self._start_anydesk_watchers()
         self._start_teamviewer_watchers()
         self._start_vnc_watchers()
         self._start_crd_watchers()
-        
-        print("[REMOTE-MONITOR] Real-time monitoring started for all apps")
+
+        logger.info("Real-time monitoring started for all apps")
 
     def _start_anydesk_watchers(self):
         """Start watching AnyDesk log files."""
@@ -1154,7 +106,7 @@ class RemoteAccessMonitor:
         ]
 
         # Build watchers (no threads yet)
-        print("[ANYDESK-DIAG] Log paths at startup:")
+        logger.debug("AnyDesk log paths at startup:")
         for path in log_paths:
             try:
                 exists = path.exists()
@@ -1165,10 +117,10 @@ class RemoteAccessMonitor:
                         with open(path, "r", encoding="utf-8", errors="replace") as _f:
                             readable = True
                     except (IOError, PermissionError) as e:
-                        readable = False
-                print(f"  {path}: exists={exists}, size={size}, readable={readable}")
+                        logger.debug(f"  {path}: not readable: {e}")
+                logger.debug(f"  {path}: exists={exists}, size={size}, readable={readable}")
             except Exception as e:
-                print(f"  {path}: ERROR {e}")
+                logger.warning(f"  {path}: ERROR {e}")
             watcher = LogWatcher(path, MonitorConfig.POLL_INTERVAL)
             self._log_watchers[app_name].append(watcher)
 
@@ -1186,7 +138,7 @@ class RemoteAccessMonitor:
             t.start()
 
             if DEBUG_MODE:
-                print(f"[REMOTE-MONITOR] Watching: {watcher.path}")
+                logger.debug(f"Watching: {watcher.path}")
 
     def _start_teamviewer_watchers(self):
         """Start watching TeamViewer log files."""
@@ -1208,7 +160,7 @@ class RemoteAccessMonitor:
         for path in log_paths:
             if not path.exists():
                 if DEBUG_MODE:
-                    print(f"[REMOTE-MONITOR] TeamViewer log not found: {path}")
+                    logger.debug(f"TeamViewer log not found: {path}")
                 continue
             watcher = LogWatcher(path, MonitorConfig.POLL_INTERVAL)
             self._log_watchers[app_name].append(watcher)
@@ -1226,14 +178,14 @@ class RemoteAccessMonitor:
             t.start()
 
             if DEBUG_MODE:
-                print(f"[REMOTE-MONITOR] Watching TeamViewer: {watcher.path}")
+                logger.debug(f"Watching TeamViewer: {watcher.path}")
 
     def _start_vnc_watchers(self):
         """Start watching VNC log files."""
         app_name = 'vnc'
         self._session_trackers[app_name] = SessionTracker()
         self._log_watchers[app_name] = []
-        
+
         # VNC log paths vary by implementation
         vnc_log_paths = [
             # TigerVNC on Windows
@@ -1244,7 +196,7 @@ class RemoteAccessMonitor:
             # TightVNC
             Path(MonitorConfig.PROGRAMDATA) / "TightVNC" / "tvnserver.log",
         ]
-        
+
         for path in vnc_log_paths:
             if not path.exists():
                 continue
@@ -1264,7 +216,7 @@ class RemoteAccessMonitor:
             t.start()
 
             if DEBUG_MODE:
-                print(f"[REMOTE-MONITOR] Watching VNC: {watcher.path}")
+                logger.debug(f"Watching VNC: {watcher.path}")
 
     def _start_crd_watchers(self):
         """Start watching Chrome Remote Desktop log files."""
@@ -1293,11 +245,11 @@ class RemoteAccessMonitor:
                 t.start()
 
                 if DEBUG_MODE:
-                    print(f"[REMOTE-MONITOR] Watching CRD: {watcher.path}")
+                    logger.debug(f"Watching CRD: {watcher.path}")
         elif DEBUG_MODE:
-            print(f"[REMOTE-MONITOR] Chrome Remote Desktop logs not found: {crd_log_dir}")
+            logger.debug(f"Chrome Remote Desktop logs not found: {crd_log_dir}")
 
-    def _backfill_app(self, app_name: str, watchers: List["LogWatcher"]) -> None:
+    def _backfill_app(self, app_name: str, watchers: List[LogWatcher]) -> None:
         """
         One-shot bootstrap: read tail lines from ALL log files for an app,
         parse them, sort all events by timestamp, and replay through the
@@ -1371,8 +323,8 @@ class RemoteAccessMonitor:
             age_secs = (datetime.now() - cur.start_time).total_seconds()
             if age_secs > 600:
                 tracker.on_event({"event": "session_stopped", "timestamp": datetime.now()})
-                print(
-                    f"[REMOTE-MONITOR] {app_name}: backfill cleared stale session "
+                logger.info(
+                    f"{app_name}: backfill cleared stale session "
                     f"(age={age_secs:.0f}s, dir={cur.direction}, id={cur.remote_id!r})"
                 )
 
@@ -1380,12 +332,12 @@ class RemoteAccessMonitor:
             cur = tracker.get_current_session()
             dir_after = cur.direction if cur else "none"
             active_after = cur.active if cur else False
-            start_after = cur.start_time.isoformat() if cur and cur.start_time else "—"
-            print(f"[REMOTE-MONITOR] {app_name}: backfill summary")
+            start_after = cur.start_time.isoformat() if cur and cur.start_time else "-"
+            logger.debug(f"{app_name}: backfill summary")
             for line in per_file_diag:
-                print(line)
-            print(
-                f"  → events_replayed={len(all_events)}, "
+                logger.debug(line)
+            logger.debug(
+                f"  -> events_replayed={len(all_events)}, "
                 f"current.direction={dir_after}, active={active_after}, start={start_after}"
             )
 
@@ -1396,20 +348,20 @@ class RemoteAccessMonitor:
         if not tracker:
             return
 
-        print(f"[ANYDESK-DIAG] tail started: {watcher.path} (pos={watcher._pos})")
+        logger.debug(f"tail started: {watcher.path} (pos={watcher._pos})")
         for line in watcher.tail(from_start=False):
             if not self._running:
                 break
 
             if app_name == 'anydesk':
-                print(f"[ANYDESK-DIAG] new line from {watcher.path.name}: {line.rstrip()!r}")
+                logger.debug(f"new line from {watcher.path.name}: {line.rstrip()!r}")
 
             event = self._log_parser.parse_line(line)
             if event:
-                print(f"[REMOTE-MONITOR][LOG] {app_name} | event={event.get('event')} | raw={line.rstrip()!r}")
+                logger.debug(f"[LOG] {app_name} | event={event.get('event')} | raw={line.rstrip()!r}")
                 change_type = tracker.on_event(event)
                 if change_type:
-                    print(f"[REMOTE-MONITOR][STATE] {app_name}: {change_type}")
+                    logger.info(f"[STATE] {app_name}: {change_type}")
 
     def stop_realtime_monitoring(self):
         """Stop real-time monitoring."""
@@ -1532,7 +484,7 @@ class RemoteAccessMonitor:
                   `listen_ports` — a remote client connected to our listener.
 
         check_outgoing=False skips the raddr check. Use for AnyDesk: its
-        reverse hole-punch (local→remote:7070) creates raddr:7070 connections
+        reverse hole-punch (local->remote:7070) creates raddr:7070 connections
         even during INCOMING sessions, which would falsely read as OUTGOING.
         """
         if not processes or not listen_ports:
@@ -1688,15 +640,15 @@ class RemoteAccessMonitor:
 
         # Check connections
         total_conn, suspicious_conn, remote_ip = self.check_suspicious_connections(processes, app_name)
-        
+
         # Check CPU
         cpu_usage = self.check_cpu_usage(processes, app_name)
-        
+
         # Check session tracker for log-based session info (real-time only)
         # NOTE: We use ONLY the real-time SessionTracker, not periodic file parsing
         session_tracker = self._session_trackers.get(app_name)
         session = session_tracker.get_current_session() if session_tracker else None
-        
+
         log_session_active = session is not None and session.active
         log_remote_ip = session.remote_ip if session else None
         log_direction = session.direction if session else SessionDirection.UNKNOWN
@@ -1770,7 +722,7 @@ class RemoteAccessMonitor:
                 )
 
                 logger.warning(
-                    "[REMOTE-MONITOR][DIAG] anydesk has active session but "
+                    "[DIAG] anydesk has active session but "
                     "direction=UNKNOWN. tracker={tracker} | logs=[{files}] | "
                     "topology_fallback={topo} | history_fallback={hist} | "
                     "suspicious_conn={sc} remote_ip={ip}".format(
@@ -1965,8 +917,8 @@ class RemoteAccessMonitor:
         Bridges backend ProtectiveAction `BlockRemoteAccess` to a local effect.
 
         Currently supported:
-          - 'anydesk'     → uses `AnyDesk.exe --disconnect`
-          - 'teamviewer'  → uses `TeamViewer.exe --action disconnect`;
+          - 'anydesk'     -> uses `AnyDesk.exe --disconnect`
+          - 'teamviewer'  -> uses `TeamViewer.exe --action disconnect`;
                             falls back to process kill (teamviewer.exe) as a
                             last resort when the CLI flag is unavailable.
 
@@ -2030,396 +982,23 @@ class RemoteAccessMonitor:
         return changes
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# ANYDESK CLI — wrapper for AnyDesk.exe command-line interface
-# ══════════════════════════════════════════════════════════════════════════════
-
-class AnyDeskCLI:
-    """
-    Thin wrapper around the `AnyDesk.exe` CLI. Used to:
-      - read the local AnyDesk ID (`--get-id`)
-      - read AnyDesk status (`--get-status`)
-      - disconnect an active session (`--disconnect`)
-
-    The disconnect path is the bridge between a backend ProtectiveAction
-    `BlockRemoteAccess` and a real local effect on the user's machine.
-
-    All methods return None / False on Windows-only failures (e.g., AnyDesk
-    not installed). Safe to instantiate even if AnyDesk is absent.
-    """
-
-    def __init__(self):
-        self.exe: Optional[Path] = self._find_exe()
-
-    def _find_exe(self) -> Optional[Path]:
-        """Auto-detect AnyDesk.exe location (PATH first, then standard paths)."""
-        try:
-            on_path = shutil.which("AnyDesk")
-            if on_path:
-                return Path(on_path)
-        except Exception:
-            pass
-        for candidate in MonitorConfig.ANYDESK_EXE_CANDIDATES:
-            try:
-                if candidate.exists():
-                    return candidate
-            except (OSError, PermissionError):
-                continue
-        return None
-
-    def is_available(self) -> bool:
-        return self.exe is not None and self.exe.exists()
-
-    def _run(self, *args: str, timeout: float = 5.0) -> Optional[str]:
-        if not self.is_available():
-            return None
-        try:
-            result = subprocess.run(
-                [str(self.exe), *args],
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-            )
-            return (result.stdout + result.stderr).strip()
-        except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
-            logger.debug(f"AnyDeskCLI '{' '.join(args)}' failed: {e}")
-            return None
-
-    def get_id(self) -> Optional[str]:
-        """Return the local AnyDesk ID (numeric, 5–12 digits) or None."""
-        out = self._run("--get-id")
-        if not out:
-            return None
-        m = re.search(r"\d{5,12}", out)
-        return m.group(0) if m else None
-
-    def get_status(self) -> Optional[str]:
-        """Return current AnyDesk status string (e.g., 'online', 'busy')."""
-        return self._run("--get-status")
-
-    def disconnect(self) -> bool:
-        """Disconnect the active session. Returns True if the command succeeded."""
-        if not self.is_available():
-            logger.warning("AnyDeskCLI.disconnect: AnyDesk.exe not found")
-            return False
-        out = self._run("--disconnect")
-        ok = out is not None
-        logger.info(f"AnyDeskCLI.disconnect → {'sent' if ok else 'failed'}")
-        return ok
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# TEAMVIEWER CLI — wrapper for TeamViewer.exe command-line interface
-# ══════════════════════════════════════════════════════════════════════════════
-
-class TeamViewerCLI:
-    """
-    Thin wrapper for disconnecting an active TeamViewer session.
-
-    Strategy (in order):
-      1. `TeamViewer.exe --action disconnect`  — supported since TV 13+.
-         Returns a result dict {"success": True/False, "reason": str}.
-      2. Process-kill fallback: terminate `teamviewer.exe` via taskkill when
-         the CLI flag is unavailable or returns non-zero.  This is destructive
-         (closes the whole app), but it guarantees the session ends.
-
-    Safe to instantiate even when TeamViewer is not installed.
-    """
-
-    # Standard installation paths on Windows
-    _EXE_CANDIDATES = [
-        Path(r"C:\Program Files\TeamViewer\TeamViewer.exe"),
-        Path(r"C:\Program Files (x86)\TeamViewer\TeamViewer.exe"),
-    ]
-    # Process names used for the kill fallback
-    _PROCESS_NAMES = ["teamviewer.exe", "teamviewerservice.exe"]
-
-    def __init__(self):
-        self.exe: Optional[Path] = self._find_exe()
-
-    def _find_exe(self) -> Optional[Path]:
-        try:
-            on_path = shutil.which("TeamViewer")
-            if on_path:
-                return Path(on_path)
-        except Exception:
-            pass
-        for candidate in self._EXE_CANDIDATES:
-            try:
-                if candidate.exists():
-                    return candidate
-            except (OSError, PermissionError):
-                continue
-        return None
-
-    def is_available(self) -> bool:
-        return self.exe is not None and self.exe.exists()
-
-    def _run_cli(self, *args: str, timeout: float = 5.0) -> Optional[int]:
-        """Run TeamViewer.exe with given args.  Returns returncode or None."""
-        if not self.is_available():
-            return None
-        try:
-            result = subprocess.run(
-                [str(self.exe), *args],
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-            )
-            logger.debug(
-                f"TeamViewerCLI '{' '.join(args)}' → rc={result.returncode} "
-                f"stdout={result.stdout.strip()!r} stderr={result.stderr.strip()!r}"
-            )
-            return result.returncode
-        except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
-            logger.debug(f"TeamViewerCLI '{' '.join(args)}' failed: {e}")
-            return None
-
-    def _kill_process(self) -> bool:
-        """Kill TeamViewer process(es) via taskkill.  Returns True on success."""
-        killed_any = False
-        for proc in self._PROCESS_NAMES:
-            try:
-                result = subprocess.run(
-                    ["taskkill", "/F", "/IM", proc],
-                    capture_output=True,
-                    text=True,
-                    timeout=5.0,
-                )
-                if result.returncode == 0:
-                    logger.info(f"TeamViewerCLI._kill_process: killed {proc}")
-                    killed_any = True
-            except Exception as e:
-                logger.debug(f"TeamViewerCLI._kill_process {proc}: {e}")
-        return killed_any
-
-    def disconnect(self) -> dict:
-        """
-        Disconnect the active TeamViewer session.
-
-        Returns {"success": bool, "reason": str}.
-        Possible reasons:
-          "disconnected"       — CLI flag succeeded
-          "killed_process"     — CLI unavailable/failed; process was killed
-          "cli_not_found"      — TeamViewer.exe not found and no process to kill
-          "disconnect_failed"  — CLI returned non-zero and process kill also failed
-        """
-        if self.is_available():
-            rc = self._run_cli("--action", "disconnect")
-            if rc == 0:
-                logger.info("TeamViewerCLI.disconnect → CLI flag succeeded")
-                return {"success": True, "reason": "disconnected"}
-            logger.info(
-                f"TeamViewerCLI.disconnect → CLI flag rc={rc}; trying process kill"
-            )
-        else:
-            logger.warning("TeamViewerCLI.disconnect: TeamViewer.exe not found; trying process kill")
-
-        # Fallback: kill the process
-        if self._kill_process():
-            return {"success": True, "reason": "killed_process"}
-
-        if not self.is_available():
-            return {"success": False, "reason": "cli_not_found"}
-        return {"success": False, "reason": "disconnect_failed"}
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# HISTORY READER — read past sessions from log/trace files at startup
-# ══════════════════════════════════════════════════════════════════════════════
-
-class HistoryReader:
-    """
-    Reads historical session records from disk. Used at agent startup to
-    surface sessions that completed while the agent was not running ("late
-    detection"). Does NOT emit StateChange events — callers decide what to do
-    with the records.
-
-    Sources read:
-      - AnyDesk:    %APPDATA%\\AnyDesk\\connection_trace.txt   (one line per session)
-      - AnyDesk:    %PROGRAMDATA%\\AnyDesk\\ad_svc.trace        (full event log)
-      - TeamViewer: %APPDATA%\\TeamViewer\\Connections_incoming.txt (tab-separated)
-    """
-
-    def __init__(self):
-        self._parser = LogParser()
-
-    def read_anydesk_connection_trace(self, limit: int = 50, since: Optional[datetime] = None) -> List[dict]:
-        """
-        Parse `connection_trace.txt` — one line per session, format like:
-            "Incoming 2026-02-28, 15:28 User 1458399339"
-        Returns dicts with: software, direction, timestamp, remote_id, remote_ip, raw.
-        """
-        entries: List[dict] = []
-        path = MonitorConfig.CONN_TRACE
-        if not path.exists():
-            return entries
-
-        try:
-            with open(path, "r", encoding="utf-8", errors="replace") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-
-                    direction = None
-                    m = LogParser.RE_CONN_TRACE_IN.search(line)
-                    if m:
-                        direction = SessionDirection.INCOMING
-                    else:
-                        m = LogParser.RE_CONN_TRACE_OUT.search(line)
-                        if m:
-                            direction = SessionDirection.OUTGOING
-
-                    if not (m and direction):
-                        continue
-
-                    date_str, time_str, remote_id = m.group(1), m.group(2), m.group(3)
-                    try:
-                        ts = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
-                    except ValueError:
-                        ts = None
-
-                    if since and ts and ts < since:
-                        continue
-
-                    entries.append({
-                        "software":  "AnyDesk",
-                        "direction": direction,
-                        "timestamp": ts,
-                        "remote_id": remote_id,
-                        "remote_ip": "",
-                        "raw":       line,
-                    })
-        except (IOError, PermissionError) as e:
-            logger.debug(f"HistoryReader cannot read {path}: {e}")
-
-        return entries[-limit:] if limit > 0 else entries
-
-    def read_teamviewer_connections(self, limit: int = 50, since: Optional[datetime] = None) -> List[dict]:
-        """
-        Parse TeamViewer `Connections_incoming.txt` — tab-separated, format:
-            PartnerID \\t DisplayName \\t StartDate \\t EndDate \\t LoggedOnUser \\t ConnectionType \\t ConnectionID
-            (StartDate/EndDate as dd-MM-yyyy HH:mm:ss)
-        Returns dicts with all fields normalized.
-        """
-        entries: List[dict] = []
-        path = MonitorConfig.TV_CONNECTIONS_IN
-        if not path.exists():
-            return entries
-
-        try:
-            with open(path, "r", encoding="utf-8", errors="ignore") as f:
-                for line in f:
-                    line = line.rstrip("\n")
-                    if not line.strip() or line.startswith("#"):
-                        continue
-
-                    parts = line.split("\t")
-                    if len(parts) < 4:
-                        continue
-
-                    partner_id   = parts[0].strip()
-                    partner_name = parts[1].strip() if len(parts) > 1 else ""
-                    start_str    = parts[2].strip() if len(parts) > 2 else ""
-                    end_str      = parts[3].strip() if len(parts) > 3 else ""
-                    logged_user  = parts[4].strip() if len(parts) > 4 else ""
-                    conn_type    = parts[5].strip() if len(parts) > 5 else ""
-                    conn_id      = parts[6].strip() if len(parts) > 6 else ""
-
-                    ts_start: Optional[datetime] = None
-                    ts_end:   Optional[datetime] = None
-                    for fmt in ("%d-%m-%Y %H:%M:%S", "%Y-%m-%d %H:%M:%S"):
-                        if start_str and ts_start is None:
-                            try:
-                                ts_start = datetime.strptime(start_str, fmt)
-                            except ValueError:
-                                pass
-                        if end_str and ts_end is None:
-                            try:
-                                ts_end = datetime.strptime(end_str, fmt)
-                            except ValueError:
-                                pass
-
-                    if since and ts_start and ts_start < since:
-                        continue
-
-                    entries.append({
-                        "software":      "TeamViewer",
-                        "direction":     SessionDirection.INCOMING,
-                        "timestamp":     ts_start,
-                        "end_time":      ts_end,
-                        "remote_id":     partner_id,
-                        "remote_name":   partner_name,
-                        "logged_user":   logged_user,
-                        "conn_type":     conn_type,
-                        "connection_id": conn_id,
-                        "raw":           line,
-                    })
-        except (IOError, PermissionError) as e:
-            logger.debug(f"HistoryReader cannot read {path}: {e}")
-
-        return entries[-limit:] if limit > 0 else entries
-
-    def read_anydesk_svc_trace(self, limit: int = 100, since: Optional[datetime] = None) -> List[dict]:
-        """
-        Parse recent events from `ad_svc.trace`. Returns events as parsed by
-        LogParser.parse_line — useful for richer detail (file_transfer, OS info,
-        connection_type) than connection_trace.txt provides.
-        """
-        entries: List[dict] = []
-        path = MonitorConfig.SVC_TRACE
-        if not path.exists():
-            return entries
-
-        try:
-            with open(path, "r", encoding="utf-8", errors="replace") as f:
-                for line in f:
-                    ev = self._parser.parse_line(line)
-                    if not ev:
-                        continue
-                    ts = ev.get("timestamp")
-                    if since and ts and ts < since:
-                        continue
-                    ev["software"] = "AnyDesk"
-                    entries.append(ev)
-        except (IOError, PermissionError) as e:
-            logger.debug(f"HistoryReader cannot read {path}: {e}")
-
-        return entries[-limit:] if limit > 0 else entries
-
-    def read_all_recent(self, hours: int = 24, limit_per_source: int = 50) -> List[dict]:
-        """
-        Convenience: returns a unified list of session-record-style entries
-        from all sources from the last N hours, sorted newest-first.
-        """
-        cutoff = datetime.now() - timedelta(hours=hours)
-        records: List[dict] = []
-        records.extend(self.read_anydesk_connection_trace(limit_per_source, since=cutoff))
-        records.extend(self.read_teamviewer_connections(limit_per_source, since=cutoff))
-        records.sort(
-            key=lambda r: r.get("timestamp") or datetime.min,
-            reverse=True
-        )
-        return records
-
-
 # For standalone testing
 if __name__ == "__main__":
+    import logging
     logging.basicConfig(level=logging.DEBUG)
-    
+
     monitor = RemoteAccessMonitor()
     monitor.start_realtime_monitoring()
-    
+
     print("\n" + "=" * 60)
     print("REMOTE ACCESS MONITOR - STANDALONE TEST")
     print("=" * 60)
-    
+
     results = monitor.check_all()
-    
+
     print("\nRESULTS:")
     print("=" * 60)
-    
+
     for app_name, status in results.items():
         print(f"\n{app_name.upper()}:")
         print(f"  Running: {status.is_running}")
@@ -2432,8 +1011,9 @@ if __name__ == "__main__":
             print(f"  Remote IP: {status.remote_ip}")
         if status.remote_country:
             print(f"  Country: {status.remote_country}")
-    
+
     print("\nPress Ctrl+C to stop...")
+    import time
     try:
         while True:
             time.sleep(1)

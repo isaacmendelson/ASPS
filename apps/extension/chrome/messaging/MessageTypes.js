@@ -111,7 +111,23 @@ export const MSG = {
   REMOTE_ACCESS_CLOSE_SESSION: 'remote:close_session',  // Request desktop to close session
   REMOTE_ACCESS_CONTINUED: 'remote:continued_anyway',   // User chose to continue
   REMOTE_ACCESS_SESSION_END: 'remote_access_session_end', // Session ended
-  REMOTE_ACCESS_APP_CLOSED: 'remote_access_app_closed'  // App closed
+  REMOTE_ACCESS_APP_CLOSED: 'remote_access_app_closed', // App closed
+
+  // ==========================================
+  // Tracking / Domain Messages
+  // ==========================================
+  TRACKED_DOMAINS_SET: 'tracked_domains:set',        // Backend → extension: set tracked domains
+  TRACKED_DOMAINS_UPDATED: 'tracked_domains:updated', // Background → content: domains updated
+
+  // ==========================================
+  // Form Messages
+  // ==========================================
+  FORM_SUBMITTED: 'form:submitted',  // Content → background: form submitted
+
+  // ==========================================
+  // Close Session Result
+  // ==========================================
+  REMOTE_ACCESS_CLOSE_SESSION_RESULT: 'remote:close_session_result'
 };
 
 // Warning styles

@@ -108,12 +108,12 @@ class MonitorService:
                 break
 
         if target is None:
-            print("[MONITOR][EXT-CONNECT] no active incoming session — nothing to refresh")
+            logger.debug("[EXT-CONNECT] no active incoming session — nothing to refresh")
             return
 
         app_name, status = target
-        print(f"[MONITOR][EXT-CONNECT] extension attached + active incoming "
-              f"{app_name} session → re-emitting RemoteAccessAlert with tabs (in 2s)")
+        logger.info(f"[EXT-CONNECT] extension attached + active incoming "
+                    f"{app_name} session -> re-emitting RemoteAccessAlert with tabs (in 2s)")
 
         # Chrome MV3 service workers wake up lazily — the WebSocket open event
         # arrives before the extension finishes registering its onMessage
@@ -130,13 +130,13 @@ class MonitorService:
                     direction=status.direction or "unknown",
                 )
                 if browser_tabs:
-                    print(f"[MONITOR][EXT-CONNECT] attempt {attempt}/{attempts}: "
-                          f"got {len(browser_tabs)} tabs — emitting alert")
+                    logger.info(f"[EXT-CONNECT] attempt {attempt}/{attempts}: "
+                                f"got {len(browser_tabs)} tabs — emitting alert")
                     break
                 else:
-                    print(f"[MONITOR][EXT-CONNECT] attempt {attempt}/{attempts}: "
-                          f"got {len(browser_tabs or [])} tabs — "
-                          f"{'retrying after 2s' if attempt < attempts else 'giving up, sending without tabs'}")
+                    logger.debug(f"[EXT-CONNECT] attempt {attempt}/{attempts}: "
+                                 f"got {len(browser_tabs or [])} tabs — "
+                                 f"{'retrying after 2s' if attempt < attempts else 'giving up, sending without tabs'}")
                     if attempt < attempts:
                         await asyncio.sleep(2.0)
             except Exception as e:
@@ -158,7 +158,7 @@ class MonitorService:
     async def send_initial_status(self):
         """Send initial remote access status on startup using startup_scan()"""
         if not self.auth_manager or not self.auth_manager.is_valid():
-            print("[MONITOR] Not authenticated, skipping initial report")
+            logger.debug("Not authenticated, skipping initial report")
             return
 
         try:
@@ -167,8 +167,8 @@ class MonitorService:
 
             for change in state_changes:
                 status = change.status
-                print(f"[MONITOR] Startup scan: {change.app_name} - {change.change_type} "
-                      f"(late_detection={change.late_detection})")
+                logger.info(f"Startup scan: {change.app_name} - {change.change_type} "
+                            f"(late_detection={change.late_detection})")
 
                 if change.change_type == 'opened':
                     await self._handle_app_open(change.app_name, status, late_detection=True)
@@ -177,7 +177,7 @@ class MonitorService:
 
         except Exception as e:
             logger.error(f"Error sending initial status: {e}")
-            print(f"[MONITOR] Error: {e}")
+            logger.error(f"send_initial_status: {e}")
 
     async def _monitor_remote_access(self):
         """Monitor for remote access applications using state change tracking.
@@ -192,7 +192,7 @@ class MonitorService:
         and ImmediateDangerEndedNotification), polls every 2s regardless of
         adaptive recommendation.
         """
-        print("[MONITOR] Remote access monitor started (adaptive interval)")
+        logger.info("Remote access monitor started (adaptive interval)")
 
         results: Dict[str, Any] = {}
 
@@ -220,7 +220,7 @@ class MonitorService:
             except Exception as e:
                 logger.error(f"Remote access monitor error: {e}")
                 if DEBUG_MODE:
-                    print(f"[MONITOR] Error: {e}")
+                    logger.error(f"_monitor_remote_access: {e}")
 
             # Adaptive sleep: shorter when something is happening, longer when idle.
             # Falls back to MONITOR_INTERVAL if the monitor doesn't expose the helper.
@@ -251,7 +251,7 @@ class MonitorService:
             logger.warning("start_immediate_danger_loop: no running loop")
             return
         self._immediate_danger_task = loop.create_task(self._immediate_danger_loop())
-        print(f"[MONITOR] ImmediateDanger loop STARTED — interval {IMMEDIATE_DANGER_ALERT_INTERVAL_SECONDS}s")
+        logger.info(f"ImmediateDanger loop STARTED — interval {IMMEDIATE_DANGER_ALERT_INTERVAL_SECONDS}s")
 
     def stop_immediate_danger_loop(self) -> None:
         """Cancel the periodic task. The loop body also self-terminates
@@ -261,7 +261,7 @@ class MonitorService:
         self._last_danger_target = None   # clear stale target so next session starts clean
         if task and not task.done():
             task.cancel()
-            print("[MONITOR] ImmediateDanger loop STOPPED")
+            logger.info("ImmediateDanger loop STOPPED")
 
     async def _immediate_danger_loop(self):
         """Every IMMEDIATE_DANGER_ALERT_INTERVAL_SECONDS while in danger mode,
@@ -274,7 +274,7 @@ class MonitorService:
                 except Exception as e:
                     logger.error(f"ImmediateDanger periodic alert error: {e}")
                     if DEBUG_MODE:
-                        print(f"[MONITOR] ImmediateDanger error: {e}")
+                        logger.error(f"ImmediateDanger loop iteration: {e}")
                 await asyncio.sleep(IMMEDIATE_DANGER_ALERT_INTERVAL_SECONDS)
         except asyncio.CancelledError:
             pass
@@ -301,7 +301,7 @@ class MonitorService:
                     target = (app_name, status)
                     break
         if target is None:
-            print("[MONITOR] ImmediateDanger tick: no active RA session")
+            logger.debug("ImmediateDanger tick: no active RA session")
             # If we previously saw an active session, send a CLOSED alert so the
             # backend fires ImmediateDangerEnded (the main monitoring loop's state
             # machine is the primary path, but this is belt-and-suspenders).
@@ -309,7 +309,7 @@ class MonitorService:
             if last is not None:
                 last_app, last_status = last
                 self._last_danger_target = None
-                print(f"[MONITOR] ImmediateDanger tick → sending CLOSED alert for last-known {last_app}")
+                logger.info(f"ImmediateDanger tick -> sending CLOSED alert for last-known {last_app}")
                 try:
                     await self._send_remote_access_alert_with_retry(
                         device_uid=self.device_id,
@@ -360,8 +360,8 @@ class MonitorService:
             f"{(t.get('url') or '')[:60]}(loggedIn={t.get('loggedIn')})"
             for t in browser_tabs
         ) or "<no tabs>"
-        print(f"[MONITOR] ImmediateDanger tick → {app_name} dir={status.direction} "
-              f"tabs={len(browser_tabs)} [{tab_summary}]")
+        logger.info(f"ImmediateDanger tick -> {app_name} dir={status.direction} "
+                    f"tabs={len(browser_tabs)} [{tab_summary}]")
 
         await self._send_remote_access_alert_with_retry(
             device_uid=self.device_id,
@@ -388,8 +388,8 @@ class MonitorService:
             software=getattr(status, 'software', '') or "",
         )
         if DEBUG_MODE:
-            print(f"[MONITOR] ImmediateDanger periodic alert sent for {app_name} "
-                  f"({len(browser_tabs)} tabs)")
+            logger.debug(f"ImmediateDanger periodic alert sent for {app_name} "
+                         f"({len(browser_tabs)} tabs)")
 
     @staticmethod
     def _apply_browser_tabs_filter(tabs: list) -> list:
@@ -432,45 +432,45 @@ class MonitorService:
         client_count = (
             len(self._extension_server.clients) if ext_attached and self._extension_server.clients is not None else 0
         )
-        print(f"[MONITOR][TABS] entry: mode={mode}, direction={norm_dir}, "
-              f"has_active_session={has_active_session}, extension_attached={ext_attached}, "
-              f"clients={client_count}")
+        logger.debug(f"[TABS] entry: mode={mode}, direction={norm_dir}, "
+                     f"has_active_session={has_active_session}, extension_attached={ext_attached}, "
+                     f"clients={client_count}")
 
         if mode == 'never':
-            print("[MONITOR][TABS] policy=never → returning None")
+            logger.debug("[TABS] policy=never -> returning None")
             return None
         if not has_active_session:
-            print("[MONITOR][TABS] session not active → returning None")
+            logger.debug("[TABS] session not active -> returning None")
             return None
         if mode == 'incoming_only' and norm_dir != 'incoming':
-            print(f"[MONITOR][TABS] policy=incoming_only and direction={norm_dir!r} → returning None")
+            logger.debug(f"[TABS] policy=incoming_only and direction={norm_dir!r} -> returning None")
             return None
         # 'always' and ('incoming_only' AND direction=='incoming') fall through
 
         # No extension connected — wait briefly for extension to connect before giving up
         if not ext_attached:
-            print("[MONITOR][TABS] _extension_server is None — returning []")
+            logger.debug("[TABS] _extension_server is None — returning []")
             return []
         if not self._extension_server.clients:
-            print("[MONITOR][TABS] no extension clients yet — waiting up to 2s …")
+            logger.debug("[TABS] no extension clients yet — waiting up to 2s")
             for _ in range(8):
                 await asyncio.sleep(0.25)
                 if self._extension_server.clients:
                     break
             if not self._extension_server.clients:
-                print("[MONITOR][TABS] No extension connected after wait — BrowserTabs will be empty")
+                logger.debug("[TABS] No extension connected after wait — BrowserTabs will be empty")
                 return []
-            print(f"[MONITOR][TABS] extension connected during wait — clients={len(self._extension_server.clients)}")
+            logger.debug(f"[TABS] extension connected during wait — clients={len(self._extension_server.clients)}")
 
         try:
             tabs = await self._extension_server.request_browser_tabs(timeout=5.0)
             filtered = self._apply_browser_tabs_filter(tabs)
-            print(f"[MONITOR][TABS] Collected {len(tabs)} browser tab(s), "
-                  f"{len(filtered)} after URL filter, for RemoteAccessAlert")
+            logger.debug(f"[TABS] Collected {len(tabs)} browser tab(s), "
+                         f"{len(filtered)} after URL filter, for RemoteAccessAlert")
             if tabs and not filtered:
                 # Helpful: show which URLs the filter dropped
                 urls = [(t.get('url') or '')[:80] for t in tabs]
-                print(f"[MONITOR][TABS] filter dropped all tabs. URLs were: {urls}")
+                logger.debug(f"[TABS] filter dropped all tabs. URLs were: {urls}")
             return filtered
         except Exception as e:
             logger.error(f"Error querying browser tabs: {e}")
@@ -489,8 +489,8 @@ class MonitorService:
         """
         detection_note = " (detected on startup)" if late_detection else ""
         has_session = bool(getattr(status, 'has_active_session', False))
-        print(f"[MONITOR] App opened: {app_name}{detection_note} "
-              f"(has_active_session={has_session})")
+        logger.info(f"App opened: {app_name}{detection_note} "
+                    f"(has_active_session={has_session})")
         logger.info(f"Remote app opened: {app_name}{detection_note} "
                     f"has_active_session={has_session}")
 
@@ -506,7 +506,7 @@ class MonitorService:
 
         if self.auth_manager.is_valid():
             if DEBUG_MODE:
-                print(f"[MONITOR] Sending app open alert for {app_name}...")
+                logger.debug(f"Sending app open alert for {app_name}...")
 
             session_status_value = (
                 SessionStatus.OPEN if has_session else SessionStatus.UNKNOWN
@@ -543,7 +543,7 @@ class MonitorService:
 
     async def _handle_app_close(self, app_name: str, status):
         """Handle remote access app closing"""
-        print(f"[MONITOR] App closed: {app_name}")
+        logger.info(f"App closed: {app_name}")
         logger.info(f"Remote app closed: {app_name}")
 
         self.event_logger.log_event('RemoteAccessClosed', {
@@ -556,7 +556,7 @@ class MonitorService:
         # Send alert if authenticated (app closed → ConnectionStatus.CLOSED, SessionStatus.CLOSED)
         if self.auth_manager.is_valid():
             if DEBUG_MODE:
-                print(f"[MONITOR] Sending app close alert for {app_name}...")
+                logger.debug(f"Sending app close alert for {app_name}...")
 
             browser_tabs = await self._get_browser_tabs_for_alert(
                 has_active_session=False,
@@ -601,7 +601,7 @@ class MonitorService:
                 'toolName': app_name
             })
             if DEBUG_MODE:
-                print(f"[MONITOR] Broadcast app close to extension")
+                logger.debug("Broadcast app close to extension")
 
     async def _broadcast_is_device_remote_controlled_if_changed(self, controlled: bool):
         """Push the IsDeviceRemoteControlled flag to the extension when it
@@ -618,7 +618,7 @@ class MonitorService:
                 'type': 'set_remote_controlled',
                 'isDeviceRemoteControlled': controlled,
             })
-            print(f"[MONITOR] IsDeviceRemoteControlled -> {controlled} (broadcast to extension)")
+            logger.info(f"IsDeviceRemoteControlled -> {controlled} (broadcast to extension)")
         except Exception as e:
             logger.warning(f"Failed to broadcast IsDeviceRemoteControlled: {e}")
 
@@ -650,7 +650,7 @@ class MonitorService:
     ):
         """Send remote access alert with automatic retry on auth errors"""
         token = self.auth_manager.get_token()
-        print(f"[MONITOR-RETRY] Sending alert. Token: {'[REDACTED]' if token else 'None'}, retry={retry}")
+        logger.debug(f"Sending alert. Token: {'[REDACTED]' if token else 'None'}, retry={retry}")
 
         response = await asyncio.to_thread(
             self.zmq_client.send_remote_access_alert,
@@ -692,17 +692,17 @@ class MonitorService:
             logger.warning(f"IsDeviceRemoteControlled compute/broadcast failed: {e}")
 
         if response:
-            print(f"[MONITOR-RETRY] Server response status: {response.get('status', 'N/A')}")
+            logger.debug(f"Server response status: {response.get('status', 'N/A')}")
 
             # Handle auth errors with retry
             if response.get('status') in ('InvalidToken', 'TokenExpired'):
-                print(f"[MONITOR-RETRY] Token issue: {response.get('status')}, re-authenticating...")
+                logger.info(f"Token issue: {response.get('status')}, re-authenticating...")
                 auth_result = self.auth_manager.handle_auth_response(response)
-                print(f"[MONITOR-RETRY] Re-auth result: {auth_result}")
+                logger.debug(f"Re-auth result: {auth_result}")
                 if retry and auth_result:
                     new_token = self.auth_manager.get_token()
-                    print(f"[MONITOR-RETRY] New token after re-auth: {'[REDACTED]' if new_token else 'None'}")
-                    print("[MONITOR-RETRY] Retrying alert with new token...")
+                    logger.debug(f"New token after re-auth: {'[REDACTED]' if new_token else 'None'}")
+                    logger.info("Retrying alert with new token...")
                     return await self._send_remote_access_alert_with_retry(
                         device_uid=device_uid,
                         remote_app=remote_app,
@@ -729,14 +729,14 @@ class MonitorService:
                         retry=False
                     )
                 else:
-                    print(f"[MONITOR-RETRY] Not retrying: retry={retry}, auth_result={auth_result}")
+                    logger.debug(f"Not retrying: retry={retry}, auth_result={auth_result}")
 
         return response
 
     async def _handle_new_session(self, app_name: str, status, late_detection: bool = False):
         """Handle newly detected remote access session"""
         detection_note = " (detected on startup)" if late_detection else ""
-        print(f"\n[MONITOR] ALERT! Active session: {app_name}{detection_note}")
+        logger.warning(f"ALERT! Active session: {app_name}{detection_note}")
         logger.warning(f"Active session detected: {app_name}{detection_note}")
 
         self.event_logger.log_event('RemoteAccessDetected', {
@@ -767,13 +767,13 @@ class MonitorService:
                 refreshed = self.remote_monitor.check_all().get(app_name)
                 if refreshed and (refreshed.direction or '').lower() == 'incoming':
                     alert_direction = 'incoming'
-                    print(f"[MONITOR] AnyDesk: direction corrected outgoing→incoming (relay-setup race)")
+                    logger.info("AnyDesk: direction corrected outgoing->incoming (relay-setup race)")
                     break
 
         # Send alert if authenticated
         if self.auth_manager.is_valid():
             if DEBUG_MODE:
-                print("[MONITOR] Sending RemoteAccessAlert...")
+                logger.debug("Sending RemoteAccessAlert...")
 
             browser_tabs = await self._get_browser_tabs_for_alert(
                 has_active_session=True,
@@ -837,11 +837,11 @@ class MonitorService:
                 'session_active': True
             })
             if DEBUG_MODE:
-                print(f"[MONITOR] Broadcast remote_access_alert to extension")
+                logger.debug("Broadcast remote_access_alert to extension")
 
     async def _handle_session_end(self, app_name: str, status):
         """Handle remote access session ending (app still running)"""
-        print(f"[MONITOR] Session ended: {app_name}")
+        logger.info(f"Session ended: {app_name}")
         logger.info(f"Remote session ended: {app_name}")
 
         self.event_logger.log_event('RemoteSessionEnded', {
@@ -854,7 +854,7 @@ class MonitorService:
         # Send alert if authenticated (session ended → SessionStatus.CLOSED)
         if self.auth_manager.is_valid():
             if DEBUG_MODE:
-                print(f"[MONITOR] Sending session end alert for {app_name}...")
+                logger.debug(f"Sending session end alert for {app_name}...")
 
             # Send [] (not None) so the backend's UDUser.BrowserTabs cache is
             # cleared for this device. Without this, a banking tab cached from this
@@ -900,7 +900,7 @@ class MonitorService:
                 'toolName': app_name
             })
             if DEBUG_MODE:
-                print(f"[MONITOR] Broadcast session end to extension")
+                logger.debug("Broadcast session end to extension")
 
     async def _send_url_alert_with_retry(self, url: str, retry: bool = True):
         """Send URL alert with automatic retry on auth errors"""
@@ -918,9 +918,9 @@ class MonitorService:
         if response:
             # Handle auth errors with retry
             if response.get('status') in ('InvalidToken', 'TokenExpired'):
-                print(f"[MONITOR] Token issue: {response.get('status')}, re-authenticating...")
+                logger.info(f"Token issue: {response.get('status')}, re-authenticating...")
                 if retry and self.auth_manager.handle_auth_response(response):
-                    print("[MONITOR] Re-authenticated, retrying URL alert...")
+                    logger.info("Re-authenticated, retrying URL alert...")
                     return await self._send_url_alert_with_retry(url=url, retry=False)
 
         return response
@@ -968,7 +968,7 @@ class MonitorService:
 
     async def _monitor_browser_history(self):
         """Monitor browser history for new URLs"""
-        print("[MONITOR] Browser history monitor started")
+        logger.info("Browser history monitor started")
 
         while self._running:
             try:

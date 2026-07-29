@@ -7,28 +7,32 @@ Command-line interface for URL scam analysis
 import sys
 import argparse
 import json
+import logging
 import textwrap
 from pathlib import Path
-
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent))
 
 from core.analyzer import ScamAnalyzer
 from utils.cache_manager import CacheManager
 
+logger = logging.getLogger(__name__)
+
 
 def load_config():
-    """Load configuration from settings.json"""
+    """Load configuration from settings.json."""
     config_path = Path(__file__).parent / 'config' / 'settings.json'
     try:
         with open(config_path, 'r') as f:
             return json.load(f)
-    except:
+    except FileNotFoundError:
+        logger.debug("settings.json not found at %s; using defaults", config_path)
+        return {}
+    except (json.JSONDecodeError, OSError) as exc:
+        logger.warning("Could not load settings.json: %s; using defaults", exc)
         return {}
 
 
 def print_banner():
-    """Print tool banner"""
+    """Print tool banner."""
     print("=" * 60)
     print("SCAM ANALYZER")
     print("URL Scam Detection Tool")
@@ -37,12 +41,11 @@ def print_banner():
 
 
 def print_result(result: dict, verbose: bool = False):
-    """
-    Print analysis result in formatted way
-    
+    """Print analysis result in formatted way.
+
     Args:
-        result: Analysis result dictionary
-        verbose: Show detailed information
+        result: Analysis result dictionary.
+        verbose: Show detailed information.
     """
     print("=" * 60)
     print("SCAM ANALYSIS REPORT")
@@ -50,13 +53,12 @@ def print_result(result: dict, verbose: bool = False):
     print(f"URL: {result['url']}")
     print(f"Analyzed: {result['analyzed_at']}")
     print(f"Analysis Time: {result.get('analysis_time_ms', 0) / 1000:.1f} seconds")
-    
-    # Show cache status if from cache
+
     if result.get('from_cache'):
         print("Source: CACHE (24h)")
-    
+
     print()
-    
+
     # Error (invalid URL, browser internal URL, etc.)
     if result.get('error'):
         print(f"[ERROR]: {result['error']}")
@@ -68,20 +70,19 @@ def print_result(result: dict, verbose: bool = False):
         for warning in result['warnings']:
             print(f"   - {warning}")
         print()
-    
+
     # Risk Assessment
     risk = result.get('risk_assessment', {})
     print("RISK ASSESSMENT:")
-    
+
     risk_level = risk.get('risk_level', 'UNKNOWN')
     risk_score = risk.get('risk_score', 0)
-    
-    # Risk level indicators
+
     risk_indicator = {
         'HIGH': '[!!!]',
         'MEDIUM': '[!!]',
         'LOW': '[OK]',
-        'UNKNOWN': '[?]'
+        'UNKNOWN': '[?]',
     }
 
     print(f"  Risk Score: {risk_score}/100")
@@ -90,7 +91,7 @@ def print_result(result: dict, verbose: bool = False):
     print(f"  Confidence: {risk.get('confidence', 0)*100:.0f}%")
     print()
 
-    # Website Category (what type of site is this)
+    # Website Category
     website_cat = result.get('website_category', {})
     if website_cat.get('category') and website_cat.get('category') != 'unknown':
         print("WEBSITE CATEGORY:")
@@ -122,28 +123,27 @@ def print_result(result: dict, verbose: bool = False):
         print(f"  Confidence: {purpose.get('confidence', 0)*100:.0f}%")
         print(f"  Description: {purpose.get('description', '')}")
         print()
-    
+
     # WHOIS
     whois = result.get('whois', {})
     if whois.get('success'):
         print("WHOIS INFORMATION:")
         age_days = whois.get('domain_age_days', 0)
-        
-        # Highlight new domains
+
         if age_days < 30:
             age_warning = " (VERY NEW! ***)"
         elif age_days < 180:
             age_warning = " (NEW *)"
         else:
             age_warning = ""
-        
+
         print(f"  Domain Age: {age_days} days{age_warning}")
         print(f"  Created: {whois.get('created_date', 'Unknown')}")
         print(f"  Registrar: {whois.get('registrar', 'Unknown')}")
         print(f"  Country: {whois.get('country', 'Unknown')}")
         print(f"  Privacy Protected: {'Yes' if whois.get('privacy_protected') else 'No'}")
         print()
-    
+
     # Red Flags
     red_flags = result.get('red_flags', [])
     if red_flags:
@@ -151,12 +151,12 @@ def print_result(result: dict, verbose: bool = False):
         for flag in red_flags:
             print(f"  [X]{flag}")
         print()
-    
+
     # Detailed patterns (verbose mode)
     if verbose:
         content = result.get('content_analysis', {})
         patterns = content.get('detected_patterns', [])
-        
+
         if patterns:
             print("DETECTED PATTERNS (DETAILED):")
             for pattern in patterns:
@@ -165,8 +165,7 @@ def print_result(result: dict, verbose: bool = False):
                 print(f"    Weight: {pattern['weight']}")
                 print(f"    Description: {pattern['description']}")
                 print()
-        
-        # Content stats
+
         if content.get('success'):
             print("CONTENT STATISTICS:")
             print(f"  Title: {content.get('title', 'N/A')}")
@@ -174,8 +173,7 @@ def print_result(result: dict, verbose: bool = False):
             print(f"  CTA Buttons: {content.get('cta_count', 0)}")
             print(f"  Forms: {len(content.get('form_types', []))}")
             print()
-        
-        # ML analysis
+
         ml = result.get('ml_analysis', {})
         if ml.get('enabled'):
             print("ML ANALYSIS:")
@@ -184,22 +182,21 @@ def print_result(result: dict, verbose: bool = False):
                 print(f"  ML Confidence: {ml.get('confidence', 0)*100:.0f}%")
             print(f"  Note: {ml.get('note', 'N/A')}")
             print()
-    
+
     # Recommendation
     print("RECOMMENDATION:")
     recommendation = result.get('recommendation', 'Unknown')
     print(f"  {recommendation}")
     print()
-    
+
     print("=" * 60)
 
 
 def print_ml_explanation(explanation: dict):
-    """
-    Print ML explanation showing which features contributed to the prediction
+    """Print ML explanation showing which features contributed to the prediction.
 
     Args:
-        explanation: Explanation dictionary from MLClassifier.explain()
+        explanation: Explanation dictionary from MLClassifier.explain().
     """
     if not explanation.get('success'):
         print(f"\n[ERROR] ML Explanation failed: {explanation.get('error', 'Unknown error')}")
@@ -210,14 +207,12 @@ def print_ml_explanation(explanation: dict):
     print("ML CLASSIFICATION EXPLANATION")
     print("=" * 60)
 
-    # Show prediction summary
     is_scam = explanation.get('is_scam', False)
     confidence = explanation.get('confidence', 0) * 100
     print(f"Prediction: {'SCAM' if is_scam else 'SAFE'} ({confidence:.0f}% scam confidence)")
     print(f"Features matched: {explanation.get('total_features_matched', 0)}")
     print()
 
-    # Show scam indicators (features pushing toward scam classification)
     scam_indicators = explanation.get('scam_indicators', [])
     if scam_indicators:
         print("[!] SCAM INDICATORS (pushing toward scam):")
@@ -225,7 +220,6 @@ def print_ml_explanation(explanation: dict):
         for i, indicator in enumerate(scam_indicators, 1):
             feature = indicator['feature']
             contribution = indicator['contribution']
-            # Show strength as bars
             bars = "#" * min(int(contribution * 10), 10)
             print(f"  {i:2}. {feature:<25} {bars} ({contribution:.3f})")
         print()
@@ -233,14 +227,13 @@ def print_ml_explanation(explanation: dict):
         print("[!] SCAM INDICATORS: None detected")
         print()
 
-    # Show legitimate signals (features pushing toward safe classification)
     legit_signals = explanation.get('legitimate_signals', [])
     if legit_signals:
         print("[+] LEGITIMATE SIGNALS (pushing toward safe):")
         print("-" * 50)
         for i, signal in enumerate(legit_signals, 1):
             feature = signal['feature']
-            contribution = abs(signal['contribution'])  # Make positive for display
+            contribution = abs(signal['contribution'])
             bars = "#" * min(int(contribution * 10), 10)
             print(f"  {i:2}. {feature:<25} {bars} ({contribution:.3f})")
         print()
@@ -255,17 +248,15 @@ def print_ml_explanation(explanation: dict):
 
 
 def _truncate_to_sentences(text: str, max_sentences: int = 3) -> tuple:
-    """
-    Truncate text to approximately max_sentences sentences.
+    """Truncate text to approximately max_sentences sentences.
 
     Args:
-        text: Text to truncate
-        max_sentences: Maximum number of sentences
+        text: Text to truncate.
+        max_sentences: Maximum number of sentences.
 
     Returns:
-        Tuple of (truncated_text, was_truncated)
+        Tuple of (truncated_text, was_truncated).
     """
-    # Simple sentence detection (handles common cases)
     sentences = []
     current = ""
     for char in text:
@@ -284,57 +275,45 @@ def _truncate_to_sentences(text: str, max_sentences: int = 3) -> tuple:
 
 
 def print_explanation(explanation: dict, width: int = 80):
-    """
-    Print LLM explanation in formatted box
+    """Print LLM explanation in a formatted box.
 
     Args:
-        explanation: Explanation dict with text, model, generated, error fields
-        width: Terminal width for word wrapping (default 80)
+        explanation: Explanation dict with text, model, generated, error fields.
+        width: Terminal width for word wrapping (default 80).
     """
-    # Handle skipped case (--no-explain flag)
     if not explanation.get('generated') and explanation.get('error') == 'Skipped by user':
         print("(explanation skipped)")
         print()
         return
 
-    # Handle unavailable case (Ollama not running)
     if not explanation.get('generated') and explanation.get('error'):
         print("(explanation unavailable - Ollama not running)")
         print()
         return
 
-    # Handle no explanation text (shouldn't happen but defensive)
     text = explanation.get('text')
     if not text:
         return
 
-    # Truncate to ~3 sentences if long
     text, was_truncated = _truncate_to_sentences(text, max_sentences=3)
     if was_truncated:
         text += " (see JSON for full explanation)"
 
-    # Print box with horizontal borders
-    # Use Unicode horizontal line if supported, fallback to ASCII hyphen
     try:
-        border = "\u2500" * width  # Unicode horizontal line: ────
-        # Test if it can be encoded for the current stdout
+        border = "─" * width
         border.encode(sys.stdout.encoding or 'utf-8')
     except (UnicodeEncodeError, LookupError):
-        border = "-" * width  # ASCII fallback
+        border = "-" * width
 
     print("Analysis Summary")
     print(border)
-
-    # Word wrap the text
-    wrapped = textwrap.fill(text, width=width)
-    print(wrapped)
-
+    print(textwrap.fill(text, width=width))
     print(border)
     print()
 
 
 def main():
-    """Main CLI entry point"""
+    """Main CLI entry point."""
     parser = argparse.ArgumentParser(
         description='Analyze URLs for scam indicators',
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -346,73 +325,35 @@ Examples:
   python analyze.py https://example.com --explain --explain-top 5
   python analyze.py --clear-cache
   python analyze.py https://example.com --json
-        """
-    )
-    
-    parser.add_argument(
-        'url',
-        nargs='?',
-        help='URL to analyze'
-    )
-    
-    parser.add_argument(
-        '-v', '--verbose',
-        action='store_true',
-        help='Show detailed analysis'
-    )
-    
-    parser.add_argument(
-        '--json',
-        action='store_true',
-        help='Output result as JSON'
-    )
-    
-    parser.add_argument(
-        '--no-cache',
-        action='store_true',
-        help='Disable cache lookup'
-    )
-    
-    parser.add_argument(
-        '--no-ml',
-        action='store_true',
-        help='Disable ML classifier'
+        """,
     )
 
-    parser.add_argument(
-        '--whois-only',
-        action='store_true',
-        help='Return Whois results only'
-    )
-
-    parser.add_argument(
-        '--clear-cache',
-        action='store_true',
-        help='Clear all cached results'
-    )
-
+    parser.add_argument('url', nargs='?', help='URL to analyze')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Show detailed analysis')
+    parser.add_argument('--json', action='store_true', help='Output result as JSON')
+    parser.add_argument('--no-cache', action='store_true', help='Disable cache lookup')
+    parser.add_argument('--no-ml', action='store_true', help='Disable ML classifier')
+    parser.add_argument('--clear-cache', action='store_true', help='Clear all cached results')
     parser.add_argument(
         '--explain',
         action='store_true',
-        help='Show which words/phrases triggered the ML classification'
+        help='Show which words/phrases triggered the ML classification',
     )
-
     parser.add_argument(
         '--explain-top',
         type=int,
         default=10,
-        help='Number of top features to show in explanation (default: 10)'
+        help='Number of top features to show in explanation (default: 10)',
     )
-
     parser.add_argument(
         '--no-explain',
         action='store_true',
-        help='Skip LLM explanation generation (faster execution)'
+        help='Skip LLM explanation generation (faster execution)',
     )
     parser.add_argument(
         '--contract-version',
         choices=('1',),
-        help='Read one messaging envelope from stdin and write one envelope to stdout'
+        help='Read one messaging envelope from stdin and write one envelope to stdout',
     )
 
     args = parser.parse_args()
@@ -420,36 +361,30 @@ Examples:
     if args.contract_version == '1':
         from v1_stdio import main as v1_main
         return v1_main()
-    
+
     # Clear cache command
     if args.clear_cache:
         cache = CacheManager()
         cache.clear()
         print("[OK] Cache cleared successfully")
         return 0
-    
+
     # URL is required for analysis
     if not args.url:
         parser.print_help()
         return 1
-    
-    # Print banner
+
     if not args.json:
         print_banner()
-    
+
     try:
-        # Load config and determine cache setting
         config = load_config()
         cache_enabled = config.get('cache', {}).get('enabled', True)
         use_cache = cache_enabled and not args.no_cache
 
-        # Initialize analyzer
         analyzer = ScamAnalyzer(use_cache=use_cache, use_ml=not args.no_ml, no_explain=args.no_explain)
-        
-        # Analyze URL
         result = analyzer.analyze_url(args.url)
-        
-        # Output
+
         if args.json:
             print(json.dumps(result, indent=2))
         else:
@@ -472,17 +407,17 @@ Examples:
         risk_level = result.get('risk_assessment', {}).get('risk_level', 'UNKNOWN')
         if risk_level == 'HIGH':
             return 2
-        elif risk_level == 'MEDIUM':
+        if risk_level == 'MEDIUM':
             return 1
-        else:
-            return 0
-    
+        return 0
+
     except KeyboardInterrupt:
         print("\n\n[ERROR] Analysis interrupted by user")
         return 130
-    
-    except Exception as e:
-        print(f"\n[ERROR] ERROR: {str(e)}", file=sys.stderr)
+
+    except Exception as exc:
+        logger.error("Unhandled CLI error: %s", exc, exc_info=True)
+        print(f"\n[ERROR] ERROR: {exc}", file=sys.stderr)
         return 1
 
 
