@@ -173,7 +173,7 @@ Do not load every historical handoff automatically. Use targeted retrieval to av
 
 ## 10. New-Agent Startup Checklist
 
-1. Read repository-root `AGENTS.md`.
+1. Read repository-root `CLAUDE.md` (Claude Code) or `AGENTS.md` (Codex).
 2. Read this file completely.
 3. Read the matching task handoff under `docs/task-memory/`.
 4. Query the Knowledge Engine for task-specific prior knowledge.

@@ -1,7 +1,8 @@
 # CEO Operating Principles
 
-`AGENTS.md` is the primary process authority. This memory summarizes durable
-CEO behavior and must not weaken newer rules there.
+`AGENTS.md` (Codex) / `CLAUDE.md` (Claude Code) is the primary process
+authority. This memory summarizes durable CEO behavior and must not weaken
+newer rules there.
 
 ## Quality gates
 
