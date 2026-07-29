@@ -77,8 +77,69 @@ c:\Jobs\ASPS\GitHub\Software\
 ### Mode B — phased execution
 For any multi-phase task: execute one phase → stop → wait for "מאשר" / "תמשיך" before next.
 
+### TDD — mandatory for implementation agents
+All agents that change production code must use Test-Driven Development:
+
+1. **Translate acceptance first:** before production-code changes, turn the Jira
+   acceptance criteria, security invariants, and failure modes into an explicit
+   test checklist. For cross-component work, include contract and end-to-end
+   scenarios, not only unit tests.
+2. **Red:** add or modify the smallest relevant automated test and run it. Record
+   evidence that it fails for the intended missing behavior or regression.
+3. **Green:** make the smallest production-code change that makes that test pass.
+4. **Refactor:** improve structure without changing behavior, keeping the relevant
+   test suite green.
+5. Repeat Red → Green → Refactor in small slices. Do not implement an entire Jira
+   issue and add tests afterward.
+6. Security work must begin with negative tests for bypass, unauthenticated input,
+   tampering, replay, malformed data, unauthorized actions, and fail-open behavior
+   whenever they apply.
+7. Bug fixes must begin with a regression test that reproduces the bug. Legacy
+   behavior that is not yet testable must first receive a characterization test or
+   a documented test seam.
+8. Never weaken, delete, skip, or rewrite a valid failing test merely to obtain
+   Green unless the requirement itself changed and the CEO/root explicitly
+   confirms that change.
+9. Generated code, documentation-only changes, and purely declarative configuration
+   may use validation or contract checks instead of unit-level Red/Green. The agent
+   must document why conventional TDD does not apply and use the strongest
+   automated verification available.
+10. The implementation handoff must include the acceptance-test checklist, Red
+    evidence, Green evidence, refactoring performed, and exact final test commands
+    with passed/failed/skipped counts. Missing Red evidence requires an explicit
+    justification and CEO/root approval before QA.
+
+### Persistent active handoff
+- Keep one cross-session handoff file per task under `docs/task-memory/`.
+- Name it `docs/task-memory/<TASK_NAME>_HANDOFF.md`, using a stable filesystem-safe form of the task name.
+- Never use one shared `ACTIVE_HANDOFF.md` for multiple tasks; parallel sessions must not overwrite each other's memory.
+- At the start of a new session, identify the current task and read its matching handoff before continuing work.
+- If no unambiguous matching handoff exists, list the relevant candidates and ask the user which task to resume instead of guessing or overwriting a file.
+- Update the task handoff at the end of every significant phase and before every planned session ending.
+- The handoff must record the task name and identifier when available, completed work, changed files, verification results, decisions, uncompleted work, and the exact continuation point for the next agent.
+- An unexpected application or session failure can occur before the final update, so phase-end updates are mandatory.
+
 ### QA gate before merge
 Non-trivial code changes require PASS from QA agent before commit. See `.claude/hats/ceo/operating_principles.md`.
+
+For Jira-backed implementation work, the following completion workflow is mandatory:
+
+1. The implementing agent reports completion to the CEO with the Jira issue ID and exact title, changed files, implementation summary, and verification results.
+2. Before requesting QA, the implementing agent must run all unit tests relevant to the changed code. The handoff to QA must include the exact test commands, passed/failed/skipped counts, and the final result.
+3. The implementing agent must not hand work to QA while a relevant unit test is failing. A failure may be treated as pre-existing only when the agent documents it, reproduces it without the task changes, and demonstrates that the task did not introduce or worsen it.
+4. If the component has no relevant unit tests or the test environment cannot run, the implementing agent must document the gap and run the strongest available alternative verification.
+5. After the pre-QA test gate passes, the implementing agent must request an independent QA-agent review against the Jira acceptance criteria and the original requirement.
+6. If QA returns `FAIL`, the issue returns to implementation and must be reviewed again after the fixes. The implementing agent must rerun the relevant unit tests before every QA resubmission.
+7. The CEO independently verifies the reported files, test evidence, and the final QA result.
+8. A Jira issue must not be treated as complete or moved to `Done`, and its code must not be committed, until the CEO has confirmed a documented `QA PASS`.
+9. When a commit is requested or otherwise authorized, the CEO owns the commit and its message. The commit message must contain the Jira issue ID, the exact Jira issue title, and a concise description of the implementation.
+10. Preferred commit-message format:
+    ```
+    <JIRA-ID> <Exact Jira issue title>
+
+    <Concise description of the implemented changes and relevant verification>
+    ```
+11. The CEO records the commit hash and QA PASS evidence in the Jira issue before moving it to `Done`.
 
 ### Trust-but-verify
 When a sub-agent reports work done — open the actual files and confirm before relaying to user.
@@ -128,17 +189,14 @@ When build output shows `MSB3027` / `MSB3021` (file lock) — compilation succee
 
 ## Hat system — quick map
 
-| Hat | When to wear | Where its memory lives |
+| Layer | Role | Memory |
 |---|---|---|
-| **CEO** (me, default) | Always at session start; coordination, simple tasks, user dialog | `.claude/hats/ceo/` |
-| **CTO** (sub-agent) | Architecture decisions, cross-cutting design, spec breakdown | `.claude/hats/cto/` (TBD) |
-| **Backend programmer** (sub-agent) | C# / EF / NetMQ / DI / migrations | `.claude/hats/backend/` (TBD) |
-| **Frontend programmer** (sub-agent) | Razor pages / CSS / JS / extension UI | `.claude/hats/frontend/` (TBD) |
-| **Python programmer** (sub-agent) | Desktop agent / analyzers | `.claude/hats/python/` (TBD) |
-| **Mobile programmer** (sub-agent) | Android / iOS — when those start | `.claude/hats/mobile/` (TBD) |
-| **QA** (sub-agent) | Verify code before merge — mandatory for non-trivial | `.claude/hats/qa/` (TBD) |
+| **Executive** | CEO (default) | `.claude/hats/ceo/` |
+| **C-level** | vp-engineering, product, knowledge-manager | `.claude/hats/<role>/` |
+| **Technical** | architect, backend, desktop-agent, browser-extension, analyzer-ai, devops, qa, security | `.claude/hats/<role>/` |
+| **Legacy** | cto, frontend, mobile, python | `.claude/hats/<role>/` |
 
-Routing rules: `.claude/hats/ceo/delegation.md`.
+Agent definitions: `.claude/agents/<role>.md`. Routing rules: `.claude/hats/ceo/delegation.md`.
 
 ---
 
