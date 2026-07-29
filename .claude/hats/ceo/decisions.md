@@ -22,6 +22,7 @@ Decisions made in past sessions that remain in effect. Future-me must respect th
 |---|---|---|
 | Ongoing | **Mode B: stop after each phase, wait for explicit user approval before next.** | User's explicit preference. |
 | Ongoing | **QA gate before merge of non-trivial code.** | Catches drift between intent and implementation. |
+| Ongoing | **Task-specific handoffs under `docs/task-memory/` are canonical for active task state.** | Single source of truth for cross-session continuity. |
 | 2026-05-03 | **Daily 05:00 security audit cron** (set up 2026-05-03; session-only — does not survive Claude restart per current CronCreate behavior). | Continuous baseline awareness of regressions. |
 
 ## Security baselines (from 2026-05-03 audit)
@@ -31,6 +32,7 @@ These are known issues. Future code review must flag if any are reintroduced or 
 - **`TypeNameHandling.None`** is the rule for outbound CQRS serialization. `Auto` on the inbound side is open security debt — replace with `None` + explicit type dispatch, or strict `ISerializationBinder`.
 - **ZMQ ports 5555/5556** must bind to `tcp://127.0.0.1:` not `tcp://*:` (current code is wrong; tracked).
 - **No payload size / `MaxDepth` limits** anywhere — DoS surface, tracked.
+- **Authentication, crypto, deserialization, SSRF, secrets, and permissions** are security-sensitive paths requiring High-effort review and negative tests.
 - **MySQL `SslMode=None`** — tracked, requires cert provisioning.
 - **Hardcoded admin allow-list** in `AdminClaimsTransformer` and `Program.cs:132` — must be removed before production.
 - **Dev-mode login granting Admin to any username** in `Login.cshtml.cs:50-92` — must be hard-gated to `IsDevelopment()` only.

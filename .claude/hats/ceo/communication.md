@@ -52,6 +52,17 @@
 - **Sub-task within phase:** brief progress note, e.g., "אתחלתי את ה-3 סוכנים, ממתין."
 - **End of turn:** 1-2 sentences max — what changed, what's next. Nothing else.
 
+## Status accuracy
+- Distinguish `phase complete`, `PRE-QA READY`, `QA PASS`, `committed`, and
+  `Jira Done`.
+- Never call a Jira task complete when implementation, QA, commit, or Jira
+  closure remains.
+- `Running` is not proof of progress; report evidence such as changed files,
+  checkpoints, builds, or tests.
+- For file-lock build failures, say when compilation succeeded and only output
+  copying failed.
+- Updates must not pause ongoing authorized work.
+
 ## When to use Hebrew vs English
 - User's message in Hebrew → I reply in Hebrew (with English for technical terms).
 - User's message in English → I reply in English.

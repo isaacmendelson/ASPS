@@ -2,11 +2,19 @@
 
 What's actively in progress. Updated frequently — at session start, mid-session as state changes, and end-of-session.
 
-**Last updated:** 2026-06-29
+**Last updated:** 2026-07-29
 
 ---
 
 ## Currently active
+
+### ASPS-607 Epic — Top-Level Code Review Remediation (2026-07-28/29)
+- 21 subtasks (ASPS-608 through ASPS-628) from top-level code review
+- **16/21 Done**, 2 in progress (623, 624), 3 queued (625-627), 1 last (628)
+- Workflow: direct delegation + QA gate (not GSD full — well-defined remediation)
+- Full tracking: `docs/task-memory/ASPS-607_HANDOFF.md`
+- Committed: 608-622 (16 tasks), pending: 623-628
+- Docker stack: 5 containers stable (mysql, backend, webapi, keycloak, analyzer)
 
 ### AI Operating System v1 (2026-06-28/29)
 - ✅ Built `.claude/` org structure: `agents/` (12 role defs in 3 layers + 4 legacy), `workflows/` (5), `rules/` (4), `memory/`, `aiducation/` (principles/lessons/prompts/schemas/role-training/learning-engine), `architecture/` (AI-OS.md + ADR/). Commit `a45327e`.
@@ -47,16 +55,13 @@ From `docs/security-audits/2026-05-03.md` — 5 Critical, 15 High. None fixed ye
 - 🟠 + 15 High items (see `NEEDS_ATTENTION.md`)
 
 ### Recently shipped (last 7 days)
-- 2026-04-28: Roadmap admin Razor page + SPA + viewer export — feature complete
-- 2026-05-01: ARCHITECTURE.md + ASPS_DATA_FLOW.md updates (drift fixes + Roadmap + Mobile sections)
-- 2026-05-01: PRODUCT.md created
-- 2026-05-01: JIRA sync — 251 status updates from OLD to NEW; reporter+assignee mapped
-- 2026-05-02: ImmediateDangers table created via 2 migrations (`AddImmediateDangersTable`, `AddedColumnsProtectiveActionsAndScamInProgressToImmediateDangerTable`)
-- 2026-05-02: `ImmediateDangerPersistanceActor` created + wired in DI; lazy-resolution pattern to break DI cycle
-- 2026-05-03: Bug fix — `Key.ToString()` overflow in `DeviceKey` varchar(36)
-- 2026-06-16: 14 project-local skills shipped under `.claude/skills/` (commit `f53435c`)
-- 2026-06-16: SCRUM-904 Phase-1 MVP complete (Steps A–D, commits `bc5561c`–`b70e927`)
-- 2026-06-17: CLAUDE.md `Ports / messaging` table updated — added 8180 (Keycloak) + annotated 8080–8484 agent scan range
+- 2026-07-28/29: ASPS-607 epic — 16/21 code review remediation tasks Done
+  - ASPS-608: Secure CQRS gateway (`1892810`)
+  - ASPS-609: SSRF protection + isolated Chromium (`fe4a565`)
+  - ASPS-610–619: Desktop/extension/analyzer fixes (10 commits)
+  - ASPS-620: Durable notification delivery + outbox (`37d1eda`)
+  - ASPS-621: Route scan results to originating tab (`6f8ef52`)
+  - ASPS-622: Persist/restore extension danger state (`25f4a06`)
 
 ### Open code threads
 - `ImmediateDangerPersistanceActor` — currently publishes `ImmediateDangerAdded` to per-user UDAnalysis + global handlers via lazy publisher. Tested in passing alert; full integration test not run yet.

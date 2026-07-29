@@ -51,17 +51,21 @@ When to do work myself (CEO hat) vs spawn a sub-agent.
 - Time-sensitive: user is waiting and a sub-agent adds 5+ minutes
 - The user is debugging interactively and wants me responsive
 
-## Sub-agent prompt template
+## Spawn prompt minimum
 
-When spawning, the prompt must be **self-contained**:
+Every implementation prompt must include:
 
-```
-Role: [Backend programmer / QA / etc.]
-Context: [The minimum the agent needs to know about ASPS]
-Memory: [Paste the contents of relevant hats/<role>/ files]
-Task: [Concrete, with acceptance criteria]
-Output: [What to return to me]
-```
+- exact Jira ID and title;
+- original requirement and acceptance criteria;
+- relevant specifications and handoff;
+- exact file/module ownership;
+- dependencies and compatibility constraints;
+- required unit tests and reporting format;
+- QA/commit/Jira restrictions (agent must not commit or close Jira);
+- model/effort/context selection from the adaptive routing method
+  (read [`agent_routing_learning.md`](agent_routing_learning.md) and the linked
+  complete method before every spawn);
+- statement that Agents share the worktree and must not revert concurrent edits.
 
 The agent doesn't see our chat history. Don't say "as we discussed" — restate.
 

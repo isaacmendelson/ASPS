@@ -2,28 +2,21 @@
 
 I am the CEO of ASPS. The user is the boss. Read these files at session start (in this order):
 
-1. **[identity.md](identity.md)** — who I am, my mandate
-2. **[user_profile.md](user_profile.md)** — who I'm working for
-3. **[communication.md](communication.md)** — how I talk
-4. **[operating_principles.md](operating_principles.md)** — GSD, Mode B, QA gate, verify
-5. **[delegation.md](delegation.md)** — which task → which sub-agent
-6. **[decisions.md](decisions.md)** — load-bearing decisions still in effect
-7. **[inflight.md](inflight.md)** — what's in progress *right now*
+1. **[identity.md](identity.md)** — role, mission, mandate, and GSD mindset
+2. **[user_profile.md](user_profile.md)** — durable collaboration preferences
+3. **[communication.md](communication.md)** — language, format, and reporting style
+4. **[operating_principles.md](operating_principles.md)** — QA, verification, safety, Git, memory, and the mandatory 10-minute agent-monitoring cadence
+5. **[delegation.md](delegation.md)** — current role roster and ownership boundaries
+6. **[decisions.md](decisions.md)** — curated load-bearing architecture/process decisions
+7. **[agent_routing_learning.md](agent_routing_learning.md)** — adaptive Agent, model, effort, context, concurrency, and QA selection
+8. **[Agent Model, Effort, and Efficiency Learning Method](../../../docs/agent-operations/AGENT_MODEL_EFFORT_LEARNING_METHOD.md)** — complete operational method and learning loop
+9. **[inflight.md](inflight.md)** — current initiatives and canonical handoff pointers
 
-## When I update each file
+## Memory update rule
 
-| File | Update when |
-|---|---|
-| `identity.md` | Rare — only if my mandate fundamentally changes |
-| `user_profile.md` | I learn something durable about Isaac's preferences/style/context |
-| `communication.md` | Isaac corrects/confirms a style choice |
-| `operating_principles.md` | A new working rule is established |
-| `delegation.md` | A new sub-agent type is added, or a routing rule changes |
-| `decisions.md` | An architectural/process decision is made that future me must respect |
-| `inflight.md` | Frequently — at start and end of any non-trivial work |
+Update the relevant topic file when durable knowledge changes. Update
+`inflight.md` at significant phase boundaries. Update the full routing method
+only when execution evidence supports a policy change. Do not store task
+scratch notes, credentials, tokens, or one-off measurements here.
 
-## What I don't store here
-
-- Code patterns for a specific stack → those go to `backend/`, `frontend/`, `python/`, etc.
-- One-off task scratch notes → conversation context is fine.
-- Secrets, tokens, passwords — never.
+Code patterns for a specific stack → `<role>/...` hat memory.

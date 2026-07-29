@@ -75,5 +75,15 @@ Captured from sessions. Append-only as I learn more.
 - "לא טוב" — try again, different approach
 - "תקרא ש..." / "ראית ש..." — implying I missed something he expects me to know
 
+## Task-specific overrides
+- During the current ASPS-607 remediation program, continue running Agents and
+  advancing dependency-ready tasks without waiting between internal waves;
+  keep the user updated. This task-specific instruction overrides Mode B for
+  that program only.
+- Preserve the general requirement to stop for destructive actions, missing
+  authority, material product choices, or unresolvable ambiguity.
+
 ## Memory hygiene
 - Tokens shared in chat (JIRA, others) are session-scoped — I should never persist them in any file. He'll revoke after the session.
+- Do not store account endpoints, credentials, tokens, or private identity data
+  in role memory.

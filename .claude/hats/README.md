@@ -1,75 +1,78 @@
-# Hats — Role-Based Memory & Working Modes for ASPS
+# Hats — Role-Based Memory for ASPS
 
-This folder defines the **roles** Claude can adopt while working on ASPS, and the **per-role memory** (insights, conventions, learnings, regression watches) accumulated over sessions.
+Per-role accumulated memory (insights, conventions, learnings, decisions).
+Agent definitions live in `.claude/agents/<role>.md`; this directory holds
+what each role *learns over time*.
 
-## The hierarchy
+## Organization
 
 ```
 User (the boss — Isaac)
-  ↓ talks to
-CEO (Claude in default mode) ← entry point for every conversation
-  ↓ delegates technical work to
-CTO (sub-agent — architecture, cross-cutting decisions)
-  ↓ breaks down + assigns to
-├── Backend programmer  (C#/.NET, EF, NetMQ, MySQL)
-├── Frontend programmer (Razor pages, CSS, JS, browser extension UI)
-├── Python programmer   (desktop agent, analyzers)
-└── Mobile programmer   (Android/iOS — when those start)
-                            ↓ all merges go through
-QA (sub-agent — gate on every non-trivial commit)
+  ↓
+CEO (default session — orchestrates, never writes production code)
+  ↓
+├── vp-engineering (coordinates all technical execution)
+├── product (requirements, acceptance criteria, priorities)
+├── knowledge-manager (ADRs, lessons, Knowledge Engine)
+  ↓
+├── architect (cross-cutting design, specs, ADRs)
+├── backend (.NET 8, EF Core, NetMQ, MySQL)
+├── desktop-agent (Python desktop agent)
+├── browser-extension (Chrome MV3)
+├── analyzer-ai (Python analyzer microservices)
+├── devops (Docker, CI/CD, build, release)
+├── qa (pre-merge verification gate)
+├── security (threat review, audits)
+  ↓ legacy (still spawnable)
+├── frontend (Razor admin UI — no new-roster owner)
+├── mobile (Android/iOS — not started)
 ```
 
-## How "wearing a hat" works
-
-Two modes:
-
-| Mode | When | Cost | What it gives |
-|---|---|---|---|
-| **Hat-mode (in-context)** | Trivial work, quick switches | Cheap | I change my style/checklist, read the hat's memory before starting |
-| **Sub-agent (real Agent)** | Non-trivial work, parallel work, fresh-eyes review | Expensive (~150K tokens) | Isolated context, no shared bias, can run in parallel |
-
-**Default:** start in hat-mode. Escalate to sub-agent when (a) the task is non-trivial, (b) parallel work helps, or (c) before any merge for QA review.
-
-## Folder layout
+## Directory layout
 
 ```
 .claude/hats/
-├── README.md                 ← this file
-├── ceo/                      ← CEO mode (default)
-│   ├── INDEX.md              ← read first at session start
-│   ├── identity.md
-│   ├── user_profile.md
-│   ├── communication.md
-│   ├── operating_principles.md
-│   ├── delegation.md
-│   ├── decisions.md
-│   └── inflight.md
-├── cto/                      ← (built later)
-├── backend/                  ← (built later)
-├── frontend/                 ← (built later)
-├── python/                   ← (built later)
-└── qa/                       ← (built later — most important after CEO)
+├── README.md                    ← this file
+├── ceo/                         ← full (9 topic files)
+├── devops/                      ← full (5 topic files, imported from .codex)
+├── vp-engineering/              ← INDEX stub, grows with use
+├── product/                     ← INDEX stub
+├── knowledge-manager/           ← INDEX stub
+├── architect/                   ← INDEX stub
+├── backend/                     ← INDEX stub
+├── desktop-agent/               ← INDEX stub
+├── browser-extension/           ← INDEX stub
+├── analyzer-ai/                 ← INDEX stub
+├── qa/                          ← INDEX stub
+├── security/                    ← INDEX stub
+├── frontend/                    ← INDEX stub (legacy)
+└── mobile/                      ← INDEX stub (legacy)
 ```
 
-## Conventions for memory files
+## How hats work
 
-- **Short** — 50-100 lines per file. If a file grows past ~200 lines, split it.
+| Mode | When | Cost |
+|---|---|---|
+| **Hat-mode (in-context)** | Trivial work, quick switches | Cheap — read the hat's memory, change style |
+| **Sub-agent (real Agent)** | Non-trivial, parallel, or fresh-eyes review | Expensive — isolated context |
+
+Default: hat-mode. Escalate to sub-agent when the task is non-trivial, parallel
+work helps, or for the mandatory pre-merge QA review.
+
+## Memory file conventions
+
+- **Short** — 50–100 lines per file. Split past ~200.
 - **Concrete** — cite file paths, line numbers, dates, ticket IDs.
-- **Append-only-ish** — when something is wrong, mark it stale instead of deleting (history matters).
-- **Markdown** — headings, bullets, tables. No prose paragraphs longer than 3 lines.
 - **Action-oriented** — "do X when Y", not "we generally try to..."
+- **Markdown** — headings, bullets, tables. No paragraphs > 3 lines.
 
 ## Updating memory
 
-Whenever a session reveals a learning that future-me would benefit from, append to the right hat's memory:
+When a session reveals durable learning, add it to the right hat directory:
 
-- General insight about how to work with Isaac → `ceo/user_profile.md` or `ceo/communication.md`
-- Decision that's now load-bearing → `ceo/decisions.md`
+- Insight about Isaac → `ceo/user_profile.md` or `ceo/communication.md`
+- Load-bearing decision → `ceo/decisions.md` or `<role>/decisions.md`
 - New initiative → `ceo/inflight.md`
-- Code pattern / gotcha in C# / EF → `backend/...`
-- Code pattern in Razor / CSS / JS → `frontend/...`
-- Code pattern in Python → `python/...`
-- Architecture decision → `cto/...`
-- Verification recipe / regression to watch → `qa/...`
-
-The line `MEMORY.md → hats/<role>/INDEX.md` is the chain that gets me here at session start.
+- Stack-specific gotcha → `<role>/...` (e.g., `backend/ef-gotchas.md`)
+- Verification recipe → `qa/...`
+- Docker/infra learning → `devops/...`
