@@ -19,8 +19,13 @@ class MessageQueueService {
     // Determine if high priority (risk alerts)
     const isPriority = this.isPriorityMessage(message);
 
+    // Assign a unique messageId for deduplication unless one already exists
+    const msgWithId = message.messageId
+      ? message
+      : { ...message, messageId: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}` };
+
     const item = {
-      message,
+      message: msgWithId,
       timestamp: Date.now(),
       priority: isPriority
     };
@@ -94,6 +99,35 @@ class MessageQueueService {
     // Risk alerts and URL results are priority
     const priorityTypes = ['url_result', 'risk_alert', 'url_check'];
     return priorityTypes.includes(message.type);
+  }
+
+  /**
+   * Remove and return the next non-expired message from the front of the queue,
+   * or null if the queue is empty. Expired items are discarded silently.
+   * Use this for safe one-at-a-time delivery during flush so that only
+   * successfully-sent messages are removed — callers must call this in a loop
+   * and stop (without calling again) when delivery fails.
+   * @returns {{message: Object, timestamp: number, priority: boolean}|null}
+   */
+  dequeueOne() {
+    const now = Date.now();
+
+    // Discard expired items from the front
+    while (this.queue.length > 0) {
+      const item = this.queue[0];
+      const age = now - item.timestamp;
+      if (age >= this.ttlMs) {
+        this.queue.shift();
+        console.log(`[MessageQueue] Expired on dequeue (${Math.round(age / 1000)}s old): ${item.message.type}`);
+        continue;
+      }
+      // Found a valid item — remove and return it
+      this.queue.shift();
+      this.persist();
+      return item;
+    }
+
+    return null;
   }
 
   /**

@@ -22,8 +22,9 @@ describe('MessageQueueService', () => {
     const module = await import('@/services/MessageQueueService.js');
     messageQueueService = module.messageQueueService;
     
-    // Clear queue before each test
+    // Clear queue and reset defaults before each test
     messageQueueService.clear();
+    messageQueueService.maxSize = 100;
   });
 
   describe('Enqueue Operations', () => {
@@ -295,6 +296,131 @@ describe('MessageQueueService', () => {
 
       expect(stats.size).toBe(0);
       expect(stats.oldestAgeSeconds).toBe(0);
+    });
+  });
+
+  describe('DequeueOne — safe single-item pop (EX-6 queue reliability)', () => {
+    test('should return null when queue is empty', () => {
+      const item = messageQueueService.dequeueOne();
+      expect(item).toBeNull();
+    });
+
+    test('should remove and return the first item', () => {
+      messageQueueService.enqueue({ type: 'first' });
+      messageQueueService.enqueue({ type: 'second' });
+
+      const item = messageQueueService.dequeueOne();
+
+      expect(item).not.toBeNull();
+      expect(item.message.type).toBe('first');
+      expect(messageQueueService.size).toBe(1);
+    });
+
+    test('should remove items one-at-a-time leaving the rest in queue', () => {
+      messageQueueService.enqueue({ type: 'a' });
+      messageQueueService.enqueue({ type: 'b' });
+      messageQueueService.enqueue({ type: 'c' });
+
+      messageQueueService.dequeueOne();
+      expect(messageQueueService.size).toBe(2);
+
+      messageQueueService.dequeueOne();
+      expect(messageQueueService.size).toBe(1);
+
+      const last = messageQueueService.dequeueOne();
+      expect(last.message.type).toBe('c');
+      expect(messageQueueService.size).toBe(0);
+    });
+
+    test('should discard expired items and return the first valid one', () => {
+      // Inject an expired item directly
+      messageQueueService.queue.push({
+        message: { type: 'expired' },
+        timestamp: Date.now() - (6 * 60 * 1000),
+        priority: false
+      });
+      messageQueueService.enqueue({ type: 'valid' });
+
+      const item = messageQueueService.dequeueOne();
+
+      expect(item).not.toBeNull();
+      expect(item.message.type).toBe('valid');
+      expect(messageQueueService.size).toBe(0);
+    });
+
+    test('should return null when all items are expired', () => {
+      messageQueueService.queue.push({
+        message: { type: 'expired1' },
+        timestamp: Date.now() - (6 * 60 * 1000),
+        priority: false
+      });
+      messageQueueService.queue.push({
+        message: { type: 'expired2' },
+        timestamp: Date.now() - (7 * 60 * 1000),
+        priority: false
+      });
+
+      const item = messageQueueService.dequeueOne();
+
+      expect(item).toBeNull();
+      expect(messageQueueService.size).toBe(0);
+    });
+
+    test('remaining items stay in queue after mid-flush failure simulation', () => {
+      // Simulate ConnectionService.flushQueue() behaviour: dequeue one item at
+      // a time, stop on failure, re-enqueue the failed item so it is retried.
+      messageQueueService.enqueue({ type: 'msg1' });
+      messageQueueService.enqueue({ type: 'msg2' });
+      messageQueueService.enqueue({ type: 'msg3' });
+
+      // First item dequeued and "sent" successfully — removed from queue
+      const first = messageQueueService.dequeueOne();
+      expect(first.message.type).toBe('msg1');
+      expect(messageQueueService.size).toBe(2); // msg2 and msg3 remain
+
+      // Second item dequeued — send attempt begins
+      const second = messageQueueService.dequeueOne();
+      expect(second.message.type).toBe('msg2');
+      expect(messageQueueService.size).toBe(1); // only msg3 remains
+
+      // "Connection drops" before send completes — put msg2 back
+      messageQueueService.enqueue(second.message);
+      // Queue now has msg3 (was never dequeued) + re-enqueued msg2
+      expect(messageQueueService.size).toBe(2);
+
+      // Verify no messages were silently lost
+      const remaining = messageQueueService.flush();
+      expect(remaining.length).toBe(2);
+      const types = remaining.map(m => m.type);
+      expect(types).toContain('msg2');
+      expect(types).toContain('msg3');
+    });
+  });
+
+  describe('messageId assignment (EX-6 deduplication)', () => {
+    test('should assign a messageId to each enqueued item', () => {
+      messageQueueService.enqueue({ type: 'test' });
+      const item = messageQueueService.dequeueOne();
+      expect(item.message.messageId).toBeDefined();
+      expect(typeof item.message.messageId).toBe('string');
+      expect(item.message.messageId.length).toBeGreaterThan(0);
+    });
+
+    test('should preserve an existing messageId without overwriting', () => {
+      const existingId = 'my-existing-id-123';
+      messageQueueService.enqueue({ type: 'test', messageId: existingId });
+      const item = messageQueueService.dequeueOne();
+      expect(item.message.messageId).toBe(existingId);
+    });
+
+    test('should assign unique messageIds to different messages', () => {
+      messageQueueService.enqueue({ type: 'a' });
+      messageQueueService.enqueue({ type: 'b' });
+
+      const a = messageQueueService.dequeueOne();
+      const b = messageQueueService.dequeueOne();
+
+      expect(a.message.messageId).not.toBe(b.message.messageId);
     });
   });
 

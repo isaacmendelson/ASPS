@@ -418,36 +418,107 @@
 
   // ============================================
   // Feedback Service
-  // Sends score feedback to Google Sheets
+  // Routes score feedback through the Backend via the background service
+  // worker (ConnectionService / WebSocket).  No data is sent to third-party
+  // endpoints and no PII is stored in chrome.storage without user consent.
   // ============================================
 
   const FeedbackService = {
-    // Google Sheets Web App URL - built-in default
-    SHEETS_URL: 'https://script.google.com/macros/s/AKfycbyQmmjmsvgrSMUtUnb0oJJkF8uYhyDD6QGyk1MRTGNa2fix6B1zFRVghdP1BlS8pW8zKg/exec',
+    // Storage key used to record that the user has explicitly consented
+    CONSENT_KEY: 'feedbackConsentGiven',
 
     currentUrl: null,
     currentScore: null,
     currentRiskType: null,
 
     async init() {
-      // Load sheets URL from storage (can override built-in default)
-      const data = await chrome.storage.local.get(['feedbackSheetsUrl']);
-      if (data.feedbackSheetsUrl) {
-        this.SHEETS_URL = data.feedbackSheetsUrl;
-      }
+      // Nothing to load — no external URL, no override capability
     },
 
-    show(url, score, riskType) {
+    // Returns true when the user has previously given consent
+    async hasConsent() {
+      const data = await chrome.storage.local.get([this.CONSENT_KEY]);
+      return data[this.CONSENT_KEY] === true;
+    },
+
+    // Persist consent decision
+    async setConsent(value) {
+      await chrome.storage.local.set({ [this.CONSENT_KEY]: value });
+    },
+
+    // Show the feedback widget only when user has consented.
+    // If consent has not been given, the widget remains hidden.
+    async show(url, score, riskType) {
       this.currentUrl = url;
       this.currentScore = score;
       this.currentRiskType = riskType;
 
-      if (Elements.feedbackSection) {
-        Elements.feedbackSection.style.display = 'block';
-        Elements.feedbackSent.style.display = 'none';
-        Elements.btnCorrect.disabled = false;
-        Elements.btnIncorrect.disabled = false;
+      if (!Elements.feedbackSection) return;
+
+      const consented = await this.hasConsent();
+      if (!consented) {
+        // Offer consent inline rather than silently suppressing
+        this._showConsentPrompt();
+        return;
       }
+
+      this._showFeedbackButtons();
+    },
+
+    _showConsentPrompt() {
+      if (!Elements.feedbackSection) return;
+      Elements.feedbackSection.style.display = 'block';
+      Elements.feedbackSent.style.display = 'none';
+      // Replace button row with a one-time consent message
+      Elements.feedbackSection.innerHTML =
+        '<div class="feedback-question">Help improve accuracy? ' +
+        '<button id="btnConsentYes" class="btn-feedback btn-correct" style="font-size:0.8em;padding:2px 8px">Yes</button> ' +
+        '<button id="btnConsentNo" class="btn-feedback btn-incorrect" style="font-size:0.8em;padding:2px 8px">No</button>' +
+        '</div>' +
+        '<div class="feedback-privacy-note" style="font-size:0.75em;color:#888;margin-top:4px">' +
+        'Score and domain sent to ASPS backend only. ' +
+        '<a href="#" id="btnDeleteFeedback" style="color:#888">Delete my data</a>' +
+        '</div>';
+
+      document.getElementById('btnConsentYes').addEventListener('click', async () => {
+        await this.setConsent(true);
+        this._showFeedbackButtons();
+      });
+      document.getElementById('btnConsentNo').addEventListener('click', () => {
+        Elements.feedbackSection.style.display = 'none';
+      });
+      const delLink = document.getElementById('btnDeleteFeedback');
+      if (delLink) delLink.addEventListener('click', (e) => { e.preventDefault(); this.deleteFeedbackData(); });
+    },
+
+    _showFeedbackButtons() {
+      if (!Elements.feedbackSection) return;
+      // Re-render the original button layout (may have been replaced by consent prompt)
+      Elements.feedbackSection.innerHTML =
+        '<div class="feedback-question">Is this score correct?</div>' +
+        '<div class="feedback-buttons">' +
+        '<button class="btn-feedback btn-correct" id="btnCorrect" title="Score is correct">&#128077;</button>' +
+        '<button class="btn-feedback btn-incorrect" id="btnIncorrect" title="Score is wrong">&#128078;</button>' +
+        '</div>' +
+        '<div class="feedback-sent" id="feedbackSent" style="display:none">&#10003; Thanks for your feedback!</div>' +
+        '<div style="font-size:0.75em;text-align:center;margin-top:4px">' +
+        '<a href="#" id="btnDeleteFeedback" style="color:#888">Delete my data</a>' +
+        '</div>';
+
+      // Re-bind element references that were re-created
+      Elements.btnCorrect = document.getElementById('btnCorrect');
+      Elements.btnIncorrect = document.getElementById('btnIncorrect');
+      Elements.feedbackSent = document.getElementById('feedbackSent');
+
+      Elements.feedbackSection.style.display = 'block';
+      Elements.btnCorrect.disabled = false;
+      Elements.btnIncorrect.disabled = false;
+
+      Elements.btnCorrect.addEventListener('click', () => FeedbackService.sendFeedback(true));
+      Elements.btnIncorrect.addEventListener('click', () => FeedbackService.sendFeedback(false));
+
+      const delLink = document.getElementById('btnDeleteFeedback');
+      if (delLink) delLink.addEventListener('click', (e) => { e.preventDefault(); this.deleteFeedbackData(); });
     },
 
     hide() {
@@ -459,66 +530,77 @@
     async sendFeedback(isCorrect) {
       console.log('[Popup] Sending feedback:', isCorrect ? 'correct' : 'incorrect');
 
-      // Disable buttons
-      Elements.btnCorrect.disabled = true;
-      Elements.btnIncorrect.disabled = true;
+      if (Elements.btnCorrect) Elements.btnCorrect.disabled = true;
+      if (Elements.btnIncorrect) Elements.btnIncorrect.disabled = true;
 
-      const feedbackData = {
-        url: this.currentUrl,
+      // Only include score, domain (not full URL), and risk category.
+      // Deliberately exclude user-agent, full URL path, and timestamps
+      // that could fingerprint the user.
+      let domain = null;
+      try {
+        if (this.currentUrl) domain = new URL(this.currentUrl).hostname;
+      } catch (_) { /* malformed URL — leave domain null */ }
+
+      const feedbackPayload = {
+        domain: domain,
         score: this.currentScore,
         riskType: Array.isArray(this.currentRiskType) ? this.currentRiskType.join(', ') : this.currentRiskType,
-        isCorrect: isCorrect,
-        timestamp: new Date().toISOString(),
-        userAgent: navigator.userAgent
+        isCorrect: isCorrect
       };
 
       try {
-        // Save to local storage for backup
-        await this.saveLocally(feedbackData);
+        // Stage in local storage for the background service worker to forward
+        // to the desktop agent over the existing WebSocket.
+        // NOTE: background.js must handle the 'sendFeedback' message type to
+        // drain this queue over the WS connection (tracked as a follow-up task).
+        const stored = await chrome.storage.local.get(['pendingFeedback']);
+        const queue = stored.pendingFeedback || [];
+        queue.push(feedbackPayload);
+        // Keep at most 50 pending items (no PII that compounds with age)
+        if (queue.length > 50) queue.shift();
+        await chrome.storage.local.set({ pendingFeedback: queue });
 
-        // Send to Google Sheets if URL is configured
-        if (this.SHEETS_URL) {
-          await this.sendToSheets(feedbackData);
+        // Ask the background worker to deliver queued feedback now if connected
+        try {
+          await chrome.runtime.sendMessage({ type: 'sendFeedback', payload: feedbackPayload });
+        } catch (_) {
+          // Background may not have the handler yet — staged in storage above
         }
 
-        // Show success
-        Elements.feedbackSent.style.display = 'block';
-        console.log('[Popup] Feedback sent successfully');
-
+        if (Elements.feedbackSent) Elements.feedbackSent.style.display = 'block';
+        console.log('[Popup] Feedback staged for backend delivery');
       } catch (error) {
-        console.error('[Popup] Error sending feedback:', error);
-        // Still show success since we saved locally
-        Elements.feedbackSent.style.display = 'block';
-        Elements.feedbackSent.textContent = '✓ Saved locally';
+        console.error('[Popup] Error staging feedback:', error);
+        if (Elements.feedbackSent) {
+          Elements.feedbackSent.style.display = 'block';
+          Elements.feedbackSent.textContent = '✓ Noted (pending connection)';
+        }
       }
     },
 
-    async saveLocally(data) {
-      const stored = await chrome.storage.local.get(['feedbackHistory']);
-      const history = stored.feedbackHistory || [];
-      history.push(data);
-
-      // Keep last 100 entries
-      if (history.length > 100) {
-        history.shift();
+    // Allows the user to request deletion of any feedback tied to their account.
+    // Clears locally-staged feedback and forwards a deletion request to the
+    // backend via the WebSocket (best-effort).
+    async deleteFeedbackData() {
+      console.log('[Popup] User requested feedback data deletion');
+      try {
+        // Clear locally-staged queue immediately
+        await chrome.storage.local.remove('pendingFeedback');
+        // Revoke consent so the prompt is shown again next time
+        await this.setConsent(false);
+        // Forward deletion request to backend (best-effort; may not be connected)
+        try {
+          await chrome.runtime.sendMessage({ type: 'deleteFeedback' });
+        } catch (_) {
+          // Not connected — local data is already cleared above
+        }
+        if (Elements.feedbackSection) {
+          Elements.feedbackSection.innerHTML =
+            '<div class="feedback-question" style="font-size:0.8em;color:#888">Local feedback data deleted.</div>';
+        }
+      } catch (e) {
+        console.error('[Popup] Error deleting feedback data:', e);
       }
-
-      await chrome.storage.local.set({ feedbackHistory: history });
-    },
-
-    async sendToSheets(data) {
-      if (!this.SHEETS_URL) return;
-
-      const response = await fetch(this.SHEETS_URL, {
-        method: 'POST',
-        mode: 'no-cors', // Google Apps Script requires this
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-      });
-
-      return response;
     }
   };
 
@@ -666,13 +748,8 @@
       // Reconnect button
       Elements.btnReconnect.addEventListener('click', () => ReconnectService.reconnect());
 
-      // Feedback buttons
-      if (Elements.btnCorrect) {
-        Elements.btnCorrect.addEventListener('click', () => FeedbackService.sendFeedback(true));
-      }
-      if (Elements.btnIncorrect) {
-        Elements.btnIncorrect.addEventListener('click', () => FeedbackService.sendFeedback(false));
-      }
+      // Feedback buttons are bound dynamically by FeedbackService._showFeedbackButtons()
+      // after consent is confirmed, so no static binding here.
 
       // Storage changes - use server values
       chrome.storage.onChanged.addListener(async (changes, namespace) => {

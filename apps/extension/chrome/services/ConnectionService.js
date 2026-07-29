@@ -445,28 +445,45 @@ class ConnectionService {
     this.missedHeartbeats = 0;
   }
 
-  // Flush queued messages after reconnection
+  // Flush queued messages after reconnection.
+  // Dequeues one item at a time — on send failure the item is re-enqueued.
+  // If the socket closes mid-flush the remaining items stay in the queue
+  // and will be retried on the next reconnection.
   async flushQueue() {
     if (!messageQueueService.hasMessages) {
       return;
     }
 
-    const messages = messageQueueService.flush();
-    console.log(`[ConnectionService] Flushing ${messages.length} queued messages`);
+    console.log(`[ConnectionService] Starting queue flush (${messageQueueService.size} items)`);
 
-    for (const message of messages) {
+    let sent = 0;
+    let item;
+    // dequeueOne() returns null when the queue is empty or all remaining items
+    // are expired — it removes the item before returning it, so a failed send
+    // must put it back.
+    while ((item = messageQueueService.dequeueOne()) !== null) {
       if (this.websocket?.readyState === WebSocket.OPEN) {
-        console.log('[ConnectionService] Sending queued:', message.type);
-        this.websocket.send(JSON.stringify(message));
-        // Small delay to avoid flooding
-        await new Promise(resolve => setTimeout(resolve, 50));
+        try {
+          console.log('[ConnectionService] Sending queued:', item.message.type, item.message.messageId);
+          this.websocket.send(JSON.stringify(item.message));
+          sent++;
+          // Small delay to avoid flooding
+          await new Promise(resolve => setTimeout(resolve, 50));
+        } catch (e) {
+          // Send threw synchronously — put the item back and abort flush
+          console.error('[ConnectionService] Send error during flush, re-queuing remaining:', e);
+          messageQueueService.enqueue(item.message);
+          break;
+        }
       } else {
-        // Connection lost during flush, re-queue remaining
-        console.log('[ConnectionService] Connection lost during flush, re-queueing');
-        messageQueueService.enqueue(message);
+        // Socket closed mid-flush — put this item back; the rest are still in queue
+        console.log('[ConnectionService] Connection lost during flush, re-queuing current item');
+        messageQueueService.enqueue(item.message);
         break;
       }
     }
+
+    console.log(`[ConnectionService] Flush complete: ${sent} sent, ${messageQueueService.size} remaining`);
   }
 
   // Re-send stored email to desktop agent after connect/reconnect
