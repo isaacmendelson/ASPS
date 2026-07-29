@@ -112,6 +112,65 @@ public class CqrsChannelSecurityTests
                 json, CqrsJsonSerialization.CreateSettings()));
     }
 
+    [Fact]
+    public void UserDeviceConverter_DeserializesInt64DeviceType()
+    {
+        // Regression: JObject stores integers as Int64; direct Value<DeviceType?> throws
+        // "Invalid cast from 'System.Int64' to 'Common.Enums.DeviceType'"
+        var json = """{"DeviceType":1,"DeviceUid":"pc-1","Make":"Dell"}""";
+
+        var device = JsonConvert.DeserializeObject<UserDevice>(
+            json, CqrsJsonSerialization.CreateSettings());
+
+        Assert.NotNull(device);
+        Assert.IsType<PersonalComputer>(device);
+        Assert.Equal(DeviceType.PersonalComputer, device!.DeviceType);
+        Assert.Equal("pc-1", device.DeviceUid);
+    }
+
+    [Fact]
+    public void UserDeviceConverter_DeserializesUnknownDeviceType()
+    {
+        // DeviceType.Unknown (0) and DeviceType.Other (3) must not throw
+        var json = """{"DeviceType":0,"DeviceUid":"unknown-1"}""";
+
+        var device = JsonConvert.DeserializeObject<UserDevice>(
+            json, CqrsJsonSerialization.CreateSettings());
+
+        Assert.NotNull(device);
+        Assert.Equal(DeviceType.Unknown, device!.DeviceType);
+    }
+
+    [Fact]
+    public void UserDeviceConverter_DeserializesOtherDeviceType()
+    {
+        var json = """{"DeviceType":3,"DeviceUid":"other-1"}""";
+
+        var device = JsonConvert.DeserializeObject<UserDevice>(
+            json, CqrsJsonSerialization.CreateSettings());
+
+        Assert.NotNull(device);
+        Assert.Equal(DeviceType.Other, device!.DeviceType);
+    }
+
+    [Fact]
+    public void UserDeviceConverter_RoundTripsDeviceList()
+    {
+        var devices = new List<UserDevice>
+        {
+            new PersonalComputer { DeviceUid = "pc-1", DeviceType = DeviceType.PersonalComputer },
+            new SmartPhone { DeviceUid = "phone-1", DeviceType = DeviceType.MobilePhone }
+        };
+        var json = JsonConvert.SerializeObject(devices, CqrsJsonSerialization.CreateSettings());
+
+        var result = JsonConvert.DeserializeObject<List<UserDevice>>(
+            json, CqrsJsonSerialization.CreateSettings());
+
+        Assert.Equal(2, result!.Count);
+        Assert.IsType<PersonalComputer>(result[0]);
+        Assert.IsType<SmartPhone>(result[1]);
+    }
+
     private static CqrsChannelSecurity CreateSecurity(string clientId = "asps-webapi") =>
         new(new CqrsChannelSecurityOptions
         {

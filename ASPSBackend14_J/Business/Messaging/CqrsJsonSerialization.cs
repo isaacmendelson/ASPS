@@ -54,13 +54,12 @@ public static class CqrsJsonSerialization
             if (reader.TokenType == JsonToken.Null)
                 return null;
             var json = JObject.Load(reader);
-            var discriminator = json.Value<DeviceType?>("DeviceType");
+            var rawValue = json.Value<int?>("DeviceType");
+            var discriminator = rawValue.HasValue ? (DeviceType)rawValue.Value : (DeviceType?)null;
             UserDevice target = discriminator switch
             {
                 DeviceType.MobilePhone => new SmartPhone(),
-                DeviceType.PersonalComputer => new PersonalComputer(),
-                _ => throw new JsonSerializationException(
-                    $"User device discriminator is not allowed: {discriminator}")
+                _ => new PersonalComputer()
             };
             using var objectReader = json.CreateReader();
             serializer.Populate(objectReader, target);
