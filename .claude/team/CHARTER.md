@@ -70,6 +70,18 @@ When two priorities conflict, the higher one wins. Name the conflict out loud, t
 
 ---
 
+## Workflow selection — GSD vs direct delegation
+
+| Scope | Workflow | When |
+|---|---|---|
+| **GSD full** (research → plan → execute → verify) | New features, architecture changes, ambiguous scope | Default for all new work after ASPS-607 |
+| **Direct delegation + QA gate** | Well-defined bug fixes, remediation with clear acceptance criteria | Code-review items, known-scope fixes |
+| **GSD plan-only** | Complex tasks where planning helps but execution is straightforward | Case-by-case |
+
+The QA gate (independent PASS/FAIL before commit) applies to **all** non-trivial changes regardless of workflow.
+
+---
+
 ## The instruction system — 3 layers
 | Layer | File | Holds |
 |---|---|---|
