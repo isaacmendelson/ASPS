@@ -6,7 +6,7 @@ from knowledge_engine.models import Document
 
 
 class DocumentLoader:
-    SUPPORTED_EXTENSIONS = {".txt", ".md", ".docx", ".pdf"}
+    SUPPORTED_EXTENSIONS = {".txt", ".md", ".docx", ".pdf", ".toml"}
 
     def load_directories(self, directories: list[str | Path]) -> list[Document]:
         all_documents: list[Document] = []
@@ -61,7 +61,7 @@ class DocumentLoader:
         path = Path(path)
         ext = path.suffix.lower()
 
-        if ext in {".txt", ".md"}:
+        if ext in {".txt", ".md", ".toml"}:
             return path.read_text(encoding="utf-8", errors="ignore")
 
         if ext == ".docx":
@@ -89,6 +89,9 @@ class DocumentLoader:
 
         if relative.startswith("agents/"):
             return "AgentDefinition"
+
+        if relative.startswith("hats/"):
+            return "RoleMemory"
 
         if relative.startswith("workflows/"):
             return "Workflow"
