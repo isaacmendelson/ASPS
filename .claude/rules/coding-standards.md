@@ -1,9 +1,10 @@
 # Coding Standards
 
-> TODO: Populate with the agreed standards. Link to stack-specific detail rather than duplicating.
+> Link to stack-specific detail rather than duplicating.
 
 ## Universal
-- TODO — match surrounding code: naming, idioms, comment density.
+- Match surrounding code: naming, idioms, comment density.
+- **DRY — Don't Repeat Yourself.** One source of truth for every piece of knowledge — code, configuration, documentation, and agent instructions. When the same logic, constant, rule, or definition exists in multiple places, extract it to a single canonical location and reference it everywhere else. This applies equally to production code, test helpers, documentation files, and agent operating procedures. Duplication is a bug — it drifts, contradicts, and multiplies maintenance cost.
 
 ## Per Stack
 - **.NET / C#** — TODO
