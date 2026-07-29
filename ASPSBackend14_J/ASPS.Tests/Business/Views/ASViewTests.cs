@@ -42,7 +42,11 @@ public class ASViewTests : IDisposable
         services.AddScoped<IKnownPhishingWebsiteRepository, KnownPhishingWebsiteRepository>();
         services.AddScoped<ISafeDomainRepository, SafeDomainRepository>();
         services.AddScoped<IWebsiteCategoryRepository, WebsiteCategoryRepository>(); // SCRUM-820
-        
+        // ASPS-626: ASView.LoadDataAsync also requires these two — missing registrations caused
+        // all ASView tests that call Start() to fail because the scope threw at resolve time.
+        services.AddScoped<ISensitiveSiteRepository, SensitiveSiteRepository>();
+        services.AddScoped<IImmediateDangerRepository, ImmediateDangerRepository>();
+
         // Add loggers for repositories
         services.AddSingleton(Mock.Of<ILogger<UserRepository>>());
         services.AddSingleton(Mock.Of<ILogger<UserDeviceRepository>>());
@@ -52,6 +56,8 @@ public class ASViewTests : IDisposable
         services.AddSingleton(Mock.Of<ILogger<KnownPhishingWebsiteRepository>>());
         services.AddSingleton(Mock.Of<ILogger<SafeDomainRepository>>());
         services.AddSingleton(Mock.Of<ILogger<WebsiteCategoryRepository>>()); // SCRUM-820
+        services.AddSingleton(Mock.Of<ILogger<SensitiveSiteRepository>>()); // ASPS-626
+        // ImmediateDangerRepository uses base Repository<T> which takes only AppDbContext — no logger needed
 
         _serviceProvider = services.BuildServiceProvider();
         _asView = new ASView(_serviceProvider, _loggerMock.Object, _mockConfiguration.Object);
@@ -519,8 +525,11 @@ public class ASViewTests : IDisposable
     public void WebsiteCategoryViews_OnInitialize_LoadsCategoriesFromRepository()
     {
         // Arrange
-        var category1 = new WebsiteCategory("Social Media", null, "Test");
-        var category2 = new WebsiteCategory("News", null, "Test");
+        // ASPS-626: WebsiteCategory constructor does not auto-generate KeyField (the EF PK).
+        // Both entities default to KeyField="" causing an EF InMemory duplicate-key error.
+        // Assign unique keys before adding.
+        var category1 = new WebsiteCategory("Social Media", null, "Test") { KeyField = Guid.NewGuid().ToString() };
+        var category2 = new WebsiteCategory("News", null, "Test") { KeyField = Guid.NewGuid().ToString() };
         _context.WebsiteCategories.AddRange(category1, category2);
         _context.SaveChanges();
 
@@ -602,11 +611,13 @@ public class ASViewTests : IDisposable
     public void GetCategoryView_WithParentCategory_ReturnsCorrectHierarchy()
     {
         // Arrange
-        var parentCategory = new WebsiteCategory("Tech", null, "Test");
+        // ASPS-626: WebsiteCategory constructor does not auto-generate KeyField.
+        // Assign unique keys explicitly before adding to avoid EF InMemory duplicate-key error.
+        var parentCategory = new WebsiteCategory("Tech", null, "Test") { KeyField = Guid.NewGuid().ToString() };
         _context.WebsiteCategories.Add(parentCategory);
         _context.SaveChanges();
 
-        var childCategory = new WebsiteCategory("Programming", parentCategory.KeyField, "Test");
+        var childCategory = new WebsiteCategory("Programming", parentCategory.KeyField, "Test") { KeyField = Guid.NewGuid().ToString() };
         _context.WebsiteCategories.Add(childCategory);
         _context.SaveChanges();
 

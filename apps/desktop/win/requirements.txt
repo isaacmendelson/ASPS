@@ -1,35 +1,39 @@
-# AntiScam Desktop App - Dependencies
+# AntiScam Desktop App - direct dependencies.
+# Exact transitive resolution is committed in requirements.lock.txt.
 
 # Environment variable loading
-python-dotenv>=1.0.1
+python-dotenv==1.2.2
 
 # WebSocket for extension communication
-websockets>=12.0
+websockets==16.1.1
 
 # ZeroMQ for backend communication
-pyzmq>=25.1.0
+pyzmq==27.1.0
 
 # HTTP requests (for Google Auth)
-requests>=2.31.0
+requests==2.34.2
 
 # System tray
-pystray>=0.19.5
-Pillow>=10.0.0
+pystray==0.19.5
+Pillow==12.3.0
 
 # Modern tkinter widgets for popup UI
-customtkinter>=5.2.2
+customtkinter==6.0.0
 
 # Windows native toast notifications (used by notification_manager.py)
-winotify>=1.1.0
+winotify==1.1.0
 
 # Process monitoring
-psutil>=5.9.0
+psutil==7.2.2
 
 # IP Geolocation (optional - gracefully degrades if missing)
-geoip2>=4.8.0
+geoip2==5.3.0
 
 # For building EXE
-pyinstaller>=6.0.0
+pyinstaller==6.21.0
 
 # Secure credential storage (Windows Credential Manager / macOS Keychain / libsecret)
-keyring>=24.0.0
+keyring==25.7.0
+
+# Test runner
+pytest==9.1.1

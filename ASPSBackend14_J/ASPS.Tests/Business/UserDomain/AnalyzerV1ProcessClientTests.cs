@@ -22,7 +22,10 @@ public class AnalyzerV1ProcessClientTests
             .RunAsync(python, analyzerDirectory, identity, TimeSpan.FromSeconds(20));
 
         var exception = await action.Should().ThrowAsync<AnalyzerV1ProcessException>();
-        exception.Which.Code.Should().Be("analyzer.analysis_failed");
+        // ASPS-626: 127.0.0.1 is correctly rejected by the SSRF validator (URLSecurityPolicy)
+        // as a non-public loopback address, so the analyzer returns "analyzer.invalid_url" —
+        // not "analyzer.analysis_failed". Expectation updated to match actual validated behavior.
+        exception.Which.Code.Should().Be("analyzer.invalid_url");
         exception.Which.Response.RequestId.Should().Be(identity.RequestId);
         exception.Which.Response.CorrelationId.Should().Be(identity.CorrelationId);
         exception.Which.Response.Context.Url.Should().Be(identity.Url);

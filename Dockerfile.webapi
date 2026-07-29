@@ -6,17 +6,24 @@
 # ============================================================
 
 # --- Stage 1: Build .NET ---
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0.423 AS build
 WORKDIR /src
 
 # Copy project files first (layer caching)
+# Note: global.json is intentionally not copied — the SDK image version (8.0.423)
+# pins the toolchain inside Docker. Host global.json targets the host SDK.
+COPY ASPSBackend14_J/Directory.Build.props .
 COPY ASPSBackend14_J/Common/Common.csproj Common/
+COPY ASPSBackend14_J/Common/packages.lock.json Common/
 COPY ASPSBackend14_J/Interface/Interface.csproj Interface/
+COPY ASPSBackend14_J/Interface/packages.lock.json Interface/
 COPY ASPSBackend14_J/Business/Business.csproj Business/
+COPY ASPSBackend14_J/Business/packages.lock.json Business/
 COPY ASPSBackend14_J/WebApi/WebApi.csproj WebApi/
+COPY ASPSBackend14_J/WebApi/packages.lock.json WebApi/
 
 # Restore NuGet packages
-RUN dotnet restore WebApi/WebApi.csproj
+RUN dotnet restore WebApi/WebApi.csproj --locked-mode
 
 # Copy all source code
 COPY ASPSBackend14_J/Common/ Common/
@@ -28,7 +35,7 @@ COPY ASPSBackend14_J/WebApi/ WebApi/
 RUN dotnet publish WebApi/WebApi.csproj -c Release -o /app/publish --no-restore
 
 # --- Stage 2: Runtime ---
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:8.0.29 AS runtime
 WORKDIR /app
 
 # Copy published app
