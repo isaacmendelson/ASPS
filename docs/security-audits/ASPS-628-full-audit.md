@@ -11,7 +11,7 @@
 
 The ASPS codebase has undergone 20 remediation tasks since the initial code review. Critical infrastructure — CQRS authenticated channels (HMAC-SHA256 + CURVE), SSRF protection (4-layer defense-in-depth), device auth rate limiting, and EF Core parameterized queries — is well-implemented. However, **10 Blocker findings** remain, primarily: committed secrets in git-tracked Docker config files (4), a plaintext notification channel fallback (1), insecure OAuth token storage (1), dead/broken Google auth code (1), and analyzer API misconfigurations (3). **19 Major findings** span PII/URL logging at INFO level, hardcoded admin usernames, exposed debug endpoints, and unauthenticated API surfaces.
 
-**Verdict: FAIL** — 10 Blockers and 19 Majors require remediation before production deployment.
+**Verdict: FAIL** — 10 Blockers and 19 Majors across 69 findings require remediation before production deployment.
 
 ---
 
@@ -20,10 +20,10 @@ The ASPS codebase has undergone 20 remediation tasks since the initial code revi
 | Component | Blockers | Majors | Minors | Nits | Total |
 |---|---|---|---|---|---|
 | Backend | 4 | 9 | 12 | 2 | 27 |
-| Desktop Agent | 3 | 3 | 5 | 2 | 13 |
+| Desktop Agent | 3 | 3 | 6 | 2 | 14 |
 | Browser Extension | 0 | 2 | 8 | 2 | 12 |
 | Analyzer | 3 | 5 | 7 | 1 | 16 |
-| **Total** | **10** | **19** | **32** | **7** | **68** |
+| **Total** | **10** | **19** | **33** | **7** | **69** |
 
 ---
 
