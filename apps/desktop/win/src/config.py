@@ -350,7 +350,8 @@ LOG_FILE = "events.jsonl"
 CONFIG_FILE = "config.json"
 
 # WebApi URL (for device registration page)
-WEBAPI_URL = "http://localhost:5001"
+#WEBAPI_URL = "http://localhost:5001"  # Local non-Docker
+WEBAPI_URL = "http://localhost:8080"   # Docker (docker-compose maps WebApi to 8080)
 #WEBAPI_URL = "https://admin.asps.io"  # AWS Production
 #WEBAPI_URL = "http://100.88.78.75:5001"  # Old local server
 
