@@ -77,6 +77,10 @@ public partial class CQRSGateway
             "CheckPhoneNumberBlacklistedQuery" => await HandleCheckPhoneNumberBlacklistedQuery(messageJson, scope),
             // SCRUM-904 — User Risk Score
             "GetLatestUserRiskScoreQuery" => await HandleGetLatestUserRiskScoreQuery(messageJson, scope),
+            // ASPS-646 — Angular Admin: Dashboard + Users API
+            "GetDashboardSummaryQuery" => await HandleGetDashboardSummaryQuery(scope),
+            "GetAllUsersPagedQuery" => await HandleGetAllUsersPagedQuery(messageJson, scope),
+            "GetUserAlertsByKeyQuery" => await HandleGetUserAlertsByKeyQuery(messageJson, scope),
             _ => CreateErrorResponse($"Unknown query type: {queryType}")
         };
     }
@@ -723,6 +727,46 @@ public partial class CQRSGateway
         var query = JsonConvert.DeserializeObject<GetLatestUserRiskScoreQuery>(messageJson);
         if (query == null) return CreateErrorResponse("Invalid GetLatestUserRiskScoreQuery format");
         var handler = scope.ServiceProvider.GetRequiredService<UserRiskScoreQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.None,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    // =========================================================================
+    // ASPS-646 — Angular Admin: Dashboard + Users API
+    // =========================================================================
+
+    private async Task<string> HandleGetDashboardSummaryQuery(IServiceScope scope)
+    {
+        var handler = scope.ServiceProvider.GetRequiredService<AdminQueryHandlers>();
+        var result = await handler.HandleAsync(new GetDashboardSummaryQuery());
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.None,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleGetAllUsersPagedQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetAllUsersPagedQuery>(messageJson) ?? new GetAllUsersPagedQuery();
+        var handler = scope.ServiceProvider.GetRequiredService<AdminQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.None,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        });
+    }
+
+    private async Task<string> HandleGetUserAlertsByKeyQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetUserAlertsByKeyQuery>(messageJson);
+        if (query == null) return CreateErrorResponse("Invalid GetUserAlertsByKeyQuery format");
+        var handler = scope.ServiceProvider.GetRequiredService<AdminQueryHandlers>();
         var result = await handler.HandleAsync(query);
         return JsonConvert.SerializeObject(result, new JsonSerializerSettings
         {

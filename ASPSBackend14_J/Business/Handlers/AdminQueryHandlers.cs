@@ -474,4 +474,184 @@ public class AdminQueryHandlers
             };
         }
     }
+
+    // =========================================================================
+    // ASPS-646 — Angular Admin: Dashboard + Users API
+    // =========================================================================
+
+    /// <summary>
+    /// Returns KPI counts for the Angular admin dashboard.
+    /// Total users, devices, active alerts (last 24 h), and analysis results.
+    /// </summary>
+    public virtual async Task<GetDashboardSummaryQueryResult> HandleAsync(GetDashboardSummaryQuery query)
+    {
+        try
+        {
+            var users = await _userRepository.GetAllAsync();
+            var devices = await _userDeviceRepository.GetAllAsync();
+            var allAlerts = await _deviceAlertRepository.GetAllAsync();
+            var allAnalysis = await _analysisResultRepository.GetAllAsync();
+
+            var activeAlerts24h = allAlerts.Count(a => a.Timestamp >= DateTime.UtcNow.AddHours(-24));
+
+            return new GetDashboardSummaryQueryResult
+            {
+                Success = true,
+                TotalUsers = users.Count(),
+                TotalDevices = devices.Count(),
+                ActiveAlerts24h = activeAlerts24h,
+                AnalysisResultsCount = allAnalysis.Count()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting dashboard summary");
+            return new GetDashboardSummaryQueryResult
+            {
+                Success = false,
+                Message = $"Error: {ex.Message}"
+            };
+        }
+    }
+
+    /// <summary>
+    /// Server-side paged list of users with device counts, search, and sort.
+    /// </summary>
+    public virtual async Task<GetAllUsersPagedQueryResult> HandleAsync(GetAllUsersPagedQuery query)
+    {
+        try
+        {
+            var users = await _userRepository.GetAllAsync();
+            var devices = await _userDeviceRepository.GetAllAsync();
+
+            var usersWithCounts = users.Select(u => new UserWithDeviceCount
+            {
+                User = u,
+                DeviceCount = devices.Count(d => d.UserKeyField == u.KeyField)
+            }).AsEnumerable();
+
+            // Apply search filter (name or email)
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var search = query.Search.Trim();
+                usersWithCounts = usersWithCounts.Where(u =>
+                    (u.User.FirstName != null && u.User.FirstName.Contains(search, StringComparison.OrdinalIgnoreCase)) ||
+                    (u.User.LastName != null && u.User.LastName.Contains(search, StringComparison.OrdinalIgnoreCase)) ||
+                    (u.User.Email != null && u.User.Email.Contains(search, StringComparison.OrdinalIgnoreCase)));
+            }
+
+            // Apply sort
+            usersWithCounts = (query.SortBy?.ToLowerInvariant(), query.SortDirection) switch
+            {
+                ("firstname", "desc") => usersWithCounts.OrderByDescending(u => u.User.FirstName),
+                ("firstname", _)      => usersWithCounts.OrderBy(u => u.User.FirstName),
+                ("lastname", "desc")  => usersWithCounts.OrderByDescending(u => u.User.LastName),
+                ("lastname", _)       => usersWithCounts.OrderBy(u => u.User.LastName),
+                ("email", "desc")     => usersWithCounts.OrderByDescending(u => u.User.Email),
+                ("email", _)          => usersWithCounts.OrderBy(u => u.User.Email),
+                ("devicecount", "desc") => usersWithCounts.OrderByDescending(u => u.DeviceCount),
+                ("devicecount", _)    => usersWithCounts.OrderBy(u => u.DeviceCount),
+                ("datecreated", "desc") => usersWithCounts.OrderByDescending(u => u.User.DateCreated),
+                ("datecreated", _)    => usersWithCounts.OrderBy(u => u.User.DateCreated),
+                _                     => usersWithCounts.OrderBy(u => u.User.LastName)
+            };
+
+            var list = usersWithCounts.ToList();
+            var totalCount = list.Count;
+            var pagedItems = list
+                .Skip((query.Page - 1) * query.PageSize)
+                .Take(query.PageSize)
+                .ToList();
+
+            return new GetAllUsersPagedQueryResult
+            {
+                Success = true,
+                Result = new Common.Models.PagedResult<UserWithDeviceCount>
+                {
+                    Items = pagedItems,
+                    TotalCount = totalCount,
+                    Page = query.Page,
+                    PageSize = query.PageSize
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting paged users");
+            return new GetAllUsersPagedQueryResult
+            {
+                Success = false,
+                Message = $"Error: {ex.Message}"
+            };
+        }
+    }
+
+    /// <summary>
+    /// Returns paged alerts for all devices belonging to a specific user.
+    /// </summary>
+    public virtual async Task<GetUserAlertsByKeyQueryResult> HandleAsync(GetUserAlertsByKeyQuery query)
+    {
+        try
+        {
+            // Get all devices for this user
+            var devices = await _userDeviceRepository.GetAllAsync();
+            var userDeviceUids = devices
+                .Where(d => d.UserKeyField == query.UserKey.Value)
+                .Select(d => d.DeviceUid)
+                .ToHashSet();
+
+            var allAlerts = await _deviceAlertRepository.GetAllAsync();
+
+            var userAlerts = allAlerts
+                .Where(a => a.DeviceUid != null && userDeviceUids.Contains(a.DeviceUid))
+                .AsEnumerable();
+
+            // Apply search
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var search = query.Search.Trim();
+                userAlerts = userAlerts.Where(a =>
+                    (a.AlertType != null && a.AlertType.Contains(search, StringComparison.OrdinalIgnoreCase)) ||
+                    (a.DeviceUid != null && a.DeviceUid.Contains(search, StringComparison.OrdinalIgnoreCase)));
+            }
+
+            // Sort by timestamp descending by default
+            userAlerts = (query.SortBy?.ToLowerInvariant(), query.SortDirection) switch
+            {
+                ("alerttype", "asc")  => userAlerts.OrderBy(a => a.AlertType),
+                ("alerttype", _)      => userAlerts.OrderByDescending(a => a.AlertType),
+                ("deviceuid", "asc")  => userAlerts.OrderBy(a => a.DeviceUid),
+                ("deviceuid", _)      => userAlerts.OrderByDescending(a => a.DeviceUid),
+                _                     => userAlerts.OrderByDescending(a => a.Timestamp)
+            };
+
+            var list = userAlerts.ToList();
+            var totalCount = list.Count;
+            var pagedItems = list
+                .Skip((query.Page - 1) * query.PageSize)
+                .Take(query.PageSize)
+                .ToList();
+
+            return new GetUserAlertsByKeyQueryResult
+            {
+                Success = true,
+                Result = new Common.Models.PagedResult<DeviceAlertEntity>
+                {
+                    Items = pagedItems,
+                    TotalCount = totalCount,
+                    Page = query.Page,
+                    PageSize = query.PageSize
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting user alerts");
+            return new GetUserAlertsByKeyQueryResult
+            {
+                Success = false,
+                Message = $"Error: {ex.Message}"
+            };
+        }
+    }
 }

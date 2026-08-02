@@ -269,3 +269,55 @@ public class GetVersionQueryResult : QueryResult
     public string Version { get; set; } = "N/A";
     public string Component { get; set; } = "Backend";
 }
+
+// =========================================================================
+// ASPS-646 — Angular Admin: Dashboard + Users API
+// =========================================================================
+
+/// <summary>
+/// GET /api/dashboard/summary — returns KPI counts for the Angular admin dashboard.
+/// Returns: total users, total devices, active alerts (last 24 h), analysis results count.
+/// </summary>
+public class GetDashboardSummaryQuery : Query
+{
+    public GetDashboardSummaryQuery() { QueryType = nameof(GetDashboardSummaryQuery); }
+    public string QueryType { get; set; }
+}
+
+public class GetDashboardSummaryQueryResult : QueryResult
+{
+    public int TotalUsers { get; set; }
+    public int TotalDevices { get; set; }
+    public int ActiveAlerts24h { get; set; }
+    public int AnalysisResultsCount { get; set; }
+}
+
+/// <summary>
+/// GET /api/users — server-side paged list with search and sort;
+/// includes device count per user.
+/// </summary>
+public class GetAllUsersPagedQuery : PagedQuery
+{
+    public GetAllUsersPagedQuery() { QueryType = nameof(GetAllUsersPagedQuery); }
+    public string QueryType { get; set; }
+}
+
+public class GetAllUsersPagedQueryResult : QueryResult
+{
+    public PagedResult<UserWithDeviceCount> Result { get; set; } = new();
+}
+
+/// <summary>
+/// GET /api/users/{key}/alerts — paged alerts for a specific user (via their devices).
+/// </summary>
+public class GetUserAlertsByKeyQuery : PagedQuery
+{
+    public GetUserAlertsByKeyQuery() { QueryType = nameof(GetUserAlertsByKeyQuery); }
+    public string QueryType { get; set; }
+    public Key UserKey { get; set; } = new Key();
+}
+
+public class GetUserAlertsByKeyQueryResult : QueryResult
+{
+    public PagedResult<DeviceAlertEntity> Result { get; set; } = new();
+}

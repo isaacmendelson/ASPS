@@ -7,8 +7,13 @@ using WebApi.Services;
 
 namespace WebApi.Controllers;
 
+/// <remarks>
+/// Legacy controller using INetMQClientService.
+/// Route changed to api/internal/users to avoid conflict with UsersApiController (ASPS-646).
+/// This controller is not called by any frontend; it remains for potential backend-internal use.
+/// </remarks>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/internal/users")]
 public class UsersController : ControllerBase
 {
     private readonly INetMQClientService _netMQClient;
