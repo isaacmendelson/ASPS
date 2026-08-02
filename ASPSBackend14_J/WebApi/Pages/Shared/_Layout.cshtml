@@ -248,8 +248,8 @@
         .withUrl("/notificationshub").withAutomaticReconnect().build();
     connection.on("ReceiveNotification", (data) => {
         const badge = document.getElementById("alert-count-badge");
-        if (badge && data.Message === "DeviceAlert") badge.textContent = (parseInt(badge.textContent)||0)+1;
-        showToast("Notification", data.Message, "info");
+        if (badge && data.message === "DeviceAlert") badge.textContent = (parseInt(badge.textContent)||0)+1;
+        showToast("Notification", data.message, "info");
     });
     connection.start()
         .then(() => {
