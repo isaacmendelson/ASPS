@@ -138,8 +138,8 @@ cache/
 .env.*.local
 /ACCESS_KEYS.env
 
-# Database dumps (large files - track intentionally if needed)
-# Note: *.sql is NOT ignored - database dumps may be intentional
+# Database seed dumps (too large for GitHub's 100 MB limit)
+aspsbackend2db_*.sql
 
 # Temporary scripts
 _cleanup_*.ps1

@@ -38,6 +38,7 @@ services:
       Security__ServerPublicKeyFilePath: /app/public-keys/curve-server-public-key.txt
       CQRS__BindEndpoint: "tcp://*:5556"
       CQRS__SharedSecret: "${CQRS_SHARED_SECRET:?CQRS_SHARED_SECRET must be set}"
+      Messaging__AcceptLegacyV0: "true"
     ports:
       - "5555:5555"
       - "50001:50001"
