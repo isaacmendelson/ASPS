@@ -1,0 +1,143 @@
+<nav class="sidebar" aria-label="Main navigation">
+  <div class="sidebar-brand" aria-label="ASPS Admin">
+    <span class="brand-title">ASPS Admin</span>
+  </div>
+
+  <mat-nav-list>
+    <!-- Navigation -->
+    <div class="sidebar-section" aria-hidden="true">Navigation</div>
+
+    <a mat-list-item
+       routerLink="/dashboard"
+       routerLinkActive="active"
+       ariaCurrentWhenActive="page"
+       title="Dashboard">
+      <mat-icon matListItemIcon aria-hidden="true">dashboard</mat-icon>
+      <span matListItemTitle>Dashboard</span>
+    </a>
+
+    <!-- Management -->
+    <div class="sidebar-section" aria-hidden="true">Management</div>
+
+    <a mat-list-item
+       routerLink="/users"
+       routerLinkActive="active"
+       ariaCurrentWhenActive="page"
+       title="Users">
+      <mat-icon matListItemIcon aria-hidden="true">people</mat-icon>
+      <span matListItemTitle>Users</span>
+    </a>
+
+    <a mat-list-item
+       routerLink="/devices"
+       routerLinkActive="active"
+       ariaCurrentWhenActive="page"
+       title="Devices">
+      <mat-icon matListItemIcon aria-hidden="true">devices</mat-icon>
+      <span matListItemTitle>Devices</span>
+    </a>
+
+    <a mat-list-item
+       routerLink="/alerts"
+       routerLinkActive="active"
+       ariaCurrentWhenActive="page"
+       title="Device Alerts">
+      <mat-icon matListItemIcon aria-hidden="true">notifications</mat-icon>
+      <span matListItemTitle>Device Alerts</span>
+      @if (alertBadge.newAlertCount() > 0) {
+        <span matListItemMeta class="alert-badge" [attr.aria-label]="alertBadge.newAlertCount() + ' new alerts'">
+          {{ alertBadge.newAlertCount() }}
+        </span>
+      }
+    </a>
+
+    <a mat-list-item
+       routerLink="/analysis"
+       routerLinkActive="active"
+       ariaCurrentWhenActive="page"
+       title="Analysis Results">
+      <mat-icon matListItemIcon aria-hidden="true">analytics</mat-icon>
+      <span matListItemTitle>Analysis Results</span>
+    </a>
+
+    <!-- Blacklists (expandable) -->
+    <div class="sidebar-section" aria-hidden="true">Blacklists</div>
+
+    <mat-expansion-panel
+      class="sidebar-expansion"
+      [expanded]="blacklistsExpanded"
+      (opened)="blacklistsExpanded = true"
+      (closed)="blacklistsExpanded = false">
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          <mat-icon aria-hidden="true">block</mat-icon>
+          <span>Blacklists</span>
+        </mat-panel-title>
+      </mat-expansion-panel-header>
+
+      <mat-nav-list class="sub-nav">
+        <a mat-list-item routerLink="/blacklists/phishing" routerLinkActive="active" title="Phishing Websites">
+          <span matListItemTitle>Phishing Websites</span>
+        </a>
+        <a mat-list-item routerLink="/blacklists/phones" routerLinkActive="active" title="Phone Numbers">
+          <span matListItemTitle>Phone Numbers</span>
+        </a>
+        <a mat-list-item routerLink="/blacklists/banks" routerLinkActive="active" title="Bank Websites">
+          <span matListItemTitle>Bank Websites</span>
+        </a>
+        <a mat-list-item routerLink="/blacklists/categories" routerLinkActive="active" title="Categories">
+          <span matListItemTitle>Categories</span>
+        </a>
+        <a mat-list-item routerLink="/blacklists/domains" routerLinkActive="active" title="Tracked Domains">
+          <span matListItemTitle>Tracked Domains</span>
+        </a>
+      </mat-nav-list>
+    </mat-expansion-panel>
+
+    <!-- Content -->
+    <div class="sidebar-section" aria-hidden="true">Content</div>
+
+    <a mat-list-item
+       routerLink="/roadmaps"
+       routerLinkActive="active"
+       ariaCurrentWhenActive="page"
+       title="Roadmaps">
+      <mat-icon matListItemIcon aria-hidden="true">map</mat-icon>
+      <span matListItemTitle>Roadmaps</span>
+    </a>
+
+    <a mat-list-item
+       routerLink="/simulations"
+       routerLinkActive="active"
+       ariaCurrentWhenActive="page"
+       title="Simulations">
+      <mat-icon matListItemIcon aria-hidden="true">play_circle</mat-icon>
+      <span matListItemTitle>Simulations</span>
+    </a>
+
+    <!-- System -->
+    <div class="sidebar-section" aria-hidden="true">System</div>
+
+    <a mat-list-item
+       routerLink="/system"
+       routerLinkActive="active"
+       ariaCurrentWhenActive="page"
+       title="System Settings">
+      <mat-icon matListItemIcon aria-hidden="true">settings</mat-icon>
+      <span matListItemTitle>System Settings</span>
+    </a>
+
+    <a mat-list-item
+       routerLink="/downloads"
+       routerLinkActive="active"
+       ariaCurrentWhenActive="page"
+       title="Downloads">
+      <mat-icon matListItemIcon aria-hidden="true">download</mat-icon>
+      <span matListItemTitle>Downloads</span>
+    </a>
+  </mat-nav-list>
+
+  <div class="sidebar-footer">
+    ASPS &copy; {{ currentYear }}
+  </div>
+</nav>

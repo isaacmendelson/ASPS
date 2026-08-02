@@ -1,0 +1,56 @@
+.paged-table-container {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 2px 16px rgba(26, 34, 85, 0.06);
+  overflow: hidden;
+}
+
+.table-toolbar {
+  padding: 16px 20px 0;
+}
+
+.search-field {
+  width: 100%;
+  max-width: 360px;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+
+  &.loading {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+}
+
+table {
+  width: 100%;
+}
+
+.table-row {
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(26, 34, 85, 0.03);
+  }
+
+  &:focus {
+    outline: 2px solid var(--green);
+    outline-offset: -2px;
+  }
+}
+
+.empty-row {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.empty-message {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+mat-progress-bar {
+  height: 3px;
+}

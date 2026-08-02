@@ -3,6 +3,7 @@ using Business.Messaging;
 using WebApi.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
@@ -18,6 +19,12 @@ builder.Services.AddControllers()
     .AddNewtonsoftJson(options =>
     {
         options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+        options.SerializerSettings.ContractResolver =
+            new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver();
+        options.SerializerSettings.Converters.Add(
+            new Newtonsoft.Json.Converters.StringEnumConverter());
+        options.SerializerSettings.DateTimeZoneHandling =
+            Newtonsoft.Json.DateTimeZoneHandling.Utc;
     });
 
 // WebApi does NOT connect to database directly!
@@ -32,6 +39,25 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
                                ForwardedHeaders.XForwardedHost;
     options.KnownNetworks.Clear();
     options.KnownProxies.Clear();
+});
+
+// ========================================
+// CORS — allow Angular admin SPA
+// Origins are configurable via Cors:AllowedOrigins in appsettings.
+// ========================================
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AngularAdmin", policy =>
+    {
+        var origins = builder.Configuration
+            .GetSection("Cors:AllowedOrigins")
+            .Get<string[]>() ?? new[] { "http://localhost:4200" };
+
+        policy.WithOrigins(origins)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials(); // Required for SignalR
+    });
 });
 
 // Add Razor Pages for Admin UI
@@ -59,7 +85,9 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = adminPolicy;
 });
 
-// Claims transformer to add Admin role based on username/groups
+// Claims transformer to add Admin role based on username/groups.
+// IClaimsTransformation is invoked by ASP.NET Core after every successful
+// authentication, regardless of scheme — applies to both Cookie and JWT principals.
 builder.Services.AddScoped<IClaimsTransformation, AdminClaimsTransformer>();
 
 // ========================================
@@ -72,10 +100,34 @@ var keycloakEnabled = !string.IsNullOrWhiteSpace(keycloakSection["ClientId"]);
 
 if (keycloakEnabled)
 {
+    // Dual-scheme: Cookie for Razor pages, JWT Bearer for Angular SPA.
+    // A PolicyScheme inspects the request and forwards to the correct handler.
     builder.Services.AddAuthentication(options =>
     {
-        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+        options.DefaultScheme = "SmartScheme";
+        options.DefaultChallengeScheme = "SmartScheme";
+    })
+    .AddPolicyScheme("SmartScheme", "Cookie or JWT", options =>
+    {
+        options.ForwardDefaultSelector = context =>
+        {
+            // If the request carries a Bearer token, use JWT handler
+            var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
+            if (authHeader?.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                return JwtBearerDefaults.AuthenticationScheme;
+            }
+
+            // SignalR WebSocket upgrades carry the token as a query parameter
+            if (context.Request.Path.StartsWithSegments("/notificationshub") &&
+                context.Request.Query.ContainsKey("access_token"))
+            {
+                return JwtBearerDefaults.AuthenticationScheme;
+            }
+
+            // Default: Cookie auth (Razor pages)
+            return CookieAuthenticationDefaults.AuthenticationScheme;
+        };
     })
     .AddCookie(options =>
     {
@@ -190,9 +242,41 @@ if (keycloakEnabled)
                 return Task.CompletedTask;
             }
         };
+    })
+    .AddJwtBearer(options =>
+    {
+        // Validates JWT tokens issued by Keycloak for the asps-angular-admin client (PKCE/public)
+        options.Authority = keycloakSection["Authority"];
+        options.Audience = "asps-angular-admin";
+        options.RequireHttpsMetadata = false; // dev only — set to true in production via appsettings.Production.json
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            NameClaimType = "preferred_username",
+            RoleClaimType = ClaimTypes.Role,
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidAudiences = new[] { "asps-angular-admin", "account" },
+        };
+
+        // SignalR sends the access token as a query string parameter during the
+        // WebSocket upgrade handshake (HTTP headers are not available at that point).
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    context.HttpContext.Request.Path.StartsWithSegments("/notificationshub"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
+        };
     });
 
-    Console.WriteLine("✓ Keycloak SSO authentication configured");
+    Console.WriteLine("✓ Keycloak SSO authentication configured (Cookie + JWT Bearer dual scheme)");
 }
 else
 {
@@ -283,6 +367,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseStaticFiles();
 app.UseRouting();
+
+// CORS must come after UseRouting and before UseAuthentication/UseAuthorization
+app.UseCors("AngularAdmin");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -295,8 +383,9 @@ var webApiVersion = typeof(Program).Assembly.GetName().Version?.ToString() ?? "0
 Console.WriteLine("========================================");
 Console.WriteLine($"[INFO] WebApi v{webApiVersion} starting...");
 Console.WriteLine("ASPS Admin Dashboard");
-Console.WriteLine($"Authentication: {(keycloakEnabled ? "Keycloak SSO ✓" : "Cookie-only (dev mode) ⚠")}");
+Console.WriteLine($"Authentication: {(keycloakEnabled ? "Keycloak SSO + JWT Bearer ✓" : "Cookie-only (dev mode) ⚠")}");
 Console.WriteLine("ForwardedHeaders: Enabled ✓");
+Console.WriteLine("CORS: AngularAdmin policy enabled ✓");
 Console.WriteLine("========================================");
 
 app.Run();

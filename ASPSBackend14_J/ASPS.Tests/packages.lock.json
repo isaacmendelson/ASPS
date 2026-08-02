@@ -99,6 +99,14 @@
           "System.Diagnostics.EventLog": "6.0.0"
         }
       },
+      "Microsoft.AspNetCore.Authentication.JwtBearer": {
+        "type": "Transitive",
+        "resolved": "8.0.0",
+        "contentHash": "rwxaZYHips5M9vqxRkGfJthTx+Ws4O4yCuefn17J371jL3ouC5Ker43h2hXb5yd9BMnImE9rznT75KJHm6bMgg==",
+        "dependencies": {
+          "Microsoft.IdentityModel.Protocols.OpenIdConnect": "7.0.3"
+        }
+      },
       "Microsoft.AspNetCore.Authentication.OpenIdConnect": {
         "type": "Transitive",
         "resolved": "8.0.0",
@@ -1829,6 +1837,7 @@
         "dependencies": {
           "Business": "[1.0.0, )",
           "Common": "[1.0.0, )",
+          "Microsoft.AspNetCore.Authentication.JwtBearer": "[8.0.0, )",
           "Microsoft.AspNetCore.Authentication.OpenIdConnect": "[8.0.0, )",
           "Microsoft.AspNetCore.Mvc.NewtonsoftJson": "[8.0.0, )",
           "Microsoft.EntityFrameworkCore.Relational": "[7.0.20, )",

@@ -1,0 +1,103 @@
+// Mirrors .stat-card from _Layout.cshtml
+.stat-card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 22px 90px 22px 24px;
+  box-shadow: 0 2px 16px rgba(26, 34, 85, 0.06);
+  transition: transform 0.25s, box-shadow 0.25s;
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  cursor: default;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+  }
+
+  &.border-blue::before  { background: var(--navy); }
+  &.border-green::before { background: var(--green); }
+  &.border-amber::before { background: var(--warning); }
+  &.border-red::before   { background: var(--danger); }
+
+  &[role='link'] {
+    cursor: pointer;
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 16px 40px rgba(26, 34, 85, 0.13);
+    }
+  }
+}
+
+.card-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #9ca3af;
+  margin-bottom: 10px;
+}
+
+.card-value {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(22px, 2.2vw, 34px);
+  font-weight: 800;
+  color: var(--navy);
+  line-height: 1;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-meta {
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-icon {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+
+  .border-blue &  { background: rgba(26, 34, 85, 0.08); color: var(--navy); }
+  .border-green & { background: rgba(34, 197, 94, 0.12); color: var(--green); }
+  .border-amber & { background: rgba(245, 158, 11, 0.12); color: var(--warning); }
+  .border-red &   { background: rgba(239, 68, 68, 0.12); color: var(--danger); }
+}
+
+// Skeleton loading placeholders
+.skeleton-label,
+.skeleton-value,
+.skeleton-meta {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.skeleton-label { height: 12px; width: 60%; }
+.skeleton-value { height: 32px; width: 40%; }
+.skeleton-meta  { height: 12px; width: 80%; }
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
