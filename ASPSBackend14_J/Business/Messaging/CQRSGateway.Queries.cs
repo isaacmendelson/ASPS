@@ -88,6 +88,10 @@ public partial class CQRSGateway
             "GetDashboardSummaryQuery" => await HandleGetDashboardSummaryQuery(scope),
             "GetAllUsersPagedQuery" => await HandleGetAllUsersPagedQuery(messageJson, scope),
             "GetUserAlertsByKeyQuery" => await HandleGetUserAlertsByKeyQuery(messageJson, scope),
+            // ASPS-649 — Angular Admin: Simulations + Roadmaps paged queries
+            "GetAllSimulationsPagedQuery" => await HandleGetAllSimulationsPagedQuery(messageJson, scope),
+            "GetSimulationByKeyFieldQuery" => await HandleGetSimulationByKeyFieldQuery(messageJson, scope),
+            "GetAllRoadmapsPagedQuery" => await HandleGetAllRoadmapsPagedQuery(messageJson, scope),
             _ => CreateErrorResponse($"Unknown query type: {queryType}")
         };
     }
@@ -839,6 +843,35 @@ public partial class CQRSGateway
         var query = JsonConvert.DeserializeObject<GetAnalysisResultDetailQuery>(messageJson);
         if (query == null) return CreateErrorResponse("Invalid GetAnalysisResultDetailQuery format");
         var handler = scope.ServiceProvider.GetRequiredService<AdminQueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, _defaultSerializerSettings);
+    }
+
+    // =========================================================================
+    // ASPS-649 — Simulations + Roadmaps paged query handlers
+    // =========================================================================
+
+    private async Task<string> HandleGetAllSimulationsPagedQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetAllSimulationsPagedQuery>(messageJson) ?? new GetAllSimulationsPagedQuery();
+        var handler = scope.ServiceProvider.GetRequiredService<ASPS649QueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, _defaultSerializerSettings);
+    }
+
+    private async Task<string> HandleGetSimulationByKeyFieldQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetSimulationByKeyFieldQuery>(messageJson);
+        if (query == null) return CreateErrorResponse("Invalid GetSimulationByKeyFieldQuery format");
+        var handler = scope.ServiceProvider.GetRequiredService<ASPS649QueryHandlers>();
+        var result = await handler.HandleAsync(query);
+        return JsonConvert.SerializeObject(result, _defaultSerializerSettings);
+    }
+
+    private async Task<string> HandleGetAllRoadmapsPagedQuery(string messageJson, IServiceScope scope)
+    {
+        var query = JsonConvert.DeserializeObject<GetAllRoadmapsPagedQuery>(messageJson) ?? new GetAllRoadmapsPagedQuery();
+        var handler = scope.ServiceProvider.GetRequiredService<ASPS649QueryHandlers>();
         var result = await handler.HandleAsync(query);
         return JsonConvert.SerializeObject(result, _defaultSerializerSettings);
     }
