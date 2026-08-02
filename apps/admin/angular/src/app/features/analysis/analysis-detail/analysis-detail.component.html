@@ -47,6 +47,11 @@
             </a>
           </dd>
         }
+
+        @if (result()!.score != null) {
+          <dt>Score</dt>
+          <dd>{{ result()!.score }}</dd>
+        }
       </dl>
     </div>
 

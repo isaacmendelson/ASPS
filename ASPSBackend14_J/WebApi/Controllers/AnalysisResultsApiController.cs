@@ -28,7 +28,10 @@ public class AnalysisResultsApiController : ControllerBase
     /// Server-side paged list of analysis results with search and sort.
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] PagedRequest request)
+    public async Task<IActionResult> GetAll(
+        [FromQuery] PagedRequest request,
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to)
     {
         request.Normalize();
         try
@@ -39,7 +42,9 @@ public class AnalysisResultsApiController : ControllerBase
                 PageSize = request.PageSize,
                 Search = request.Search,
                 SortBy = request.SortBy,
-                SortDirection = request.SortDirection
+                SortDirection = request.SortDirection,
+                From = from,
+                To = to
             };
 
             var result = await _cqrsClient.SendQueryAsync<GetAllAnalysisResultsPagedQueryResult>(query);

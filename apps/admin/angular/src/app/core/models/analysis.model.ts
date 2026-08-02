@@ -12,4 +12,8 @@ export interface AnalysisResult {
   userKey?: Key;
   deviceAlertKey?: Key;
   url?: string;
+  userName?: string;
+  deviceUid?: string;
+  deviceType?: string;
+  score?: number;
 }

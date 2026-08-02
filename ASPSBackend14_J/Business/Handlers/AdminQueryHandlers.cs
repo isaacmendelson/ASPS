@@ -872,8 +872,18 @@ public class AdminQueryHandlers
         try
         {
             var allResults = (await _analysisResultRepository.GetAllAsync()).ToList();
+            var users = (await _userRepository.GetAllAsync()).ToList();
+            var userNames = users.ToDictionary(u => u.KeyField, u => $"{u.FirstName} {u.LastName}".Trim());
+            var allAlerts = (await _deviceAlertRepository.GetAllAsync()).ToList();
+            var alertsByKey = allAlerts.ToDictionary(a => a.KeyField, a => a);
 
-            IEnumerable<AnalysisResultDto> items = allResults.Select(MapAnalysisToDto);
+            IEnumerable<AnalysisResultDto> items = allResults.Select(r => MapAnalysisToDto(r, userNames, alertsByKey));
+
+            // Time-range filter
+            if (query.From.HasValue)
+                items = items.Where(r => r.Timestamp >= query.From.Value);
+            if (query.To.HasValue)
+                items = items.Where(r => r.Timestamp <= query.To.Value);
 
             // Search
             if (!string.IsNullOrWhiteSpace(query.Search))
@@ -919,10 +929,15 @@ public class AdminQueryHandlers
             if (result == null)
                 return new GetAnalysisResultDetailQueryResult { Success = false, Message = "Analysis result not found" };
 
+            var users = (await _userRepository.GetAllAsync()).ToList();
+            var userNames = users.ToDictionary(u => u.KeyField, u => $"{u.FirstName} {u.LastName}".Trim());
+            var allAlerts = (await _deviceAlertRepository.GetAllAsync()).ToList();
+            var alertsByKey = allAlerts.ToDictionary(a => a.KeyField, a => a);
+
             return new GetAnalysisResultDetailQueryResult
             {
                 Success = true,
-                AnalysisResult = MapAnalysisToDto(result)
+                AnalysisResult = MapAnalysisToDto(result, userNames, alertsByKey)
             };
         }
         catch (Exception ex)
@@ -942,6 +957,15 @@ public class AdminQueryHandlers
         if (!string.IsNullOrEmpty(a.UserKeyField) && userNames.TryGetValue(a.UserKeyField, out var name) && !string.IsNullOrWhiteSpace(name))
             userName = name;
 
+        // Extract URL from typed alert subtypes
+        string? url = null;
+        if (a is TrackUrlAlertEntity trackUrlAlert)
+            url = trackUrlAlert.Url;
+        else if (a is UrlAlertEntity urlAlert)
+            url = urlAlert.Url;
+        else if (a is TabClosedAlertEntity tabClosedAlert)
+            url = tabClosedAlert.Url;
+
         return new AlertDto
         {
             Key = a.Key,
@@ -957,17 +981,51 @@ public class AdminQueryHandlers
             UserName = userName,
             AnalysisKey = !string.IsNullOrEmpty(a.AnalysisKeyField)
                 ? new Key("AnalysisResultContainer", a.AnalysisKeyField)
-                : null
+                : null,
+            IPAddress = a.IPAddress,
+            ImmediateDanger = a.ImmediateDanger,
+            Url = url
         };
     }
 
-    private static AnalysisResultDto MapAnalysisToDto(AnalysisResultContainer r)
+    private static AnalysisResultDto MapAnalysisToDto(
+        AnalysisResultContainer r,
+        Dictionary<string, string> userNames,
+        Dictionary<string, DeviceAlertEntity> alertsByKey)
     {
         string? url = null;
         if (r is UrlAnalysisResultContainer urlResult)
             url = urlResult.Url;
         else if (r is TrackUrlAnalysisResultContainer trackResult)
             url = trackResult.Url;
+
+        float? score = null;
+        if (!string.IsNullOrEmpty(r.JsonValue))
+        {
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(r.JsonValue);
+                if (doc.RootElement.TryGetProperty("risk_assessment", out var ra) &&
+                    ra.TryGetProperty("risk_score", out var rs) &&
+                    rs.TryGetSingle(out var scoreVal))
+                {
+                    score = scoreVal;
+                }
+            }
+            catch { }
+        }
+
+        string? userName = null;
+        if (!string.IsNullOrEmpty(r.UserKeyField) && userNames.TryGetValue(r.UserKeyField, out var name) && !string.IsNullOrWhiteSpace(name))
+            userName = name;
+
+        string? deviceUid = null;
+        DeviceType? deviceType = null;
+        if (!string.IsNullOrEmpty(r.DeviceAlertKeyField) && alertsByKey.TryGetValue(r.DeviceAlertKeyField, out var alert))
+        {
+            deviceUid = alert.DeviceUid;
+            deviceType = alert.DeviceType;
+        }
 
         return new AnalysisResultDto
         {
@@ -980,7 +1038,11 @@ public class AdminQueryHandlers
             JsonValue = r.JsonValue,
             UserKey = new Key("User", r.UserKeyField),
             DeviceAlertKey = r.DeviceAlertKey,
-            Url = url
+            Url = url,
+            UserName = userName,
+            DeviceUid = deviceUid,
+            DeviceType = deviceType,
+            Score = score
         };
     }
 

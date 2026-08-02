@@ -206,3 +206,16 @@ body {
 .snack-error   .mdc-snackbar__surface { background: #dc2626 !important; }
 .snack-warn    .mdc-snackbar__surface { background: #b45309 !important; }
 .snack-info    .mdc-snackbar__surface { background: var(--navy) !important; }
+
+// ─── Draggable Detail Dialogs ─────────────────────────────────────────────────
+
+/* Remove default dialog padding so the popup-header fills edge-to-edge */
+.draggable-detail-panel .mat-mdc-dialog-container .mdc-dialog__surface {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, .18);
+}
+
+.draggable-detail-panel .mat-mdc-dialog-surface {
+  padding: 0 !important;
+}

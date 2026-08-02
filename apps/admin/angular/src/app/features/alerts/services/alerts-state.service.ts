@@ -2,12 +2,13 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { AlertsApiService, AlertsPagedRequest } from './alerts-api.service';
 import { AlertDto } from '@core/models/alert.model';
 
-export type TimeRange = '24h' | '72h' | '7d' | 'all';
+export type TimeRange = '1h' | '24h' | '7d' | '30d' | 'all';
 
 const TIME_RANGE_HOURS: Record<TimeRange, number | null> = {
+  '1h': 1,
   '24h': 24,
-  '72h': 72,
   '7d': 168,
+  '30d': 720,
   'all': null,
 };
 

@@ -380,7 +380,14 @@ public class GetAlertDetailQueryResult : QueryResult
 }
 
 /// <summary>Server-side paged analysis result list with search and sort.</summary>
-public class GetAllAnalysisResultsPagedQuery : PagedQuery { }
+public class GetAllAnalysisResultsPagedQuery : PagedQuery
+{
+    /// <summary>ISO 8601 lower bound (inclusive). Null = no lower bound.</summary>
+    public DateTime? From { get; set; }
+
+    /// <summary>ISO 8601 upper bound (inclusive). Null = no upper bound.</summary>
+    public DateTime? To { get; set; }
+}
 
 public class GetAllAnalysisResultsPagedQueryResult : QueryResult
 {

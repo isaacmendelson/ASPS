@@ -1,6 +1,22 @@
 <div class="page-header">
-  <h1 class="page-title">Analysis Results</h1>
-  <p class="page-subtitle">AI analysis results linked to device alerts.</p>
+  <div class="page-header-row">
+    <div>
+      <h1 class="page-title">Analysis Results</h1>
+      <p class="page-subtitle">AI analysis results linked to device alerts.</p>
+    </div>
+
+    <div class="time-range-buttons" role="group" aria-label="Filter analysis results by time range">
+      @for (option of timeRangeOptions; track option.value) {
+        <button
+          mat-stroked-button
+          [class.active]="timeRange() === option.value"
+          (click)="onTimeRangeChange(option.value)"
+          [attr.aria-pressed]="timeRange() === option.value">
+          {{ option.label }}
+        </button>
+      }
+    </div>
+  </div>
 </div>
 
 <app-paged-table

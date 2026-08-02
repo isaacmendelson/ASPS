@@ -49,6 +49,15 @@ public class AlertDto
 
     /// <summary>Key of the linked analysis result (null when no analysis was run).</summary>
     public Key? AnalysisKey { get; set; }
+
+    /// <summary>IP address from the device at the time of the alert (null when not available).</summary>
+    public string? IPAddress { get; set; }
+
+    /// <summary>True when the device was in an active Immediate Danger event.</summary>
+    public bool? ImmediateDanger { get; set; }
+
+    /// <summary>Primary URL associated with this alert (from Url, TrackUrl, or TabClosed alert types).</summary>
+    public string? Url { get; set; }
 }
 
 /// <summary>
@@ -74,4 +83,16 @@ public class AnalysisResultDto
 
     /// <summary>URL analyzed (populated for Url and TrackUrl analysis types).</summary>
     public string? Url { get; set; }
+
+    /// <summary>Display name of the user (resolved from UserKey).</summary>
+    public string? UserName { get; set; }
+
+    /// <summary>Device UID from the related alert (null when no alert linked).</summary>
+    public string? DeviceUid { get; set; }
+
+    /// <summary>Device type from the related alert.</summary>
+    public DeviceType? DeviceType { get; set; }
+
+    /// <summary>Risk score from risk_assessment (0-100). Null if not available.</summary>
+    public float? Score { get; set; }
 }
