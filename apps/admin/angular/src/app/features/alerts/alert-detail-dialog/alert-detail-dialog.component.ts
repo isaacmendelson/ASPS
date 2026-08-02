@@ -95,6 +95,7 @@ export interface AlertDetailDialogData {
                 <dl class="detail-list">
                   <dt>Type</dt><dd>{{ analysis()!.discriminator }}</dd>
                   <dt>Has Error</dt><dd>{{ analysis()!.hasError ? 'Yes' : 'No' }}</dd>
+                  <dt>From Cache</dt><dd>{{ analysis()!.isFromCache ? 'Yes' : 'No' }}</dd>
                   @if (analysis()!.errorMessage) {
                     <dt>Error</dt><dd class="error-text">{{ analysis()!.errorMessage }}</dd>
                   }
@@ -102,7 +103,7 @@ export interface AlertDetailDialogData {
                     <dt>URL</dt><dd class="url-text">{{ analysis()!.url }}</dd>
                   }
                   @if (analysis()!.score != null) {
-                    <dt>Score</dt><dd>{{ analysis()!.score }}</dd>
+                    <dt>Risk Score</dt><dd>{{ analysis()!.score }}</dd>
                   }
                   <dt>Timestamp</dt><dd>{{ analysis()!.timestamp | date: 'dd/MM/yyyy HH:mm:ss' }}</dd>
                 </dl>

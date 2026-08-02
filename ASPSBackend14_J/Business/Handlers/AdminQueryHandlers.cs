@@ -885,6 +885,15 @@ public class AdminQueryHandlers
             if (query.To.HasValue)
                 items = items.Where(r => r.Timestamp <= query.To.Value);
 
+            // Boolean and device-type filters
+            if (query.IsFromCache.HasValue)
+                items = items.Where(r => r.IsFromCache == query.IsFromCache.Value);
+            if (query.HasError.HasValue)
+                items = items.Where(r => r.HasError == query.HasError.Value);
+            if (!string.IsNullOrWhiteSpace(query.DeviceType) &&
+                Enum.TryParse<DeviceType>(query.DeviceType, ignoreCase: true, out var deviceTypeFilter))
+                items = items.Where(r => r.DeviceType == deviceTypeFilter);
+
             // Search
             if (!string.IsNullOrWhiteSpace(query.Search))
             {

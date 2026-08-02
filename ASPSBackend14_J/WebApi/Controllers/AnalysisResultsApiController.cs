@@ -31,7 +31,10 @@ public class AnalysisResultsApiController : ControllerBase
     public async Task<IActionResult> GetAll(
         [FromQuery] PagedRequest request,
         [FromQuery] DateTime? from,
-        [FromQuery] DateTime? to)
+        [FromQuery] DateTime? to,
+        [FromQuery] bool? isFromCache,
+        [FromQuery] bool? hasError,
+        [FromQuery] string? deviceType)
     {
         request.Normalize();
         try
@@ -44,7 +47,10 @@ public class AnalysisResultsApiController : ControllerBase
                 SortBy = request.SortBy,
                 SortDirection = request.SortDirection,
                 From = from,
-                To = to
+                To = to,
+                IsFromCache = isFromCache,
+                HasError = hasError,
+                DeviceType = deviceType
             };
 
             var result = await _cqrsClient.SendQueryAsync<GetAllAnalysisResultsPagedQueryResult>(query);

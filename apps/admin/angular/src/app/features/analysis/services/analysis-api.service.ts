@@ -9,6 +9,9 @@ import { AnalysisResult } from '@core/models/analysis.model';
 export interface AnalysisPagedRequest extends PagedRequest {
   from?: string;
   to?: string;
+  isFromCache?: boolean;
+  hasError?: boolean;
+  deviceType?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -28,6 +31,15 @@ export class AnalysisApiService {
     }
     if (request.to) {
       params = params.set('to', request.to);
+    }
+    if (request.isFromCache !== undefined) {
+      params = params.set('isFromCache', String(request.isFromCache));
+    }
+    if (request.hasError !== undefined) {
+      params = params.set('hasError', String(request.hasError));
+    }
+    if (request.deviceType) {
+      params = params.set('deviceType', request.deviceType);
     }
     return this.http.get<PagedResult<AnalysisResult>>(`${this.baseUrl}/api/analysis-results`, { params });
   }

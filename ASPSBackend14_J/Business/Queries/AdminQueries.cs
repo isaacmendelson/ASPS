@@ -387,6 +387,10 @@ public class GetAllAnalysisResultsPagedQuery : PagedQuery
 
     /// <summary>ISO 8601 upper bound (inclusive). Null = no upper bound.</summary>
     public DateTime? To { get; set; }
+
+    public bool? IsFromCache { get; set; }
+    public bool? HasError { get; set; }
+    public string? DeviceType { get; set; }
 }
 
 public class GetAllAnalysisResultsPagedQueryResult : QueryResult

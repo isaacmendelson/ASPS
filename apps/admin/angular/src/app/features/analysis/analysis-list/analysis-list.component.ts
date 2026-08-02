@@ -1,6 +1,8 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatSelectModule } from '@angular/material/select';
 import { MatDialog } from '@angular/material/dialog';
 import { PageEvent } from '@angular/material/paginator';
 import { Sort } from '@angular/material/sort';
@@ -24,7 +26,9 @@ const TIME_RANGE_HOURS: Record<TimeRange, number | null> = {
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     MatButtonModule,
+    MatSelectModule,
     PagedTableComponent,
   ],
   templateUrl: './analysis-list.component.html',
@@ -41,6 +45,17 @@ export class AnalysisListComponent implements OnInit {
   readonly page = signal(1);
   readonly pageSize = signal(25);
   readonly timeRange = signal<TimeRange>('all');
+  readonly filterFromCache = signal<boolean | undefined>(undefined);
+  readonly filterHasError = signal<boolean | undefined>(undefined);
+  readonly filterDeviceType = signal<string | undefined>(undefined);
+
+  readonly deviceTypeOptions = ['PersonalComputer', 'MobilePhone', 'Other', 'Unknown'];
+
+  readonly boolFilterOptions: { label: string; value: boolean | undefined }[] = [
+    { label: 'All', value: undefined },
+    { label: 'Yes', value: true },
+    { label: 'No', value: false },
+  ];
 
   readonly timeRangeOptions: { label: string; value: TimeRange }[] = [
     { label: 'Last Hour', value: '1h' },
@@ -90,6 +105,9 @@ export class AnalysisListComponent implements OnInit {
       sortBy: this._sortBy || undefined,
       sortDirection: this._sortDirection,
       from,
+      isFromCache: this.filterFromCache(),
+      hasError: this.filterHasError(),
+      deviceType: this.filterDeviceType(),
     };
 
     this.api.getAll(request).subscribe({
@@ -123,6 +141,21 @@ export class AnalysisListComponent implements OnInit {
 
   onTimeRangeChange(range: TimeRange): void {
     this.timeRange.set(range);
+    this.fetchPage(1);
+  }
+
+  onFromCacheChange(value: boolean | undefined): void {
+    this.filterFromCache.set(value);
+    this.fetchPage(1);
+  }
+
+  onHasErrorChange(value: boolean | undefined): void {
+    this.filterHasError.set(value);
+    this.fetchPage(1);
+  }
+
+  onDeviceTypeChange(value: string | undefined): void {
+    this.filterDeviceType.set(value);
     this.fetchPage(1);
   }
 

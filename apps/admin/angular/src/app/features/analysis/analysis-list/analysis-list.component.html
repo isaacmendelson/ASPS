@@ -19,6 +19,36 @@
   </div>
 </div>
 
+<div class="filters-row">
+  <mat-form-field appearance="outline" class="filter-select">
+    <mat-label>From Cache</mat-label>
+    <mat-select [value]="filterFromCache()" (selectionChange)="onFromCacheChange($event.value)">
+      @for (opt of boolFilterOptions; track opt.label) {
+        <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="filter-select">
+    <mat-label>Has Error</mat-label>
+    <mat-select [value]="filterHasError()" (selectionChange)="onHasErrorChange($event.value)">
+      @for (opt of boolFilterOptions; track opt.label) {
+        <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="filter-select">
+    <mat-label>Device Type</mat-label>
+    <mat-select [value]="filterDeviceType()" (selectionChange)="onDeviceTypeChange($event.value)">
+      <mat-option [value]="undefined">All</mat-option>
+      @for (dt of deviceTypeOptions; track dt) {
+        <mat-option [value]="dt">{{ dt }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+</div>
+
 <app-paged-table
   [columns]="columns"
   [items]="items"
