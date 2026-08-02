@@ -68,16 +68,18 @@ describe('authGuard', () => {
     expect(result).toBeTrue();
   });
 
-  it('should allow access for hardcoded admin username "isaac"', async () => {
+  it('should redirect to /access-denied for username "isaac" with no admin role or group (hardcoded bypass removed)', async () => {
     keycloakSpy.isLoggedIn.and.returnValue(true);
     keycloakSpy.getUserRoles.and.returnValue([]);
     keycloakSpy.getKeycloakInstance.and.returnValue({
       tokenParsed: { groups: [], preferred_username: 'isaac' },
     } as any);
+    routerSpy.navigate.and.returnValue(Promise.resolve(true));
 
     const result = await runGuard();
 
-    expect(result).toBeTrue();
+    expect(result).toBeFalse();
+    expect(routerSpy.navigate).toHaveBeenCalledWith(['/access-denied']);
   });
 
   it('should redirect to /access-denied for authenticated non-admin user', async () => {

@@ -33,13 +33,7 @@ export const authGuard = async (): Promise<boolean> => {
     g => g === '/Administrators' || g === 'Administrators'
   );
 
-  // Also allow hardcoded admin usernames matching existing backend logic
-  const preferredUsername: string = token?.['preferred_username'] ?? '';
-  const isHardcodedAdmin = ['asps-admin', 'isaac', 'admin'].includes(
-    preferredUsername.toLowerCase()
-  );
-
-  if (!hasAdminRole && !isInAdminGroup && !isHardcodedAdmin) {
+  if (!hasAdminRole && !isInAdminGroup) {
     router.navigate(['/access-denied']);
     return false;
   }

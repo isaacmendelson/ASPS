@@ -18,9 +18,20 @@ export const authInterceptor: HttpInterceptorFn = (
 ) => {
   const keycloak = inject(KeycloakService);
 
+  // Match absolute URLs (e.g. http://localhost:5001/api/...) as well as
+  // relative ones. Parse the URL to inspect the pathname only, falling back
+  // to string-contains for relative paths that URL() cannot parse.
+  let pathname: string;
+  try {
+    pathname = new URL(req.url).pathname;
+  } catch {
+    pathname = req.url;
+  }
   const isApiRequest =
-    req.url.startsWith('/api') ||
-    req.url.includes('/notificationshub');
+    pathname.includes('/api/') ||
+    pathname.includes('/api?') ||
+    pathname.endsWith('/api') ||
+    pathname.includes('/notificationshub');
 
   if (!isApiRequest) {
     return next(req);
