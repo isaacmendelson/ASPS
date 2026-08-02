@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -32,20 +32,17 @@ export class UsersListComponent implements OnInit {
     { key: 'fullName', header: 'Name', sortable: true, type: 'text' },
     { key: 'email', header: 'Email', sortable: true, type: 'text' },
     { key: 'deviceCount', header: 'Devices', sortable: false, type: 'text' },
-    { key: 'role', header: 'Status', sortable: false, type: 'text' },
+    { key: 'role', header: 'Role', sortable: false, type: 'text' },
     { key: 'dateCreated', header: 'Created', sortable: true, type: 'date' },
   ];
 
-  // Mapped data with fullName computed
-  get tableItems() {
-    return {
-      ...this.state.users,
-      // Transform signal to add fullName — use a computed signal wrapper
-    };
-  }
-
-  // Use a getter that maps users to include fullName for the table
-  readonly mappedUsers = this.state.users;
+  /** Maps users to include a computed fullName for the Name column. */
+  readonly mappedUsers = computed(() =>
+    this.state.users().map(u => ({
+      ...u,
+      fullName: `${u.firstName} ${u.lastName}`.trim(),
+    }))
+  );
 
   ngOnInit(): void {
     this.state.loadPage(1);

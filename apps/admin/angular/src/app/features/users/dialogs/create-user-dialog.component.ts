@@ -67,12 +67,6 @@ import { NotificationService } from '@core/services/notification.service';
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Phone (optional)</mat-label>
-          <input matInput formControlName="phone" type="tel"
-                 autocomplete="tel" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="full-width">
           <mat-label>Address (optional)</mat-label>
           <input matInput formControlName="address" autocomplete="street-address" />
         </mat-form-field>
@@ -97,8 +91,7 @@ import { NotificationService } from '@core/services/notification.service';
         color="primary"
         form="create-user-form"
         type="submit"
-        [disabled]="state.saving() || form.invalid"
-        (click)="submit()">
+        [disabled]="state.saving() || form.invalid">
         @if (state.saving()) {
           <mat-spinner diameter="18"></mat-spinner>
         } @else {
@@ -131,7 +124,6 @@ export class CreateUserDialogComponent {
     firstName: ['', [Validators.required]],
     lastName: ['', [Validators.required]],
     email: ['', [Validators.required, Validators.email]],
-    phone: [''],
     address: [''],
     city: [''],
   });
@@ -146,7 +138,6 @@ export class CreateUserDialogComponent {
       firstName: string;
       lastName: string;
       email: string;
-      phone: string;
       address: string;
       city: string;
     };

@@ -1,10 +1,9 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { KpiCardComponent } from '@shared/components/kpi-card/kpi-card.component';
 import { EmptyStateComponent } from '@shared/components/empty-state/empty-state.component';
-import { SeverityBadgePipe } from '@shared/pipes/severity-badge.pipe';
 import { DashboardService, DashboardSummary } from './services/dashboard.service';
 import { DeviceAlert } from '@core/models/alert.model';
 
@@ -13,12 +12,10 @@ import { DeviceAlert } from '@core/models/alert.model';
   standalone: true,
   imports: [
     CommonModule,
-    DatePipe,
     RouterLink,
     MatIconModule,
     KpiCardComponent,
     EmptyStateComponent,
-    SeverityBadgePipe,
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss'],

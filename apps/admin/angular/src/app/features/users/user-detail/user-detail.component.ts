@@ -1,5 +1,5 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -12,7 +12,6 @@ import { PageEvent } from '@angular/material/paginator';
 import { Sort } from '@angular/material/sort';
 import { PagedTableComponent, ColumnDef } from '@shared/components/paged-table/paged-table.component';
 import { EmptyStateComponent } from '@shared/components/empty-state/empty-state.component';
-import { SeverityBadgePipe } from '@shared/pipes/severity-badge.pipe';
 import { UsersApiService } from '../services/users-api.service';
 import { UserDetails } from '@core/models/user.model';
 import { UserRiskScore } from '@core/models/risk-score.model';
@@ -26,7 +25,6 @@ import { NotificationService } from '@core/services/notification.service';
   standalone: true,
   imports: [
     CommonModule,
-    DatePipe,
     RouterLink,
     ReactiveFormsModule,
     MatTabsModule,
@@ -37,7 +35,6 @@ import { NotificationService } from '@core/services/notification.service';
     MatProgressBarModule,
     PagedTableComponent,
     EmptyStateComponent,
-    SeverityBadgePipe,
   ],
   templateUrl: './user-detail.component.html',
   styleUrls: ['./user-detail.component.scss'],
