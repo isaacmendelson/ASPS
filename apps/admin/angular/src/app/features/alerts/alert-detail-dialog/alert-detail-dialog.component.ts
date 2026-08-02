@@ -107,6 +107,17 @@ export interface AlertDetailDialogData {
                   }
                   <dt>Timestamp</dt><dd>{{ analysis()!.timestamp | date: 'dd/MM/yyyy HH:mm:ss' }}</dd>
                 </dl>
+                @if (analysis()!.jsonValue) {
+                  <button
+                    mat-stroked-button
+                    class="json-toggle-btn"
+                    (click)="showJson.set(!showJson())">
+                    {{ showJson() ? 'Hide JSON' : 'Show JSON' }}
+                  </button>
+                  @if (showJson()) {
+                    <pre class="json-block">{{ prettyJson }}</pre>
+                  }
+                }
               } @else {
                 <p class="empty-text">No analysis result linked to this alert.</p>
               }
@@ -215,6 +226,25 @@ export interface AlertDetailDialogData {
       font-size: 13px;
       margin: 8px 0;
     }
+
+    .json-toggle-btn {
+      margin-top: 12px;
+      font-size: 12px;
+    }
+
+    .json-block {
+      margin-top: 8px;
+      padding: 12px;
+      background: #1e293b;
+      color: #e2e8f0;
+      border-radius: 6px;
+      font-size: 11px;
+      line-height: 1.5;
+      max-height: 300px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
   `],
 })
 export class AlertDetailDialogComponent implements OnInit {
@@ -226,6 +256,17 @@ export class AlertDetailDialogComponent implements OnInit {
   analysis = signal<AnalysisResult | null>(null);
   loading = signal(true);
   analysisLoading = signal(false);
+  showJson = signal(false);
+
+  get prettyJson(): string {
+    const raw = this.analysis()?.jsonValue;
+    if (!raw) return '';
+    try {
+      return JSON.stringify(JSON.parse(raw), null, 2);
+    } catch {
+      return raw;
+    }
+  }
 
   ngOnInit(): void {
     this.loadAlert();
