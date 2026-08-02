@@ -11,6 +11,7 @@ import { ConfirmDialogService } from '@shared/components/confirm-dialog/confirm-
 import { NotificationService } from '@core/services/notification.service';
 import { RoadmapsStateService } from '../services/roadmaps-state.service';
 import { CreateRoadmapDialogComponent } from '../dialogs/create-roadmap-dialog.component';
+import { RoadmapDetailDialogComponent } from '../roadmap-detail-dialog/roadmap-detail-dialog.component';
 import { Roadmap } from '@core/models/roadmap.model';
 
 @Component({
@@ -137,6 +138,13 @@ export class RoadmapsListComponent implements OnInit {
     this.selectedRoadmap.set(
       this.selectedRoadmap()?.id === roadmap.id ? null : roadmap
     );
+    this.dialog.open(RoadmapDetailDialogComponent, {
+      data: { roadmap },
+      hasBackdrop: false,
+      panelClass: 'draggable-detail-panel',
+      width: '700px',
+      autoFocus: false,
+    });
   }
 
   openCreateDialog(): void {
