@@ -1,4 +1,5 @@
 using Common.Entities;
+using Common.Enums;
 using Common.Messaging;
 using Common.Models;
 
@@ -268,4 +269,191 @@ public class GetVersionQueryResult : QueryResult
 {
     public string Version { get; set; } = "N/A";
     public string Component { get; set; } = "Backend";
+}
+
+// =========================================================================
+// ASPS-646 — Angular Admin: Dashboard + Users API
+// =========================================================================
+
+/// <summary>
+/// GET /api/dashboard/summary — returns KPI counts for the Angular admin dashboard.
+/// Returns: total users, total devices, active alerts (last 24 h), analysis results count.
+/// </summary>
+public class GetDashboardSummaryQuery : Query
+{
+    public GetDashboardSummaryQuery() { QueryType = nameof(GetDashboardSummaryQuery); }
+    public string QueryType { get; set; }
+}
+
+public class GetDashboardSummaryQueryResult : QueryResult
+{
+    public int TotalUsers { get; set; }
+    public int TotalDevices { get; set; }
+    public int ActiveAlerts24h { get; set; }
+    public int AnalysisResultsCount { get; set; }
+}
+
+/// <summary>
+/// GET /api/users — server-side paged list with search and sort;
+/// includes device count per user.
+/// </summary>
+public class GetAllUsersPagedQuery : PagedQuery
+{
+    public GetAllUsersPagedQuery() { QueryType = nameof(GetAllUsersPagedQuery); }
+    public string QueryType { get; set; }
+}
+
+public class GetAllUsersPagedQueryResult : QueryResult
+{
+    public PagedResult<UserWithDeviceCount> Result { get; set; } = new();
+}
+
+/// <summary>
+/// GET /api/users/{key}/alerts — paged alerts for a specific user (via their devices).
+/// </summary>
+public class GetUserAlertsByKeyQuery : PagedQuery
+{
+    public GetUserAlertsByKeyQuery() { QueryType = nameof(GetUserAlertsByKeyQuery); }
+    public string QueryType { get; set; }
+    public Key UserKey { get; set; } = new Key();
+}
+
+public class GetUserAlertsByKeyQueryResult : QueryResult
+{
+    public PagedResult<DeviceAlertEntity> Result { get; set; } = new();
+}
+
+// =========================================================================
+// ASPS-647 — Paged Devices, Alerts, Analysis Results (Angular Admin API)
+// =========================================================================
+
+/// <summary>Server-side paged device list with search and status filter.</summary>
+public class GetAllDevicesPagedQuery : PagedQuery
+{
+    /// <summary>Optional filter: only return devices with this MonitoringStatus string (e.g. "Enabled").</summary>
+    public string? Status { get; set; }
+}
+
+public class GetAllDevicesPagedQueryResult : QueryResult
+{
+    public PagedResult<DeviceDto> Result { get; set; } = new();
+}
+
+/// <summary>Server-side paged alerts for a single device (by DeviceKeyField).</summary>
+public class GetDeviceAlertsPagedQuery : PagedQuery
+{
+    public string DeviceKeyField { get; set; } = string.Empty;
+}
+
+public class GetDeviceAlertsPagedQueryResult : QueryResult
+{
+    public PagedResult<AlertDto> Result { get; set; } = new();
+}
+
+/// <summary>Server-side paged alert list with time-range and severity filters.</summary>
+public class GetAllAlertsPagedQuery : PagedQuery
+{
+    /// <summary>ISO 8601 lower bound (inclusive). Null = no lower bound.</summary>
+    public DateTime? From { get; set; }
+
+    /// <summary>ISO 8601 upper bound (inclusive). Null = no upper bound.</summary>
+    public DateTime? To { get; set; }
+
+    /// <summary>Filter by severity/priority name (e.g. "High"). Null = all.</summary>
+    public string? Severity { get; set; }
+}
+
+public class GetAllAlertsPagedQueryResult : QueryResult
+{
+    public PagedResult<AlertDto> Result { get; set; } = new();
+}
+
+/// <summary>Single alert with full detail including related device and user info.</summary>
+public class GetAlertDetailQuery : Query
+{
+    public Key AlertKey { get; set; } = new Key();
+}
+
+public class GetAlertDetailQueryResult : QueryResult
+{
+    public AlertDto? Alert { get; set; }
+}
+
+/// <summary>Server-side paged analysis result list with search and sort.</summary>
+public class GetAllAnalysisResultsPagedQuery : PagedQuery { }
+
+public class GetAllAnalysisResultsPagedQueryResult : QueryResult
+{
+    public PagedResult<AnalysisResultDto> Result { get; set; } = new();
+}
+
+/// <summary>Single analysis result detail by key.</summary>
+public class GetAnalysisResultDetailQuery : Query
+{
+    public Key AnalysisKey { get; set; } = new Key();
+}
+
+public class GetAnalysisResultDetailQueryResult : QueryResult
+{
+    public AnalysisResultDto? AnalysisResult { get; set; }
+}
+
+// =========================================================================
+// ASPS-649 — Angular Admin: Simulations + Roadmaps + System API
+// =========================================================================
+
+/// <summary>Server-side paged list of simulations with optional search.</summary>
+public class GetAllSimulationsPagedQuery : PagedQuery { }
+
+public class SimulationDto
+{
+    public Key Key { get; set; } = new Key();
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string CreatorKeyField { get; set; } = string.Empty;
+    public List<Common.Models.SimulationStep> Steps { get; set; } = new();
+    public bool IsDeleted { get; set; }
+    public bool IsDisabled { get; set; }
+    public DateTime DateCreated { get; set; }
+    public DateTime? DateModified { get; set; }
+}
+
+public class GetAllSimulationsPagedQueryResult : QueryResult
+{
+    public PagedResult<SimulationDto> Result { get; set; } = new();
+}
+
+/// <summary>Single simulation by KeyField, with deserialized steps.</summary>
+public class GetSimulationByKeyFieldQuery : Query
+{
+    public string KeyField { get; set; } = string.Empty;
+}
+
+public class GetSimulationByKeyFieldQueryResult : QueryResult
+{
+    public SimulationDto? Simulation { get; set; }
+}
+
+/// <summary>Server-side paged list of roadmaps with optional includeArchived flag.</summary>
+public class GetAllRoadmapsPagedQuery : PagedQuery
+{
+    public bool IncludeArchived { get; set; } = false;
+}
+
+public class RoadmapDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public int Version { get; set; }
+    public DateTime DateCreated { get; set; }
+    public DateTime? LastUpdatedAt { get; set; }
+    public string? CreatedBy { get; set; }
+    public string? LastUpdatedBy { get; set; }
+    public bool IsArchived { get; set; }
+}
+
+public class GetAllRoadmapsPagedQueryResult : QueryResult
+{
+    public PagedResult<RoadmapDto> Result { get; set; } = new();
 }

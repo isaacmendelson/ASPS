@@ -1,0 +1,34 @@
+<div class="page-header">
+  <div class="page-header-row">
+    <div>
+      <h1 class="page-title">Device Alerts</h1>
+      <p class="page-subtitle">Real-time security alerts from all monitored devices.</p>
+    </div>
+
+    <div class="time-range-buttons" role="group" aria-label="Filter alerts by time range">
+      @for (option of timeRangeOptions; track option.value) {
+        <button
+          mat-stroked-button
+          [class.active]="state.timeRange() === option.value"
+          (click)="onTimeRangeChange(option.value)"
+          [attr.aria-pressed]="state.timeRange() === option.value">
+          {{ option.label }}
+        </button>
+      }
+    </div>
+  </div>
+</div>
+
+<app-paged-table
+  [columns]="columns"
+  [items]="state.alerts"
+  [totalCount]="state.totalCount"
+  [loading]="state.loading"
+  [page]="state.page"
+  [pageSize]="state.pageSize"
+  searchPlaceholder="Search by alert type, device or user..."
+  (pageChange)="onPageChange($event)"
+  (sortChange)="onSortChange($event)"
+  (searchChange)="onSearchChange($event)"
+  (rowClick)="onRowClick($event)">
+</app-paged-table>

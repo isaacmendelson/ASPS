@@ -1,0 +1,26 @@
+.page-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.time-range-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+
+  button {
+    min-width: 56px;
+    font-size: 13px;
+    font-weight: 600;
+
+    &.active {
+      background-color: var(--navy);
+      color: #fff;
+      border-color: var(--navy);
+    }
+  }
+}

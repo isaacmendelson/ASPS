@@ -101,6 +101,24 @@ services:
     volumes:
       - curve_public_keys:/app/public-keys:ro
 
+  angular-admin:
+    build:
+      context: ./apps/admin/angular
+      dockerfile: Dockerfile
+    container_name: asps-angular-admin
+    restart: unless-stopped
+    depends_on:
+      - webapi
+    environment:
+      API_URL: http://localhost:8080
+      KEYCLOAK_URL: http://localhost:8081
+      KEYCLOAK_REALM: asps
+      KEYCLOAK_CLIENT_ID: asps-angular-admin
+    ports:
+      - "4201:80"
+    networks:
+      - asps-network
+
   analyzer:
     build:
       context: .

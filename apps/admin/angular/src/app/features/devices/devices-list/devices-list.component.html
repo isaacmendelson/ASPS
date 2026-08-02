@@ -1,0 +1,18 @@
+<div class="page-header">
+  <h1 class="page-title">Devices</h1>
+  <p class="page-subtitle">All registered devices across all users.</p>
+</div>
+
+<app-paged-table
+  [columns]="columns"
+  [items]="state.devices"
+  [totalCount]="state.totalCount"
+  [loading]="state.loading"
+  [page]="state.page"
+  [pageSize]="state.pageSize"
+  searchPlaceholder="Search by UID, owner or type..."
+  (pageChange)="onPageChange($event)"
+  (sortChange)="onSortChange($event)"
+  (searchChange)="onSearchChange($event)"
+  (rowClick)="onRowClick($event)">
+</app-paged-table>

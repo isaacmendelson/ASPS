@@ -1,0 +1,30 @@
+<mat-toolbar class="topbar" role="banner">
+  <button
+    mat-icon-button
+    (click)="menuToggle.emit()"
+    aria-label="Toggle navigation menu"
+    class="menu-toggle">
+    <mat-icon aria-hidden="true">menu</mat-icon>
+  </button>
+
+  <span class="topbar-title" aria-label="ASPS Admin">ASPS Admin</span>
+
+  <span class="spacer"></span>
+
+  <button
+    mat-button
+    [matMenuTriggerFor]="userMenu"
+    aria-label="User menu"
+    class="user-menu-btn">
+    <mat-icon aria-hidden="true">account_circle</mat-icon>
+    <span class="username">{{ username }}</span>
+    <mat-icon aria-hidden="true">arrow_drop_down</mat-icon>
+  </button>
+
+  <mat-menu #userMenu="matMenu">
+    <button mat-menu-item (click)="logout()" aria-label="Sign out">
+      <mat-icon aria-hidden="true">logout</mat-icon>
+      <span>Sign out</span>
+    </button>
+  </mat-menu>
+</mat-toolbar>

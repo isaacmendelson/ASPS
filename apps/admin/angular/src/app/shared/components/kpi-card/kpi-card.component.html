@@ -1,0 +1,22 @@
+<div
+  class="stat-card"
+  [class]="'stat-card border-' + color"
+  [attr.role]="routerLink ? 'link' : null"
+  [routerLink]="routerLink">
+
+  @if (loading()) {
+    <div class="skeleton-label"></div>
+    <div class="skeleton-value"></div>
+    <div class="skeleton-meta"></div>
+  } @else {
+    <div class="card-label">{{ label }}</div>
+    <div class="card-value" aria-live="polite">{{ value() }}</div>
+    @if (meta) {
+      <div class="card-meta">{{ meta }}</div>
+    }
+  }
+
+  <div class="card-icon" aria-hidden="true">
+    <mat-icon>{{ icon }}</mat-icon>
+  </div>
+</div>

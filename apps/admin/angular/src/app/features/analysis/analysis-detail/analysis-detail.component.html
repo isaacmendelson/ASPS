@@ -1,0 +1,78 @@
+<!-- Back navigation -->
+<div class="page-header">
+  <a routerLink="/analysis" class="back-link" aria-label="Back to analysis list">
+    <mat-icon aria-hidden="true">arrow_back</mat-icon>
+    Analysis Results
+  </a>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" aria-label="Loading analysis details"></mat-progress-bar>
+  } @else if (result()) {
+    <h1 class="page-title">{{ result()!.discriminator }}</h1>
+    <p class="page-subtitle">{{ result()!.timestamp | date: 'dd/MM/yyyy HH:mm' }}</p>
+  } @else {
+    <p class="page-subtitle">Analysis result not found.</p>
+  }
+</div>
+
+@if (result()) {
+  <div class="detail-grid">
+
+    <!-- ── Result Summary ─────────────────────────────────────────────────── -->
+    <div class="info-card">
+      <h2 class="section-title">Summary</h2>
+      <dl class="detail-list">
+        <dt>Type</dt>
+        <dd>{{ result()!.discriminator }}</dd>
+
+        <dt>Timestamp</dt>
+        <dd>{{ result()!.timestamp | date: 'dd/MM/yyyy HH:mm:ss' }}</dd>
+
+        <dt>From Cache</dt>
+        <dd>{{ result()!.isFromCache ? 'Yes' : 'No' }}</dd>
+
+        <dt>Has Error</dt>
+        <dd [class.error-text]="result()!.hasError">{{ result()!.hasError ? 'Yes' : 'No' }}</dd>
+
+        @if (result()!.errorMessage) {
+          <dt>Error</dt>
+          <dd class="error-text">{{ result()!.errorMessage }}</dd>
+        }
+
+        @if (result()!.url) {
+          <dt>URL</dt>
+          <dd>
+            <a [href]="result()!.url" target="_blank" rel="noopener noreferrer" class="url-link">
+              {{ result()!.url }}
+            </a>
+          </dd>
+        }
+      </dl>
+    </div>
+
+    <!-- ── References ─────────────────────────────────────────────────────── -->
+    <div class="info-card">
+      <h2 class="section-title">References</h2>
+      <dl class="detail-list">
+        @if (result()!.userKey) {
+          <dt>User</dt>
+          <dd>{{ result()!.userKey!.type }}: {{ result()!.userKey!.value }}</dd>
+        }
+
+        @if (result()!.deviceAlertKey) {
+          <dt>Alert</dt>
+          <dd>{{ result()!.deviceAlertKey!.type }}: {{ result()!.deviceAlertKey!.value }}</dd>
+        }
+      </dl>
+    </div>
+
+    <!-- ── JSON Payload ───────────────────────────────────────────────────── -->
+    @if (prettyJson()) {
+      <div class="info-card full-width">
+        <h2 class="section-title">Payload</h2>
+        <pre class="json-pre" role="region" aria-label="Analysis JSON payload">{{ prettyJson() }}</pre>
+      </div>
+    }
+
+  </div>
+}

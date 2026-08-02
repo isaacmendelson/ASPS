@@ -1,0 +1,6 @@
+{
+  "apiUrl": "http://localhost:5001",
+  "keycloakUrl": "http://localhost:8180",
+  "keycloakRealm": "asps",
+  "keycloakClientId": "asps-angular-admin"
+}

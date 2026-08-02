@@ -120,6 +120,14 @@ Whenever a session reveals durable learning:
 - Convert relative dates to absolute when saving to memory ("Thursday" → "2026-03-05")
 - Use `git log --oneline -5` to anchor "what's recent" rather than guessing
 
+## SAS is the Source of Truth
+The **S**pec–**A**rchitecture–**S**tory chain is the single source of truth for all work.
+
+1. **No Epic without architecture reference.** Every Epic must link to an architecture doc or ADR that justifies it.
+2. **No Story without requirement IDs.** Every Story/Task must trace back to spec section IDs or acceptance criteria from the requirement source.
+3. **ADR required for architecture changes.** Any change that alters system boundaries, auth schemes, data contracts, or cross-component interfaces must have an ADR (proposed → accepted) before implementation begins.
+4. **Keep docs synchronized with implementation.** When code diverges from the spec or architecture doc, update the doc in the same phase — not "later." Stale docs are worse than no docs.
+
 ## Sub-Agent Spawn Rules
 - Default to **hat-mode** for trivial work
 - Spawn real sub-agent (`Agent` tool) when:
