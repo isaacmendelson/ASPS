@@ -1,0 +1,16 @@
+<mat-sidenav-container class="sidenav-container" fullscreen>
+  <mat-sidenav
+    #sidenav
+    [mode]="isDesktop() ? 'side' : 'over'"
+    [opened]="isDesktop()"
+    class="sidebar-drawer">
+    <app-sidebar></app-sidebar>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="main-sidenav-content">
+    <app-topbar (menuToggle)="sidenav.toggle()"></app-topbar>
+    <main class="main-content" role="main">
+      <router-outlet></router-outlet>
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

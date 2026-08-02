@@ -1,0 +1,48 @@
+:host {
+  display: block;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.topbar {
+  height: 64px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7ef;
+  box-shadow: 0 1px 8px rgba(26, 34, 85, 0.06);
+  padding: 0 16px 0 8px;
+  gap: 8px;
+}
+
+.menu-toggle {
+  color: var(--navy);
+  flex-shrink: 0;
+}
+
+.topbar-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--navy);
+  white-space: nowrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.user-menu-btn {
+  color: var(--navy);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 500;
+
+  .username {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
