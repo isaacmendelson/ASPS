@@ -1,0 +1,31 @@
+<div class="page-header">
+  <div class="page-header-row">
+    <div>
+      <h1 class="page-title">Users</h1>
+      <p class="page-subtitle">Manage registered users and their devices.</p>
+    </div>
+    <button
+      mat-flat-button
+      color="primary"
+      data-testid="add-user-btn"
+      aria-label="Add a new user"
+      (click)="openAddUserDialog()">
+      <mat-icon aria-hidden="true">person_add</mat-icon>
+      Add User
+    </button>
+  </div>
+</div>
+
+<app-paged-table
+  [columns]="columns"
+  [items]="state.users"
+  [totalCount]="state.totalCount"
+  [loading]="state.loading"
+  [page]="state.page"
+  [pageSize]="state.pageSize"
+  searchPlaceholder="Search by name or email..."
+  (pageChange)="onPageChange($event)"
+  (sortChange)="onSortChange($event)"
+  (searchChange)="onSearchChange($event)"
+  (rowClick)="onRowClick($event)">
+</app-paged-table>

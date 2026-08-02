@@ -4,7 +4,7 @@
   [attr.role]="routerLink ? 'link' : null"
   [routerLink]="routerLink">
 
-  @if (loading && loading()) {
+  @if (loading()) {
     <div class="skeleton-label"></div>
     <div class="skeleton-value"></div>
     <div class="skeleton-meta"></div>

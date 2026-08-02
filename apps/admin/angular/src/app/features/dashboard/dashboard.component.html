@@ -1,0 +1,105 @@
+<div class="page-header">
+  <h1 class="page-title">Dashboard</h1>
+  <p class="page-subtitle">ASPS system overview and recent activity.</p>
+</div>
+
+<!-- KPI Cards -->
+<div class="kpi-grid" role="region" aria-label="System statistics">
+  <app-kpi-card
+    label="Total Users"
+    [value]="totalUsers"
+    meta="Registered users"
+    icon="people"
+    color="blue"
+    routerLink="/users"
+    [loading]="loading">
+  </app-kpi-card>
+
+  <app-kpi-card
+    label="Total Devices"
+    [value]="totalDevices"
+    meta="Registered devices"
+    icon="devices"
+    color="green"
+    routerLink="/devices"
+    [loading]="loading">
+  </app-kpi-card>
+
+  <app-kpi-card
+    label="Active Alerts (24h)"
+    [value]="activeAlerts"
+    meta="New in last 24 hours"
+    icon="notifications_active"
+    color="amber"
+    routerLink="/alerts"
+    [loading]="loading">
+  </app-kpi-card>
+
+  <app-kpi-card
+    label="Analysis Results"
+    [value]="analysisResults"
+    meta="Total analyses run"
+    icon="analytics"
+    color="red"
+    routerLink="/analysis"
+    [loading]="loading">
+  </app-kpi-card>
+</div>
+
+<!-- System Status -->
+<div class="dashboard-row">
+  <div class="dashboard-card system-status-card">
+    <h2 class="card-section-title">System Status</h2>
+    <div data-testid="system-status" class="status-row">
+      @if (loading()) {
+        <span class="status-pill warning" role="status">Checking...</span>
+      } @else if (systemStatus() === 'ok') {
+        <span class="status-pill ok" role="status">
+          <mat-icon aria-hidden="true">check_circle</mat-icon>
+          All systems operational
+        </span>
+      } @else if (systemStatus() === 'warning') {
+        <span class="status-pill warning" role="status">
+          <mat-icon aria-hidden="true">warning</mat-icon>
+          Degraded performance
+        </span>
+      } @else {
+        <span class="status-pill danger" role="status">
+          <mat-icon aria-hidden="true">error</mat-icon>
+          System error
+        </span>
+      }
+    </div>
+  </div>
+
+  <!-- Recent Alerts -->
+  <div class="dashboard-card recent-alerts-card">
+    <div class="card-section-header">
+      <h2 class="card-section-title">Recent Alerts</h2>
+      <a routerLink="/alerts" class="view-all-link" aria-label="View all alerts">View all</a>
+    </div>
+
+    @if (hasAlerts()) {
+      <ul class="alert-list" aria-label="Recent device alerts">
+        @for (alert of recentAlerts(); track alert.key.value) {
+          <li class="alert-item">
+            <div class="alert-info">
+              <span class="alert-title">{{ alert.title }}</span>
+              <span class="alert-time">{{ alert.dateCreated | date: 'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+            <span [class]="getSeverityClass(alert)" role="img"
+                  [attr.aria-label]="alert.severity + ' severity'">
+              {{ alert.severity }}
+            </span>
+          </li>
+        }
+      </ul>
+    } @else {
+      <app-empty-state
+        icon="notifications_none"
+        title="No recent alerts"
+        message="No new alerts in the last 24 hours.">
+      </app-empty-state>
+    }
+  </div>
+</div>

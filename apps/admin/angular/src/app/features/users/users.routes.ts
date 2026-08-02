@@ -8,4 +8,11 @@ export const USERS_ROUTES: Routes = [
         c => c.UsersListComponent
       ),
   },
+  {
+    path: ':keyType/:keyValue',
+    loadComponent: () =>
+      import('./user-detail/user-detail.component').then(
+        c => c.UserDetailComponent
+      ),
+  },
 ];
