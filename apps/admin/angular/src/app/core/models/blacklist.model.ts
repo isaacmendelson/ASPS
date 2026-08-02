@@ -1,44 +1,91 @@
-import { Key } from './key.model';
-import { CautionLevel, TrackMode } from './enums';
+// Mirrors backend DTOs in WebApi.Controllers.Api.Blacklists.BlacklistDtos
+// Updated for ASPS-654 to match actual backend shapes from ASPS-648.
 
 export interface PhishingWebsite {
-  key: Key;
+  id: number;
   url: string;
   domain: string;
-  cautionLevel: CautionLevel;
-  dateAdded: string;
-  addedBy?: string;
+  source?: string;
+  dateCreated: string;
+  isActive: boolean;
 }
 
 export interface BlacklistedPhoneNumber {
-  key: Key;
+  id: number;
   phoneNumber: string;
-  cautionLevel: CautionLevel;
-  description?: string;
-  dateAdded: string;
+  source?: string;
+  notes?: string;
+  dateCreated: string;
+  isDeleted: boolean;
 }
 
 export interface BankWebsite {
-  key: Key;
-  url: string;
+  id: number;
+  domain: string;
   bankName: string;
   country?: string;
-  dateAdded: string;
+  isActive: boolean;
+  dateCreated: string;
+  dateModified?: string;
 }
 
 export interface WebsiteCategory {
-  key: Key;
+  key: string;
   name: string;
-  description?: string;
-  trackMode: TrackMode;
-  cautionLevel: CautionLevel;
+  parentId?: string;
+  parentName?: string;
+  source?: string;
   dateCreated: string;
+  isDeleted: boolean;
+}
+
+export interface CreateWebsiteCategoryRequest {
+  name: string;
+  parentId?: string;
+  source?: string;
+}
+
+export interface UpdateWebsiteCategoryRequest {
+  parentId?: string;
+  source?: string;
 }
 
 export interface TrackedDomain {
-  key: Key;
+  id: number;
   domain: string;
-  categoryKey?: Key;
-  cautionLevel: CautionLevel;
-  dateAdded: string;
+  category: string;
+  userKey?: string;
+  scamInProgressKey?: string;
+  analysisKey?: string;
+  trackMode: number;
+  reason?: string;
+  isActive: boolean;
+  dateCreated: string;
+  dateModified: string;
+}
+
+export interface CreateTrackedDomainRequest {
+  domain: string;
+  category: string;
+  userKeyField?: string;
+  scamInProgressKey?: string;
+  analysisKey?: string;
+  trackMode: number;
+  reason?: string;
+  notifyAllUsers: boolean;
+}
+
+export interface UpdateTrackedDomainRequest {
+  domain?: string;
+  category?: string;
+  userKeyField?: string;
+  scamInProgressKey?: string;
+  trackMode: number;
+  isActive: boolean;
+  reason?: string;
+}
+
+export interface NotifyUserRequest {
+  userKeyField: string;
+  reason?: string;
 }

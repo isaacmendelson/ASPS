@@ -29,6 +29,20 @@ export const BLACKLISTS_ROUTES: Routes = [
       ),
   },
   {
+    path: 'categories/new',
+    loadComponent: () =>
+      import('./categories/category-form/category-form.component').then(
+        c => c.CategoryFormComponent
+      ),
+  },
+  {
+    path: 'categories/:name/edit',
+    loadComponent: () =>
+      import('./categories/category-form/category-form.component').then(
+        c => c.CategoryFormComponent
+      ),
+  },
+  {
     path: 'domains',
     loadComponent: () =>
       import('./domains/domains-list/domains-list.component').then(
