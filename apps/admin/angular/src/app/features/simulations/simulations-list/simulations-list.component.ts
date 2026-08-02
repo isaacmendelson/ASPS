@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -41,7 +41,7 @@ import { Simulation } from '@core/models/simulation.model';
 
     <app-paged-table
       [columns]="columns"
-      [items]="state.simulations"
+      [items]="mappedSimulations"
       [totalCount]="state.totalCount"
       [loading]="state.loading"
       [page]="state.page"
@@ -105,11 +105,20 @@ export class SimulationsListComponent implements OnInit {
 
   readonly selectedSimulation = signal<Simulation | null>(null);
 
+  readonly mappedSimulations = computed(() =>
+    this.state.simulations().map(s => ({
+      ...s,
+      stepCount: s.steps?.length ?? 0,
+    }))
+  );
+
   columns: ColumnDef[] = [
     { key: 'name', header: 'Name', sortable: true, type: 'text' },
     { key: 'description', header: 'Description', sortable: false, type: 'text' },
+    { key: 'creatorKeyField', header: 'Creator', sortable: false, type: 'text' },
+    { key: 'stepCount', header: 'Steps', sortable: false, type: 'text' },
     { key: 'status', header: 'Status', sortable: true, type: 'text' },
-    { key: 'dateCreated', header: 'Date Created', sortable: true, type: 'date' },
+    { key: 'dateCreated', header: 'Created', sortable: true, type: 'date' },
   ];
 
   ngOnInit(): void {

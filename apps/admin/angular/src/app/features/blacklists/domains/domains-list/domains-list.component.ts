@@ -147,8 +147,11 @@ export class DomainsListComponent implements OnInit {
     { key: 'domain', header: 'Domain', sortable: true, type: 'text' },
     { key: 'category', header: 'Category', sortable: true, type: 'text' },
     { key: 'trackMode', header: 'Track Mode', sortable: false, type: 'text' },
+    { key: 'userKey', header: 'User Key', sortable: false, type: 'text' },
+    { key: 'reason', header: 'Reason', sortable: false, type: 'text' },
     { key: 'isActive', header: 'Active', sortable: false, type: 'text' },
-    { key: 'dateCreated', header: 'Date Added', sortable: true, type: 'date' },
+    { key: 'dateCreated', header: 'Date Created', sortable: true, type: 'date' },
+    { key: 'dateModified', header: 'Date Modified', sortable: true, type: 'date' },
   ];
 
   ngOnInit(): void {

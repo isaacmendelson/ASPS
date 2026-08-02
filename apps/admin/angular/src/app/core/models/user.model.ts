@@ -24,6 +24,9 @@ export interface User {
   email: string;
   role: UserRole;
   dateCreated: string;  // ISO 8601
+  city?: string;
+  state?: string;
+  phoneNumber?: string;
 }
 
 export interface UserWithDeviceCount extends User {

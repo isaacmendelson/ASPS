@@ -15,6 +15,9 @@ export interface AlertDto {
   userKey: Key;
   userName: string;
   analysisKey?: Key;
+  ipAddress?: string;
+  immediateDanger?: boolean;
+  url?: string;
 }
 
 /**

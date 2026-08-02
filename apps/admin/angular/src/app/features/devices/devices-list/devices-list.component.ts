@@ -25,9 +25,10 @@ export class DevicesListComponent implements OnInit {
     { key: 'deviceUid', header: 'UID', sortable: true, type: 'text' },
     { key: 'deviceType', header: 'Device Type', sortable: true, type: 'text' },
     { key: 'operatingSystem', header: 'OS', sortable: true, type: 'text' },
+    { key: 'model', header: 'Model', sortable: true, type: 'text' },
     { key: 'userName', header: 'Owner', sortable: true, type: 'text' },
-    { key: 'monitoringStatus', header: 'Monitoring Status', sortable: true, type: 'text' },
-    { key: 'dateCreated', header: 'Date Created', sortable: true, type: 'date' },
+    { key: 'monitoringStatus', header: 'Status', sortable: true, type: 'text' },
+    { key: 'dateCreated', header: 'Added On', sortable: true, type: 'date' },
   ];
 
   ngOnInit(): void {

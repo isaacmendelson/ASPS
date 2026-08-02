@@ -30,17 +30,21 @@ export class UsersListComponent implements OnInit {
 
   columns: ColumnDef[] = [
     { key: 'fullName', header: 'Name', sortable: true, type: 'text' },
+    { key: 'keycloakUserId', header: 'Keycloak ID', sortable: false, type: 'text' },
+    { key: 'location', header: 'Location', sortable: false, type: 'text' },
+    { key: 'phoneNumber', header: 'Phone', sortable: false, type: 'text' },
     { key: 'email', header: 'Email', sortable: true, type: 'text' },
-    { key: 'deviceCount', header: 'Devices', sortable: false, type: 'text' },
     { key: 'role', header: 'Role', sortable: false, type: 'text' },
+    { key: 'deviceCount', header: 'Devices', sortable: false, type: 'text' },
     { key: 'dateCreated', header: 'Created', sortable: true, type: 'date' },
   ];
 
-  /** Maps users to include a computed fullName for the Name column. */
+  /** Maps users to include computed fullName and location for the Name/Location columns. */
   readonly mappedUsers = computed(() =>
     this.state.users().map(u => ({
       ...u,
       fullName: `${u.firstName} ${u.lastName}`.trim(),
+      location: [u.city, u.state].filter(Boolean).join(', ') || '',
     }))
   );
 

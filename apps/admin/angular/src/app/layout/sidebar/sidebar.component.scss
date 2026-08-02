@@ -39,6 +39,11 @@
 
 // Mat list item overrides for sidebar
 ::ng-deep .sidebar mat-nav-list .mdc-list-item {
+  --mdc-list-list-item-label-text-color: rgba(255, 255, 255, 0.65);
+  --mdc-list-list-item-hover-label-text-color: #fff;
+  --mdc-list-list-item-focus-label-text-color: #fff;
+  --mdc-list-list-item-leading-icon-color: rgba(255, 255, 255, 0.65);
+  --mdc-list-list-item-hover-leading-icon-color: #fff;
   color: rgba(255, 255, 255, 0.65) !important;
   margin: 2px 10px;
   border-radius: 8px;
@@ -46,12 +51,18 @@
   font-weight: 500;
   transition: all 0.2s;
 
+  .mdc-list-item__primary-text {
+    color: inherit !important;
+  }
+
   &:hover {
     background: rgba(255, 255, 255, 0.08) !important;
     color: #fff !important;
   }
 
   &.active {
+    --mdc-list-list-item-label-text-color: #fff;
+    --mdc-list-list-item-leading-icon-color: #fff;
     background: var(--green) !important;
     color: #fff !important;
     box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35);
@@ -91,9 +102,21 @@
     font-size: 14px;
     font-weight: 500;
 
+    .mat-expansion-panel-header-title {
+      color: rgba(255, 255, 255, 0.65) !important;
+    }
+
+    .mat-expansion-indicator::after {
+      color: rgba(255, 255, 255, 0.65);
+    }
+
     &:hover {
       background: rgba(255, 255, 255, 0.08) !important;
       color: #fff !important;
+
+      .mat-expansion-panel-header-title {
+        color: #fff !important;
+      }
     }
 
     mat-icon {
@@ -113,8 +136,14 @@
   padding: 0 0 0 16px !important;
 
   ::ng-deep .mdc-list-item {
+    --mdc-list-list-item-label-text-color: rgba(255, 255, 255, 0.65);
+    --mdc-list-list-item-hover-label-text-color: #fff;
     font-size: 13px !important;
     height: 36px !important;
+
+    .mdc-list-item__primary-text {
+      color: inherit !important;
+    }
   }
 }
 

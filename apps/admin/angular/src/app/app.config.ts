@@ -30,8 +30,7 @@ function initializeKeycloak(
         },
         initOptions: {
           onLoad: 'check-sso',
-          silentCheckSsoRedirectUri:
-            window.location.origin + '/assets/silent-check-sso.html',
+          silentCheckSsoFallback: false,
           checkLoginIframe: false,
           pkceMethod: 'S256',
         },
