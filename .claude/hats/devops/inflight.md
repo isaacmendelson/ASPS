@@ -1,6 +1,6 @@
 # DevOps In-Flight Work
 
-**Last updated:** 2026-07-30
+**Last updated:** 2026-08-02
 
 ## ASPS-626 — Reproducible build/test baselines
 
@@ -14,6 +14,17 @@
 - SDK conflict resolved: global.json pins 9.0.308 (host); Dockerfiles pin SDK 8.0.423 (container).
 - All changes committed to branch `ASPS-626-reproducible-build-test-baselines`.
 - Ready for independent QA review. DevOps must remediate any QA FAIL before resubmission.
+
+## ASPS-656 — Angular Admin Docker container (nginx)
+
+- Branch: `asps-642-angular-admin-client` (worktree commit b7b3845)
+- Dockerfile rewritten for `context: ./apps/admin/angular` (self-contained, local COPY paths)
+- Node base pinned to `node:20-alpine`; nginx pinned to `nginx:1.27-alpine`
+- Build output path corrected: `dist/angular/browser` (Angular 18 application builder)
+- nginx.conf: added `/api/` proxy pass and `/notificationshub` SignalR WebSocket proxy to `webapi:8080`
+- docker-compose: added `angular-admin` service on port 4201, `asps-network`
+- `.dockerignore` created: excludes `node_modules`, `dist`, `.angular`, `.git`
+- Status: committed to worktree branch, ready for merge to `asps-642-angular-admin-client`
 
 ## Docker stack stabilization
 
