@@ -8,4 +8,11 @@ export const ANALYSIS_ROUTES: Routes = [
         c => c.AnalysisListComponent
       ),
   },
+  {
+    path: ':keyType/:keyValue',
+    loadComponent: () =>
+      import('./analysis-detail/analysis-detail.component').then(
+        c => c.AnalysisDetailComponent
+      ),
+  },
 ];

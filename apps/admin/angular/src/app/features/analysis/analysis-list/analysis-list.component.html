@@ -1,0 +1,18 @@
+<div class="page-header">
+  <h1 class="page-title">Analysis Results</h1>
+  <p class="page-subtitle">AI analysis results linked to device alerts.</p>
+</div>
+
+<app-paged-table
+  [columns]="columns"
+  [items]="items"
+  [totalCount]="totalCount"
+  [loading]="loading"
+  [page]="page"
+  [pageSize]="pageSize"
+  searchPlaceholder="Search by type or URL..."
+  (pageChange)="onPageChange($event)"
+  (sortChange)="onSortChange($event)"
+  (searchChange)="onSearchChange($event)"
+  (rowClick)="onRowClick($event)">
+</app-paged-table>

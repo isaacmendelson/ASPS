@@ -8,4 +8,11 @@ export const DEVICES_ROUTES: Routes = [
         c => c.DevicesListComponent
       ),
   },
+  {
+    path: ':keyType/:keyValue',
+    loadComponent: () =>
+      import('./device-detail/device-detail.component').then(
+        c => c.DeviceDetailComponent
+      ),
+  },
 ];
