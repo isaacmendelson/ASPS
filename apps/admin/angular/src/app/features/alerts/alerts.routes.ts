@@ -8,4 +8,11 @@ export const ALERTS_ROUTES: Routes = [
         c => c.AlertsListComponent
       ),
   },
+  {
+    path: ':keyType/:keyValue',
+    loadComponent: () =>
+      import('./alert-detail/alert-detail.component').then(
+        c => c.AlertDetailComponent
+      ),
+  },
 ];

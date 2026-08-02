@@ -1,0 +1,95 @@
+<!-- Back navigation -->
+<div class="page-header">
+  <a routerLink="/devices" class="back-link" aria-label="Back to devices list">
+    <mat-icon aria-hidden="true">arrow_back</mat-icon>
+    Devices
+  </a>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" aria-label="Loading device details"></mat-progress-bar>
+  } @else if (device()) {
+    <h1 class="page-title">{{ device()!.deviceUid }}</h1>
+    <p class="page-subtitle">{{ device()!.deviceType }} &mdash; {{ device()!.operatingSystem }}</p>
+  } @else {
+    <p class="page-subtitle">Device not found.</p>
+  }
+</div>
+
+@if (device()) {
+  <mat-tab-group animationDuration="150ms" aria-label="Device detail tabs">
+
+    <!-- ── Info Tab ──────────────────────────────────────────────────────────── -->
+    <mat-tab label="Info">
+      <div class="tab-content">
+        <div class="info-grid">
+          <div class="info-card">
+            <h2 class="section-title">Device Details</h2>
+            <dl class="detail-list">
+              <dt>UID</dt>
+              <dd>{{ device()!.deviceUid }}</dd>
+
+              <dt>Type</dt>
+              <dd>{{ device()!.deviceType }}</dd>
+
+              <dt>Operating System</dt>
+              <dd>{{ device()!.operatingSystem }}</dd>
+
+              <dt>Monitoring Status</dt>
+              <dd>
+                <span [class]="device()!.monitoringStatus === 'Enabled' ? 'status-pill ok' : 'status-pill'">
+                  {{ device()!.monitoringStatus }}
+                </span>
+              </dd>
+
+              @if (device()!.make) {
+                <dt>Make</dt>
+                <dd>{{ device()!.make }}</dd>
+              }
+
+              @if (device()!.model) {
+                <dt>Model</dt>
+                <dd>{{ device()!.model }}</dd>
+              }
+
+              @if (device()!.mac) {
+                <dt>MAC Address</dt>
+                <dd>{{ device()!.mac }}</dd>
+              }
+
+              <dt>Date Created</dt>
+              <dd>{{ device()!.dateCreated | date: 'dd/MM/yyyy HH:mm' }}</dd>
+            </dl>
+          </div>
+
+          <div class="info-card">
+            <h2 class="section-title">Owner</h2>
+            <dl class="detail-list">
+              <dt>Name</dt>
+              <dd>{{ device()!.userName }}</dd>
+              <dt>User Key</dt>
+              <dd>{{ device()!.userKey.type }}: {{ device()!.userKey.value }}</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- ── Alerts Tab ────────────────────────────────────────────────────────── -->
+    <mat-tab label="Alert History">
+      <div class="tab-content">
+        <app-paged-table
+          [columns]="alertColumns"
+          [items]="alertsItems"
+          [totalCount]="alertsTotalCount"
+          [loading]="alertsLoading"
+          [page]="alertsPage"
+          [pageSize]="alertsPageSize"
+          [showSearch]="false"
+          (pageChange)="onAlertsPageChange($event)"
+          (sortChange)="onAlertSort($event)">
+        </app-paged-table>
+      </div>
+    </mat-tab>
+
+  </mat-tab-group>
+}

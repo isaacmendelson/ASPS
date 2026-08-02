@@ -1,0 +1,112 @@
+<!-- Back navigation -->
+<div class="page-header">
+  <a routerLink="/alerts" class="back-link" aria-label="Back to alerts list">
+    <mat-icon aria-hidden="true">arrow_back</mat-icon>
+    Alerts
+  </a>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" aria-label="Loading alert details"></mat-progress-bar>
+  } @else if (alert()) {
+    <h1 class="page-title">{{ alert()!.alertType }}</h1>
+    <p class="page-subtitle">{{ alert()!.timestamp | date: 'dd/MM/yyyy HH:mm' }}</p>
+  } @else {
+    <p class="page-subtitle">Alert not found.</p>
+  }
+</div>
+
+@if (alert()) {
+  <div class="detail-grid">
+
+    <!-- ── Alert Info ─────────────────────────────────────────────────────── -->
+    <div class="info-card">
+      <h2 class="section-title">Alert Details</h2>
+      <dl class="detail-list">
+        <dt>Type</dt>
+        <dd>{{ alert()!.alertType }}</dd>
+
+        <dt>Severity</dt>
+        <dd>
+          <span [class]="severityClass(alert()!.priority)">{{ alert()!.priority }}</span>
+        </dd>
+
+        <dt>Status</dt>
+        <dd>{{ alert()!.status }}</dd>
+
+        <dt>Timestamp</dt>
+        <dd>{{ alert()!.timestamp | date: 'dd/MM/yyyy HH:mm:ss' }}</dd>
+      </dl>
+    </div>
+
+    <!-- ── Device Info ────────────────────────────────────────────────────── -->
+    <div class="info-card">
+      <h2 class="section-title">Device</h2>
+      <dl class="detail-list">
+        <dt>UID</dt>
+        <dd>{{ alert()!.deviceUid }}</dd>
+
+        <dt>Type</dt>
+        <dd>{{ alert()!.deviceType }}</dd>
+
+        <dt>OS</dt>
+        <dd>{{ alert()!.operatingSystem }}</dd>
+      </dl>
+    </div>
+
+    <!-- ── User Info ──────────────────────────────────────────────────────── -->
+    <div class="info-card">
+      <h2 class="section-title">User</h2>
+      <dl class="detail-list">
+        <dt>Name</dt>
+        <dd>{{ alert()!.userName }}</dd>
+
+        <dt>User Key</dt>
+        <dd>{{ alert()!.userKey.type }}: {{ alert()!.userKey.value }}</dd>
+      </dl>
+    </div>
+
+    <!-- ── Linked Analysis ────────────────────────────────────────────────── -->
+    <div class="info-card full-width">
+      <h2 class="section-title">Analysis</h2>
+
+      @if (analysisLoading()) {
+        <mat-progress-bar mode="indeterminate" aria-label="Loading analysis"></mat-progress-bar>
+      } @else if (analysis()) {
+        <dl class="detail-list">
+          <dt>Type</dt>
+          <dd>{{ analysis()!.discriminator }}</dd>
+
+          <dt>Has Error</dt>
+          <dd>{{ analysis()!.hasError ? 'Yes' : 'No' }}</dd>
+
+          @if (analysis()!.errorMessage) {
+            <dt>Error</dt>
+            <dd class="error-text">{{ analysis()!.errorMessage }}</dd>
+          }
+
+          @if (analysis()!.url) {
+            <dt>URL</dt>
+            <dd><a [href]="analysis()!.url" target="_blank" rel="noopener noreferrer">{{ analysis()!.url }}</a></dd>
+          }
+
+          <dt>Timestamp</dt>
+          <dd>{{ analysis()!.timestamp | date: 'dd/MM/yyyy HH:mm:ss' }}</dd>
+        </dl>
+
+        @if (analysis()!.jsonValue) {
+          <div class="json-viewer" role="region" aria-label="Analysis JSON payload">
+            <h3 class="json-title">Payload</h3>
+            <pre class="json-pre">{{ analysis()!.jsonValue }}</pre>
+          </div>
+        }
+      } @else {
+        <app-empty-state
+          icon="analytics"
+          title="No analysis"
+          message="No analysis result is linked to this alert.">
+        </app-empty-state>
+      }
+    </div>
+
+  </div>
+}

@@ -1,14 +1,15 @@
 import { Key } from './key.model';
-import { AnalysisStatus, Severity } from './enums';
 
+/** Matches the backend AnalysisResultDto returned by GET /api/analysis-results */
 export interface AnalysisResult {
   key: Key;
-  deviceKey: Key;
-  userKey: Key;
-  url: string;
-  status: AnalysisStatus;
-  severity?: Severity;
-  summary?: string;
-  dateCreated: string;
-  dateCompleted?: string;
+  discriminator: string;
+  timestamp: string;
+  isFromCache: boolean;
+  hasError: boolean;
+  errorMessage?: string;
+  jsonValue?: string;
+  userKey?: Key;
+  deviceAlertKey?: Key;
+  url?: string;
 }
