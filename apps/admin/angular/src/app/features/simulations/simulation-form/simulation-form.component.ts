@@ -91,6 +91,7 @@ import {
             <p class="empty-steps" role="status">No steps yet. Add a step to define the simulation flow.</p>
           }
 
+          <ng-container formArrayName="steps">
           @for (step of steps.controls; track $index) {
             <div [formGroupName]="$index" class="step-form">
               <div class="step-header">
@@ -136,6 +137,7 @@ import {
               }
             </div>
           }
+          </ng-container>
         </mat-card-content>
       </mat-card>
 
