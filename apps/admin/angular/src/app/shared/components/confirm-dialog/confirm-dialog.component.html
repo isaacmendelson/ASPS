@@ -1,0 +1,22 @@
+<h2 mat-dialog-title>{{ data.title }}</h2>
+
+<mat-dialog-content>
+  <p>{{ data.message }}</p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button
+    mat-button
+    (click)="cancel()"
+    [attr.aria-label]="cancelText">
+    {{ cancelText }}
+  </button>
+  <button
+    mat-raised-button
+    [color]="confirmColor"
+    (click)="confirm()"
+    cdkFocusInitial
+    [attr.aria-label]="confirmText">
+    {{ confirmText }}
+  </button>
+</mat-dialog-actions>

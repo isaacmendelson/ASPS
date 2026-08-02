@@ -1,0 +1,208 @@
+@use '@angular/material' as mat;
+
+// Google Fonts — Inter (body) + Syne (headings, matching Razor admin)
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+
+// ─── Custom Material Palettes ────────────────────────────────────────────────
+
+$asps-navy: mat.m2-define-palette((
+  50:   #e4e5ec,
+  100:  #bbbdd0,
+  200:  #8d91b1,
+  300:  #5f6592,
+  400:  #3d447b,
+  500:  #1A2255,
+  600:  #171e4e,
+  700:  #131944,
+  800:  #0f143b,
+  900:  #080c2a,
+  contrast: (
+    50:  rgba(0,0,0,.87),
+    100: rgba(0,0,0,.87),
+    200: rgba(0,0,0,.87),
+    300: #fff,
+    400: #fff,
+    500: #fff,
+    600: #fff,
+    700: #fff,
+    800: #fff,
+    900: #fff,
+  )
+));
+
+$asps-green: mat.m2-define-palette((
+  50:   #e5f8eb,
+  100:  #beedce,
+  200:  #93e2ae,
+  300:  #67d78d,
+  400:  #47cf75,
+  500:  #22C55E,
+  600:  #1ebf56,
+  700:  #19b84c,
+  800:  #14b042,
+  900:  #0ca331,
+  contrast: (
+    50:  rgba(0,0,0,.87),
+    100: rgba(0,0,0,.87),
+    200: rgba(0,0,0,.87),
+    300: rgba(0,0,0,.87),
+    400: #fff,
+    500: #fff,
+    600: #fff,
+    700: #fff,
+    800: #fff,
+    900: #fff,
+  )
+));
+
+$asps-red: mat.m2-define-palette((
+  50:   #fef2f2,
+  100:  #fee2e2,
+  200:  #fecaca,
+  300:  #fca5a5,
+  400:  #f87171,
+  500:  #ef4444,
+  600:  #dc2626,
+  700:  #b91c1c,
+  800:  #991b1b,
+  900:  #7f1d1d,
+  contrast: (
+    50:  rgba(0,0,0,.87),
+    100: rgba(0,0,0,.87),
+    200: rgba(0,0,0,.87),
+    300: rgba(0,0,0,.87),
+    400: #fff,
+    500: #fff,
+    600: #fff,
+    700: #fff,
+    800: #fff,
+    900: #fff,
+  )
+));
+
+$asps-theme: mat.m2-define-light-theme((
+  color: (
+    primary: $asps-navy,
+    accent:  $asps-green,
+    warn:    $asps-red,
+  ),
+  typography: mat.m2-define-typography-config(
+    $font-family: '"Inter", sans-serif',
+  ),
+  density: 0,
+));
+
+@include mat.all-component-themes($asps-theme);
+
+// ─── CSS Custom Properties ───────────────────────────────────────────────────
+
+:root {
+  --navy:      #1A2255;
+  --navy-dark: #111740;
+  --green:     #22C55E;
+  --danger:    #ef4444;
+  --warning:   #f59e0b;
+  --sidebar-w: 260px;
+}
+
+// ─── Global Resets ───────────────────────────────────────────────────────────
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: #f0f2f8;
+  color: #111827;
+}
+
+// ─── Layout Utilities ────────────────────────────────────────────────────────
+
+.sidenav-container {
+  height: 100%;
+}
+
+.sidebar-drawer {
+  width: var(--sidebar-w);
+  background: var(--navy) !important;
+  border-right: none !important;
+}
+
+.main-sidenav-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.main-content {
+  padding: 24px 28px;
+  flex: 1;
+}
+
+// ─── Page Header ─────────────────────────────────────────────────────────────
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--navy);
+  margin: 0 0 4px;
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+// ─── Severity Badges (mirrors Razor admin .sev-badge) ────────────────────────
+
+.sev-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+
+  &.high     { background: rgba(239, 68, 68, 0.13); color: #dc2626; }
+  &.medium   { background: rgba(245, 158, 11, 0.13); color: #b45309; }
+  &.low      { background: rgba(34, 197, 94, 0.13); color: #15803d; }
+}
+
+// ─── Status Pills ────────────────────────────────────────────────────────────
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+
+  &.ok      { background: rgba(34, 197, 94, 0.12); color: #15803d; }
+  &.danger  { background: rgba(239, 68, 68, 0.12); color: #dc2626; }
+  &.warning { background: rgba(245, 158, 11, 0.12); color: #b45309; }
+}
+
+// ─── Snackbar Panels ─────────────────────────────────────────────────────────
+
+.snack-success .mdc-snackbar__surface { background: #15803d !important; }
+.snack-error   .mdc-snackbar__surface { background: #dc2626 !important; }
+.snack-warn    .mdc-snackbar__surface { background: #b45309 !important; }
+.snack-info    .mdc-snackbar__surface { background: var(--navy) !important; }
