@@ -1,0 +1,222 @@
+<!-- Back navigation -->
+<div class="page-header">
+  <a routerLink="/users" class="back-link" aria-label="Back to users list">
+    <mat-icon aria-hidden="true">arrow_back</mat-icon>
+    Users
+  </a>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" aria-label="Loading user details"></mat-progress-bar>
+  } @else if (user()) {
+    <h1 class="page-title user-name">{{ user()!.firstName }} {{ user()!.lastName }}</h1>
+    <p class="page-subtitle">{{ user()!.email }}</p>
+  } @else {
+    <p class="page-subtitle">User not found.</p>
+  }
+</div>
+
+@if (user()) {
+  <mat-tab-group animationDuration="150ms" aria-label="User detail tabs">
+
+    <!-- ── Profile Tab ───────────────────────────────────────────────────────── -->
+    <mat-tab label="Profile">
+      <div class="tab-content">
+        <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="profile-form"
+              aria-label="Edit user profile">
+
+          <div class="form-section">
+            <h2 class="section-title">Personal Information</h2>
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>First Name</mat-label>
+                <input matInput formControlName="firstName" aria-required="true" />
+                @if (profileForm.get('firstName')?.invalid && profileForm.get('firstName')?.touched) {
+                  <mat-error>First name is required.</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Last Name</mat-label>
+                <input matInput formControlName="lastName" aria-required="true" />
+                @if (profileForm.get('lastName')?.invalid && profileForm.get('lastName')?.touched) {
+                  <mat-error>Last name is required.</mat-error>
+                }
+              </mat-form-field>
+            </div>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Address</mat-label>
+              <input matInput formControlName="address" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>City</mat-label>
+              <input matInput formControlName="city" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Phone Number</mat-label>
+              <input matInput formControlName="phoneNumber" type="tel" />
+            </mat-form-field>
+          </div>
+
+          <div class="form-actions">
+            <button mat-flat-button color="primary" type="submit"
+                    [disabled]="savingProfile() || profileForm.invalid">
+              @if (savingProfile()) {
+                Saving...
+              } @else {
+                Save Changes
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </mat-tab>
+
+    <!-- ── Devices Tab ───────────────────────────────────────────────────────── -->
+    <mat-tab label="Devices">
+      <div class="tab-content">
+        <app-paged-table
+          [columns]="deviceColumns"
+          [items]="devicesItems"
+          [totalCount]="devicesTotalCount"
+          [loading]="devicesLoading"
+          [page]="devicesPage"
+          [pageSize]="devicesPageSize"
+          [showSearch]="false"
+          (pageChange)="onDevicesPageChange($event)"
+          (sortChange)="onDeviceSort($event)">
+        </app-paged-table>
+      </div>
+    </mat-tab>
+
+    <!-- ── Alerts Tab ────────────────────────────────────────────────────────── -->
+    <mat-tab label="Alerts">
+      <div class="tab-content">
+        <app-paged-table
+          [columns]="alertColumns"
+          [items]="alertsItems"
+          [totalCount]="alertsTotalCount"
+          [loading]="alertsLoading"
+          [page]="alertsPage"
+          [pageSize]="alertsPageSize"
+          [showSearch]="false"
+          (pageChange)="onAlertsPageChange($event)"
+          (sortChange)="onAlertSort($event)">
+        </app-paged-table>
+      </div>
+    </mat-tab>
+
+    <!-- ── Risk Score Tab ────────────────────────────────────────────────────── -->
+    <mat-tab label="Risk Score">
+      <div class="tab-content">
+        @if (riskScore()) {
+          <div class="risk-overview">
+            <div class="risk-overall">
+              <div class="risk-score-circle" [class]="'risk-' + (riskScore()!.riskLevel | lowercase)"
+                   role="img" [attr.aria-label]="'Overall risk score: ' + riskScore()!.overallScore">
+                <span class="score-value">{{ riskScore()!.overallScore }}</span>
+                <span class="score-label">/ 100</span>
+              </div>
+              <div>
+                <p class="risk-level-label">Risk Level</p>
+                <span [class]="riskLevelClass(riskScore()!.riskLevel)" role="status">
+                  {{ riskScore()!.riskLevel }}
+                </span>
+                <p class="risk-date">
+                  Calculated {{ riskScore()!.calculatedAt | date: 'dd/MM/yyyy HH:mm' }}
+                </p>
+              </div>
+            </div>
+
+            <div class="risk-dimensions">
+              <h3 class="section-title">Dimensions</h3>
+              <div class="dimension-bars">
+                <div class="dimension-bar-row">
+                  <span class="dim-label">Awareness</span>
+                  <div class="bar-track" role="progressbar"
+                       [attr.aria-valuenow]="riskScore()!.dimensions.awareness"
+                       aria-valuemin="0" aria-valuemax="100">
+                    <div class="bar-fill"
+                         [style.width.%]="scoreBar(riskScore()!.dimensions.awareness)">
+                    </div>
+                  </div>
+                  <span class="dim-value">{{ riskScore()!.dimensions.awareness }}</span>
+                </div>
+                <div class="dimension-bar-row">
+                  <span class="dim-label">Behavior</span>
+                  <div class="bar-track" role="progressbar"
+                       [attr.aria-valuenow]="riskScore()!.dimensions.behavior"
+                       aria-valuemin="0" aria-valuemax="100">
+                    <div class="bar-fill"
+                         [style.width.%]="scoreBar(riskScore()!.dimensions.behavior)">
+                    </div>
+                  </div>
+                  <span class="dim-value">{{ riskScore()!.dimensions.behavior }}</span>
+                </div>
+                <div class="dimension-bar-row">
+                  <span class="dim-label">Exposure</span>
+                  <div class="bar-track" role="progressbar"
+                       [attr.aria-valuenow]="riskScore()!.dimensions.exposure"
+                       aria-valuemin="0" aria-valuemax="100">
+                    <div class="bar-fill"
+                         [style.width.%]="scoreBar(riskScore()!.dimensions.exposure)">
+                    </div>
+                  </div>
+                  <span class="dim-value">{{ riskScore()!.dimensions.exposure }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="risk-axes">
+              <h3 class="section-title">Axes</h3>
+              <div class="dimension-bars">
+                <div class="dimension-bar-row">
+                  <span class="dim-label">Technical</span>
+                  <div class="bar-track" role="progressbar"
+                       [attr.aria-valuenow]="riskScore()!.axes.technical"
+                       aria-valuemin="0" aria-valuemax="100">
+                    <div class="bar-fill accent"
+                         [style.width.%]="scoreBar(riskScore()!.axes.technical)">
+                    </div>
+                  </div>
+                  <span class="dim-value">{{ riskScore()!.axes.technical }}</span>
+                </div>
+                <div class="dimension-bar-row">
+                  <span class="dim-label">Social</span>
+                  <div class="bar-track" role="progressbar"
+                       [attr.aria-valuenow]="riskScore()!.axes.social"
+                       aria-valuemin="0" aria-valuemax="100">
+                    <div class="bar-fill accent"
+                         [style.width.%]="scoreBar(riskScore()!.axes.social)">
+                    </div>
+                  </div>
+                  <span class="dim-value">{{ riskScore()!.axes.social }}</span>
+                </div>
+                <div class="dimension-bar-row">
+                  <span class="dim-label">Physical</span>
+                  <div class="bar-track" role="progressbar"
+                       [attr.aria-valuenow]="riskScore()!.axes.physical"
+                       aria-valuemin="0" aria-valuemax="100">
+                    <div class="bar-fill accent"
+                         [style.width.%]="scoreBar(riskScore()!.axes.physical)">
+                    </div>
+                  </div>
+                  <span class="dim-value">{{ riskScore()!.axes.physical }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        } @else {
+          <app-empty-state
+            icon="security"
+            title="No risk score"
+            message="Risk score has not been calculated for this user yet.">
+          </app-empty-state>
+        }
+      </div>
+    </mat-tab>
+
+  </mat-tab-group>
+}
