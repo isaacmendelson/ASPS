@@ -1,4 +1,5 @@
 using Common.Entities;
+using Common.Enums;
 using Common.Messaging;
 using Common.Models;
 
@@ -320,4 +321,79 @@ public class GetUserAlertsByKeyQuery : PagedQuery
 public class GetUserAlertsByKeyQueryResult : QueryResult
 {
     public PagedResult<DeviceAlertEntity> Result { get; set; } = new();
+}
+
+// =========================================================================
+// ASPS-647 — Paged Devices, Alerts, Analysis Results (Angular Admin API)
+// =========================================================================
+
+/// <summary>Server-side paged device list with search and status filter.</summary>
+public class GetAllDevicesPagedQuery : PagedQuery
+{
+    /// <summary>Optional filter: only return devices with this MonitoringStatus string (e.g. "Enabled").</summary>
+    public string? Status { get; set; }
+}
+
+public class GetAllDevicesPagedQueryResult : QueryResult
+{
+    public PagedResult<DeviceDto> Result { get; set; } = new();
+}
+
+/// <summary>Server-side paged alerts for a single device (by DeviceKeyField).</summary>
+public class GetDeviceAlertsPagedQuery : PagedQuery
+{
+    public string DeviceKeyField { get; set; } = string.Empty;
+}
+
+public class GetDeviceAlertsPagedQueryResult : QueryResult
+{
+    public PagedResult<AlertDto> Result { get; set; } = new();
+}
+
+/// <summary>Server-side paged alert list with time-range and severity filters.</summary>
+public class GetAllAlertsPagedQuery : PagedQuery
+{
+    /// <summary>ISO 8601 lower bound (inclusive). Null = no lower bound.</summary>
+    public DateTime? From { get; set; }
+
+    /// <summary>ISO 8601 upper bound (inclusive). Null = no upper bound.</summary>
+    public DateTime? To { get; set; }
+
+    /// <summary>Filter by severity/priority name (e.g. "High"). Null = all.</summary>
+    public string? Severity { get; set; }
+}
+
+public class GetAllAlertsPagedQueryResult : QueryResult
+{
+    public PagedResult<AlertDto> Result { get; set; } = new();
+}
+
+/// <summary>Single alert with full detail including related device and user info.</summary>
+public class GetAlertDetailQuery : Query
+{
+    public Key AlertKey { get; set; } = new Key();
+}
+
+public class GetAlertDetailQueryResult : QueryResult
+{
+    public AlertDto? Alert { get; set; }
+}
+
+/// <summary>Server-side paged analysis result list with search and sort.</summary>
+public class GetAllAnalysisResultsPagedQuery : PagedQuery { }
+
+public class GetAllAnalysisResultsPagedQueryResult : QueryResult
+{
+    public PagedResult<AnalysisResultDto> Result { get; set; } = new();
+}
+
+/// <summary>Single analysis result detail by key.</summary>
+public class GetAnalysisResultDetailQuery : Query
+{
+    public Key AnalysisKey { get; set; } = new Key();
+}
+
+public class GetAnalysisResultDetailQueryResult : QueryResult
+{
+    public AnalysisResultDto? AnalysisResult { get; set; }
 }
