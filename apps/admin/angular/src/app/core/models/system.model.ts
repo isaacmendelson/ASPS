@@ -1,20 +1,19 @@
+/** Mirrors GET /api/system/version response. */
 export interface SystemVersion {
-  backendVersion: string;
-  webApiVersion: string;
-  databaseVersion: string;
-  agentVersion?: string;
+  version: string;
+  buildDate?: string;
+  gitCommitId?: string;
+  isPrerelease?: boolean;
+  isPublicRelease?: boolean;
 }
 
-export interface HealthCheck {
-  name: string;
-  status: 'Healthy' | 'Degraded' | 'Unhealthy';
-  description?: string;
-  checkedAt: string;
+/** Mirrors GET /api/system/health response. */
+export interface SystemHealth {
+  status: string;
+  timestamp: string;
 }
 
-export interface SystemSettings {
-  keycloakEnabled: boolean;
-  notificationsEnabled: boolean;
-  version: SystemVersion;
-  health: HealthCheck[];
+/** Mirrors POST /api/system/reinitialize-asview response. */
+export interface ReinitializeResult {
+  message: string;
 }

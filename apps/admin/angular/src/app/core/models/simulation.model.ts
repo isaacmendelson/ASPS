@@ -11,23 +11,25 @@ export interface SimulationStep {
 
 export interface Simulation {
   key: Key;
-  title: string;
+  /** keyField is the string used in URL paths: key.type/key.value. */
+  keyField: string;
+  name: string;
   description?: string;
   status: SimulationStatus;
   steps: SimulationStep[];
   dateCreated: string;
-  dateModified: string;
+  creatorKeyField?: string;
 }
 
 export interface CreateSimulationRequest {
-  title: string;
+  name: string;
   description?: string;
+  creatorKeyField?: string;
   steps: SimulationStep[];
 }
 
 export interface UpdateSimulationRequest {
-  title: string;
+  name: string;
   description?: string;
-  status: SimulationStatus;
   steps: SimulationStep[];
 }
