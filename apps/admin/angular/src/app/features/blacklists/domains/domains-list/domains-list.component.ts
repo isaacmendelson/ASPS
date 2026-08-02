@@ -72,7 +72,8 @@ import { WebsiteCategory } from '@core/models/blacklist.model';
       [pageSize]="state.pageSize"
       searchPlaceholder="Search by domain or category..."
       (pageChange)="onPageChange($event)"
-      (searchChange)="onSearchChange($event)">
+      (searchChange)="onSearchChange($event)"
+      (rowClick)="onRowClick($event)">
     </app-paged-table>
 
     @if (selectedDomain()) {
