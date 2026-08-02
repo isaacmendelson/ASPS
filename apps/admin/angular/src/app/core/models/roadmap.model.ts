@@ -1,19 +1,19 @@
-import { Key } from './key.model';
-import { Priority } from './enums';
-
-export interface RoadmapItem {
-  order: number;
-  title: string;
+/** Mirrors the Roadmap entity returned by GET /api/roadmaps. */
+export interface Roadmap {
+  id: number;
+  name: string;
   description?: string;
-  isCompleted: boolean;
+  /** Raw JSON string — stored as JSONB / text in backend. */
+  data?: string;
+  version?: number;
+  isArchived: boolean;
+  createdBy?: string;
+  lastUpdatedBy?: string;
+  dateCreated: string;
+  lastUpdatedAt?: string;
 }
 
-export interface Roadmap {
-  key: Key;
-  title: string;
+export interface CreateRoadmapRequest {
+  name: string;
   description?: string;
-  priority: Priority;
-  items: RoadmapItem[];
-  dateCreated: string;
-  dateModified: string;
 }

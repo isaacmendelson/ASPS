@@ -8,4 +8,18 @@ export const SIMULATIONS_ROUTES: Routes = [
         c => c.SimulationsListComponent
       ),
   },
+  {
+    path: 'new',
+    loadComponent: () =>
+      import('./simulation-form/simulation-form.component').then(
+        c => c.SimulationFormComponent
+      ),
+  },
+  {
+    path: ':keyField/edit',
+    loadComponent: () =>
+      import('./simulation-form/simulation-form.component').then(
+        c => c.SimulationFormComponent
+      ),
+  },
 ];
