@@ -345,3 +345,63 @@ public class GetAnalysisResultDetailQueryResult : QueryResult
 {
     public AnalysisResultDto? AnalysisResult { get; set; }
 }
+
+// =========================================================================
+// ASPS-649 — Angular Admin: Simulations + Roadmaps + System API
+// =========================================================================
+
+/// <summary>Server-side paged list of simulations with optional search.</summary>
+public class GetAllSimulationsPagedQuery : PagedQuery { }
+
+public class SimulationDto
+{
+    public Key Key { get; set; } = new Key();
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string CreatorKeyField { get; set; } = string.Empty;
+    public List<Common.Models.SimulationStep> Steps { get; set; } = new();
+    public bool IsDeleted { get; set; }
+    public bool IsDisabled { get; set; }
+    public DateTime DateCreated { get; set; }
+    public DateTime? DateModified { get; set; }
+}
+
+public class GetAllSimulationsPagedQueryResult : QueryResult
+{
+    public PagedResult<SimulationDto> Result { get; set; } = new();
+}
+
+/// <summary>Single simulation by KeyField, with deserialized steps.</summary>
+public class GetSimulationByKeyFieldQuery : Query
+{
+    public string KeyField { get; set; } = string.Empty;
+}
+
+public class GetSimulationByKeyFieldQueryResult : QueryResult
+{
+    public SimulationDto? Simulation { get; set; }
+}
+
+/// <summary>Server-side paged list of roadmaps with optional includeArchived flag.</summary>
+public class GetAllRoadmapsPagedQuery : PagedQuery
+{
+    public bool IncludeArchived { get; set; } = false;
+}
+
+public class RoadmapDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public int Version { get; set; }
+    public DateTime DateCreated { get; set; }
+    public DateTime? LastUpdatedAt { get; set; }
+    public string? CreatedBy { get; set; }
+    public string? LastUpdatedBy { get; set; }
+    public bool IsArchived { get; set; }
+}
+
+public class GetAllRoadmapsPagedQueryResult : QueryResult
+{
+    public PagedResult<RoadmapDto> Result { get; set; } = new();
+}

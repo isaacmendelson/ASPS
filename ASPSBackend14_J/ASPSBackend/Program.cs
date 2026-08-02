@@ -167,6 +167,7 @@ public class Program
                 services.AddScoped<RoadmapQueryHandlers>();
                 services.AddScoped<RoadmapCommandHandlers>();
                 services.AddScoped<TrackedDomainCommandHandlers>(); // ASPS-371
+                services.AddScoped<ASPS649QueryHandlers>(); // ASPS-649
 
                 services.AddScoped<UserDeviceCommandHandlers>();
 
