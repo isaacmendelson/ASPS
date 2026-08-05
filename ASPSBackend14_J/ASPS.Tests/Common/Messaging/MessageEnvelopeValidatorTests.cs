@@ -35,6 +35,35 @@ public class MessageEnvelopeValidatorTests
     }
 
     [Fact]
+    public void Serialize_SentAt_UsesUtcZSuffixWithMillisecondPrecision()
+    {
+        var envelope = CreateRequest() with { SentAt = new DateTimeOffset(2026, 8, 5, 20, 2, 59, 603, TimeSpan.Zero) };
+
+        var json = JsonSerializer.Serialize(envelope);
+        using var document = JsonDocument.Parse(json);
+        var sentAt = document.RootElement.GetProperty("sentAt").GetString();
+
+        sentAt.Should().Be("2026-08-05T20:02:59.603Z");
+    }
+
+    [Fact]
+    public void Deserialize_SentAt_AcceptsBothZAndOffsetNotation()
+    {
+        const string zJson = """
+        {"schemaVersion":"1.0","messageId":"4b2a90c9-4b50-40e8-8969-f594b9fde602","correlationId":"6b7a9fa7-e3f0-4c5c-86cc-3914f42b262f","requestId":"7afe6cba-7916-40e1-91dc-666f40f760db","messageType":"url_scan.request","sentAt":"2026-08-05T20:02:59.603Z","source":"desktop","context":{"deviceId":"d","tabId":"1","url":"https://example.com/"},"outcome":null,"payload":{}}
+        """;
+        const string offsetJson = """
+        {"schemaVersion":"1.0","messageId":"4b2a90c9-4b50-40e8-8969-f594b9fde602","correlationId":"6b7a9fa7-e3f0-4c5c-86cc-3914f42b262f","requestId":"7afe6cba-7916-40e1-91dc-666f40f760db","messageType":"url_scan.request","sentAt":"2026-08-05T20:02:59.6033682+00:00","source":"desktop","context":{"deviceId":"d","tabId":"1","url":"https://example.com/"},"outcome":null,"payload":{}}
+        """;
+
+        var zEnvelope = JsonSerializer.Deserialize<MessageEnvelopeV1>(zJson);
+        var offsetEnvelope = JsonSerializer.Deserialize<MessageEnvelopeV1>(offsetJson);
+
+        zEnvelope!.SentAt.Offset.Should().Be(TimeSpan.Zero);
+        offsetEnvelope!.SentAt.Offset.Should().Be(TimeSpan.Zero);
+    }
+
+    [Fact]
     public void Validate_UndefinedPayload_ReturnsExplicitProtocolError()
     {
         MessageEnvelopeValidator.Validate(CreateRequest() with { Payload = default })
