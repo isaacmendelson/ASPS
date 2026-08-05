@@ -94,6 +94,8 @@ services:
       Security__CurveClientOnly: "true"
       Security__ServerPublicKeyFilePath: /app/public-keys/curve-server-public-key.txt
       CQRS__SharedSecret: "${CQRS_SHARED_SECRET:?CQRS_SHARED_SECRET must be set}"
+      Cors__AllowedOrigins__0: "http://localhost:4200"
+      Cors__AllowedOrigins__1: "http://localhost:4201"
     ports:
       - "8080:8080"
     networks:

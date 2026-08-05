@@ -9,6 +9,8 @@ import { NotificationService } from '../services/notification.service';
  * Global HTTP error handler.
  * Runs after authInterceptor in the chain.
  */
+let lastLoginRedirect = 0;
+
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const notification = inject(NotificationService);
   const keycloak = inject(KeycloakService);
@@ -17,10 +19,17 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
       switch (error.status) {
-        case 401:
-          // Token expired or invalid — redirect to Keycloak login
+        case 401: {
+          const isSignalR = req.url.includes('/notificationshub');
+          const now = Date.now();
+          const tooSoon = now - lastLoginRedirect < 5000;
+          if (isSignalR || tooSoon) {
+            break;
+          }
+          lastLoginRedirect = now;
           keycloak.login({ redirectUri: window.location.href });
           break;
+        }
 
         case 403:
           router.navigate(['/access-denied']);
