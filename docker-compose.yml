@@ -44,8 +44,8 @@ services:
       - "50001:50001"
       - "50002:50002"
     volumes:
-      - curve_keys:/app/keys
-      - curve_public_keys:/app/public-keys
+      - ${LOCALAPPDATA}/ASPS:/app/keys
+      - ${LOCALAPPDATA}/ASPS:/app/public-keys
       - analyzer_socket:/run/asps-analyzer
     networks:
       - asps-network
@@ -101,7 +101,7 @@ services:
     networks:
       - asps-network
     volumes:
-      - curve_public_keys:/app/public-keys:ro
+      - ${LOCALAPPDATA}/ASPS:/app/public-keys:ro
 
   angular-admin:
     build:
@@ -151,8 +151,6 @@ services:
 
 volumes:
   mysql_data:
-  curve_keys:
-  curve_public_keys:
   keycloak_data:
   analyzer_socket:
 

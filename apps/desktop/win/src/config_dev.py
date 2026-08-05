@@ -12,6 +12,3 @@ Keep this file minimal: only environment-specific overrides go here.
 """
 
 BACKEND_HOST = "127.0.0.1"  # Local testing
-
-# WebApi (Dashboard / View Details) — AWS Production
-WEBAPI_URL = "https://localhost:5002"

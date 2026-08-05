@@ -350,10 +350,20 @@ LOG_FILE = "events.jsonl"
 CONFIG_FILE = "config.json"
 
 # WebApi URL (for device registration page)
-#WEBAPI_URL = "http://localhost:5001"  # Local non-Docker
-WEBAPI_URL = "http://localhost:8080"   # Docker (docker-compose maps WebApi to 8080)
-#WEBAPI_URL = "https://admin.asps.io"  # AWS Production
-#WEBAPI_URL = "http://100.88.78.75:5001"  # Old local server
+def _detect_webapi_url() -> str:
+    """Auto-detect WebApi: Docker on 8080, VS Debug on 5002."""
+    import socket
+    for port, url in [(8080, "http://localhost:8080"), (5002, "https://localhost:5002")]:
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=0.5):
+                print(f"[CONFIG] WebAPI auto-detected: {url}")
+                return url
+        except (socket.timeout, ConnectionRefusedError, OSError):
+            continue
+    print("[CONFIG] WebAPI not detected, defaulting to http://localhost:8080")
+    return "http://localhost:8080"
+
+WEBAPI_URL = _detect_webapi_url()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
