@@ -1,6 +1,6 @@
 """Generated ASPS messaging v1 binding. Do not edit."""
 from __future__ import annotations
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlsplit, urlunsplit
 from uuid import UUID, uuid4
 
@@ -49,7 +49,13 @@ def validate_envelope(value: dict, require_device_id: bool = False) -> dict:
     if value["messageType"] not in MESSAGE_TYPES or value["source"] not in SOURCES:
         raise ContractError("protocol.unsupported_discriminator", "Unsupported message type or source")
     try:
-        sent_at = datetime.strptime(value["sentAt"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        raw_sent_at = value["sentAt"]
+        # Accept both "Z" suffix and explicit "+00:00" offset notation; both mean UTC.
+        # datetime.fromisoformat (3.11+) natively tolerates 3-7+ fractional digits.
+        normalized_sent_at = raw_sent_at[:-1] + "+00:00" if raw_sent_at.endswith("Z") else raw_sent_at
+        sent_at = datetime.fromisoformat(normalized_sent_at)
+        if sent_at.tzinfo is None or sent_at.utcoffset() != timedelta(0):
+            raise ValueError("sentAt must be UTC")
     except Exception as exc:
         raise ContractError("protocol.invalid_sent_at", "sentAt must be UTC with milliseconds") from exc
     context = value["context"]
