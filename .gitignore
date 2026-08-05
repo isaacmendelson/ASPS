@@ -156,7 +156,6 @@ _check_*.ps1
 # -----------------------------------------------------------------------------
 # ASP.NET Core secrets — never commit environment-specific settings
 # -----------------------------------------------------------------------------
-appsettings.Development.json
 appsettings.Production.json
 appsettings.Staging.json
 appsettings.*.local.json
