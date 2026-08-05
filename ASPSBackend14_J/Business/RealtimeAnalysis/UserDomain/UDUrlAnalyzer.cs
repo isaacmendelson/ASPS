@@ -360,13 +360,24 @@ public class UDUrlAnalyzer : ISpecificAnalyzer, IDomainEventHandler
         UrlAlert alert)
     {
         var analyzerDirectory = Path.Combine(_analyzersFolder, analyzer.ScriptFile);
+
+        // ASPS-667: alert.Url may include a fragment (e.g. "#top:"). HTTP fragments
+        // are client-side only per RFC 3986 and MessageEnvelopeValidator.CanonicalizeUrl
+        // strips them, but Validate() requires context.url to already be canonical.
+        // Canonicalize here so the fallback identity doesn't fail with
+        // "validation.canonical_url_mismatch" before the analyzer even runs. If
+        // canonicalization fails (invalid URL), fall back to the raw URL — the
+        // validator will reject it with a clearer error further down the pipeline.
+        var canonicalUrl = MessageEnvelopeValidator.CanonicalizeUrl(alert.Url);
+        var identityUrl = canonicalUrl.IsValid ? canonicalUrl.ErrorMessage! : alert.Url;
+
         var identity = alert.MessagingIdentity ?? new MessageIdentityV1(
             Guid.NewGuid(),
             Guid.NewGuid(),
             Guid.NewGuid(),
             alert.DeviceInfo?.DeviceUid ?? "legacy-unknown",
             alert.TabId,
-            alert.Url);
+            identityUrl);
 
         var response = await new AnalyzerV1ProcessClient().RunAsync(
             _pythonPath,

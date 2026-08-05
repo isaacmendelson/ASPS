@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Business.RealtimeAnalysis.UserDomain;
 using TrackModeEnum = Common.Enums.TrackMode;
@@ -385,6 +386,70 @@ public class UDUrlAnalyzerTests
         expectedMessage.Split('|')[2].Should().Be("2"); // TrackModeEnum.Click
         expectedMessage.Split('|')[3].Should().Be(scamKey);
         expectedMessage.Split('|')[4].Should().Be(durationMinutes.ToString());
+    }
+
+    #endregion
+
+    #region ASPS-667 Regression Tests - URL fragment canonicalization
+
+    /// <summary>
+    /// ASPS-667: UrlAlert URLs containing a fragment (e.g. "#top:") caused
+    /// RunPythonAnalyzerV1Async to build a MessageIdentityV1 with the raw
+    /// (non-canonical) URL. MessageEnvelopeValidator.Validate always compares
+    /// the request URL against its canonicalized form (which strips fragments
+    /// per RFC 3986), so the request itself failed validation with
+    /// "validation.canonical_url_mismatch" before any Python process ran.
+    /// </summary>
+    [Fact]
+    public async Task RunPythonAnalyzerV1Async_UrlWithFragment_DoesNotThrowCanonicalUrlMismatch()
+    {
+        // Arrange
+        var alert = new UrlAlert
+        {
+            AlertId = "test-fragment",
+            Url = "https://digital-web.cal-online.co.il/login#top:",
+            DeviceInfo = new DeviceInfo { DeviceUid = "device-1" }
+        };
+        var analyzer = new ExternalAnalyzer { ScriptFile = "basic-url-analyzer", Order = 1, Weight = 1.0f };
+
+        var method = typeof(UDUrlAnalyzer).GetMethod(
+            "RunPythonAnalyzerV1Async", BindingFlags.NonPublic | BindingFlags.Instance);
+        method.Should().NotBeNull();
+
+        // Act
+        var task = (Task)method!.Invoke(_sut, new object[] { analyzer, alert })!;
+        Func<Task> act = async () => await task;
+
+        // Assert - the analyzer directory does not exist under test config
+        // ("/test/analyzers"), so some exception is still expected once the
+        // request passes envelope validation. What must NOT happen is a
+        // canonical URL mismatch coming from the *request* we built ourselves.
+        var assertion = await act.Should().ThrowAsync<Exception>();
+        assertion.Which.Message.Should().NotContain("canonical_url_mismatch");
+    }
+
+    [Fact]
+    public async Task RunPythonAnalyzerV1Async_UrlWithoutFragment_DoesNotThrowCanonicalUrlMismatch()
+    {
+        // Arrange - sanity check: URLs without a fragment already worked before the fix.
+        var alert = new UrlAlert
+        {
+            AlertId = "test-no-fragment",
+            Url = "https://digital-web.cal-online.co.il/login",
+            DeviceInfo = new DeviceInfo { DeviceUid = "device-1" }
+        };
+        var analyzer = new ExternalAnalyzer { ScriptFile = "basic-url-analyzer", Order = 1, Weight = 1.0f };
+
+        var method = typeof(UDUrlAnalyzer).GetMethod(
+            "RunPythonAnalyzerV1Async", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        // Act
+        var task = (Task)method!.Invoke(_sut, new object[] { analyzer, alert })!;
+        Func<Task> act = async () => await task;
+
+        // Assert
+        var assertion = await act.Should().ThrowAsync<Exception>();
+        assertion.Which.Message.Should().NotContain("canonical_url_mismatch");
     }
 
     #endregion
