@@ -51,7 +51,7 @@ public class AnalysisResultsApiControllerTests
             .ReturnsAsync(pagedResult);
 
         // Act
-        var result = await _controller.GetAll(new PagedRequest());
+        var result = await _controller.GetAll(new PagedRequest(), from: null, to: null, isFromCache: null, hasError: null, deviceType: null);
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();
@@ -70,7 +70,7 @@ public class AnalysisResultsApiControllerTests
             .ReturnsAsync(new GetAllAnalysisResultsPagedQueryResult { Success = false, Message = "Error" });
 
         // Act
-        var result = await _controller.GetAll(new PagedRequest());
+        var result = await _controller.GetAll(new PagedRequest(), from: null, to: null, isFromCache: null, hasError: null, deviceType: null);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -92,7 +92,7 @@ public class AnalysisResultsApiControllerTests
             });
 
         // Act: pass an out-of-range page (0) — should be normalized to 1
-        await _controller.GetAll(new PagedRequest { Page = 0, PageSize = 200 });
+        await _controller.GetAll(new PagedRequest { Page = 0, PageSize = 200 }, from: null, to: null, isFromCache: null, hasError: null, deviceType: null);
 
         // Assert
         captured!.Page.Should().Be(1);
