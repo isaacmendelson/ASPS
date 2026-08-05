@@ -125,7 +125,7 @@
       }
 
       try {
-        const response = await chrome.runtime.sendMessage({ type: 'getStatus' });
+        const response = await chrome.runtime.sendMessage({ type: 'status:get' });
         console.log('[Popup] Status:', response);
 
         // Get reconnecting state from state manager (via storage sync)
@@ -625,7 +625,7 @@
         // Set up listener BEFORE sending scan request
         this.waitForResults();
 
-        await chrome.runtime.sendMessage({ type: 'scanCurrentPage' });
+        await chrome.runtime.sendMessage({ type: 'scan:current' });
       } catch (e) {
         console.error('[Popup] Scan error:', e);
         this.cleanup();
@@ -709,7 +709,7 @@
       StatusService.setStatus(ConnectionStatus.RECONNECTING);
 
       try {
-        const result = await chrome.runtime.sendMessage({ type: 'reconnect' });
+        const result = await chrome.runtime.sendMessage({ type: 'connection:reconnect' });
 
         setTimeout(async () => {
           await StatusService.update();
@@ -822,10 +822,10 @@
   // Trigger reconnect if disconnected when popup opens (user decision: feels responsive)
   async function triggerReconnectIfNeeded() {
     try {
-      const response = await chrome.runtime.sendMessage({ type: 'getStatus' });
+      const response = await chrome.runtime.sendMessage({ type: 'status:get' });
       if (!response.isConnectedToDesktop) {
         console.log('[Popup] Not connected - triggering immediate reconnect');
-        await chrome.runtime.sendMessage({ type: 'reconnect' });
+        await chrome.runtime.sendMessage({ type: 'connection:reconnect' });
         // Update status after a short delay to show reconnecting state
         setTimeout(() => StatusService.update(), 1000);
       }
