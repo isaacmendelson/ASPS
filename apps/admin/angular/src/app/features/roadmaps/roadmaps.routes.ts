@@ -8,4 +8,11 @@ export const ROADMAPS_ROUTES: Routes = [
         c => c.RoadmapsListComponent
       ),
   },
+  {
+    path: ':id',
+    loadComponent: () =>
+      import('./roadmap-viewer/roadmap-viewer.component').then(
+        c => c.RoadmapViewerComponent
+      ),
+  },
 ];

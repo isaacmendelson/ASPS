@@ -61,6 +61,42 @@ public class RoadmapsApiController : ControllerBase
     }
 
     /// <summary>
+    /// GET /api/roadmaps/{id}
+    /// Returns a single roadmap with full data (JSON content).
+    /// </summary>
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        try
+        {
+            var query = new GetRoadmapByIdQuery { Id = id };
+            var result = await _cqrsClient.SendQueryAsync<GetRoadmapByIdQueryResult>(query);
+
+            if (!result.Success)
+                return NotFound(new { message = result.Message ?? "Roadmap not found" });
+
+            return Ok(new
+            {
+                id = result.Id,
+                name = result.Name,
+                description = result.Description,
+                data = result.Data,
+                version = result.Version,
+                dateCreated = result.DateCreated,
+                lastUpdatedAt = result.LastUpdatedAt,
+                createdBy = result.CreatedBy,
+                lastUpdatedBy = result.LastUpdatedBy,
+                isArchived = result.IsArchived,
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting roadmap {Id}", id);
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    /// <summary>
     /// POST /api/roadmaps
     /// Create a new empty roadmap with a name and optional description.
     /// </summary>

@@ -1,12 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RoadmapsListComponent } from './roadmaps-list.component';
 import { RoadmapsStateService } from '../services/roadmaps-state.service';
+import { Router } from '@angular/router';
 import { signal } from '@angular/core';
 import { Roadmap } from '@core/models/roadmap.model';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatDialog } from '@angular/material/dialog';
-import { ConfirmDialogService } from '@shared/components/confirm-dialog/confirm-dialog.service';
-import { NotificationService } from '@core/services/notification.service';
 import { of } from 'rxjs';
 
 const makeRoadmap = (id: number): Roadmap => ({
@@ -19,6 +18,7 @@ const makeRoadmap = (id: number): Roadmap => ({
 describe('RoadmapsListComponent', () => {
   let fixture: ComponentFixture<RoadmapsListComponent>;
   let component: RoadmapsListComponent;
+  let routerSpy: jasmine.SpyObj<Router>;
 
   const buildMockState = (overrides: Partial<{
     roadmaps: Roadmap[];
@@ -41,17 +41,14 @@ describe('RoadmapsListComponent', () => {
   beforeEach(async () => {
     const mockState = buildMockState();
     const dialogSpy = jasmine.createSpyObj('MatDialog', ['open']);
-    const confirmSpy = jasmine.createSpyObj('ConfirmDialogService', ['confirm']);
-    confirmSpy.confirm.and.returnValue(of(false));
-    const notifySpy = jasmine.createSpyObj('NotificationService', ['success', 'error']);
+    routerSpy = jasmine.createSpyObj('Router', ['navigate']);
 
     await TestBed.configureTestingModule({
       imports: [RoadmapsListComponent, NoopAnimationsModule],
       providers: [
         { provide: RoadmapsStateService, useValue: mockState },
         { provide: MatDialog, useValue: dialogSpy },
-        { provide: ConfirmDialogService, useValue: confirmSpy },
-        { provide: NotificationService, useValue: notifySpy },
+        { provide: Router, useValue: routerSpy },
       ],
     }).compileComponents();
 
@@ -88,13 +85,11 @@ describe('RoadmapsListComponent', () => {
     expect(state.loadPage).toHaveBeenCalledWith(1);
   });
 
-  it('should toggle selected roadmap on row click', () => {
+  it('should navigate to the roadmap viewer on row click', () => {
     const rm = makeRoadmap(1);
     fixture.detectChanges();
     component.onRowClick(rm);
-    expect(component.selectedRoadmap()).toEqual(rm);
-    component.onRowClick(rm);
-    expect(component.selectedRoadmap()).toBeNull();
+    expect(routerSpy.navigate).toHaveBeenCalledWith(['/roadmaps', 1]);
   });
 
   it('should call setIncludeArchived when toggle changes', () => {

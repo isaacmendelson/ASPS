@@ -24,6 +24,12 @@ export class RoadmapsApiService {
     );
   }
 
+  getById(id: number): Observable<Roadmap> {
+    return this.http.get<Roadmap>(
+      `${this.config.apiUrl}/api/roadmaps/${id}`
+    );
+  }
+
   create(req: CreateRoadmapRequest): Observable<{ message: string }> {
     return this.api.post<CreateRoadmapRequest, { message: string }>(
       '/api/roadmaps',

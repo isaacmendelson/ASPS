@@ -1,0 +1,57 @@
+<div class="page-header">
+  <div class="page-header-row">
+    <div>
+      <a routerLink="/roadmaps" class="back-link" aria-label="Back to roadmaps list">
+        <mat-icon aria-hidden="true">arrow_back</mat-icon>
+        Roadmaps
+      </a>
+
+      @if (loading()) {
+        <mat-progress-bar mode="indeterminate" aria-label="Loading roadmap"></mat-progress-bar>
+      } @else if (roadmap()) {
+        <h1 class="page-title">
+          {{ roadmap()!.name }}
+          @if (roadmap()!.isArchived) {
+            <span class="archived-badge">Archived</span>
+          }
+        </h1>
+        @if (roadmap()!.description) {
+          <p class="page-subtitle">{{ roadmap()!.description }}</p>
+        }
+      } @else {
+        <p class="page-subtitle">Roadmap not found.</p>
+      }
+    </div>
+
+    @if (roadmap() && !roadmap()!.isArchived) {
+      <button
+        mat-stroked-button
+        color="warn"
+        [disabled]="archiving()"
+        (click)="onArchive()"
+        aria-label="Archive this roadmap">
+        <mat-icon aria-hidden="true">archive</mat-icon>
+        Archive
+      </button>
+    }
+  </div>
+</div>
+
+@if (error()) {
+  <app-empty-state
+    icon="error_outline"
+    title="Couldn't load roadmap"
+    [message]="error()!">
+  </app-empty-state>
+} @else if (!loading()) {
+  <div class="viewer-frame-wrap">
+    <iframe
+      #viewerFrame
+      [src]="iframeSrc"
+      class="viewer-iframe"
+      sandbox="allow-scripts allow-same-origin"
+      title="Roadmap viewer"
+      (load)="onIframeLoad()">
+    </iframe>
+  </div>
+}
