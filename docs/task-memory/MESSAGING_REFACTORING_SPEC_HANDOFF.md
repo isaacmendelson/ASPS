@@ -3,8 +3,8 @@
 ## Task
 **Name:** ASPS Messaging Refactoring Implementation Specification  
 **Type:** Research / Documentation (NO code changes)  
-**Status:** DRAFT COMPLETE — Awaiting Isaac's review and approval  
-**Date:** 2026-08-03
+**Status:** APPROVED — JIRA tasks created, ready for Phase 0  
+**Date:** 2026-08-10 (approved), 2026-08-03 (spec drafted)
 
 ## Deliverable
 [ASPS_Messaging_Refactoring_Implementation_Specification.md](../architecture/messaging/ASPS_Messaging_Refactoring_Implementation_Specification.md)
@@ -41,7 +41,30 @@ The CQRS gateway has **71 cases** (not ~32 as initially estimated) across 1,256 
 - No wire protocol changed
 - No secrets in documentation
 
+## JIRA Tasks Created
+
+**Epic:** ASPS-675 — Messaging Refactoring
+
+| Phase | Key | Summary |
+|-------|-----|---------|
+| 0 | ASPS-676 | Create transport abstraction interfaces |
+| 0 | ASPS-677 | Create CqrsHandlerRegistry |
+| 0 | ASPS-678 | Create MessagingServiceRegistration |
+| 1 | ASPS-679 | Extract 21 command handlers |
+| 1 | ASPS-680 | Extract 50 query handlers |
+| 1 | ASPS-681 | Wire handler registry into dispatch |
+| 2 | ASPS-682 | Extract NotificationPublisher behind INotificationEgress |
+| 2 | ASPS-683 | Update OutboxNotificationPublisher |
+| 3 | ASPS-684 | Split RealTimeAlertListener |
+| 3 | ASPS-685 | IHostedService on NetMQAlertIngress |
+| 4 | ASPS-686 | Extract CQRSGateway behind ICqrsTransport |
+| 4 | ASPS-687 | Extract CQRSClient behind ICqrsClient |
+| 5 | ASPS-688 | Convert all to IHostedService lifecycle |
+| 5 | ASPS-689 | Add CancellationToken to listen loops |
+| 6 | ASPS-690 | Remove legacy dispatch code |
+| 6 | ASPS-691 | Update architecture documentation |
+| — | ASPS-692 | Security review (cross-cutting) |
+
 ## Next Steps
-1. Isaac reviews the specification
-2. Decisions needed on 7 open questions (OQ-1 through OQ-7)
-3. On approval: create JIRA tasks, begin Phase 0 (foundation)
+1. Begin Phase 0: ASPS-676, ASPS-677, ASPS-678 (can run in parallel)
+2. Decisions still needed on open questions OQ-1 through OQ-7 before Phase 1
