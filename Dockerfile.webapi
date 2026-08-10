@@ -6,7 +6,7 @@
 # ============================================================
 
 # --- Stage 1: Build .NET ---
-FROM mcr.microsoft.com/dotnet/sdk:8.0.423 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.302 AS build
 WORKDIR /src
 
 # Copy project files first (layer caching)
