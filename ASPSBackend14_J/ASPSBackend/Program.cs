@@ -175,6 +175,9 @@ public class Program
                 services.AddSingleton<ASView>();
                 services.AddSingleton<IDomainEventHandler>(sp => sp.GetRequiredService<ASView>());
 
+                // Add CQRS handler registry (ASPS-681 — replaces manual switch dispatch)
+                services.AddMessagingServices(configuration);
+
                 // Add Token Store and CurveZMQ Key Manager
                 services.AddSingleton<TokenStore>();
                 services.AddSingleton<CurveKeyManager>();
@@ -199,6 +202,7 @@ public class Program
                     return new CQRSGateway(
                         sp,
                         sp.GetRequiredService<ILogger<CQRSGateway>>(),
+                        sp.GetRequiredService<CqrsHandlerRegistry>(),
                         configuration["CQRS:BindEndpoint"] ?? "tcp://127.0.0.1:5556",
                         sp.GetRequiredService<CurveKeyManager>(),
                         sp.GetRequiredService<CqrsChannelSecurity>());

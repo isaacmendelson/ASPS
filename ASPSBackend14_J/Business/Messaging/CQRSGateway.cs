@@ -18,6 +18,7 @@ public partial class CQRSGateway : IDisposable
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<CQRSGateway> _logger;
+    private readonly CqrsHandlerRegistry _registry;
     private readonly CurveKeyManager? _curveKeyManager;
     private readonly CqrsChannelSecurity? _channelSecurity;
     private readonly string _endpoint;
@@ -27,12 +28,14 @@ public partial class CQRSGateway : IDisposable
     public CQRSGateway(
         IServiceProvider serviceProvider,
         ILogger<CQRSGateway> logger,
+        CqrsHandlerRegistry registry,
         string endpoint = "tcp://127.0.0.1:5556",
         CurveKeyManager? curveKeyManager = null,
         CqrsChannelSecurity? channelSecurity = null)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
+        _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _endpoint = endpoint;
         _curveKeyManager = curveKeyManager;
         _channelSecurity = channelSecurity;

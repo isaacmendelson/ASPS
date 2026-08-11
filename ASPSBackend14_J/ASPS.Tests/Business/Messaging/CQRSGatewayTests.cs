@@ -13,6 +13,7 @@ public sealed class CQRSGatewayTests : IDisposable
 {
     private const string Secret = "0123456789abcdef0123456789abcdef";
     private readonly ServiceProvider _services = new ServiceCollection().BuildServiceProvider();
+    private readonly CqrsHandlerRegistry _registry = new();
     private readonly string _keysPath = Path.Combine(Path.GetTempPath(), $"asps-cqrs-{Guid.NewGuid():N}", "keys.json");
     private CQRSGateway? _gateway;
 
@@ -20,7 +21,7 @@ public sealed class CQRSGatewayTests : IDisposable
     public void Start_RejectsMissingCurveEncryption()
     {
         var security = CreateSecurity();
-        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance,
+        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance, _registry,
             "tcp://127.0.0.1:45556", null, security);
 
         var exception = Assert.Throws<InvalidOperationException>(() => _gateway.Start());
@@ -30,7 +31,7 @@ public sealed class CQRSGatewayTests : IDisposable
     [Fact]
     public void Start_RejectsMissingApplicationAuthentication()
     {
-        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance,
+        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance, _registry,
             "tcp://127.0.0.1:45557", CreateCurveManager(), null);
 
         var exception = Assert.Throws<InvalidOperationException>(() => _gateway.Start());
@@ -40,7 +41,7 @@ public sealed class CQRSGatewayTests : IDisposable
     [Fact]
     public void Start_WithCurveAndAuthentication_StartsAndStops()
     {
-        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance,
+        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance, _registry,
             "tcp://127.0.0.1:45558", CreateCurveManager(), CreateSecurity());
 
         _gateway.Start();
@@ -52,7 +53,7 @@ public sealed class CQRSGatewayTests : IDisposable
     {
         var field = typeof(CQRSGateway).GetField("_endpoint",
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance);
+        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance, _registry);
 
         Assert.Equal("tcp://127.0.0.1:5556", field!.GetValue(_gateway));
     }
@@ -71,7 +72,7 @@ public sealed class CQRSGatewayTests : IDisposable
                 ["Security:ServerPublicKeyFilePath"] = publicKeyPath
             }).Build();
         var clientOnly = new CurveKeyManager(configuration, NullLogger<CurveKeyManager>.Instance);
-        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance,
+        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance, _registry,
             "tcp://127.0.0.1:45559", clientOnly, CreateSecurity());
 
         var exception = Assert.Throws<InvalidOperationException>(() => _gateway.Start());
@@ -171,7 +172,7 @@ public sealed class CQRSGatewayTests : IDisposable
     {
         curve = CreateCurveManager();
         var endpoint = $"tcp://127.0.0.1:{port}";
-        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance,
+        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance, _registry,
             endpoint, curve, CreateSecurity());
         _gateway.Start();
         Thread.Sleep(100);
