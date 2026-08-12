@@ -50,17 +50,19 @@ public class Program
         var messageProcessor = host.Services.GetRequiredService<NetMQMessageProcessor>();
         messageProcessor.Start();
 
-        // Start Real-Time Alert Listener
-        var alertListener = host.Services.GetRequiredService<RealTimeAlertListener>();
+        // Start Real-Time Alert Listener (ASPS-684: transport/business split —
+        // AlertProcessor holds the business logic, NetMQAlertIngress the NetMQ transport)
+        var alertProcessor = host.Services.GetRequiredService<Business.Messaging.AlertProcessor>();
+        var alertIngress = host.Services.GetRequiredService<Business.Messaging.Abstractions.IAlertIngress>();
 
         // ASPS-620: Inject reconnect snapshot service
         var reconnectSnapshotService = host.Services.GetRequiredService<Business.Messaging.ReconnectSnapshotService>();
-        alertListener.SetReconnectSnapshotService(reconnectSnapshotService);
+        alertProcessor.SetReconnectSnapshotService(reconnectSnapshotService);
 
         // Initialize UDAnalysisManagers for active users
-        await InitializeAnalysisManagersAsync(host.Services, alertListener);
+        await InitializeAnalysisManagersAsync(host.Services, alertProcessor);
 
-        alertListener.Start();
+        await alertIngress.StartAsync(CancellationToken.None);
 
         // Start CQRS Gateway (for WebApi Commands/Queries)
         var cqrsGateway = host.Services.GetRequiredService<CQRSGateway>();
@@ -257,12 +259,25 @@ public class Program
                     sp.GetRequiredService<IServiceScopeFactory>(),
                     configuration["NetMQ:BusinessEndpoint"] ?? "tcp://*:5555",
                     sp.GetService<CurveKeyManager>()));
-                services.AddSingleton<RealTimeAlertListener>(sp =>
+                // ASPS-684: AlertProcessor (business logic) + NetMQAlertIngress (transport),
+                // replacing the monolithic RealTimeAlertListener.
+                services.AddSingleton<Business.Messaging.AlertProcessor>(sp =>
                 {
                     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
                     var asView = sp.GetRequiredService<ASView>();
                     var userDomainService = sp.GetRequiredService<UserDomainManagerService>();
                     var tokenStore = sp.GetRequiredService<TokenStore>();
+                    var curveKeyManager = sp.GetRequiredService<CurveKeyManager>();
+                    var configuration = sp.GetRequiredService<IConfiguration>();
+
+                    return new Business.Messaging.AlertProcessor(
+                        loggerFactory, sp, asView, userDomainService, tokenStore,
+                        curveKeyManager, configuration);
+                });
+                services.AddSingleton<Business.Messaging.NetMQAlertIngress>(sp =>
+                {
+                    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+                    var alertProcessor = sp.GetRequiredService<Business.Messaging.AlertProcessor>();
                     var curveKeyManager = sp.GetRequiredService<CurveKeyManager>();
                     var configuration = sp.GetRequiredService<IConfiguration>();
                     var port = configuration.GetValue<int>("NetMQ:RealTimeListenerPort", 50001);
@@ -273,10 +288,13 @@ public class Program
                         ? parsedMode
                         : SocketMode.Router;
 
-                    return new RealTimeAlertListener(
-                        loggerFactory, sp, asView, userDomainService, tokenStore,
-                        curveKeyManager, port, mode, configuration);
+                    return new Business.Messaging.NetMQAlertIngress(
+                        loggerFactory, alertProcessor, curveKeyManager, port, mode, configuration);
                 });
+                // Registered as IAlertIngress, NOT as IHostedService yet — manual Start/Stop
+                // is kept for now to minimize disruption. IHostedService conversion is Phase 5.
+                services.AddSingleton<Business.Messaging.Abstractions.IAlertIngress>(
+                    sp => sp.GetRequiredService<Business.Messaging.NetMQAlertIngress>());
 
 
                 foreach (var descriptor in services
@@ -298,7 +316,7 @@ public class Program
                     });
                 });
 
-    static async Task InitializeAnalysisManagersAsync(IServiceProvider services, RealTimeAlertListener alertListener)
+    static async Task InitializeAnalysisManagersAsync(IServiceProvider services, Business.Messaging.AlertProcessor alertProcessor)
     {
         using var scope = services.CreateScope();
         var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();

@@ -13,8 +13,8 @@ public class RealTimeAlertListenerDiTests
     {
         using var host = ProductionListenerTestHost.Build(enabled);
 
-        var listener = host.Services.GetRequiredService<RealTimeAlertListener>();
+        var alertProcessor = host.Services.GetRequiredService<AlertProcessor>();
 
-        listener.AcceptLegacyV0.Should().Be(enabled);
+        alertProcessor.AcceptLegacyV0.Should().Be(enabled);
     }
 }

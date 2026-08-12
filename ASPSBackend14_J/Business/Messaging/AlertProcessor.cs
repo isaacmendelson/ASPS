@@ -15,24 +15,21 @@ using Interface.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using NetMQ;
-using NetMQ.Sockets;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 
 namespace Business.Messaging;
 
-public enum SocketMode
+/// <summary>
+/// Business logic for device alerts and token/device lifecycle messages — token validation,
+/// alert routing, message dispatch, device registration. Transport-agnostic: contains no
+/// NetMQ dependency. Extracted from <c>RealTimeAlertListener</c> (ASPS-684) — the transport
+/// layer now lives in <see cref="NetMQAlertIngress"/>, which delegates here.
+/// </summary>
+public class AlertProcessor
 {
-    Pull,   // One-way, fire-and-forget (PullSocket)
-    Router  // Concurrent request-response (RouterSocket — scales to thousands of devices)
-            // Compatible with REQ clients; no client-side changes needed.
-}
-
-public class RealTimeAlertListener : IDisposable
-{
-    private readonly ILogger<RealTimeAlertListener> _logger;
+    private readonly ILogger<AlertProcessor> _logger;
     private readonly IServiceProvider _serviceProvider;
     private readonly ASView _asView;
     private readonly UserDomainManagerService _userDomainService;
@@ -40,12 +37,6 @@ public class RealTimeAlertListener : IDisposable
     private readonly CurveKeyManager? _curveKeyManager;
     private readonly RateLimiter _rateLimiter;
     private readonly List<IDomainEventHandler> _eventHandlers = new();
-    private RouterSocket? _routerSocket;  // replaces ResponseSocket — handles concurrent clients
-    private PullSocket? _pullSocket;
-    private readonly object _sendLock = new();  // RouterSocket is not thread-safe for sends
-    private bool _isRunning;
-    private readonly int _port;
-    private readonly SocketMode _mode;
     private readonly AlertPersistenceActor _alertPersistenceActor;
     private readonly DomainEventPublisher _domainEventPublisher;
     private readonly MessageDeduplicator _messageDeduplicator;
@@ -61,26 +52,22 @@ public class RealTimeAlertListener : IDisposable
     public void SetReconnectSnapshotService(ReconnectSnapshotService service)
         => _reconnectSnapshotService = service;
 
-    public RealTimeAlertListener(
-        ILoggerFactory _loggerFactory,
+    public AlertProcessor(
+        ILoggerFactory loggerFactory,
         IServiceProvider serviceProvider,
         ASView asView,
         UserDomainManagerService userDomainService,
         TokenStore tokenStore,
         CurveKeyManager? curveKeyManager = null,
-        int port = 50001,
-        SocketMode mode = SocketMode.Router,
         IConfiguration? configuration = null)
     {
-        this._logger = _loggerFactory.CreateLogger<RealTimeAlertListener>();
+        _logger = loggerFactory.CreateLogger<AlertProcessor>();
         _serviceProvider = serviceProvider;
         _asView = asView;
         _userDomainService = userDomainService;
         _tokenStore = tokenStore;
         _curveKeyManager = curveKeyManager;
         _rateLimiter = new RateLimiter();
-        _port = port;
-        _mode = mode;
         _messageDeduplicator = new MessageDeduplicator(
             TimeSpan.FromMinutes(15), capacity: 100_000);
         _messagingCompatibility = new MessagingCompatibilityOptions
@@ -88,163 +75,24 @@ public class RealTimeAlertListener : IDisposable
             AcceptLegacyV0 = configuration?.GetValue<bool>(
                 "Messaging:AcceptLegacyV0", false) ?? false
         };
-        _alertPersistenceActor = new AlertPersistenceActor(_loggerFactory, _asView, _serviceProvider);
+        _alertPersistenceActor = new AlertPersistenceActor(loggerFactory, _asView, _serviceProvider);
         this.RegisterEventHandler(_alertPersistenceActor);
         this.RegisterEventHandler(_asView);
 
         _domainEventPublisher = new DomainEventPublisher(_eventHandlers);
-
     }
 
     public void RegisterEventHandler(IDomainEventHandler handler)
     {
         _eventHandlers.Add(handler);
         _logger.LogInformation($"Registered event handler: {handler.GetType().Name}");
-
-        
-    }
-
-    public void Start()
-    {
-        _isRunning = true;
-        var encStatus = _curveKeyManager?.IsEnabled == true ? "CURVE encrypted" : "unencrypted";
-
-        if (_mode == SocketMode.Router)
-        {
-            _routerSocket = new RouterSocket();
-            _routerSocket.Options.Linger = TimeSpan.Zero;
-            _curveKeyManager?.ApplyServerCurve(_routerSocket);
-            _routerSocket.Bind($"tcp://*:{_port}");
-            _logger.LogInformation(
-                "Real-time alert listener started on tcp://*:{Port} (ROUTER mode — concurrent, {Enc})",
-                _port, encStatus);
-        }
-        else
-        {
-            _pullSocket = new PullSocket();
-            _pullSocket.Options.Linger = TimeSpan.Zero;
-            _curveKeyManager?.ApplyServerCurve(_pullSocket);
-            _pullSocket.Bind($"tcp://*:{_port}");
-            _logger.LogInformation(
-                "Real-time alert listener started on tcp://*:{Port} (PULL mode — fire-and-forget, {Enc})",
-                _port, encStatus);
-        }
-
-        Task.Run(() => ListenForAlerts());
-    }
-
-    private void ListenForAlerts()
-    {
-        while (_isRunning)
-        {
-            try
-            {
-                if (_mode == SocketMode.Router)
-                {
-                    var incoming = _routerSocket!.ReceiveMultipartMessage();
-
-                    _logger.LogDebug("ROUTER received message with {Count} frames", incoming.FrameCount);
-                    for (int i = 0; i < incoming.FrameCount; i++)
-                    {
-                        var frameContent = incoming[i].BufferSize > 100 
-                            ? $"[{incoming[i].BufferSize} bytes]" 
-                            : System.Text.Encoding.UTF8.GetString(incoming[i].Buffer);
-                        _logger.LogDebug("  Frame {Index}: {Content}", i, frameContent);
-                    }
-
-                    if (incoming.FrameCount < 3)
-                    {
-                        _logger.LogWarning("Malformed ROUTER message: expected 3 frames, got {Count}", incoming.FrameCount);
-                        continue;
-                    }
-
-                    var identity     = incoming[0].Buffer.ToArray();
-                    var messageBytes = incoming[2].Buffer;
-
-                    _ = Task.Run(async () => await ProcessRouterMessageAsync(identity, messageBytes));
-                }
-                else
-                {
-                    var messageBytes = _pullSocket!.ReceiveFrameBytes();
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            var message = System.Text.Encoding.UTF8.GetString(messageBytes);
-                            var jObject = JObject.Parse(message);
-                            await ProcessAlertAsync(message, jObject);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Error processing PULL message");
-                        }
-                    });
-                }
-            }
-            catch (Exception ex) when (_isRunning)
-            {
-                _logger.LogError(ex, "Error in receive loop");
-            }
-        }
-    }
-
-    private async Task ProcessRouterMessageAsync(byte[] identity, byte[] messageBytes)
-    {
-        object result;
-        try
-        {
-            string message;
-            try
-            {
-                message = System.Text.Encoding.UTF8.GetString(messageBytes);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to decode message as UTF-8");
-                result = new { success = false, message = "Failed to decode message" };
-                SendRouterResponse(identity, result);
-                return;
-            }
-
-            result = await RouteMessageAsync(message);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error processing message");
-            result = new { success = false, message = "Error processing message" };
-        }
-
-        SendRouterResponse(identity, result);
-    }
-
-    private void SendRouterResponse(byte[] identity, object response)
-    {
-        try
-        {
-            var json = response is MessageEnvelopeV1
-                ? System.Text.Json.JsonSerializer.Serialize(response)
-                : JsonConvert.SerializeObject(response);
-            var reply = new NetMQMessage();
-            reply.Append(identity);
-            reply.AppendEmptyFrame();
-            reply.Append(json);
-
-            lock (_sendLock)
-            {
-                _routerSocket!.SendMultipartMessage(reply);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error sending router response");
-        }
     }
 
     // ─────────────────────────────────────────────────────────────────────
     // Message Router — checks MessageType and dispatches accordingly
     // ─────────────────────────────────────────────────────────────────────
 
-    private async Task<object> RouteMessageAsync(string message)
+    internal async Task<object> RouteMessageAsync(string message)
     {
         try
         {
@@ -708,7 +556,7 @@ public class RealTimeAlertListener : IDisposable
     // ─────────────────────────────────────────────────────────────────────
 
     // Phase 1: fast — parse, validate token, ACK immediately, fire background task
-    private Task<object> ProcessAlertAsync(string message, JObject jObject)
+    internal Task<object> ProcessAlertAsync(string message, JObject jObject)
     {
         try
         {
@@ -737,15 +585,6 @@ public class RealTimeAlertListener : IDisposable
                     alert.DeviceInfo.DeviceUid, urlAlertCheck.Url);
                 return Task.FromResult<object>(new { success = false, message = "Local URLs are not analyzed." });
             }
-
-            // DEV: Set SessionStatus Active for incoming RemoteAccessAlerts
-           //if (alert is RemoteAccessAlert RemoteAccessAlertCheck)
-           //{
-                //_logger.LogDebug("Setting SessionStatus Active for incoming RemoteAccessAlert");
-                //RemoteAccessAlertCheck.SessionStatus = (int)SessionStatus.Open;
-                //RemoteAccessAlertCheck.Direction = RemoteAccessDirection.Incoming.ToString().ToLower();
-                //RemoteAccessAlertCheck.ConnectionStatus = ConnectionStatus.Open;
-            //}
 
             var deviceUid = alert.DeviceInfo.DeviceUid;
             var tokenValidation = _tokenStore.ValidateToken(deviceUid, alert.Token);
@@ -812,13 +651,12 @@ public class RealTimeAlertListener : IDisposable
     private async Task DispatchAlertInBackground(DeviceAlertReceived domainEvent, Key userKey, string deviceUid)
     {
         try
-  {
+        {
             DomainDispatchObserver?.Invoke(domainEvent);
 
             this._domainEventPublisher.Register(domainEvent);
             this._domainEventPublisher.RaiseAll();
 
-            //var userManager = await _userDomainService.GetManagerForDeviceAsync(deviceUid);
             var userManager = this._userDomainService.GetOrCreateManagerForUser(userKey);
             if (userManager != null)
             {
@@ -829,12 +667,6 @@ public class RealTimeAlertListener : IDisposable
             {
                 _logger.LogWarning("No UDAnalysisManager found for device {DeviceUid}", deviceUid);
             }
-
-            //foreach (var handler in _eventHandlers)
-            //{
-            //    if (handler.GetHandleableEvents().Contains(typeof(DeviceAlertReceived)))
-            //        await handler.Handle(domainEvent);
-            //}
         }
         catch (Exception ex)
         {
@@ -869,18 +701,5 @@ public class RealTimeAlertListener : IDisposable
             return JsonConvert.DeserializeObject<RemoteAccessAlert>(message);
         _logger.LogError("Could not determine alert type from message content");
         return null;
-    }
-
-    public void Stop()
-    {
-        _isRunning = false;
-        _logger.LogInformation("Real-time alert listener stopped");
-    }
-
-    public void Dispose()
-    {
-        Stop();
-        _pullSocket?.Dispose();
-        _routerSocket?.Dispose();
     }
 }

@@ -49,7 +49,7 @@ public class ReconnectSnapshotService
 
     /// <summary>
     /// Send a reconnect snapshot to the device.
-    /// Called by <see cref="RealTimeAlertListener"/> when a device re-authenticates.
+    /// Called by <see cref="AlertProcessor"/> when a device re-authenticates.
     /// The snapshot header is sent first; then each pending payload is re-sent
     /// in-order over the same device topic so the client can replay and ACK them.
     /// </summary>
