@@ -13,13 +13,13 @@ namespace ASPS.Tests.Business.Messaging;
 /// ASPS-620 AC5/AC6: On reconnect the backend replays un-ACK'd notifications
 /// via the snapshot service.
 ///
-/// Uses a subclass of NotificationPublisher to capture PublishSnapshot calls
+/// Uses a subclass of NetMQNotificationEgress to capture PublishSnapshot calls
 /// without requiring a live ZMQ socket per call (the constructor binds the socket
 /// once, then PublishSnapshot is overridden to capture calls).
 /// </summary>
 public class ReconnectSnapshotServiceTests : IDisposable
 {
-    private readonly CapturingNotificationPublisher _publisher;
+    private readonly CapturingNotificationEgress _publisher;
     private readonly Mock<INotificationOutboxRepository> _mockOutboxRepo;
     private readonly ReconnectSnapshotService _sut;
 
@@ -34,7 +34,7 @@ public class ReconnectSnapshotServiceTests : IDisposable
             .Build();
 
         var loggerFactory = LoggerFactory.Create(b => b.AddConsole());
-        _publisher = new CapturingNotificationPublisher(config, loggerFactory.CreateLogger<NotificationPublisher>());
+        _publisher = new CapturingNotificationEgress(config, loggerFactory.CreateLogger<NetMQNotificationEgress>());
 
         _mockOutboxRepo = new Mock<INotificationOutboxRepository>();
 
@@ -175,13 +175,13 @@ public class ReconnectSnapshotServiceTests : IDisposable
 
     // ─── Test double: overrides PublishSnapshot to capture calls ───
 
-    private sealed class CapturingNotificationPublisher : NotificationPublisher
+    private sealed class CapturingNotificationEgress : NetMQNotificationEgress
     {
         public List<(string DeviceUid, string Json)> CapturedCalls { get; } = new();
 
-        public CapturingNotificationPublisher(
+        public CapturingNotificationEgress(
             IConfiguration configuration,
-            ILogger<NotificationPublisher> logger)
+            ILogger<NetMQNotificationEgress> logger)
             : base(configuration, logger) { }
 
         public override void PublishSnapshot(string deviceUid, string json)

@@ -68,3 +68,41 @@ The CQRS gateway has **71 cases** (not ~32 as initially estimated) across 1,256 
 ## Next Steps
 1. Begin Phase 0: ASPS-676, ASPS-677, ASPS-678 (can run in parallel)
 2. Decisions still needed on open questions OQ-1 through OQ-7 before Phase 1
+
+## Implementation Progress
+
+**Branch:** `asps-675-messaging-refactoring`
+
+| Phase | Status | Commit(s) |
+|---|---|---|
+| 0 — Foundation | Done | `90829f9` |
+| 1 — CQRS handler extraction | Done | `8cf77d7` |
+| 2 — ASPS-682/683 Notification egress extraction | Done (this session) | pending commit |
+
+### Phase 2 (ASPS-682 + ASPS-683) — 2026-08-12
+
+**ASPS-682** — Renamed `NotificationPublisher` → `NetMQNotificationEgress`, implementing
+`INotificationEgress` (async wrappers delegating to the existing sync/virtual methods,
+`Task.CompletedTask` since the NetMQ send is synchronous). Wire protocol (topics, JSON) unchanged.
+
+**ASPS-683** — Wired `INotificationEgress` into DI and consumers:
+- `OutboxNotificationPublisher` — constructor now depends on `INotificationEgress`; sync `_inner.PublishXxx(...)` calls replaced with `await _inner.PublishXxxAsync(...)`.
+- `ReconnectSnapshotService` — constructor now depends on `INotificationEgress`; `PublishSnapshot` → `await PublishSnapshotAsync`.
+- `Program.cs` — `NetMQNotificationEgress` registered as singleton; `INotificationEgress` registered to resolve the same singleton instance (single NetMQ PUB socket shared by both consumers).
+- `NotificationPublisherActor` unchanged (depends on `OutboxNotificationPublisher`, not the egress type directly).
+
+**Changed files:**
+- `ASPSBackend14_J/Business/Messaging/NetMQNotificationEgress.cs` (renamed from `NotificationPublisher.cs`)
+- `ASPSBackend14_J/Business/Messaging/OutboxNotificationPublisher.cs`
+- `ASPSBackend14_J/Business/Messaging/ReconnectSnapshotService.cs`
+- `ASPSBackend14_J/ASPSBackend/Program.cs`
+- `ASPSBackend14_J/ASPS.Tests/Business/Messaging/NetMQNotificationEgressTests.cs` (renamed from `NotificationPublisherTests.cs`)
+- `ASPSBackend14_J/ASPS.Tests/Business/Messaging/OutboxNotificationPublisherTests.cs`
+- `ASPSBackend14_J/ASPS.Tests/Business/Messaging/ReconnectSnapshotServiceTests.cs`
+- `ASPSBackend14_J/ASPS.Tests/Business/Messaging/NotificationPublisherActorTests.cs`
+
+**Verification:**
+- `dotnet build ASPSBackend.sln -c Debug --nologo` → 0 errors (299 pre-existing warnings, none new).
+- `dotnet test ASPS.Tests/ASPS.Tests.csproj --nologo -v q` → Passed: 1657, Failed: 0, Skipped: 7, Total: 1664.
+
+**Not yet done:** commit, pre-QA gate (merge latest main + re-test + push), QA review.

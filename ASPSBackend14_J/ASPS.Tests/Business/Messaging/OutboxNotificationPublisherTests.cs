@@ -9,16 +9,16 @@ using Moq;
 namespace ASPS.Tests.Business.Messaging;
 
 /// <summary>
-/// ASPS-620: OutboxNotificationPublisher wraps NotificationPublisher and
+/// ASPS-620: OutboxNotificationPublisher wraps INotificationEgress and
 /// persists every notification to the outbox before sending over ZMQ.
 ///
-/// Uses a real NotificationPublisher (bound to a random test port, as existing
-/// NotificationPublisherTests do) because Moq cannot proxy that class without
+/// Uses a real NetMQNotificationEgress (bound to a random test port, as existing
+/// NetMQNotificationEgressTests do) because Moq cannot proxy that class without
 /// a live ZMQ socket being constructed.
 /// </summary>
 public class OutboxNotificationPublisherTests : IDisposable
 {
-    private readonly NotificationPublisher _inner;
+    private readonly NetMQNotificationEgress _inner;
     private readonly Mock<INotificationOutboxRepository> _mockOutboxRepo;
     private readonly OutboxNotificationPublisher _sut;
 
@@ -28,7 +28,7 @@ public class OutboxNotificationPublisherTests : IDisposable
         var loggerFactory = LoggerFactory.Create(b => b.AddConsole());
 
         // Real publisher on a test port (no ZMQ encryption needed for unit tests)
-        _inner = new NotificationPublisher(config, loggerFactory.CreateLogger<NotificationPublisher>());
+        _inner = new NetMQNotificationEgress(config, loggerFactory.CreateLogger<NetMQNotificationEgress>());
 
         _mockOutboxRepo = new Mock<INotificationOutboxRepository>();
         _mockOutboxRepo

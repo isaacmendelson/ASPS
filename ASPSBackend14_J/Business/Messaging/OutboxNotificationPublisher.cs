@@ -1,3 +1,4 @@
+using Business.Messaging.Abstractions;
 using Common.Entities;
 using Common.Generated.Messaging.V1;
 using Interface.Repositories;
@@ -8,19 +9,20 @@ using Newtonsoft.Json;
 namespace Business.Messaging;
 
 /// <summary>
-/// Outbox-aware wrapper around <see cref="NotificationPublisher"/>.
+/// Outbox-aware wrapper around <see cref="INotificationEgress"/>.
 /// For every notification:
 ///   1. Persist to <see cref="INotificationOutboxRepository"/> (outbox pattern).
 ///   2. Increment delivery attempts.
-///   3. Send over ZMQ PUB.
+///   3. Send over the egress transport.
 ///
 /// ASPS-620: Durable notification delivery — no message is sent without a DB record.
+/// ASPS-683: Depends on the transport-agnostic <see cref="INotificationEgress"/> abstraction.
 /// Uses <see cref="IServiceScopeFactory"/> because the outbox repository is Scoped
 /// while this publisher is Singleton.
 /// </summary>
 public class OutboxNotificationPublisher
 {
-    private readonly NotificationPublisher _inner;
+    private readonly INotificationEgress _inner;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<OutboxNotificationPublisher> _logger;
 
@@ -33,7 +35,7 @@ public class OutboxNotificationPublisher
     };
 
     public OutboxNotificationPublisher(
-        NotificationPublisher inner,
+        INotificationEgress inner,
         IServiceScopeFactory scopeFactory,
         ILogger<OutboxNotificationPublisher> logger)
     {
@@ -59,7 +61,7 @@ public class OutboxNotificationPublisher
             DeviceUid = deviceUid ?? string.Empty,
             Data = evt
         });
-        _inner.PublishImmediateDangerEvent(deviceUid, userKeyField, evt);
+        await _inner.PublishImmediateDangerEventAsync(deviceUid, userKeyField, evt);
     }
 
     // Synchronous overload for callers that cannot await (fire-and-forget with logged error).
@@ -82,7 +84,7 @@ public class OutboxNotificationPublisher
             DeviceUid = deviceUid ?? string.Empty,
             Data = evt
         });
-        _inner.PublishImmediateDangerEnded(deviceUid, userKeyField, evt);
+        await _inner.PublishImmediateDangerEndedAsync(deviceUid, userKeyField, evt);
     }
 
     public virtual void PublishImmediateDangerEnded(
@@ -115,7 +117,7 @@ public class OutboxNotificationPublisher
         if (deviceList.Count == 0 && !string.IsNullOrEmpty(userKeyField))
             await PersistAsync(Guid.NewGuid(), "SetTrackedDomainsNotification", null, userKeyField, payload);
 
-        _inner.PublishSetTrackedDomains(deviceList, userKeyField, evt);
+        await _inner.PublishSetTrackedDomainsAsync(deviceList, userKeyField, evt);
     }
 
     public virtual void PublishSetTrackedDomains(
@@ -138,7 +140,7 @@ public class OutboxNotificationPublisher
             DeviceUid = deviceUid ?? string.Empty,
             Data = notification
         });
-        _inner.PublishAnalysisResult(deviceUid, userKeyField, notification, messagingIdentity);
+        await _inner.PublishAnalysisResultAsync(deviceUid, userKeyField, notification, messagingIdentity);
     }
 
     public virtual void PublishAnalysisResult(
@@ -167,7 +169,7 @@ public class OutboxNotificationPublisher
             DeviceUid = deviceUid ?? string.Empty,
             Data = new { deviceUid, userKeyField, mode, validUntil }
         });
-        _inner.PublishSetBrowserTabsPolicy(deviceUid, userKeyField, mode, validUntil);
+        await _inner.PublishSetBrowserTabsPolicyAsync(deviceUid, userKeyField, mode, validUntil);
     }
 
     public void PublishSetBrowserTabsPolicy(

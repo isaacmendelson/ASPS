@@ -208,8 +208,10 @@ public class Program
                         sp.GetRequiredService<CqrsChannelSecurity>());
                 });
 
-                // Add Notification Publisher
-                services.AddSingleton<Business.Messaging.NotificationPublisher>();
+                // Add Notification Publisher (ASPS-682/683: NetMQ-backed INotificationEgress)
+                services.AddSingleton<Business.Messaging.NetMQNotificationEgress>();
+                services.AddSingleton<Business.Messaging.Abstractions.INotificationEgress>(
+                    sp => sp.GetRequiredService<Business.Messaging.NetMQNotificationEgress>());
 
                 // ASPS-620: Outbox-aware publisher + reconnect snapshot service
                 services.AddSingleton<Business.Messaging.OutboxNotificationPublisher>();
