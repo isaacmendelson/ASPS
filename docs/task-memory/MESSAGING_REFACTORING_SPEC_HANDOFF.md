@@ -81,6 +81,7 @@ The CQRS gateway has **71 cases** (not ~32 as initially estimated) across 1,256 
 | 3 — ASPS-684/685 Alert ingress extraction | Done | `c606c80` |
 | 4 — ASPS-686/687 CQRS transport extraction | Done | `31282d0` |
 | 5 — ASPS-688/689 Lifecycle migration + CancellationToken | Done (this session) | `7940c6c` |
+| 6 — ASPS-690/691 Legacy cleanup + architecture docs | Done (this session) | `987d493` |
 
 ### Phase 2 (ASPS-682 + ASPS-683) — 2026-08-12
 
@@ -179,4 +180,97 @@ with a poll-with-timeout receive loop and was already wired via `AddHostedServic
 
 **Commit:** `7940c6c` — `ASPS-675 Phase 5: Lifecycle migration + CancellationToken (ASPS-688, ASPS-689)`
 
-**Not yet done:** push to remote, request QA review (per `.claude/rules/task-workflow.md` pre-QA gate — push + notify orchestrator still pending), Phase 6 cleanup (remove `CQRSGateway.Commands.cs`/`CQRSGateway.Queries.cs`, doc updates).
+**Not yet done (as of Phase 5):** push to remote, request QA review, Phase 6 cleanup. Phase 6 is now complete — see below.
+
+### Phase 6 (ASPS-690 + ASPS-691) — 2026-08-16
+
+**ASPS-690 — Remove legacy dispatch code:**
+- Confirmed via solution-wide grep that `CQRSGateway.Commands.cs` and
+  `CQRSGateway.Queries.cs` had already been refactored (Phase 1) to delegate
+  to `CqrsHandlerRegistry.DispatchAsync(...)` — they were not raw switch-case
+  dead code, but the whole `CQRSGateway` class (`.cs`/`.Commands.cs`/`.Queries.cs`)
+  was runtime-dead: `Program.cs` registers `NetMQCqrsTransport` (Phase 4) as
+  the actual `IHostedService`/`ICqrsTransport`, with an explicit comment
+  confirming "CQRSGateway itself is left in place (unused at runtime) pending
+  Phase 6 cleanup." The only reference to `CQRSGateway` anywhere in the
+  solution was its own test file, `CQRSGatewayTests.cs`.
+- TDD/parity step before deletion: `NetMQCqrsTransportTests.cs` (Phase 4)
+  already existed but covered only 8 of `CQRSGatewayTests.cs`'s 9 cases.
+  Added the 4 missing cases (client-only CURVE material rejection,
+  tampered-payload rejection, replayed-nonce rejection, unauthorized-client
+  rejection) to reach full parity (12 tests total, all passing) before
+  deleting `CQRSGatewayTests.cs`.
+- Deleted: `Business/Messaging/CQRSGateway.cs`, `CQRSGateway.Commands.cs`,
+  `CQRSGateway.Queries.cs`, `ASPS.Tests/Business/Messaging/CQRSGatewayTests.cs`.
+- Deletion surfaced one compile error: `CqrsQueryRegistration.GetLogger`
+  resolved `ILogger<CQRSGateway>` from the DI scope. Repointed to
+  `ILogger<CqrsHandlerRegistry>` (the still-live registry class this dispatch
+  logic mirrors) — no config/appsettings depend on the "CQRSGateway" log
+  category name, so this is safe.
+- Updated now-stale comments referencing the deleted files in `Program.cs`,
+  `MessagingServiceRegistration.cs`, and `CqrsQueryRegistration.cs`.
+- **Dead-code finding NOT acted on (flagged for orchestrator):**
+  `WebApi/Services/CQRSClient.cs` (the concrete legacy `ICQRSClient`
+  implementation) is also runtime-dead — `WebApi/Program.cs` registers
+  `NetMQCqrsClientAdapter` (wrapping `NetMQCqrsClient`/`ICqrsClient`) for
+  `ICQRSClient`, not `CQRSClient`. `CQRSClient` is only referenced by
+  `ASPS.Tests/WebApi/Services/CQRSClientTests.cs` and
+  `ASPS.Tests/WebApi/Pages/IndexModelTests.cs` (constructs it directly to
+  satisfy `IndexModel`'s `ICQRSClient` dependency). Left untouched — out of
+  this task's explicit scope (which named only the `CQRSGateway.*` files),
+  and `NetMQCqrsClientAdapter.cs`'s own doc comment defers the "mechanical
+  replacement of ICQRSClient → ICqrsClient across [the 39] consumers" as a
+  separate, larger follow-up. Recommend a dedicated JIRA task if this cleanup
+  is wanted.
+- Other dead-code sweep: no orphaned test files, no stale `.csproj`
+  `<Compile Include>` entries (SDK-style glob include, no explicit refs to
+  the deleted files existed). Remaining generic "CQRSGateway" mentions in
+  `ASPS.Tests/WebApi/Services/NetMQClientServiceTests.cs` and
+  `JsonSerializationTests.cs` are comment-only and conceptually accurate
+  (describe "the CQRS gateway" generically) — left as-is.
+
+**ASPS-691 — Update architecture documentation:**
+- `ARCHITECTURE.md` (repo root, not under `docs/` — the actual location
+  differs from what `CLAUDE.md`'s repo-layout section implies): updated the
+  Backend/WebApi component diagrams and tables to replace
+  `RealTimeAlertListener` → `NetMQAlertIngress` (+ `AlertProcessor`),
+  `NotificationPublisher` → `NetMQNotificationEgress`, `CQRSGateway` →
+  `NetMQCqrsTransport`, `CQRSClient` → `NetMQCqrsClient` /
+  `NetMQCqrsClientAdapter`. Added new **§5.8 "Messaging Transport
+  Architecture (ASPS-675 Messaging Refactoring)"** subsection documenting
+  the four abstraction interfaces (`ICqrsTransport`, `ICqrsClient`,
+  `IAlertIngress`, `INotificationEgress`), `CqrsHandlerRegistry`, the
+  alert-ingress split, and the `IHostedService` lifecycle pattern. Fixed a
+  dead file link (`CQRSGateway.cs`) in the Roadmap module section.
+- `docs/ASPS_DATA_FLOW.md`: updated the Backend component diagram and
+  Steps 6/7/13 to reflect `NetMQAlertIngress`/`AlertProcessor` and
+  `NetMQNotificationEgress`, and the WebApi/CQRS data-flow diagram + Step W1
+  to reflect `NetMQCqrsTransport`/`CqrsHandlerRegistry`/
+  `NetMQCqrsClientAdapter`. Wire protocol/JSON shapes unchanged — code
+  snippets in the doc are illustrative and were left semantically accurate.
+- Did not modify `CLAUDE.md` (out of scope per task instructions).
+
+**Changed files (commit `987d493`):**
+- Deleted: `ASPSBackend14_J/Business/Messaging/CQRSGateway.cs`,
+  `CQRSGateway.Commands.cs`, `CQRSGateway.Queries.cs`,
+  `ASPSBackend14_J/ASPS.Tests/Business/Messaging/CQRSGatewayTests.cs`
+- `ASPSBackend14_J/ASPS.Tests/Business/Messaging/NetMQCqrsTransportTests.cs` — 4 new parity tests
+- `ASPSBackend14_J/ASPSBackend/Program.cs` — stale comment fix
+- `ASPSBackend14_J/Business/Messaging/CqrsQueryRegistration.cs` — logger fix + comment fixes
+- `ASPSBackend14_J/Business/Messaging/MessagingServiceRegistration.cs` — comment fix
+- `ARCHITECTURE.md`
+- `docs/ASPS_DATA_FLOW.md`
+
+**Verification:**
+- `dotnet build ASPSBackend.sln -c Debug --nologo` → 0 errors.
+- `dotnet test ASPS.Tests/ASPS.Tests.csproj --nologo -v q` → Passed: 1675,
+  Failed: 0, Skipped: 7, Total: 1682 (parity swap: -9 old `CQRSGatewayTests`
+  + 4 new `NetMQCqrsTransportTests` cases = net -5 vs. Phase 5's 1682/1689;
+  remaining count delta vs. the exact Phase 5 numbers may also reflect
+  concurrent unrelated work by other agents sharing this worktree).
+
+**Not yet done:** push to remote, request QA review (per
+`.claude/rules/task-workflow.md` pre-QA gate — orchestrator handles this
+per task instructions). Epic ASPS-675 phases 0–6 are now all implemented;
+ASPS-692 (security review, cross-cutting) remains as a separate follow-up
+task, along with the `CQRSClient.cs` dead-code finding noted above.
