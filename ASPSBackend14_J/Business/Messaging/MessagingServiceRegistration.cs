@@ -15,7 +15,10 @@ public static class MessagingServiceRegistration
     /// Registers messaging services with the DI container.
     /// Phase 1: Registers the CqrsHandlerRegistry with all 21 command handlers (ASPS-679)
     /// and all 50 query handlers (ASPS-680).
-    /// Future phases will register IAlertIngress, INotificationEgress, ICqrsTransport implementations.
+    /// Phase 4 (ASPS-686/687): CQRSGateway and WebApi's CQRSClient were absorbed into
+    /// NetMQCqrsTransport and NetMQCqrsClient (Business.Messaging.Transport.NetMQ), registered
+    /// directly in ASPSBackend/Program.cs and WebApi/Program.cs (not here — they depend on
+    /// host-specific endpoint configuration). This method stays focused on the handler registry.
     /// </summary>
     public static IServiceCollection AddMessagingServices(
         this IServiceCollection services,

@@ -312,13 +312,23 @@ builder.Services.AddSingleton(sp =>
 
 var cqrsEndpoint = builder.Configuration.GetValue<string>("CQRS:Endpoint") ?? "tcp://localhost:5556";
 
-builder.Services.AddSingleton<ICQRSClient>(sp =>
+// ASPS-687 (Messaging Refactoring Phase 4): NetMQCqrsClient (Business.Messaging.Transport.NetMQ)
+// replaces CQRSClient as the canonical transport implementation. It implements the
+// transport-agnostic Business.Messaging.Abstractions.ICqrsClient directly; the legacy
+// ICQRSClient contract is bridged by NetMQCqrsClientAdapter (Business cannot reference WebApi,
+// so the adapter — not the transport class — implements ICQRSClient). Both resolve to the
+// same underlying singleton, so all 39 existing WebApi consumers keep working unmodified.
+builder.Services.AddSingleton<Business.Messaging.Transport.NetMQ.NetMQCqrsClient>(sp =>
 {
-    var logger = sp.GetRequiredService<ILogger<CQRSClient>>();
+    var logger = sp.GetRequiredService<ILogger<Business.Messaging.Transport.NetMQ.NetMQCqrsClient>>();
     var curveKeyManager = sp.GetRequiredService<CurveKeyManager>();
     var channelSecurity = sp.GetRequiredService<CqrsChannelSecurity>();
-    return new CQRSClient(cqrsEndpoint, logger, curveKeyManager, channelSecurity);
+    return new Business.Messaging.Transport.NetMQ.NetMQCqrsClient(cqrsEndpoint, logger, curveKeyManager, channelSecurity);
 });
+builder.Services.AddSingleton<Business.Messaging.Abstractions.ICqrsClient>(
+    sp => sp.GetRequiredService<Business.Messaging.Transport.NetMQ.NetMQCqrsClient>());
+builder.Services.AddSingleton<ICQRSClient>(
+    sp => new NetMQCqrsClientAdapter(sp.GetRequiredService<Business.Messaging.Abstractions.ICqrsClient>()));
 builder.Services.AddSingleton<IAuthorizationHandler, NotificationsHubAuthorizationHandler>();
 builder.Services.AddSingleton<
     IAuthorizationMiddlewareResultHandler,

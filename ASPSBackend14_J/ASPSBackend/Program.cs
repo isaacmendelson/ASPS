@@ -64,9 +64,8 @@ public class Program
 
         await alertIngress.StartAsync(CancellationToken.None);
 
-        // Start CQRS Gateway (for WebApi Commands/Queries)
-        var cqrsGateway = host.Services.GetRequiredService<CQRSGateway>();
-        cqrsGateway.Start();
+        // CQRS Gateway (ASPS-686: transport extracted behind ICqrsTransport / NetMQCqrsTransport)
+        // is started via AddHostedService below — host.RunAsync() starts/stops it.
 
         // Get configuration to display mode
         var configuration = host.Services.GetRequiredService<IConfiguration>();
@@ -198,17 +197,25 @@ public class Program
                         AllowedCommands = new HashSet<string>(allowedCommands, StringComparer.Ordinal)
                     });
                 });
+                // ASPS-686 (Messaging Refactoring Phase 4): NetMQCqrsTransport replaces
+                // CQRSGateway as the runtime CQRS listener, registered as an IHostedService
+                // via ICqrsTransport. CQRSGateway itself is left in place (unused at runtime)
+                // pending Phase 6 cleanup.
                 services.AddSingleton(sp =>
                 {
                     var configuration = sp.GetRequiredService<IConfiguration>();
-                    return new CQRSGateway(
+                    return new Business.Messaging.Transport.NetMQ.NetMQCqrsTransport(
                         sp,
-                        sp.GetRequiredService<ILogger<CQRSGateway>>(),
+                        sp.GetRequiredService<ILogger<Business.Messaging.Transport.NetMQ.NetMQCqrsTransport>>(),
                         sp.GetRequiredService<CqrsHandlerRegistry>(),
                         configuration["CQRS:BindEndpoint"] ?? "tcp://127.0.0.1:5556",
                         sp.GetRequiredService<CurveKeyManager>(),
                         sp.GetRequiredService<CqrsChannelSecurity>());
                 });
+                services.AddSingleton<Business.Messaging.Abstractions.ICqrsTransport>(
+                    sp => sp.GetRequiredService<Business.Messaging.Transport.NetMQ.NetMQCqrsTransport>());
+                services.AddHostedService(
+                    sp => sp.GetRequiredService<Business.Messaging.Transport.NetMQ.NetMQCqrsTransport>());
 
                 // Add Notification Publisher (ASPS-682/683: NetMQ-backed INotificationEgress)
                 services.AddSingleton<Business.Messaging.NetMQNotificationEgress>();
