@@ -2,6 +2,7 @@ using Business.Commands;
 using Business.Handlers;
 using Business.Queries;
 using Business.Services;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using NetMQ;
@@ -10,7 +11,12 @@ using Newtonsoft.Json;
 
 namespace Business.Messaging;
 
-public class NetMQMessageProcessor : IDisposable
+/// <summary>
+/// Internal CQRS channel (port 5555, no CURVE — loopback only). Runs as an
+/// <see cref="IHostedService"/> (ASPS-688, Messaging Refactoring Phase 5); previously
+/// started/stopped manually from <c>Program.cs</c>.
+/// </summary>
+public class NetMQMessageProcessor : IHostedService, IDisposable
 {
     private readonly ILogger<NetMQMessageProcessor> _logger;
     private readonly UserCommandHandlers? _userCommandHandlers;
@@ -57,7 +63,7 @@ public class NetMQMessageProcessor : IDisposable
         _curveKeyManager = curveKeyManager;
     }
 
-    public void Start()
+    public Task StartAsync(CancellationToken cancellationToken)
     {
         _isRunning = true;
         _responseSocket = new ResponseSocket();
@@ -67,20 +73,25 @@ public class NetMQMessageProcessor : IDisposable
 
         _logger.LogInformation($"NetMQ CQRS Message Processor started on {_endpoint} (internal channel, no CURVE)");
 
-        Task.Run(() => ProcessMessages());
+        Task.Run(() => ProcessMessages(cancellationToken), CancellationToken.None);
+        return Task.CompletedTask;
     }
 
-    private async Task ProcessMessages()
+    private async Task ProcessMessages(CancellationToken cancellationToken)
     {
-        while (_isRunning && _responseSocket != null)
+        while (_isRunning && _responseSocket != null && !cancellationToken.IsCancellationRequested)
         {
             try
             {
-                var message = _responseSocket.ReceiveFrameString();
+                // Poll with a timeout so the loop can observe _isRunning/cancellation
+                // without blocking StopAsync indefinitely.
+                if (!_responseSocket.TryReceiveFrameString(TimeSpan.FromMilliseconds(500), out var message) || message is null)
+                    continue;
+
                 _logger.LogInformation($"Received message: {message}");
 
                 var response = await ProcessMessageAsync(message);
-                
+
                 _responseSocket.SendFrame(response);
             }
             catch (Exception ex)
@@ -155,15 +166,19 @@ public class NetMQMessageProcessor : IDisposable
         }
     }
 
-    public void Stop()
+    public Task StopAsync(CancellationToken cancellationToken)
     {
         _isRunning = false;
+        _responseSocket?.Dispose();
+        _responseSocket = null;
         _logger.LogInformation("NetMQ Message Processor stopped");
+        return Task.CompletedTask;
     }
 
     public void Dispose()
     {
-        Stop();
+        _isRunning = false;
         _responseSocket?.Dispose();
+        _responseSocket = null;
     }
 }

@@ -14,24 +14,24 @@ public class RealTimeAlertListenerEnvelopeRuntimeTests
     public async Task MalformedFirst_CorrectedRetryClaimsThenDuplicateDoesNotReachDomain()
     {
         using var host = ProductionListenerTestHost.Build(acceptLegacyV0: false);
-        var listener = host.Services.GetRequiredService<RealTimeAlertListener>();
+        var alertProcessor = host.Services.GetRequiredService<AlertProcessor>();
         var token = host.Services.GetRequiredService<global::Business.Services.TokenStore>()
             .CreateToken("device-1", "user-1");
         var dispatchCount = 0;
-        listener.DomainDispatchObserver =
+        alertProcessor.DomainDispatchObserver =
             _ => Interlocked.Increment(ref dispatchCount);
         var envelope = CreateEnvelope(token.TokenValue);
         var malformed = JObject.Parse(envelope);
         malformed["payload"]!["alert"]!["Url"] = "https://wrong.example/";
 
-        var malformedResult = (MessageEnvelopeV1)await listener.ProcessEnvelopeAsync(
+        var malformedResult = (MessageEnvelopeV1)await alertProcessor.ProcessEnvelopeAsync(
             malformed.ToString(), malformed);
         malformedResult.Outcome!.Error!.Code.Should()
             .Be("validation.immutable_context_mismatch");
         Volatile.Read(ref dispatchCount).Should().Be(0);
 
         var corrected = JObject.Parse(envelope);
-        var correctedResult = (MessageEnvelopeV1)await listener.ProcessEnvelopeAsync(
+        var correctedResult = (MessageEnvelopeV1)await alertProcessor.ProcessEnvelopeAsync(
             corrected.ToString(), corrected);
         correctedResult.MessageType.Should().Be("url_scan.accepted");
         correctedResult.Payload.TryGetProperty("duplicate", out _).Should().BeFalse();
@@ -39,7 +39,7 @@ public class RealTimeAlertListenerEnvelopeRuntimeTests
         Volatile.Read(ref dispatchCount).Should().Be(1);
 
         var duplicate = JObject.Parse(envelope);
-        var duplicateResult = (MessageEnvelopeV1)await listener.ProcessEnvelopeAsync(
+        var duplicateResult = (MessageEnvelopeV1)await alertProcessor.ProcessEnvelopeAsync(
             duplicate.ToString(), duplicate);
         duplicateResult.Payload.GetProperty("duplicate").GetBoolean().Should().BeTrue();
         await Task.Delay(100);

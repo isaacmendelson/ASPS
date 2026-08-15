@@ -1,0 +1,229 @@
+using Business.Messaging;
+using Business.Messaging.Abstractions;
+using Business.Services;
+using Common.Messaging;
+using Microsoft.Extensions.Logging;
+using NetMQ;
+using NetMQ.Sockets;
+using Newtonsoft.Json;
+
+namespace Business.Messaging.Transport.NetMQ;
+
+/// <summary>
+/// NetMQ-backed CQRS client — sends Commands/Queries to the Business layer's
+/// NetMQCqrsTransport. Extracted from <c>WebApi.Services.CQRSClient</c>
+/// (ASPS-687, Messaging Refactoring Phase 4).
+/// Implements the transport-agnostic <see cref="ICqrsClient"/> (with cancellation support).
+/// Lives in Business (not WebApi) so Business-hosted callers can depend on it too, and so
+/// it stays the single canonical transport implementation — Business cannot reference WebApi,
+/// so the legacy <c>WebApi.Services.ICQRSClient</c> contract is satisfied by a thin adapter
+/// in WebApi (<c>WebApi.Services.NetMQCqrsClientAdapter</c>) that wraps this class, keeping
+/// all existing WebApi consumers working unmodified during migration.
+/// This runs in WebApi and has ZERO database access.
+/// </summary>
+public sealed class NetMQCqrsClient : ICqrsClient
+{
+    private readonly string _endpoint;
+    private readonly ILogger<NetMQCqrsClient> _logger;
+    private readonly CurveKeyManager? _curveKeyManager;
+    private readonly CqrsChannelSecurity? _channelSecurity;
+    private readonly object _lock = new object();
+    private readonly TimeSpan _timeout = TimeSpan.FromSeconds(10);
+
+    public NetMQCqrsClient(string endpoint, ILogger<NetMQCqrsClient> logger, CurveKeyManager? curveKeyManager = null,
+        CqrsChannelSecurity? channelSecurity = null)
+    {
+        _endpoint = endpoint;
+        _logger = logger;
+        _curveKeyManager = curveKeyManager;
+        _channelSecurity = channelSecurity;
+    }
+
+    private RequestSocket CreateSocket()
+    {
+        var socket = new RequestSocket();
+        if (_curveKeyManager?.IsEnabled != true)
+            throw new InvalidOperationException("CQRS client requires CURVE encryption.");
+        if (_channelSecurity is null)
+            throw new InvalidOperationException("CQRS client requires authenticated channel security.");
+        _curveKeyManager.ApplyClientCurve(socket);
+        socket.Connect(_endpoint);
+        return socket;
+    }
+
+    public async Task<TResult> SendQueryAsync<TResult>(Query query, CancellationToken ct = default) where TResult : QueryResult
+    {
+        return await Task.Run(() =>
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                // Create a new socket for each request to avoid state issues
+                using var socket = CreateSocket();
+                // Serialize query
+                var queryJson = JsonConvert.SerializeObject(query, new JsonSerializerSettings
+                {
+                    TypeNameHandling = TypeNameHandling.None
+                });
+
+                _logger.LogInformation("Sending query: {Query} to {Endpoint}",
+                    query.GetType().Name, _endpoint);
+
+                lock (_lock)
+                {
+                    // Send query
+                    var sent = socket.TrySendFrame(_timeout, _channelSecurity!.Protect(queryJson));
+
+                    if (!sent)
+                    {
+                        _logger.LogError("Failed to send query {Query} - Send timeout after {Timeout}s",
+                            query.GetType().Name, _timeout.TotalSeconds);
+                        throw new TimeoutException($"Failed to send query to {_endpoint} after {_timeout.TotalSeconds}s");
+                    }
+
+                    // Receive response
+                    string? responseJson = null;
+                    var received = socket.TryReceiveFrameString(_timeout, out responseJson);
+
+                    if (!received || responseJson == null)
+                    {
+                        _logger.LogError("Failed to receive response for {Query} - Receive timeout after {Timeout}s. Is ASPSBackend running?",
+                            query.GetType().Name, _timeout.TotalSeconds);
+                        throw new TimeoutException($"No response from {_endpoint} after {_timeout.TotalSeconds}s. Ensure ASPSBackend is running and CQRS Gateway is started.");
+                    }
+
+                    _logger.LogInformation("Received response for {Query} ({Length} chars)",
+                        query.GetType().Name, responseJson.Length);
+
+                    // Deserialize response with type information
+                    var result = JsonConvert.DeserializeObject<TResult>(
+                        responseJson, CqrsJsonSerialization.CreateSettings());
+
+                    if (result == null)
+                    {
+                        throw new InvalidOperationException("Failed to deserialize query result");
+                    }
+
+                    if (!result.Success)
+                    {
+                        _logger.LogWarning("Query {Query} returned error: {Message}",
+                            query.GetType().Name, result.Message);
+                    }
+
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending query {Query} to {Endpoint}",
+                    query.GetType().Name, _endpoint);
+
+                // Return error result with helpful message
+                var errorResult = Activator.CreateInstance<TResult>();
+                errorResult.Success = false;
+
+                if (ex is TimeoutException)
+                {
+                    errorResult.Message = $"Communication timeout after {_timeout.TotalSeconds}s. Is ASPSBackend running? Check if CQRS Gateway is listening on {_endpoint}";
+                }
+                else
+                {
+                    errorResult.Message = $"Communication error: {ex.Message}";
+                }
+
+                return errorResult;
+            }
+        }, ct);
+    }
+
+    public async Task<TResult> SendCommandAsync<TResult>(Command command, CancellationToken ct = default) where TResult : CommandResult
+    {
+        return await Task.Run(() =>
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                // Create a new socket for each request to avoid state issues
+                using var socket = CreateSocket();
+                // Serialize command
+                var commandJson = JsonConvert.SerializeObject(command, new JsonSerializerSettings
+                {
+                    TypeNameHandling = TypeNameHandling.None
+                });
+
+                _logger.LogInformation("Sending command: {Command} to {Endpoint}",
+                    command.GetType().Name, _endpoint);
+
+                lock (_lock)
+                {
+                    // Send command
+                    var sent = socket.TrySendFrame(_timeout, _channelSecurity!.Protect(commandJson));
+
+                    if (!sent)
+                    {
+                        _logger.LogError("Failed to send command {Command} - Send timeout after {Timeout}s",
+                            command.GetType().Name, _timeout.TotalSeconds);
+                        throw new TimeoutException($"Failed to send command to {_endpoint} after {_timeout.TotalSeconds}s");
+                    }
+
+                    // Receive response
+                    string? responseJson = null;
+                    var received = socket.TryReceiveFrameString(_timeout, out responseJson);
+
+                    if (!received || responseJson == null)
+                    {
+                        _logger.LogError("Failed to receive response for {Command} - Receive timeout after {Timeout}s. Is ASPSBackend running?",
+                            command.GetType().Name, _timeout.TotalSeconds);
+                        throw new TimeoutException($"No response from {_endpoint} after {_timeout.TotalSeconds}s. Ensure ASPSBackend is running and CQRS Gateway is started.");
+                    }
+
+                    _logger.LogInformation("Received response for {Command} ({Length} chars)",
+                        command.GetType().Name, responseJson.Length);
+
+                    // Deserialize response with type information
+                    var result = JsonConvert.DeserializeObject<TResult>(
+                        responseJson, CqrsJsonSerialization.CreateSettings());
+
+                    if (result == null)
+                    {
+                        throw new InvalidOperationException("Failed to deserialize command result");
+                    }
+
+                    if (!result.Success)
+                    {
+                        _logger.LogWarning("Command {Command} returned error: {Message}",
+                            command.GetType().Name, result.Message);
+                    }
+
+                    return result;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending command {Command} to {Endpoint}",
+                    command.GetType().Name, _endpoint);
+
+                // Return error result with helpful message
+                var errorResult = Activator.CreateInstance<TResult>();
+                errorResult.Success = false;
+
+                if (ex is TimeoutException)
+                {
+                    errorResult.Message = $"Communication timeout after {_timeout.TotalSeconds}s. Is ASPSBackend running? Check if CQRS Gateway is listening on {_endpoint}";
+                }
+                else
+                {
+                    errorResult.Message = $"Communication error: {ex.Message}";
+                }
+
+                return errorResult;
+            }
+        }, ct);
+    }
+
+    public void Dispose()
+    {
+        // No persistent socket to dispose
+        _logger.LogInformation("CQRS Client disposed");
+    }
+}

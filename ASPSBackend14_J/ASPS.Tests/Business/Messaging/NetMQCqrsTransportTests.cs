@@ -1,7 +1,10 @@
 using Business.Messaging;
+using Business.Messaging.Abstractions;
+using Business.Messaging.Transport.NetMQ;
 using Business.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using NetMQ;
 using NetMQ.Sockets;
@@ -9,56 +12,77 @@ using Newtonsoft.Json.Linq;
 
 namespace ASPS.Tests.Business.Messaging;
 
-public sealed class CQRSGatewayTests : IDisposable
+/// <summary>
+/// ASPS-686 (Messaging Refactoring Phase 4): NetMQCqrsTransport absorbs CQRSGateway's
+/// socket lifecycle, CURVE setup, and HMAC envelope handling behind ICqrsTransport
+/// (IHostedService + IDisposable). Full parity with the former CQRSGatewayTests
+/// (ASPS-690, Phase 6 cleanup — CQRSGateway.cs/.Commands.cs/.Queries.cs and
+/// CQRSGatewayTests.cs deleted after this file reached 1:1 test coverage),
+/// adapted to StartAsync/StopAsync.
+/// </summary>
+public sealed class NetMQCqrsTransportTests : IDisposable
 {
     private const string Secret = "0123456789abcdef0123456789abcdef";
     private readonly ServiceProvider _services = new ServiceCollection().BuildServiceProvider();
-    private readonly string _keysPath = Path.Combine(Path.GetTempPath(), $"asps-cqrs-{Guid.NewGuid():N}", "keys.json");
-    private CQRSGateway? _gateway;
+    private readonly CqrsHandlerRegistry _registry = new();
+    private readonly string _keysPath = Path.Combine(Path.GetTempPath(), $"asps-cqrs-transport-{Guid.NewGuid():N}", "keys.json");
+    private NetMQCqrsTransport? _transport;
 
     [Fact]
-    public void Start_RejectsMissingCurveEncryption()
+    public void ImplementsExpectedInterfaces()
+    {
+        _transport = new NetMQCqrsTransport(_services, NullLogger<NetMQCqrsTransport>.Instance, _registry);
+
+        Assert.IsAssignableFrom<ICqrsTransport>(_transport);
+        Assert.IsAssignableFrom<IHostedService>(_transport);
+        Assert.IsAssignableFrom<IDisposable>(_transport);
+    }
+
+    [Fact]
+    public async Task StartAsync_RejectsMissingCurveEncryption()
     {
         var security = CreateSecurity();
-        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance,
-            "tcp://127.0.0.1:45556", null, security);
+        _transport = new NetMQCqrsTransport(_services, NullLogger<NetMQCqrsTransport>.Instance, _registry,
+            "tcp://127.0.0.1:46556", null, security);
 
-        var exception = Assert.Throws<InvalidOperationException>(() => _gateway.Start());
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _transport.StartAsync(CancellationToken.None));
         Assert.Contains("CURVE", exception.Message);
     }
 
     [Fact]
-    public void Start_RejectsMissingApplicationAuthentication()
+    public async Task StartAsync_RejectsMissingApplicationAuthentication()
     {
-        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance,
-            "tcp://127.0.0.1:45557", CreateCurveManager(), null);
+        _transport = new NetMQCqrsTransport(_services, NullLogger<NetMQCqrsTransport>.Instance, _registry,
+            "tcp://127.0.0.1:46557", CreateCurveManager(), null);
 
-        var exception = Assert.Throws<InvalidOperationException>(() => _gateway.Start());
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _transport.StartAsync(CancellationToken.None));
         Assert.Contains("authenticated", exception.Message);
     }
 
     [Fact]
-    public void Start_WithCurveAndAuthentication_StartsAndStops()
+    public async Task StartAsync_WithCurveAndAuthentication_StartsAndStops()
     {
-        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance,
-            "tcp://127.0.0.1:45558", CreateCurveManager(), CreateSecurity());
+        _transport = new NetMQCqrsTransport(_services, NullLogger<NetMQCqrsTransport>.Instance, _registry,
+            "tcp://127.0.0.1:46558", CreateCurveManager(), CreateSecurity());
 
-        _gateway.Start();
-        _gateway.Stop();
+        await _transport.StartAsync(CancellationToken.None);
+        await _transport.StopAsync(CancellationToken.None);
     }
 
     [Fact]
     public void DefaultEndpoint_IsRestrictedToLoopback()
     {
-        var field = typeof(CQRSGateway).GetField("_endpoint",
+        var field = typeof(NetMQCqrsTransport).GetField("_endpoint",
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance);
+        _transport = new NetMQCqrsTransport(_services, NullLogger<NetMQCqrsTransport>.Instance, _registry);
 
-        Assert.Equal("tcp://127.0.0.1:5556", field!.GetValue(_gateway));
+        Assert.Equal("tcp://127.0.0.1:5556", field!.GetValue(_transport));
     }
 
     [Fact]
-    public void Start_WithClientOnlyCurveMaterial_RejectsBeforeBind()
+    public async Task StartAsync_WithClientOnlyCurveMaterial_RejectsBeforeBind()
     {
         var serverKeys = CreateCurveManager();
         var publicKeyPath = Path.Combine(Path.GetDirectoryName(_keysPath)!,
@@ -71,10 +95,11 @@ public sealed class CQRSGatewayTests : IDisposable
                 ["Security:ServerPublicKeyFilePath"] = publicKeyPath
             }).Build();
         var clientOnly = new CurveKeyManager(configuration, NullLogger<CurveKeyManager>.Instance);
-        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance,
-            "tcp://127.0.0.1:45559", clientOnly, CreateSecurity());
+        _transport = new NetMQCqrsTransport(_services, NullLogger<NetMQCqrsTransport>.Instance, _registry,
+            "tcp://127.0.0.1:46559", clientOnly, CreateSecurity());
 
-        var exception = Assert.Throws<InvalidOperationException>(() => _gateway.Start());
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _transport.StartAsync(CancellationToken.None));
 
         Assert.Contains("public and private", exception.Message);
         Assert.False(clientOnly.HasServerKeyPair);
@@ -82,9 +107,9 @@ public sealed class CQRSGatewayTests : IDisposable
     }
 
     [Fact]
-    public void RunningGateway_RejectsPlaintextClient()
+    public async Task RunningTransport_RejectsPlaintextClient()
     {
-        var endpoint = StartGateway(45560, out _);
+        var endpoint = await StartTransportAsync(46560, curve => { });
         using var socket = new RequestSocket();
         socket.Connect(endpoint);
 
@@ -94,10 +119,11 @@ public sealed class CQRSGatewayTests : IDisposable
     }
 
     [Fact]
-    public void RunningGateway_RejectsUnsignedEnvelope()
+    public async Task RunningTransport_RejectsUnsignedEnvelope()
     {
-        var endpoint = StartGateway(45561, out var curve);
-        using var socket = CreateCurveClient(endpoint, curve);
+        CurveKeyManager? curve = null;
+        var endpoint = await StartTransportAsync(46561, c => curve = c);
+        using var socket = CreateCurveClient(endpoint, curve!);
 
         var response = SendAndReceive(socket,
             """{"MessageType":"Query","QueryType":"GetVersionQuery"}""");
@@ -106,10 +132,11 @@ public sealed class CQRSGatewayTests : IDisposable
     }
 
     [Fact]
-    public void RunningGateway_RejectsTamperedPayload()
+    public async Task RunningTransport_RejectsTamperedPayload()
     {
-        var endpoint = StartGateway(45562, out var curve);
-        using var socket = CreateCurveClient(endpoint, curve);
+        CurveKeyManager? curve = null;
+        var endpoint = await StartTransportAsync(46562, c => curve = c);
+        using var socket = CreateCurveClient(endpoint, curve!);
         var envelope = JObject.Parse(CreateSecurity().Protect(
             """{"MessageType":"Query","QueryType":"GetVersionQuery"}"""));
         envelope["Payload"] = """{"MessageType":"Command","CommandType":"DeleteUserCommand"}""";
@@ -120,10 +147,11 @@ public sealed class CQRSGatewayTests : IDisposable
     }
 
     [Fact]
-    public void RunningGateway_RejectsReplayedNonce()
+    public async Task RunningTransport_RejectsReplayedNonce()
     {
-        var endpoint = StartGateway(45563, out var curve);
-        using var socket = CreateCurveClient(endpoint, curve);
+        CurveKeyManager? curve = null;
+        var endpoint = await StartTransportAsync(46563, c => curve = c);
+        using var socket = CreateCurveClient(endpoint, curve!);
         var envelope = CreateSecurity().Protect(
             """{"MessageType":"Command","CommandType":"UpdateUserCommand"}""");
 
@@ -134,10 +162,11 @@ public sealed class CQRSGatewayTests : IDisposable
     }
 
     [Fact]
-    public void RunningGateway_RejectsUnauthorizedClient()
+    public async Task RunningTransport_RejectsUnauthorizedClient()
     {
-        var endpoint = StartGateway(45564, out var curve);
-        using var socket = CreateCurveClient(endpoint, curve);
+        CurveKeyManager? curve = null;
+        var endpoint = await StartTransportAsync(46564, c => curve = c);
+        using var socket = CreateCurveClient(endpoint, curve!);
         var envelope = CreateSecurity("attacker").Protect(
             """{"MessageType":"Query","QueryType":"GetVersionQuery"}""");
 
@@ -147,10 +176,11 @@ public sealed class CQRSGatewayTests : IDisposable
     }
 
     [Fact]
-    public void RunningGateway_RejectsUnauthorizedCommand()
+    public async Task RunningTransport_RejectsUnauthorizedCommand()
     {
-        var endpoint = StartGateway(45565, out var curve);
-        using var socket = CreateCurveClient(endpoint, curve);
+        CurveKeyManager? curve = null;
+        var endpoint = await StartTransportAsync(46565, c => curve = c);
+        using var socket = CreateCurveClient(endpoint, curve!);
         var envelope = CreateSecurity().Protect(
             """{"MessageType":"Command","CommandType":"DeleteUserCommand"}""");
 
@@ -167,13 +197,14 @@ public sealed class CQRSGatewayTests : IDisposable
             AllowedCommands = new HashSet<string>(StringComparer.Ordinal) { "UpdateUserCommand" }
         });
 
-    private string StartGateway(int port, out CurveKeyManager curve)
+    private async Task<string> StartTransportAsync(int port, Action<CurveKeyManager> captureCurve)
     {
-        curve = CreateCurveManager();
+        var curve = CreateCurveManager();
+        captureCurve(curve);
         var endpoint = $"tcp://127.0.0.1:{port}";
-        _gateway = new CQRSGateway(_services, NullLogger<CQRSGateway>.Instance,
+        _transport = new NetMQCqrsTransport(_services, NullLogger<NetMQCqrsTransport>.Instance, _registry,
             endpoint, curve, CreateSecurity());
-        _gateway.Start();
+        await _transport.StartAsync(CancellationToken.None);
         Thread.Sleep(100);
         return endpoint;
     }
@@ -206,7 +237,7 @@ public sealed class CQRSGatewayTests : IDisposable
 
     public void Dispose()
     {
-        _gateway?.Dispose();
+        _transport?.Dispose();
         _services.Dispose();
         var directory = Path.GetDirectoryName(_keysPath);
         if (directory is not null && Directory.Exists(directory))

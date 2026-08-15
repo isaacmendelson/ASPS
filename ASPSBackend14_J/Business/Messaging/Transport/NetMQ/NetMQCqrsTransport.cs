@@ -1,5 +1,6 @@
+using Business.Messaging.Abstractions;
 using Business.Services;
-using Common.Messaging;
+using Business.Messaging;
 using NetMQ;
 using NetMQ.Sockets;
 using Newtonsoft.Json;
@@ -7,38 +8,44 @@ using Newtonsoft.Json.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Business.Messaging;
+namespace Business.Messaging.Transport.NetMQ;
 
 /// <summary>
-/// CQRS Gateway — core: socket lifecycle, message routing, error responses.
-/// Handler dispatch is split into CQRSGateway.Commands.cs and CQRSGateway.Queries.cs.
-/// This runs in the ASPSBackend process, NOT in WebApi.
+/// NetMQ-backed CQRS transport — socket lifecycle, CURVE setup, HMAC envelope handling,
+/// and command/query routing, extracted from <see cref="CQRSGateway"/> behind
+/// <see cref="ICqrsTransport"/> (ASPS-686, Messaging Refactoring Phase 4).
+/// Handler dispatch is delegated to <see cref="CqrsHandlerRegistry"/>.
+/// Runs in the ASPSBackend process, NOT in WebApi, as an <see cref="Microsoft.Extensions.Hosting.IHostedService"/>.
 /// </summary>
-public partial class CQRSGateway : IDisposable
+public sealed class NetMQCqrsTransport : ICqrsTransport
 {
     private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<CQRSGateway> _logger;
+    private readonly ILogger<NetMQCqrsTransport> _logger;
+    private readonly CqrsHandlerRegistry _registry;
     private readonly CurveKeyManager? _curveKeyManager;
     private readonly CqrsChannelSecurity? _channelSecurity;
     private readonly string _endpoint;
     private ResponseSocket? _socket;
-    private bool _running;
+    private volatile bool _running;
+    private Task? _listenTask;
 
-    public CQRSGateway(
+    public NetMQCqrsTransport(
         IServiceProvider serviceProvider,
-        ILogger<CQRSGateway> logger,
+        ILogger<NetMQCqrsTransport> logger,
+        CqrsHandlerRegistry registry,
         string endpoint = "tcp://127.0.0.1:5556",
         CurveKeyManager? curveKeyManager = null,
         CqrsChannelSecurity? channelSecurity = null)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
+        _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _endpoint = endpoint;
         _curveKeyManager = curveKeyManager;
         _channelSecurity = channelSecurity;
     }
 
-    public void Start()
+    public Task StartAsync(CancellationToken cancellationToken)
     {
         _running = true;
         _socket = new ResponseSocket();
@@ -54,17 +61,21 @@ public partial class CQRSGateway : IDisposable
         _logger.LogInformation("CQRS Gateway started on {Endpoint} with CURVE and authenticated envelopes", _endpoint);
         _logger.LogInformation("Listening for Commands and Queries from WebApi...");
 
-        Task.Run(() => ListenLoop());
+        _listenTask = Task.Run(() => ListenLoop(cancellationToken), CancellationToken.None);
+        return Task.CompletedTask;
     }
 
-    private async Task ListenLoop()
+    private async Task ListenLoop(CancellationToken cancellationToken)
     {
-        while (_running && _socket != null)
+        while (_running && _socket != null && !cancellationToken.IsCancellationRequested)
         {
             try
             {
-                // Receive message from WebApi
-                var messageJson = _socket.ReceiveFrameString();
+                // Poll with a timeout so the loop can observe _running/cancellation
+                // without blocking StopAsync indefinitely.
+                if (!_socket.TryReceiveFrameString(TimeSpan.FromMilliseconds(500), out var messageJson) || messageJson is null)
+                    continue;
+
                 _logger.LogInformation("Received CQRS message ({Length} chars)", messageJson.Length);
 
                 // Process message
@@ -134,6 +145,50 @@ public partial class CQRSGateway : IDisposable
         }
     }
 
+    /// <summary>
+    /// Query dispatch — delegated to CqrsHandlerRegistry (mirrors CQRSGateway.Queries.cs).
+    /// </summary>
+    private async Task<string> ProcessQueryAsync(string messageJson, JObject jObject)
+    {
+        using var scope = _serviceProvider.CreateScope();
+
+        var queryType = jObject["QueryType"]?.ToString();
+
+        if (string.IsNullOrEmpty(queryType))
+        {
+            return CreateErrorResponse("QueryType field is missing or empty");
+        }
+
+        _logger.LogInformation("Handling query: {QueryType}", queryType);
+
+        return await _registry.DispatchAsync(queryType, messageJson, scope);
+    }
+
+    /// <summary>
+    /// Command dispatch — authorization stays here (gateway-level concern); actual
+    /// handler dispatch is delegated to CqrsHandlerRegistry (mirrors CQRSGateway.Commands.cs).
+    /// </summary>
+    private async Task<string> ProcessCommandAsync(string messageJson, JObject jObject, string clientId)
+    {
+        using var scope = _serviceProvider.CreateScope();
+
+        var commandType = jObject["CommandType"]?.ToString();
+
+        if (string.IsNullOrEmpty(commandType))
+        {
+            return CreateErrorResponse("CommandType field is missing or empty");
+        }
+        if (_channelSecurity?.IsCommandAuthorized(commandType) != true)
+        {
+            _logger.LogWarning("Client {ClientId} is not authorized for command {CommandType}", clientId, commandType);
+            return CreateErrorResponse($"Command is not authorized: {commandType}");
+        }
+
+        _logger.LogInformation("Handling command: {CommandType}", commandType);
+
+        return await _registry.DispatchAsync(commandType, messageJson, scope);
+    }
+
     internal string CreateErrorResponse(string message)
     {
         return JsonConvert.SerializeObject(new
@@ -143,16 +198,19 @@ public partial class CQRSGateway : IDisposable
         });
     }
 
-    public void Stop()
+    public Task StopAsync(CancellationToken cancellationToken)
     {
         _running = false;
         _socket?.Dispose();
         _socket = null;
         _logger.LogInformation("CQRS Gateway stopped");
+        return Task.CompletedTask;
     }
 
     public void Dispose()
     {
-        Stop();
+        _running = false;
+        _socket?.Dispose();
+        _socket = null;
     }
 }

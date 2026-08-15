@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Newtonsoft.Json;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -55,6 +56,44 @@ public class NetMQMessageProcessorTests : IDisposable
             Mock.Of<IUserDeviceRepository>());
 
     }
+
+    #region Lifecycle Interface Tests (ASPS-688: Messaging Refactoring Phase 5)
+
+    [Fact]
+    public void ImplementsIHostedService()
+    {
+        _processor = new NetMQMessageProcessor(
+            _logger,
+            _mockUserCommandHandlers.Object,
+            _mockUserQueryHandlers.Object,
+            _mockDeviceCommandHandlers.Object,
+            "tcp://localhost:50106");
+
+        Assert.IsAssignableFrom<Microsoft.Extensions.Hosting.IHostedService>(_processor);
+    }
+
+    [Fact]
+    public async Task StopAsync_AfterStart_ObservesCancellationWithinPollWindow()
+    {
+        // Regression guard for ASPS-689: the receive loop polls with a bounded timeout
+        // instead of blocking indefinitely, so StopAsync returns promptly even though
+        // no message was ever received.
+        _processor = new NetMQMessageProcessor(
+            _logger,
+            _mockUserCommandHandlers.Object,
+            _mockUserQueryHandlers.Object,
+            _mockDeviceCommandHandlers.Object,
+            "tcp://localhost:50125");
+
+        await _processor.StartAsync(CancellationToken.None);
+
+        var stopTask = _processor.StopAsync(CancellationToken.None);
+        var completed = await Task.WhenAny(stopTask, Task.Delay(TimeSpan.FromSeconds(5)));
+
+        Assert.Same(stopTask, completed);
+    }
+
+    #endregion
 
     #region Constructor Tests
 
@@ -158,7 +197,7 @@ public class NetMQMessageProcessorTests : IDisposable
     #region Start/Stop Tests
 
     [Fact]
-    public void Start_StartsProcessorSuccessfully()
+    public async Task StartAsync_StartsProcessorSuccessfully()
     {
         // Arrange
         _processor = new NetMQMessageProcessor(
@@ -169,15 +208,15 @@ public class NetMQMessageProcessorTests : IDisposable
             "tcp://localhost:50107");
 
         // Act & Assert - Should start without errors
-        _processor.Start();
+        await _processor.StartAsync(CancellationToken.None);
         Assert.NotNull(_processor);
 
         // Cleanup
-        _processor.Stop();
+        await _processor.StopAsync(CancellationToken.None);
     }
 
     [Fact]
-    public void Start_BindsToPortSuccessfully()
+    public async Task StartAsync_BindsToPortSuccessfully()
     {
         // Arrange
         _processor = new NetMQMessageProcessor(
@@ -188,15 +227,15 @@ public class NetMQMessageProcessorTests : IDisposable
             "tcp://localhost:50108");
 
         // Act & Assert - Should bind without errors
-        _processor.Start();
+        await _processor.StartAsync(CancellationToken.None);
         Assert.NotNull(_processor);
 
         // Cleanup
-        _processor.Stop();
+        await _processor.StopAsync(CancellationToken.None);
     }
 
     [Fact]
-    public void Start_StartsOnInternalChannel()
+    public async Task StartAsync_StartsOnInternalChannel()
     {
         // Arrange
         _processor = new NetMQMessageProcessor(
@@ -207,15 +246,15 @@ public class NetMQMessageProcessorTests : IDisposable
             "tcp://localhost:50109");
 
         // Act & Assert - Should start on internal channel
-        _processor.Start();
+        await _processor.StartAsync(CancellationToken.None);
         Assert.NotNull(_processor);
 
         // Cleanup
-        _processor.Stop();
+        await _processor.StopAsync(CancellationToken.None);
     }
 
     [Fact]
-    public void Stop_StopsProcessorSuccessfully()
+    public async Task StopAsync_StopsProcessorSuccessfully()
     {
         // Arrange
         _processor = new NetMQMessageProcessor(
@@ -224,14 +263,14 @@ public class NetMQMessageProcessorTests : IDisposable
             _mockUserQueryHandlers.Object,
             _mockDeviceCommandHandlers.Object,
             "tcp://localhost:50110");
-        _processor.Start();
+        await _processor.StartAsync(CancellationToken.None);
 
         // Act & Assert - Should stop without errors
-        _processor.Stop();
+        await _processor.StopAsync(CancellationToken.None);
     }
 
     [Fact]
-    public void Stop_CanBeCalledMultipleTimes()
+    public async Task StopAsync_CanBeCalledMultipleTimes()
     {
         // Arrange
         _processor = new NetMQMessageProcessor(
@@ -240,15 +279,15 @@ public class NetMQMessageProcessorTests : IDisposable
             _mockUserQueryHandlers.Object,
             _mockDeviceCommandHandlers.Object,
             "tcp://localhost:50111");
-        _processor.Start();
+        await _processor.StartAsync(CancellationToken.None);
 
         // Act & Assert - Should not throw
-        _processor.Stop();
-        _processor.Stop();
+        await _processor.StopAsync(CancellationToken.None);
+        await _processor.StopAsync(CancellationToken.None);
     }
 
     [Fact]
-    public void Stop_WithoutStart_DoesNotThrow()
+    public async Task StopAsync_WithoutStart_DoesNotThrow()
     {
         // Arrange
         _processor = new NetMQMessageProcessor(
@@ -259,7 +298,7 @@ public class NetMQMessageProcessorTests : IDisposable
             "tcp://localhost:50112");
 
         // Act & Assert - Should not throw
-        _processor.Stop();
+        await _processor.StopAsync(CancellationToken.None);
     }
 
     #endregion
@@ -267,7 +306,7 @@ public class NetMQMessageProcessorTests : IDisposable
     #region Dispose Tests
 
     [Fact]
-    public void Dispose_CallsStopSuccessfully()
+    public async Task Dispose_CallsStopSuccessfully()
     {
         // Arrange
         _processor = new NetMQMessageProcessor(
@@ -276,14 +315,14 @@ public class NetMQMessageProcessorTests : IDisposable
             _mockUserQueryHandlers.Object,
             _mockDeviceCommandHandlers.Object,
             "tcp://localhost:50113");
-        _processor.Start();
+        await _processor.StartAsync(CancellationToken.None);
 
         // Act & Assert - Should dispose without errors
         _processor.Dispose();
     }
 
     [Fact]
-    public void Dispose_CanBeCalledMultipleTimes()
+    public async Task Dispose_CanBeCalledMultipleTimes()
     {
         // Arrange
         _processor = new NetMQMessageProcessor(
@@ -292,7 +331,7 @@ public class NetMQMessageProcessorTests : IDisposable
             _mockUserQueryHandlers.Object,
             _mockDeviceCommandHandlers.Object,
             "tcp://localhost:50114");
-        _processor.Start();
+        await _processor.StartAsync(CancellationToken.None);
 
         // Act & Assert - Should not throw
         _processor.Dispose();
@@ -446,7 +485,7 @@ public class NetMQMessageProcessorTests : IDisposable
     #region Integration Tests
 
     [Fact]
-    public void Processor_StartsAndStopsCleanly()
+    public async Task Processor_StartsAndStopsCleanly()
     {
         // Arrange
         _processor = new NetMQMessageProcessor(
@@ -457,14 +496,14 @@ public class NetMQMessageProcessorTests : IDisposable
             "tcp://localhost:50123");
 
         // Act & Assert - Should start and stop without errors
-        _processor.Start();
-        _processor.Stop();
-        
+        await _processor.StartAsync(CancellationToken.None);
+        await _processor.StopAsync(CancellationToken.None);
+
         Assert.NotNull(_processor);
     }
 
     [Fact]
-    public void Processor_DisposesSocketOnStop()
+    public async Task Processor_DisposesSocketOnStop()
     {
         // Arrange
         _processor = new NetMQMessageProcessor(
@@ -473,11 +512,11 @@ public class NetMQMessageProcessorTests : IDisposable
             _mockUserQueryHandlers.Object,
             _mockDeviceCommandHandlers.Object,
             "tcp://localhost:50124");
-        _processor.Start();
+        await _processor.StartAsync(CancellationToken.None);
 
         // Act & Assert - Should dispose without errors
         _processor.Dispose();
-        
+
         Assert.NotNull(_processor);
     }
 

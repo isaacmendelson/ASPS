@@ -26,7 +26,7 @@ public class NotificationPublisherActorTests : IDisposable
     private readonly ILogger<NotificationPublisherActor> _logger;
     private NotificationPublisherActor? _actor;
     private readonly List<Mock<OutboxNotificationPublisher>> _publisherMocks = new();
-    private readonly List<NotificationPublisher> _innerPublishers = new();
+    private readonly List<NetMQNotificationEgress> _innerPublishers = new();
     private static int _portCounter = 50200;
     private readonly ASView _asView;
 
@@ -55,9 +55,9 @@ public class NotificationPublisherActorTests : IDisposable
             .Build();
 
         // Inner publisher binds the socket; OutboxNotificationPublisher wraps it.
-        var innerPublisher = new NotificationPublisher(
+        var innerPublisher = new NetMQNotificationEgress(
             configuration,
-            NullLogger<NotificationPublisher>.Instance,
+            NullLogger<NetMQNotificationEgress>.Instance,
             endpoint,
             null);
         _innerPublishers.Add(innerPublisher);

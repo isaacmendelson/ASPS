@@ -1,4 +1,5 @@
 using Business.DomainEvents;
+using Business.Messaging.Abstractions;
 using Business.RealtimeAnalysis.UserDomain;
 using Business.Services;
 using Microsoft.Extensions.Configuration;
@@ -11,17 +12,19 @@ using Common.Generated.Messaging.V1;
 namespace Business.Messaging;
 
 /// <summary>
-/// Publishes analysis result notifications to subscribed clients via PUB socket
+/// Publishes analysis result notifications to subscribed clients via PUB socket.
+/// NetMQ-backed implementation of <see cref="INotificationEgress"/> — the transport
+/// boundary for outbound notifications (ASPS-682).
 /// </summary>
-public class NotificationPublisher : IDisposable
+public class NetMQNotificationEgress : INotificationEgress, IDisposable
 {
-    private readonly ILogger<NotificationPublisher> _logger;
+    private readonly ILogger<NetMQNotificationEgress> _logger;
     private readonly PublisherSocket _publisherSocket;
     private readonly object _sendLock = new();
     private readonly string _endpoint;
     private bool _isRunning;
 
-    public NotificationPublisher(IConfiguration configuration, ILogger<NotificationPublisher> logger, string? endpoint = null, CurveKeyManager? curveKeyManager = null)
+    public NetMQNotificationEgress(IConfiguration configuration, ILogger<NetMQNotificationEgress> logger, string? endpoint = null, CurveKeyManager? curveKeyManager = null)
     {
         _logger = logger;
 
@@ -44,6 +47,75 @@ public class NotificationPublisher : IDisposable
         _isRunning = true;
         var encStatus = curveKeyManager?.IsEnabled == true ? "CURVE encrypted" : "unencrypted";
         _logger.LogInformation($"NotificationPublisher started on {_endpoint} ({encStatus})");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // INotificationEgress — async wrappers. The NetMQ send is synchronous, so
+    // these simply invoke the existing sync methods and return a completed Task.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public Task PublishAnalysisResultAsync(
+        string? deviceUid,
+        string? userKeyField,
+        AnalysisResultNotification? analysisResultNotification,
+        MessageIdentityV1? messagingIdentity = null,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        PublishAnalysisResult(deviceUid, userKeyField, analysisResultNotification, messagingIdentity);
+        return Task.CompletedTask;
+    }
+
+    public Task PublishImmediateDangerEventAsync(
+        string? deviceUid,
+        string? userKeyField,
+        ImmediateDangerEvent? immediateDangerEvent,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        PublishImmediateDangerEvent(deviceUid, userKeyField, immediateDangerEvent);
+        return Task.CompletedTask;
+    }
+
+    public Task PublishImmediateDangerEndedAsync(
+        string? deviceUid,
+        string? userKeyField,
+        ImmediateDangerEnded? immediateDangerEnded,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        PublishImmediateDangerEnded(deviceUid, userKeyField, immediateDangerEnded);
+        return Task.CompletedTask;
+    }
+
+    public Task PublishSetTrackedDomainsAsync(
+        IEnumerable<string> deviceUids,
+        string? userKeyField,
+        SetTrackedDomains? evt,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        PublishSetTrackedDomains(deviceUids, userKeyField, evt);
+        return Task.CompletedTask;
+    }
+
+    public Task PublishSetBrowserTabsPolicyAsync(
+        string? deviceUid,
+        string? userKeyField,
+        string mode,
+        DateTime? validUntil,
+        CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        PublishSetBrowserTabsPolicy(deviceUid, userKeyField, mode, validUntil);
+        return Task.CompletedTask;
+    }
+
+    public Task PublishSnapshotAsync(string deviceUid, string json, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        PublishSnapshot(deviceUid, json);
+        return Task.CompletedTask;
     }
 
     /// <summary>

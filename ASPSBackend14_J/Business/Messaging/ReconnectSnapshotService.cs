@@ -1,3 +1,4 @@
+using Business.Messaging.Abstractions;
 using Interface.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -24,7 +25,7 @@ namespace Business.Messaging;
 /// </summary>
 public class ReconnectSnapshotService
 {
-    private readonly NotificationPublisher _publisher;
+    private readonly INotificationEgress _publisher;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ReconnectSnapshotService> _logger;
 
@@ -37,7 +38,7 @@ public class ReconnectSnapshotService
     };
 
     public ReconnectSnapshotService(
-        NotificationPublisher publisher,
+        INotificationEgress publisher,
         IServiceScopeFactory scopeFactory,
         ILogger<ReconnectSnapshotService> logger)
     {
@@ -48,7 +49,7 @@ public class ReconnectSnapshotService
 
     /// <summary>
     /// Send a reconnect snapshot to the device.
-    /// Called by <see cref="RealTimeAlertListener"/> when a device re-authenticates.
+    /// Called by <see cref="AlertProcessor"/> when a device re-authenticates.
     /// The snapshot header is sent first; then each pending payload is re-sent
     /// in-order over the same device topic so the client can replay and ACK them.
     /// </summary>
@@ -87,7 +88,7 @@ public class ReconnectSnapshotService
                 DeviceUid = deviceUid,
                 PendingNotificationCount = pending.Count
             };
-            _publisher.PublishSnapshot(deviceUid, JsonConvert.SerializeObject(header, _jsonSettings));
+            await _publisher.PublishSnapshotAsync(deviceUid, JsonConvert.SerializeObject(header, _jsonSettings));
 
             // 2. Re-send each pending notification in-order.
             //    The payload is the original serialized JSON stored in the outbox,
@@ -95,7 +96,7 @@ public class ReconnectSnapshotService
             //    delivery. Processing it again is idempotent (AC7).
             foreach (var entry in pending)
             {
-                _publisher.PublishSnapshot(deviceUid, entry.PayloadJson);
+                await _publisher.PublishSnapshotAsync(deviceUid, entry.PayloadJson);
                 _logger.LogDebug(
                     "[ReconnectSnapshot] Replayed {MessageId} type={Type} to device={Device}",
                     entry.MessageId, entry.NotificationType, deviceUid);

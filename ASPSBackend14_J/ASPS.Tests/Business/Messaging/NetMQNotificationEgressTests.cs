@@ -11,17 +11,19 @@ using Common.Models;
 using Common.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ASPS.Tests.Business.Messaging;
 
-public class NotificationPublisherTests : IDisposable
+public class NetMQNotificationEgressTests : IDisposable
 {
     private readonly IConfiguration _configuration;
-    private readonly Mock<ILogger<NotificationPublisher>> _mockLogger;
+    private readonly Mock<ILogger<NetMQNotificationEgress>> _mockLogger;
     private readonly Mock<CurveKeyManager> _mockCurveKeyManager;
-    private NotificationPublisher? _publisher;
+    private NetMQNotificationEgress? _publisher;
 
-    public NotificationPublisherTests()
+    public NetMQNotificationEgressTests()
     {
         // Use real IConfiguration instead of mock (can't mock extension methods)
         // Use random port to avoid conflicts between tests
@@ -33,7 +35,7 @@ public class NotificationPublisherTests : IDisposable
         });
         _configuration = configBuilder.Build();
 
-        _mockLogger = new Mock<ILogger<NotificationPublisher>>();
+        _mockLogger = new Mock<ILogger<NetMQNotificationEgress>>();
         _mockCurveKeyManager = new Mock<CurveKeyManager>();
     }
 
@@ -41,7 +43,7 @@ public class NotificationPublisherTests : IDisposable
     public void Constructor_WithDefaultConfiguration_CreatesPublisher()
     {
         // Act
-        _publisher = new NotificationPublisher(_configuration, _mockLogger.Object);
+        _publisher = new NetMQNotificationEgress(_configuration, _mockLogger.Object);
 
         // Assert
         Assert.NotNull(_publisher);
@@ -59,7 +61,7 @@ public class NotificationPublisherTests : IDisposable
     public void Constructor_WithCurveKeyManager_CreatesPublisher()
     {
         // Act - Pass null CurveKeyManager (optional parameter)
-        _publisher = new NotificationPublisher(_configuration, _mockLogger.Object, null);
+        _publisher = new NetMQNotificationEgress(_configuration, _mockLogger.Object, null);
 
         // Assert - Should create publisher and log that it's unencrypted
         Assert.NotNull(_publisher);
@@ -77,7 +79,7 @@ public class NotificationPublisherTests : IDisposable
     public void PublishAnalysisResult_WithNullNotification_LogsWarning()
     {
         // Arrange
-        _publisher = new NotificationPublisher(_configuration, _mockLogger.Object);
+        _publisher = new NetMQNotificationEgress(_configuration, _mockLogger.Object);
 
         // Act
         _publisher.PublishAnalysisResult("device123", "user123", null);
@@ -97,7 +99,7 @@ public class NotificationPublisherTests : IDisposable
     public void PublishAnalysisResult_WithNullDeviceAndUser_LogsWarning()
     {
         // Arrange
-        _publisher = new NotificationPublisher(_configuration, _mockLogger.Object);
+        _publisher = new NetMQNotificationEgress(_configuration, _mockLogger.Object);
         var notification = CreateTestNotification();
 
         // Act
@@ -118,7 +120,7 @@ public class NotificationPublisherTests : IDisposable
     public void PublishAnalysisResult_WithEmptyDeviceAndUser_LogsWarning()
     {
         // Arrange
-        _publisher = new NotificationPublisher(_configuration, _mockLogger.Object);
+        _publisher = new NetMQNotificationEgress(_configuration, _mockLogger.Object);
         var notification = CreateTestNotification();
 
         // Act
@@ -139,7 +141,7 @@ public class NotificationPublisherTests : IDisposable
     public void PublishAnalysisResult_WithValidDeviceUid_PublishesSuccessfully()
     {
         // Arrange
-        _publisher = new NotificationPublisher(_configuration, _mockLogger.Object);
+        _publisher = new NetMQNotificationEgress(_configuration, _mockLogger.Object);
         var notification = CreateTestNotification();
 
         // Act
@@ -160,7 +162,7 @@ public class NotificationPublisherTests : IDisposable
     public void PublishAnalysisResult_WithValidUserKey_PublishesSuccessfully()
     {
         // Arrange
-        _publisher = new NotificationPublisher(_configuration, _mockLogger.Object);
+        _publisher = new NetMQNotificationEgress(_configuration, _mockLogger.Object);
         var notification = CreateTestNotification();
 
         // Act
@@ -181,7 +183,7 @@ public class NotificationPublisherTests : IDisposable
     public void PublishAnalysisResult_WithBothDeviceAndUser_PublishesToBothTopics()
     {
         // Arrange
-        _publisher = new NotificationPublisher(_configuration, _mockLogger.Object);
+        _publisher = new NetMQNotificationEgress(_configuration, _mockLogger.Object);
         var notification = CreateTestNotification();
 
         // Act
@@ -202,7 +204,7 @@ public class NotificationPublisherTests : IDisposable
     public void PublishAnalysisResult_AfterStop_LogsWarning()
     {
         // Arrange
-        _publisher = new NotificationPublisher(_configuration, _mockLogger.Object);
+        _publisher = new NetMQNotificationEgress(_configuration, _mockLogger.Object);
         var notification = CreateTestNotification();
         
         // Act
@@ -224,7 +226,7 @@ public class NotificationPublisherTests : IDisposable
     public void Stop_SetsIsRunningToFalse_AndLogsInformation()
     {
         // Arrange
-        _publisher = new NotificationPublisher(_configuration, _mockLogger.Object);
+        _publisher = new NetMQNotificationEgress(_configuration, _mockLogger.Object);
 
         // Act
         _publisher.Stop();
@@ -244,7 +246,7 @@ public class NotificationPublisherTests : IDisposable
     public void Dispose_CallsStop()
     {
         // Arrange
-        _publisher = new NotificationPublisher(_configuration, _mockLogger.Object);
+        _publisher = new NetMQNotificationEgress(_configuration, _mockLogger.Object);
 
         // Act
         _publisher.Dispose();
@@ -264,12 +266,53 @@ public class NotificationPublisherTests : IDisposable
     public void Dispose_CanBeCalledMultipleTimes()
     {
         // Arrange
-        _publisher = new NotificationPublisher(_configuration, _mockLogger.Object);
+        _publisher = new NetMQNotificationEgress(_configuration, _mockLogger.Object);
 
         // Act & Assert - Should not throw
         _publisher.Dispose();
         _publisher.Dispose();
     }
+
+    #region Cancellation Tests (ASPS-689: Messaging Refactoring Phase 5)
+
+    [Fact]
+    public async Task PublishAnalysisResultAsync_WithCancelledToken_ThrowsOperationCanceledException()
+    {
+        // Arrange
+        _publisher = new NetMQNotificationEgress(_configuration, _mockLogger.Object);
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => _publisher.PublishAnalysisResultAsync(
+                "device-1", null, CreateTestNotification(), null, cts.Token));
+    }
+
+    [Fact]
+    public async Task PublishSnapshotAsync_WithCancelledToken_ThrowsOperationCanceledException()
+    {
+        // Arrange
+        _publisher = new NetMQNotificationEgress(_configuration, _mockLogger.Object);
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => _publisher.PublishSnapshotAsync("device-1", "{}", cts.Token));
+    }
+
+    [Fact]
+    public async Task PublishSnapshotAsync_WithoutCancellation_CompletesSuccessfully()
+    {
+        // Arrange
+        _publisher = new NetMQNotificationEgress(_configuration, _mockLogger.Object);
+
+        // Act & Assert - Should not throw when token is not cancelled
+        await _publisher.PublishSnapshotAsync("device-1", "{}", CancellationToken.None);
+    }
+
+    #endregion
 
     public void Dispose()
     {

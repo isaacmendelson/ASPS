@@ -46,25 +46,18 @@ public class Program
         var asView = host.Services.GetRequiredService<ASView>();
         asView.Start();
 
-        // Start NetMQ CQRS Message Processor
-        var messageProcessor = host.Services.GetRequiredService<NetMQMessageProcessor>();
-        messageProcessor.Start();
-
-        // Start Real-Time Alert Listener
-        var alertListener = host.Services.GetRequiredService<RealTimeAlertListener>();
+        // NetMQMessageProcessor (ASPS-688: IHostedService lifecycle), Real-Time Alert Listener
+        // (ASPS-684/688: AlertProcessor holds business logic, NetMQAlertIngress the transport,
+        // started as IHostedService), and CQRS Gateway (ASPS-686: NetMQCqrsTransport, also
+        // IHostedService) are all started via AddHostedService below — host.RunAsync() starts/stops them.
+        var alertProcessor = host.Services.GetRequiredService<Business.Messaging.AlertProcessor>();
 
         // ASPS-620: Inject reconnect snapshot service
         var reconnectSnapshotService = host.Services.GetRequiredService<Business.Messaging.ReconnectSnapshotService>();
-        alertListener.SetReconnectSnapshotService(reconnectSnapshotService);
+        alertProcessor.SetReconnectSnapshotService(reconnectSnapshotService);
 
         // Initialize UDAnalysisManagers for active users
-        await InitializeAnalysisManagersAsync(host.Services, alertListener);
-
-        alertListener.Start();
-
-        // Start CQRS Gateway (for WebApi Commands/Queries)
-        var cqrsGateway = host.Services.GetRequiredService<CQRSGateway>();
-        cqrsGateway.Start();
+        await InitializeAnalysisManagersAsync(host.Services, alertProcessor);
 
         // Get configuration to display mode
         var configuration = host.Services.GetRequiredService<IConfiguration>();
@@ -175,6 +168,9 @@ public class Program
                 services.AddSingleton<ASView>();
                 services.AddSingleton<IDomainEventHandler>(sp => sp.GetRequiredService<ASView>());
 
+                // Add CQRS handler registry (ASPS-681 — replaces manual switch dispatch)
+                services.AddMessagingServices(configuration);
+
                 // Add Token Store and CurveZMQ Key Manager
                 services.AddSingleton<TokenStore>();
                 services.AddSingleton<CurveKeyManager>();
@@ -193,19 +189,30 @@ public class Program
                         AllowedCommands = new HashSet<string>(allowedCommands, StringComparer.Ordinal)
                     });
                 });
+                // ASPS-686 (Messaging Refactoring Phase 4): NetMQCqrsTransport replaces
+                // CQRSGateway as the runtime CQRS listener, registered as an IHostedService
+                // via ICqrsTransport. CQRSGateway.cs/.Commands.cs/.Queries.cs were deleted
+                // in Phase 6 cleanup (ASPS-690).
                 services.AddSingleton(sp =>
                 {
                     var configuration = sp.GetRequiredService<IConfiguration>();
-                    return new CQRSGateway(
+                    return new Business.Messaging.Transport.NetMQ.NetMQCqrsTransport(
                         sp,
-                        sp.GetRequiredService<ILogger<CQRSGateway>>(),
+                        sp.GetRequiredService<ILogger<Business.Messaging.Transport.NetMQ.NetMQCqrsTransport>>(),
+                        sp.GetRequiredService<CqrsHandlerRegistry>(),
                         configuration["CQRS:BindEndpoint"] ?? "tcp://127.0.0.1:5556",
                         sp.GetRequiredService<CurveKeyManager>(),
                         sp.GetRequiredService<CqrsChannelSecurity>());
                 });
+                services.AddSingleton<Business.Messaging.Abstractions.ICqrsTransport>(
+                    sp => sp.GetRequiredService<Business.Messaging.Transport.NetMQ.NetMQCqrsTransport>());
+                services.AddHostedService(
+                    sp => sp.GetRequiredService<Business.Messaging.Transport.NetMQ.NetMQCqrsTransport>());
 
-                // Add Notification Publisher
-                services.AddSingleton<Business.Messaging.NotificationPublisher>();
+                // Add Notification Publisher (ASPS-682/683: NetMQ-backed INotificationEgress)
+                services.AddSingleton<Business.Messaging.NetMQNotificationEgress>();
+                services.AddSingleton<Business.Messaging.Abstractions.INotificationEgress>(
+                    sp => sp.GetRequiredService<Business.Messaging.NetMQNotificationEgress>());
 
                 // ASPS-620: Outbox-aware publisher + reconnect snapshot service
                 services.AddSingleton<Business.Messaging.OutboxNotificationPublisher>();
@@ -246,17 +253,33 @@ public class Program
                 services.AddHostedService<Business.Services.OutboxPruningService>();
 
                 // Add Messaging
+                // ASPS-688 (Messaging Refactoring Phase 5): NetMQMessageProcessor runs as an
+                // IHostedService — host.RunAsync() starts/stops it; no more manual Start()/Stop().
                 services.AddSingleton(sp => new NetMQMessageProcessor(
                     sp.GetRequiredService<ILogger<NetMQMessageProcessor>>(),
                     sp.GetRequiredService<IServiceScopeFactory>(),
                     configuration["NetMQ:BusinessEndpoint"] ?? "tcp://*:5555",
                     sp.GetService<CurveKeyManager>()));
-                services.AddSingleton<RealTimeAlertListener>(sp =>
+                services.AddHostedService(sp => sp.GetRequiredService<NetMQMessageProcessor>());
+                // ASPS-684: AlertProcessor (business logic) + NetMQAlertIngress (transport),
+                // replacing the monolithic RealTimeAlertListener.
+                services.AddSingleton<Business.Messaging.AlertProcessor>(sp =>
                 {
                     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
                     var asView = sp.GetRequiredService<ASView>();
                     var userDomainService = sp.GetRequiredService<UserDomainManagerService>();
                     var tokenStore = sp.GetRequiredService<TokenStore>();
+                    var curveKeyManager = sp.GetRequiredService<CurveKeyManager>();
+                    var configuration = sp.GetRequiredService<IConfiguration>();
+
+                    return new Business.Messaging.AlertProcessor(
+                        loggerFactory, sp, asView, userDomainService, tokenStore,
+                        curveKeyManager, configuration);
+                });
+                services.AddSingleton<Business.Messaging.NetMQAlertIngress>(sp =>
+                {
+                    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+                    var alertProcessor = sp.GetRequiredService<Business.Messaging.AlertProcessor>();
                     var curveKeyManager = sp.GetRequiredService<CurveKeyManager>();
                     var configuration = sp.GetRequiredService<IConfiguration>();
                     var port = configuration.GetValue<int>("NetMQ:RealTimeListenerPort", 50001);
@@ -267,10 +290,15 @@ public class Program
                         ? parsedMode
                         : SocketMode.Router;
 
-                    return new RealTimeAlertListener(
-                        loggerFactory, sp, asView, userDomainService, tokenStore,
-                        curveKeyManager, port, mode, configuration);
+                    return new Business.Messaging.NetMQAlertIngress(
+                        loggerFactory, alertProcessor, curveKeyManager, port, mode, configuration);
                 });
+                services.AddSingleton<Business.Messaging.Abstractions.IAlertIngress>(
+                    sp => sp.GetRequiredService<Business.Messaging.NetMQAlertIngress>());
+                // ASPS-688 (Messaging Refactoring Phase 5): started/stopped via IHostedService —
+                // host.RunAsync() starts/stops it; no more manual StartAsync() call from Main().
+                services.AddHostedService(
+                    sp => sp.GetRequiredService<Business.Messaging.NetMQAlertIngress>());
 
 
                 foreach (var descriptor in services
@@ -292,7 +320,7 @@ public class Program
                     });
                 });
 
-    static async Task InitializeAnalysisManagersAsync(IServiceProvider services, RealTimeAlertListener alertListener)
+    static async Task InitializeAnalysisManagersAsync(IServiceProvider services, Business.Messaging.AlertProcessor alertProcessor)
     {
         using var scope = services.CreateScope();
         var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
