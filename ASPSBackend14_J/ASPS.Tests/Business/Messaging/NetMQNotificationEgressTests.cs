@@ -11,6 +11,8 @@ using Common.Models;
 using Common.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ASPS.Tests.Business.Messaging;
 
@@ -270,6 +272,47 @@ public class NetMQNotificationEgressTests : IDisposable
         _publisher.Dispose();
         _publisher.Dispose();
     }
+
+    #region Cancellation Tests (ASPS-689: Messaging Refactoring Phase 5)
+
+    [Fact]
+    public async Task PublishAnalysisResultAsync_WithCancelledToken_ThrowsOperationCanceledException()
+    {
+        // Arrange
+        _publisher = new NetMQNotificationEgress(_configuration, _mockLogger.Object);
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => _publisher.PublishAnalysisResultAsync(
+                "device-1", null, CreateTestNotification(), null, cts.Token));
+    }
+
+    [Fact]
+    public async Task PublishSnapshotAsync_WithCancelledToken_ThrowsOperationCanceledException()
+    {
+        // Arrange
+        _publisher = new NetMQNotificationEgress(_configuration, _mockLogger.Object);
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => _publisher.PublishSnapshotAsync("device-1", "{}", cts.Token));
+    }
+
+    [Fact]
+    public async Task PublishSnapshotAsync_WithoutCancellation_CompletesSuccessfully()
+    {
+        // Arrange
+        _publisher = new NetMQNotificationEgress(_configuration, _mockLogger.Object);
+
+        // Act & Assert - Should not throw when token is not cancelled
+        await _publisher.PublishSnapshotAsync("device-1", "{}", CancellationToken.None);
+    }
+
+    #endregion
 
     public void Dispose()
     {

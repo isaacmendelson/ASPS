@@ -61,6 +61,7 @@ public class NetMQNotificationEgress : INotificationEgress, IDisposable
         MessageIdentityV1? messagingIdentity = null,
         CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         PublishAnalysisResult(deviceUid, userKeyField, analysisResultNotification, messagingIdentity);
         return Task.CompletedTask;
     }
@@ -71,6 +72,7 @@ public class NetMQNotificationEgress : INotificationEgress, IDisposable
         ImmediateDangerEvent? immediateDangerEvent,
         CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         PublishImmediateDangerEvent(deviceUid, userKeyField, immediateDangerEvent);
         return Task.CompletedTask;
     }
@@ -81,6 +83,7 @@ public class NetMQNotificationEgress : INotificationEgress, IDisposable
         ImmediateDangerEnded? immediateDangerEnded,
         CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         PublishImmediateDangerEnded(deviceUid, userKeyField, immediateDangerEnded);
         return Task.CompletedTask;
     }
@@ -91,6 +94,7 @@ public class NetMQNotificationEgress : INotificationEgress, IDisposable
         SetTrackedDomains? evt,
         CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         PublishSetTrackedDomains(deviceUids, userKeyField, evt);
         return Task.CompletedTask;
     }
@@ -102,12 +106,14 @@ public class NetMQNotificationEgress : INotificationEgress, IDisposable
         DateTime? validUntil,
         CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         PublishSetBrowserTabsPolicy(deviceUid, userKeyField, mode, validUntil);
         return Task.CompletedTask;
     }
 
     public Task PublishSnapshotAsync(string deviceUid, string json, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         PublishSnapshot(deviceUid, json);
         return Task.CompletedTask;
     }

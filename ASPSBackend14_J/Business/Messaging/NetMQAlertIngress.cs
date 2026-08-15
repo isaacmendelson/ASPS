@@ -76,19 +76,25 @@ public class NetMQAlertIngress : IAlertIngress
                 _port, encStatus);
         }
 
-        Task.Run(() => ListenForAlerts());
+        Task.Run(() => ListenForAlerts(cancellationToken), CancellationToken.None);
         return Task.CompletedTask;
     }
 
-    private void ListenForAlerts()
+    private void ListenForAlerts(CancellationToken cancellationToken)
     {
-        while (_isRunning)
+        // Poll with a timeout so the loop can observe _isRunning/cancellation
+        // without blocking StopAsync indefinitely (mirrors NetMQCqrsTransport).
+        var pollTimeout = TimeSpan.FromMilliseconds(500);
+
+        while (_isRunning && !cancellationToken.IsCancellationRequested)
         {
             try
             {
                 if (_mode == SocketMode.Router)
                 {
-                    var incoming = _routerSocket!.ReceiveMultipartMessage();
+                    var incoming = new NetMQMessage();
+                    if (!_routerSocket!.TryReceiveMultipartMessage(pollTimeout, ref incoming))
+                        continue;
 
                     _logger.LogDebug("ROUTER received message with {Count} frames", incoming.FrameCount);
                     for (int i = 0; i < incoming.FrameCount; i++)
@@ -112,7 +118,9 @@ public class NetMQAlertIngress : IAlertIngress
                 }
                 else
                 {
-                    var messageBytes = _pullSocket!.ReceiveFrameBytes();
+                    if (!_pullSocket!.TryReceiveFrameBytes(pollTimeout, out var messageBytes) || messageBytes is null)
+                        continue;
+
                     _ = Task.Run(async () =>
                     {
                         try

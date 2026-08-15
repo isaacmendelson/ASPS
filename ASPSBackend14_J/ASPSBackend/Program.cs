@@ -46,14 +46,11 @@ public class Program
         var asView = host.Services.GetRequiredService<ASView>();
         asView.Start();
 
-        // Start NetMQ CQRS Message Processor
-        var messageProcessor = host.Services.GetRequiredService<NetMQMessageProcessor>();
-        messageProcessor.Start();
-
-        // Start Real-Time Alert Listener (ASPS-684: transport/business split —
-        // AlertProcessor holds the business logic, NetMQAlertIngress the NetMQ transport)
+        // NetMQMessageProcessor (ASPS-688: IHostedService lifecycle), Real-Time Alert Listener
+        // (ASPS-684/688: AlertProcessor holds business logic, NetMQAlertIngress the transport,
+        // started as IHostedService), and CQRS Gateway (ASPS-686: NetMQCqrsTransport, also
+        // IHostedService) are all started via AddHostedService below — host.RunAsync() starts/stops them.
         var alertProcessor = host.Services.GetRequiredService<Business.Messaging.AlertProcessor>();
-        var alertIngress = host.Services.GetRequiredService<Business.Messaging.Abstractions.IAlertIngress>();
 
         // ASPS-620: Inject reconnect snapshot service
         var reconnectSnapshotService = host.Services.GetRequiredService<Business.Messaging.ReconnectSnapshotService>();
@@ -61,11 +58,6 @@ public class Program
 
         // Initialize UDAnalysisManagers for active users
         await InitializeAnalysisManagersAsync(host.Services, alertProcessor);
-
-        await alertIngress.StartAsync(CancellationToken.None);
-
-        // CQRS Gateway (ASPS-686: transport extracted behind ICqrsTransport / NetMQCqrsTransport)
-        // is started via AddHostedService below — host.RunAsync() starts/stops it.
 
         // Get configuration to display mode
         var configuration = host.Services.GetRequiredService<IConfiguration>();
@@ -261,11 +253,14 @@ public class Program
                 services.AddHostedService<Business.Services.OutboxPruningService>();
 
                 // Add Messaging
+                // ASPS-688 (Messaging Refactoring Phase 5): NetMQMessageProcessor runs as an
+                // IHostedService — host.RunAsync() starts/stops it; no more manual Start()/Stop().
                 services.AddSingleton(sp => new NetMQMessageProcessor(
                     sp.GetRequiredService<ILogger<NetMQMessageProcessor>>(),
                     sp.GetRequiredService<IServiceScopeFactory>(),
                     configuration["NetMQ:BusinessEndpoint"] ?? "tcp://*:5555",
                     sp.GetService<CurveKeyManager>()));
+                services.AddHostedService(sp => sp.GetRequiredService<NetMQMessageProcessor>());
                 // ASPS-684: AlertProcessor (business logic) + NetMQAlertIngress (transport),
                 // replacing the monolithic RealTimeAlertListener.
                 services.AddSingleton<Business.Messaging.AlertProcessor>(sp =>
@@ -298,9 +293,11 @@ public class Program
                     return new Business.Messaging.NetMQAlertIngress(
                         loggerFactory, alertProcessor, curveKeyManager, port, mode, configuration);
                 });
-                // Registered as IAlertIngress, NOT as IHostedService yet — manual Start/Stop
-                // is kept for now to minimize disruption. IHostedService conversion is Phase 5.
                 services.AddSingleton<Business.Messaging.Abstractions.IAlertIngress>(
+                    sp => sp.GetRequiredService<Business.Messaging.NetMQAlertIngress>());
+                // ASPS-688 (Messaging Refactoring Phase 5): started/stopped via IHostedService —
+                // host.RunAsync() starts/stops it; no more manual StartAsync() call from Main().
+                services.AddHostedService(
                     sp => sp.GetRequiredService<Business.Messaging.NetMQAlertIngress>());
 
 
