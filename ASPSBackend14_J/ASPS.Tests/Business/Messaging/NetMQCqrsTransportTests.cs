@@ -15,7 +15,10 @@ namespace ASPS.Tests.Business.Messaging;
 /// <summary>
 /// ASPS-686 (Messaging Refactoring Phase 4): NetMQCqrsTransport absorbs CQRSGateway's
 /// socket lifecycle, CURVE setup, and HMAC envelope handling behind ICqrsTransport
-/// (IHostedService + IDisposable). Mirrors CQRSGatewayTests, adapted to StartAsync/StopAsync.
+/// (IHostedService + IDisposable). Full parity with the former CQRSGatewayTests
+/// (ASPS-690, Phase 6 cleanup — CQRSGateway.cs/.Commands.cs/.Queries.cs and
+/// CQRSGatewayTests.cs deleted after this file reached 1:1 test coverage),
+/// adapted to StartAsync/StopAsync.
 /// </summary>
 public sealed class NetMQCqrsTransportTests : IDisposable
 {
@@ -79,6 +82,31 @@ public sealed class NetMQCqrsTransportTests : IDisposable
     }
 
     [Fact]
+    public async Task StartAsync_WithClientOnlyCurveMaterial_RejectsBeforeBind()
+    {
+        var serverKeys = CreateCurveManager();
+        var publicKeyPath = Path.Combine(Path.GetDirectoryName(_keysPath)!,
+            "curve-server-public-key.txt");
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?>
+            {
+                ["Security:CurveEnabled"] = "true",
+                ["Security:CurveClientOnly"] = "true",
+                ["Security:ServerPublicKeyFilePath"] = publicKeyPath
+            }).Build();
+        var clientOnly = new CurveKeyManager(configuration, NullLogger<CurveKeyManager>.Instance);
+        _transport = new NetMQCqrsTransport(_services, NullLogger<NetMQCqrsTransport>.Instance, _registry,
+            "tcp://127.0.0.1:46559", clientOnly, CreateSecurity());
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _transport.StartAsync(CancellationToken.None));
+
+        Assert.Contains("public and private", exception.Message);
+        Assert.False(clientOnly.HasServerKeyPair);
+        Assert.True(serverKeys.HasServerKeyPair);
+    }
+
+    [Fact]
     public async Task RunningTransport_RejectsPlaintextClient()
     {
         var endpoint = await StartTransportAsync(46560, curve => { });
@@ -101,6 +129,50 @@ public sealed class NetMQCqrsTransportTests : IDisposable
             """{"MessageType":"Query","QueryType":"GetVersionQuery"}""");
 
         Assert.Contains("Invalid authenticated CQRS envelope", response);
+    }
+
+    [Fact]
+    public async Task RunningTransport_RejectsTamperedPayload()
+    {
+        CurveKeyManager? curve = null;
+        var endpoint = await StartTransportAsync(46562, c => curve = c);
+        using var socket = CreateCurveClient(endpoint, curve!);
+        var envelope = JObject.Parse(CreateSecurity().Protect(
+            """{"MessageType":"Query","QueryType":"GetVersionQuery"}"""));
+        envelope["Payload"] = """{"MessageType":"Command","CommandType":"DeleteUserCommand"}""";
+
+        var response = SendAndReceive(socket, envelope.ToString());
+
+        Assert.Contains("Invalid authenticated CQRS envelope", response);
+    }
+
+    [Fact]
+    public async Task RunningTransport_RejectsReplayedNonce()
+    {
+        CurveKeyManager? curve = null;
+        var endpoint = await StartTransportAsync(46563, c => curve = c);
+        using var socket = CreateCurveClient(endpoint, curve!);
+        var envelope = CreateSecurity().Protect(
+            """{"MessageType":"Command","CommandType":"UpdateUserCommand"}""");
+
+        _ = SendAndReceive(socket, envelope);
+        var replayResponse = SendAndReceive(socket, envelope);
+
+        Assert.Contains("already been used", replayResponse);
+    }
+
+    [Fact]
+    public async Task RunningTransport_RejectsUnauthorizedClient()
+    {
+        CurveKeyManager? curve = null;
+        var endpoint = await StartTransportAsync(46564, c => curve = c);
+        using var socket = CreateCurveClient(endpoint, curve!);
+        var envelope = CreateSecurity("attacker").Protect(
+            """{"MessageType":"Query","QueryType":"GetVersionQuery"}""");
+
+        var response = SendAndReceive(socket, envelope);
+
+        Assert.Contains("not authorized", response);
     }
 
     [Fact]

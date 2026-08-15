@@ -35,8 +35,9 @@ public static class MessagingServiceRegistration
     }
 
     /// <summary>
-    /// Registers all command types with their handlers. Mirrors the switch dispatch in
-    /// CQRSGateway.Commands.cs (ASPS-679) — that file is left untouched pending cutover.
+    /// Registers all command types with their handlers (ASPS-679). Formerly a switch
+    /// dispatch in CQRSGateway.Commands.cs, deleted in Phase 6 cleanup (ASPS-690)
+    /// once NetMQCqrsTransport reached full test parity.
     /// </summary>
     private static void RegisterCommandHandlers(CqrsHandlerRegistry registry)
     {

@@ -35,8 +35,9 @@ ASPS (Anti-Scam Protection System) is a real-time fraud detection system that mo
 ┌──────────────────────────────────────────────────────┼───────────────────┐
 │                         BACKEND SERVER (.NET)        │                   │
 │  ┌───────────────────────────────────────────────────▼─────────────────┐ │
-│  │                    RealTimeAlertListener                             │ │
+│  │         NetMQAlertIngress (IAlertIngress, IHostedService)             │ │
 │  │        (ZMQ ROUTER Socket - handles concurrent connections)          │ │
+│  │        delegates message parsing/routing to AlertProcessor           │ │
 │  └────────────────────────────────┬────────────────────────────────────┘ │
 │                                   │                                      │
 │                      ┌────────────▼────────────┐                        │
@@ -58,7 +59,8 @@ ASPS (Anti-Scam Protection System) is a real-time fraud detection system that mo
 │  └─────────────┘                  │                 └──────────────┘    │
 │                                   │                                      │
 │                      ┌────────────▼────────────┐                        │
-│                      │ NotificationPublisher    │                        │
+│                      │ NetMQNotificationEgress   │                        │
+│                      │ (INotificationEgress)     │                        │
 │                      │  (ZMQ PUB Socket)        │                        │
 │                      └─────────────────────────┘                        │
 └──────────────────────────────────────────────────────────────────────────┘
@@ -204,18 +206,20 @@ def send_url_alert(self, device_uid, url, token, trackers, iframes, ip_address, 
 
 ## 3.3 Backend Processing
 
-### Step 6: RealTimeAlertListener Receives Alert
-**Location:** `Business/Messaging/RealTimeAlertListener.cs`
+### Step 6: NetMQAlertIngress Receives Alert, AlertProcessor Routes It
+**Location:** `Business/Messaging/NetMQAlertIngress.cs` (socket lifecycle) + `Business/Messaging/AlertProcessor.cs` (parsing/routing, extracted in Phase 3 of the ASPS-675 messaging refactoring)
 
 ```csharp
+// NetMQAlertIngress.cs — socket-level wrapper
 private async Task ProcessRouterMessageAsync(byte[] identity, byte[] messageBytes)
 {
     var message = Encoding.UTF8.GetString(messageBytes);
-    var result = await RouteMessageAsync(message);
+    var result = await _alertProcessor.RouteMessageAsync(message);
     SendRouterResponse(identity, result);
 }
 
-private Task<object> ProcessAlertAsync(string message, JObject jObject)
+// AlertProcessor.cs — message-type routing + token validation
+internal Task<object> ProcessAlertAsync(string message, JObject jObject)
 {
     // 1. Deserialize alert
     var alert = JsonConvert.DeserializeObject<UrlAlert>(message);
@@ -243,7 +247,7 @@ private Task<object> ProcessAlertAsync(string message, JObject jObject)
 ```
 
 ### Step 7: Background Analysis Dispatch
-**Location:** `Business/Messaging/RealTimeAlertListener.cs`
+**Location:** `Business/Messaging/AlertProcessor.cs`
 
 ```csharp
 private async Task DispatchAlertInBackground(DeviceAlertReceived domainEvent, Key userKey, string deviceUid)
@@ -403,8 +407,8 @@ private bool IsSensitiveWebsite(string url)
 
 ## 3.6 Notification Flow
 
-### Step 13: NotificationPublisher Sends Result
-**Location:** `Business/Messaging/NotificationPublisher.cs`
+### Step 13: NetMQNotificationEgress Sends Result
+**Location:** `Business/Messaging/NetMQNotificationEgress.cs` (implements `INotificationEgress`; renamed from `NotificationPublisher.cs` in Phase 2 of the ASPS-675 messaging refactoring)
 
 ```csharp
 public void PublishAnalysisResult(string deviceUid, string userKeyField, 
@@ -675,28 +679,28 @@ Backend admin/automation
 
 # 8. WebApi (Admin) Data Flow
 
-The WebApi project **never touches MySQL directly**. Every read and write travels over NetMQ to the Backend's `CQRSGateway` (port 5556).
+The WebApi project **never touches MySQL directly**. Every read and write travels over NetMQ to the Backend's `NetMQCqrsTransport` (`ICqrsTransport`, port 5556), which dispatches to a registered handler via `CqrsHandlerRegistry`.
 
 ```
-┌──────────────────┐                    ┌────────────────────┐
-│  Admin browser   │                    │  Backend (.NET)    │
-│  (Razor / SPA)   │                    │                    │
-│                  │  HTTP / SignalR    │  ┌──────────────┐  │
-│  • Razor Pages   │ ◄────────────────► │  │ CQRSGateway  │  │
-│  • SignalR hub   │                    │  │ (port 5556)  │  │
-└────────┬─────────┘                    │  └──────┬───────┘  │
-         │                              │         │          │
-         │ ICQRSClient.SendQueryAsync   │         ▼          │
-         │ ICQRSClient.SendCommandAsync │  ┌──────────────┐  │
-         │                              │  │  Handlers    │  │
-         │  NetMQ REQ                   │  │  + Repos     │  │
-         └──────────────────────────────►  └──────┬───────┘  │
-                                          │         │        │
-                                          │         ▼        │
-                                          │  ┌──────────┐    │
-                                          │  │  MySQL   │    │
-                                          │  └──────────┘    │
-                                          └────────────────────┘
+┌──────────────────┐                    ┌─────────────────────────┐
+│  Admin browser   │                    │  Backend (.NET)         │
+│  (Razor / SPA)   │                    │                         │
+│                  │  HTTP / SignalR    │  ┌──────────────────┐   │
+│  • Razor Pages   │ ◄────────────────► │  │ NetMQCqrsTransport│   │
+│  • SignalR hub   │                    │  │ (port 5556)       │   │
+└────────┬─────────┘                    │  └────────┬──────────┘   │
+         │                              │           │              │
+         │ ICQRSClient.SendQueryAsync   │           ▼              │
+         │ ICQRSClient.SendCommandAsync │  ┌──────────────────┐   │
+         │  (bridged by                 │  │ CqrsHandlerRegistry│  │
+         │  NetMQCqrsClientAdapter →     │  │  → Handlers + Repos│  │
+         │  ICqrsClient/NetMQCqrsClient) │  └────────┬──────────┘   │
+         │  NetMQ REQ                   │           │              │
+         └──────────────────────────────►           ▼              │
+                                          │  ┌──────────┐          │
+                                          │  │  MySQL   │          │
+                                          │  └──────────┘          │
+                                          └─────────────────────────┘
 ```
 
 ## Step W1 — Admin lists roadmaps
@@ -706,7 +710,7 @@ Admin opens /Roadmaps
    ↓ Razor IndexModel.OnGetAsync
    ↓ ICQRSClient.SendQueryAsync<ListRoadmapsQueryResult>(new ListRoadmapsQuery { IncludeArchived = false })
    ↓ NetMQ REQ to backend:5556 (JSON, TypeNameHandling.None)
-   ↓ CQRSGateway.ProcessQueryAsync routes by QueryType
+   ↓ NetMQCqrsTransport authenticates the envelope, routes by QueryType via CqrsHandlerRegistry
    ↓ RoadmapQueryHandlers.HandleAsync(ListRoadmapsQuery)
    ↓ IRoadmapRepository.ListAsync → SELECT * FROM Roadmaps WHERE IsArchived = 0 ORDER BY LastUpdatedAt DESC
    ↓ Result back over NetMQ

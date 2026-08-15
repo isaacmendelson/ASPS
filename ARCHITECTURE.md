@@ -104,11 +104,13 @@ User visits URL → Extension captures it → Desktop App forwards to Backend
 │                  BACKEND (.NET)                 │                │
 │                     │                          │                 │
 │  ┌──────────────────▼──────────┐  ┌───────────▼───────────┐    │
-│  │ RealTimeAlertListener       │  │ NotificationPublisher │    │
+│  │ NetMQAlertIngress            │  │ NetMQNotificationEgress│   │
+│  │ (IAlertIngress, IHostedSvc) │  │ (INotificationEgress)  │   │
 │  │ ZMQ ROUTER on port 50001    │  │ ZMQ PUB on port 50002 │    │
 │  │ • token validation          │  │ • per-device topics    │    │
 │  │ • device registration       │  │ • analysis results     │    │
-│  │ • alert routing             │  │                        │    │
+│  │ • delegates parsing/routing │  │                        │    │
+│  │   to AlertProcessor          │  │                        │    │
 │  └──────────────────┬──────────┘  └───────────▲───────────┘    │
 │                     │                          │                 │
 │  ┌──────────────────▼──────────────────────────┤                │
@@ -126,9 +128,10 @@ User visits URL → Extension captures it → Desktop App forwards to Backend
 │  └──────────────────────────────────────────────────────────┘   │
 │                                                                  │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │ TokenStore          │ CQRSGateway (port 5556)            │   │
-│  │ • issue tokens      │ • WebApi ↔ Backend bridge          │   │
-│  │ • validate tokens   │ • commands & queries                │   │
+│  │ TokenStore          │ NetMQCqrsTransport (port 5556)     │   │
+│  │ • issue tokens      │ (ICqrsTransport, IHostedService)   │   │
+│  │ • validate tokens   │ • WebApi ↔ Backend bridge          │   │
+│  │                     │ • dispatches via CqrsHandlerRegistry│   │
 │  └──────────────────────────────────────────────────────────┘   │
 │                                                                  │
 │  ┌──────────────────────────────────────────────────────────┐   │
@@ -147,7 +150,9 @@ User visits URL → Extension captures it → Desktop App forwards to Backend
 │  └──────┬───────┘  └──────┬───────┘  └───────────────────────┘  │
 │         │                  │                                      │
 │  ┌──────▼──────────────────▼────────────────────────────────┐   │
-│  │ CQRSClient (NetMQ REQ → Backend port 5556)              │   │
+│  │ NetMQCqrsClient (ICqrsClient, NetMQ REQ → Backend 5556)  │   │
+│  │ exposed to the 39 existing consumers via the legacy       │   │
+│  │ ICQRSClient contract through NetMQCqrsClientAdapter       │   │
 │  │ ZERO database access — all data via NetMQ                │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │                                                                  │
@@ -465,21 +470,24 @@ The Backend is the **brain** of the system. It handles authentication, alert pro
 
 ### 5.2 Services Started on Boot
 
+All messaging services run as `IHostedService`s, registered through `MessagingServiceRegistration.AddMessagingServices()` and `Program.cs`'s `AddHostedService` calls (ASPS-675 Messaging Refactoring). Each transport is exposed behind an interface in `Business/Messaging/Abstractions/` so the NetMQ implementation can be swapped without touching callers.
+
 | Service | Port | Protocol | Purpose |
 |---------|------|----------|---------|
-| NetMQMessageProcessor | 5555 | ZMQ | Legacy CQRS processor |
-| RealTimeAlertListener | 50001 | ZMQ ROUTER (REQ-compatible) | Receives alerts from Desktop |
-| NotificationPublisher | 50002 | ZMQ PUB | Pushes results to Desktop |
-| CQRSGateway | 5556 | ZMQ | WebApi ↔ Backend bridge |
+| NetMQMessageProcessor | 5555 | ZMQ | Internal CQRS processor (IHostedService) |
+| NetMQAlertIngress (`IAlertIngress`) | 50001 | ZMQ ROUTER (REQ-compatible) | Socket lifecycle + CURVE for alerts from Desktop; parsing/routing delegated to `AlertProcessor` |
+| NetMQNotificationEgress (`INotificationEgress`) | 50002 | ZMQ PUB | Pushes results to Desktop |
+| NetMQCqrsTransport (`ICqrsTransport`) | 5556 | ZMQ | WebApi ↔ Backend bridge; dispatches via `CqrsHandlerRegistry` |
+| CqrsHandlerRegistry | — | In-memory | Type-safe command/query → handler dispatch map (registry-based, replaces the old per-message switch dispatch) |
 | ASView | — | In-memory | Read model (CQRS) |
 | TokenStore | — | In-memory | Token issuance & validation |
 | UDAnalysisManagers | — | Per-user | Analysis orchestration |
 
-> **Why ROUTER, not REP?** A `RepSocket` only handles one in-flight request per peer; with hundreds of devices, requests queue up serially. A `RouterSocket` is fully concurrent — each peer's identity frame is preserved so we can hold the request, do background analysis, and respond out of order. `RouterSocket` is wire-compatible with `RequestSocket` clients (which is what the Desktop App still uses), so this change required **zero client work**. See [`RealTimeAlertListener.cs`](ASPSBackend14_J/Business/Messaging/RealTimeAlertListener.cs).
+> **Why ROUTER, not REP?** A `RepSocket` only handles one in-flight request per peer; with hundreds of devices, requests queue up serially. A `RouterSocket` is fully concurrent — each peer's identity frame is preserved so we can hold the request, do background analysis, and respond out of order. `RouterSocket` is wire-compatible with `RequestSocket` clients (which is what the Desktop App still uses), so this change required **zero client work**. See [`NetMQAlertIngress.cs`](ASPSBackend14_J/Business/Messaging/NetMQAlertIngress.cs) (socket/CURVE lifecycle) and [`AlertProcessor.cs`](ASPSBackend14_J/Business/Messaging/AlertProcessor.cs) (message parsing/routing, extracted in Phase 3 of the messaging refactoring).
 
-### 5.3 Alert Listener (`RealTimeAlertListener.cs`)
+### 5.3 Alert Listener (`NetMQAlertIngress.cs` + `AlertProcessor.cs`)
 
-Receives all messages from Desktop Apps on port 50001.
+Receives all messages from Desktop Apps on port 50001. `NetMQAlertIngress` owns the ROUTER socket, CURVE setup, and the poll-with-timeout receive loop (`IHostedService.StartAsync`/`StopAsync`, cancellable); it delegates message parsing and routing to `AlertProcessor`.
 
 **Message routing:**
 ```
@@ -575,7 +583,7 @@ Step 7: Fire events:
 
 ### 5.7 Notification Publishers
 
-The Backend pushes typed messages to Agents via `NotificationPublisher` (NetMQ PUB on port 50002). Topic format: `device:{deviceUid}` and/or `user:{userKey}`. Each method wraps its payload in `{ Type, Timestamp, DeviceUid, Data }`.
+The Backend pushes typed messages to Agents via `NetMQNotificationEgress` (`INotificationEgress`, NetMQ PUB on port 50002). Topic format: `device:{deviceUid}` and/or `user:{userKey}`. Each method wraps its payload in `{ Type, Timestamp, DeviceUid, Data }`.
 
 | Method | Wire `Type` | Trigger | Agent handler |
 |---|---|---|---|
@@ -608,6 +616,27 @@ UDUserAnalyzer.DetectImmediateDanger() (clearing path)
       → PublishImmediateDangerEnded (the ONE notification)
 ```
 
+### 5.8 Messaging Transport Architecture (ASPS-675 Messaging Refactoring)
+
+All NetMQ transports in the Backend were extracted behind transport-agnostic interfaces during the ASPS-675 messaging refactoring, replacing what used to be a single monolithic `CQRSGateway` class with a 71-case manual switch dispatch. The goal: swap NetMQ for another transport without touching handler logic, and make every socket a testable, cancellable `IHostedService`.
+
+**Abstractions** (`Business/Messaging/Abstractions/`):
+
+| Interface | Purpose | NetMQ implementation |
+|---|---|---|
+| `ICqrsTransport` | WebApi ↔ Backend command/query bridge (server side) | `NetMQCqrsTransport` (port 5556) |
+| `ICqrsClient` | WebApi-side command/query sender | `NetMQCqrsClient` |
+| `IAlertIngress` | Receives alerts from Desktop Apps | `NetMQAlertIngress` (port 50001) |
+| `INotificationEgress` | Pushes results/notifications to Desktop Apps | `NetMQNotificationEgress` (port 50002) |
+
+**Handler dispatch — `CqrsHandlerRegistry`:** a type-safe `ConcurrentDictionary<string, Func<string, IServiceScope, Task<string>>>` mapping each `CommandType`/`QueryType` string to a dispatch delegate. Handlers are registered once at startup in `MessagingServiceRegistration.AddMessagingServices()` (commands) and `CqrsQueryRegistration.RegisterQueryHandlers()` (queries) — 21 command handlers and 50 query handlers, one line per type, replacing the former per-message `switch` statements in `CQRSGateway.Commands.cs`/`CQRSGateway.Queries.cs` (deleted in Phase 6, ASPS-690). `NetMQCqrsTransport` still owns CURVE setup, envelope authentication (`CqrsChannelSecurity`), and command authorization — those stay transport/gateway-level concerns — then calls `_registry.DispatchAsync(type, messageJson, scope)`.
+
+**Alert ingress split (Phase 3):** `NetMQAlertIngress` owns the ROUTER socket, CURVE, and the receive loop; `AlertProcessor` owns message-type routing and token validation, called from the ingress loop.
+
+**Lifecycle (Phase 5):** every transport implements `IHostedService`, registered via `services.AddHostedService(...)` in `Program.cs` and started/stopped by the generic host (`host.RunAsync()`), instead of being manually `Start()`/`Stop()`-ed from `Program.Main()`. Each receive loop polls with a timeout (`TryReceive*(TimeSpan.FromMilliseconds(500), ...)`) and checks both an internal `_running` flag and the `CancellationToken` passed to `StartAsync`, so `StopAsync` can signal shutdown cooperatively without blocking.
+
+**WebApi-side CQRS client (Phase 4):** `NetMQCqrsClient` is the canonical implementation behind `ICqrsClient`. The 39 existing WebApi consumers still depend on the legacy `ICQRSClient` contract; `NetMQCqrsClientAdapter` bridges `ICQRSClient` → `ICqrsClient` so both resolve to the same singleton socket (see §6.2). Mechanical migration of those consumers from `ICQRSClient` to `ICqrsClient` directly was deferred past Phase 6 — see the handoff notes for details.
+
 ---
 
 ## 6. WebApi
@@ -628,9 +657,13 @@ WebApi (Presentation Layer)
     ├── Razor Pages (Admin Dashboard)
     ├── SignalR Hub (real-time updates)
     │
-    └── CQRSClient ──── NetMQ REQ ──── Backend:5556
-         (commands & queries)
+    └── ICQRSClient (39 consumers) ──── NetMQCqrsClientAdapter ──── ICqrsClient
+              │                                                          │
+              └──────────────────── NetMQCqrsClient ── NetMQ REQ ──── Backend:5556
+                                    (commands & queries)
 ```
+
+`NetMQCqrsClient` is the canonical transport implementation, registered behind the transport-agnostic `ICqrsClient` interface (`Business.Messaging.Abstractions`, ASPS-687). Existing WebApi consumers keep depending on the legacy `ICQRSClient` contract unmodified; `NetMQCqrsClientAdapter` bridges the two so both resolve to the same singleton NetMQ REQ socket (`Business` cannot reference `WebApi`, so the adapter — not the transport class itself — implements `ICQRSClient`).
 
 ### 6.3 Endpoints
 
@@ -644,8 +677,10 @@ WebApi (Presentation Layer)
 
 ```
 WebApi sends a Command/Query to Backend:
-  → CQRSClient.SendAsync(message) via NetMQ REQ to port 5556
-  ← Backend's CQRSGateway processes and responds
+  → ICQRSClient.SendXxxAsync(message) → NetMQCqrsClientAdapter → NetMQCqrsClient
+    via NetMQ REQ to port 5556
+  ← Backend's NetMQCqrsTransport (ICqrsTransport, IHostedService) authenticates
+    the envelope, then dispatches to a registered handler via CqrsHandlerRegistry
   → WebApi receives response and renders UI/API response
 ```
 
@@ -783,7 +818,7 @@ This is the complete journey of a URL scan from the moment a user visits a websi
                                "IFrameDomains": [...]
                              }
 
-  7     Backend              RealTimeAlertListener receives alert
+  7     Backend              NetMQAlertIngress receives alert, AlertProcessor routes it
                              → Validates token ✓
                              → Finds device owner (user lookup)
                              → Routes to UDAnalysisManager
@@ -822,7 +857,7 @@ This is the complete journey of a URL scan from the moment a user visits a websi
                              → Generates indicators + protective actions
                              → Fires AnalysisResultReceived event
 
-  13    Backend → Desktop    NotificationPublisher (ZMQ PUB, port 50002):
+  13    Backend → Desktop    NetMQNotificationEgress (ZMQ PUB, port 50002):
                              Topic: "device:PC-eeb83c93e3ccac4b"
                              {
                                "Type": "AnalysisResult",
@@ -1086,12 +1121,12 @@ ZMQ_TIMEOUT = 5000  # ms
 |------|---------|----------|
 | 3306 | MySQL | TCP |
 | 5001 | WebApi (HTTP) | HTTP |
-| 5555 | Backend CQRS Processor | ZMQ |
-| 5556 | Backend CQRS Gateway | ZMQ |
+| 5555 | Backend internal CQRS processor (`NetMQMessageProcessor`) | ZMQ |
+| 5556 | Backend CQRS transport (`NetMQCqrsTransport` / `ICqrsTransport`) | ZMQ |
 | 7001 | WebApi (HTTPS/Swagger) | HTTPS |
 | 8080–8484 | Desktop WebSocket | WS |
-| 50001 | Backend Alert Listener | ZMQ REP |
-| 50002 | Backend Notification Publisher | ZMQ PUB |
+| 50001 | Backend alert ingress (`NetMQAlertIngress` / `IAlertIngress`) | ZMQ REP |
+| 50002 | Backend notification egress (`NetMQNotificationEgress` / `INotificationEgress`) | ZMQ PUB |
 
 ---
 
@@ -1182,7 +1217,7 @@ The WebApi project (§6) hosts a Razor-based admin dashboard at `http://localhos
 
 All admin pages share a single layout (`Pages/Shared/_Layout.cshtml`) with sidebar navigation grouped into sections: **Operations**, **Blacklists**, **Planning**, **Testing**, **System**.
 
-Every page communicates with the Backend via `ICQRSClient.SendQueryAsync<T>()` / `SendCommandAsync<T>()`, which transports JSON over NetMQ to the Backend's `CQRSGateway` on port 5556. **The WebApi never touches MySQL directly**.
+Every page communicates with the Backend via `ICQRSClient.SendQueryAsync<T>()` / `SendCommandAsync<T>()` (bridged to `ICqrsClient`/`NetMQCqrsClient` by `NetMQCqrsClientAdapter`), which transports JSON over NetMQ to the Backend's `NetMQCqrsTransport` on port 5556, where `CqrsHandlerRegistry` dispatches to the registered handler. **The WebApi never touches MySQL directly**.
 
 ---
 
@@ -1222,7 +1257,7 @@ EF migration: `Business/Migrations/20260428192432_AddRoadmapsTable.cs`.
 - `UpdateRoadmapMetadataCommand` → name/description without touching the blob
 - `ArchiveRoadmapCommand` → sets `IsArchived=true`
 
-**Handlers** wired in [`CQRSGateway.cs`](ASPSBackend14_J/Business/Messaging/CQRSGateway.cs) and registered in `Program.cs`.
+**Handlers** registered in [`CqrsQueryRegistration.cs`](ASPSBackend14_J/Business/Messaging/CqrsQueryRegistration.cs) / [`MessagingServiceRegistration.cs`](ASPSBackend14_J/Business/Messaging/MessagingServiceRegistration.cs) against `CqrsHandlerRegistry`, dispatched at runtime by [`NetMQCqrsTransport`](ASPSBackend14_J/Business/Messaging/Transport/NetMQ/NetMQCqrsTransport.cs).
 
 ### 15.4 Razor pages
 

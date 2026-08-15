@@ -191,8 +191,8 @@ public class Program
                 });
                 // ASPS-686 (Messaging Refactoring Phase 4): NetMQCqrsTransport replaces
                 // CQRSGateway as the runtime CQRS listener, registered as an IHostedService
-                // via ICqrsTransport. CQRSGateway itself is left in place (unused at runtime)
-                // pending Phase 6 cleanup.
+                // via ICqrsTransport. CQRSGateway.cs/.Commands.cs/.Queries.cs were deleted
+                // in Phase 6 cleanup (ASPS-690).
                 services.AddSingleton(sp =>
                 {
                     var configuration = sp.GetRequiredService<IConfiguration>();

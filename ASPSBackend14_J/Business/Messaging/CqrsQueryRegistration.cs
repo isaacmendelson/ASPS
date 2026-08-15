@@ -12,8 +12,9 @@ namespace Business.Messaging;
 
 /// <summary>
 /// ASPS-680 — Query handler registrations for CqrsHandlerRegistry.
-/// Mirrors the dispatch behavior previously implemented as a switch statement in
-/// CQRSGateway.Queries.cs (ASPS-675 Messaging Refactoring, Phase 1).
+/// Mirrors the dispatch behavior formerly implemented as a switch statement in
+/// CQRSGateway.Queries.cs (ASPS-675 Messaging Refactoring, Phase 1), deleted in
+/// Phase 6 cleanup (ASPS-690).
 /// Kept in a separate file from MessagingServiceRegistration.cs to avoid merge
 /// conflicts with the parallel ASPS-679 command registration work.
 /// </summary>
@@ -128,9 +129,9 @@ internal static class CqrsQueryRegistration
     }
 
     // =========================================================================
-    // Custom handler implementations — mirror CQRSGateway.Queries.cs exactly,
-    // but resolve services via the dispatch-time IServiceScope instead of the
-    // gateway's own _serviceProvider field.
+    // Custom handler implementations — mirror the former CQRSGateway.Queries.cs
+    // exactly, but resolve services via the dispatch-time IServiceScope instead
+    // of the gateway's own _serviceProvider field.
     // =========================================================================
 
     private static string HandleGetAllPhishingWebsitesQuery(string messageJson, IServiceScope scope)
@@ -287,7 +288,7 @@ internal static class CqrsQueryRegistration
     }
 
     private static ILogger? GetLogger(IServiceScope scope) =>
-        scope.ServiceProvider.GetService<ILogger<CQRSGateway>>();
+        scope.ServiceProvider.GetService<ILogger<CqrsHandlerRegistry>>();
 
     private static string CreateErrorJson(string message)
     {
