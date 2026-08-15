@@ -77,7 +77,10 @@ The CQRS gateway has **71 cases** (not ~32 as initially estimated) across 1,256 
 |---|---|---|
 | 0 — Foundation | Done | `90829f9` |
 | 1 — CQRS handler extraction | Done | `8cf77d7` |
-| 2 — ASPS-682/683 Notification egress extraction | Done (this session) | pending commit |
+| 2 — ASPS-682/683 Notification egress extraction | Done | `c606c80` |
+| 3 — ASPS-684/685 Alert ingress extraction | Done | `c606c80` |
+| 4 — ASPS-686/687 CQRS transport extraction | Done | `31282d0` |
+| 5 — ASPS-688/689 Lifecycle migration + CancellationToken | Done (this session) | `7940c6c` |
 
 ### Phase 2 (ASPS-682 + ASPS-683) — 2026-08-12
 
@@ -105,4 +108,75 @@ The CQRS gateway has **71 cases** (not ~32 as initially estimated) across 1,256 
 - `dotnet build ASPSBackend.sln -c Debug --nologo` → 0 errors (299 pre-existing warnings, none new).
 - `dotnet test ASPS.Tests/ASPS.Tests.csproj --nologo -v q` → Passed: 1657, Failed: 0, Skipped: 7, Total: 1664.
 
-**Not yet done:** commit, pre-QA gate (merge latest main + re-test + push), QA review.
+### Phase 5 (ASPS-688 + ASPS-689) — 2026-08-16
+
+**Read first:** verified Phases 0–4 had already done most of the Phase 5 work —
+`ICqrsTransport`/`NetMQCqrsTransport` (Phase 4) already implemented `IHostedService`
+with a poll-with-timeout receive loop and was already wired via `AddHostedService` in
+`Program.cs`. `IAlertIngress`/`ICqrsClient`/`INotificationEgress` already had full
+`CancellationToken` parameters on every method (from Phases 2–4). Remaining gaps:
+
+**ASPS-688 — IHostedService lifecycle:**
+- `NetMQMessageProcessor` (internal CQRS channel, port 5555): was `IDisposable` only,
+  manually `Start()`/`Stop()`-ed from `Program.Main()`. Converted to
+  `IHostedService` (`StartAsync`/`StopAsync`); registered via
+  `services.AddHostedService(sp => sp.GetRequiredService<NetMQMessageProcessor>())`.
+- `NetMQAlertIngress` (real-time alert listener, port 50001): already implemented
+  `IHostedService` (via `IAlertIngress`) but was never registered with
+  `AddHostedService` — `Program.Main()` called `alertIngress.StartAsync(CancellationToken.None)`
+  manually instead. Fixed: added `services.AddHostedService(sp => sp.GetRequiredService<NetMQAlertIngress>())`;
+  removed the manual `StartAsync` call and the now-unused `alertIngress` variable
+  from `Program.cs`. Startup order preserved — `SetReconnectSnapshotService` and
+  `InitializeAnalysisManagersAsync` still run synchronously in `Main()` before
+  `host.RunAsync()` starts all hosted services (`NetMQMessageProcessor`,
+  `NetMQAlertIngress`, `NetMQCqrsTransport`, `SimulationRunner`, `OutboxPruningService`)
+  in registration order.
+- `ASView` and `ReconnectSnapshotService` were checked and are **not** NetMQ
+  transport services (in-memory cache / reactive publisher respectively) — left
+  unchanged, out of scope.
+- `NetMQNotificationEgress` (PUB socket, port 50002) binds its socket in the
+  constructor and has no `Start()`/`Stop()` calls in `Program.cs` to remove — this
+  eager-construction + DI-disposal pattern was established in Phase 2 and is left
+  as-is (no manual lifecycle calls existed to migrate).
+
+**ASPS-689 — CancellationToken propagation:**
+- `NetMQMessageProcessor.ProcessMessages` and `NetMQAlertIngress.ListenForAlerts`
+  switched from blocking receive calls (`ReceiveFrameString()`,
+  `ReceiveMultipartMessage()`, `ReceiveFrameBytes()`) to `TryReceive*` with a 500ms
+  poll timeout, checking `cancellationToken.IsCancellationRequested` each iteration
+  (mirrors the pattern `NetMQCqrsTransport` already used from Phase 4). Note: the
+  `_isRunning` boolean flag was kept (not removed per spec's "ideal" step 5) because
+  it is the actual mechanism `StopAsync` uses to signal shutdown — the
+  `CancellationToken` passed to `IHostedService.StartAsync` by the generic host is
+  the *startup* token, not linked to `StopAsync`'s shutdown token, so it alone
+  cannot stop the loop. This matches the already-reviewed `NetMQCqrsTransport`
+  convention from Phase 4 (kept for consistency, not modified).
+- `NetMQNotificationEgress`'s six `Publish*Async` wrapper methods now call
+  `ct.ThrowIfCancellationRequested()` before delegating to the synchronous publish
+  methods.
+- `ICqrsClient`/`NetMQCqrsClient` (Phase 4) already fully threaded `ct` through
+  `Task.Run(..., ct)` with `ct.ThrowIfCancellationRequested()` inside — verified,
+  no changes needed.
+- `OutboxNotificationPublisher` (the outbox-wrapped caller of `INotificationEgress`)
+  does **not** have `CancellationToken` parameters on its own public API — this was
+  out of scope (task instructions scoped ASPS-689 to the four interfaces under
+  `Business/Messaging/Abstractions/`, not every downstream wrapper; adding `ct` there
+  would cascade into `NotificationPublisherActor` and other callers not covered by
+  this task).
+
+**Changed files:**
+- `ASPSBackend14_J/Business/Messaging/NetMQMessageProcessor.cs` — `IHostedService`, poll-with-timeout loop
+- `ASPSBackend14_J/Business/Messaging/NetMQAlertIngress.cs` — poll-with-timeout loop (`TryReceiveMultipartMessage`/`TryReceiveFrameBytes`)
+- `ASPSBackend14_J/Business/Messaging/NetMQNotificationEgress.cs` — `ct.ThrowIfCancellationRequested()` in async wrappers
+- `ASPSBackend14_J/ASPSBackend/Program.cs` — `AddHostedService` registrations; removed manual `Start()`/`StartAsync()` calls
+- `ASPSBackend14_J/ASPS.Tests/Business/Messaging/NetMQMessageProcessorTests.cs` — `Start()`/`Stop()` → `StartAsync`/`StopAsync`; added `IHostedService` assignability test + cooperative-shutdown timing test
+- `ASPSBackend14_J/ASPS.Tests/Business/Messaging/NetMQNotificationEgressTests.cs` — added 3 `CancellationToken` tests
+
+**Verification:**
+- `dotnet build ASPSBackend.sln -c Debug --nologo` → 0 errors (299 warnings, same baseline, none new).
+- `dotnet test ASPS.Tests/ASPS.Tests.csproj --nologo -v q` → Passed: 1682, Failed: 0, Skipped: 7, Total: 1689 (+5 new tests vs. Phase 4 baseline of 1677 passed).
+- Local `main` matches `origin/main` (`fa07566`) — no merge needed before QA.
+
+**Commit:** `7940c6c` — `ASPS-675 Phase 5: Lifecycle migration + CancellationToken (ASPS-688, ASPS-689)`
+
+**Not yet done:** push to remote, request QA review (per `.claude/rules/task-workflow.md` pre-QA gate — push + notify orchestrator still pending), Phase 6 cleanup (remove `CQRSGateway.Commands.cs`/`CQRSGateway.Queries.cs`, doc updates).
