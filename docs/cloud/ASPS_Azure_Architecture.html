@@ -1,0 +1,909 @@
+<title>ASPS Azure Architecture</title>
+<style>
+  @font-face {
+    font-family: 'Geist';
+    src: local('Geist'), local('Inter'), local('Segoe UI');
+    font-weight: 100 900;
+  }
+  @font-face {
+    font-family: 'Geist Mono';
+    src: local('Geist Mono'), local('Cascadia Code'), local('Consolas');
+    font-weight: 100 900;
+  }
+
+  :root {
+    --bg: #f7f8fa;
+    --surface: #ffffff;
+    --surface-alt: #edf0f5;
+    --border: #d4d9e3;
+    --border-subtle: #e8ecf2;
+    --text: #1a1f2e;
+    --text-muted: #5a6178;
+    --text-dim: #8891a5;
+    --accent: #0066cc;
+    --accent-light: #e8f2ff;
+    --accent-dark: #004d99;
+    --green: #0d7a3e;
+    --green-bg: #e6f5ed;
+    --amber: #a16207;
+    --amber-bg: #fef9ec;
+    --red: #c4320a;
+    --red-bg: #fef2ee;
+    --purple: #6d28d9;
+    --purple-bg: #f3edff;
+    --teal: #0d7377;
+    --teal-bg: #e6f7f7;
+    --mono: 'Geist Mono', 'Cascadia Code', 'Consolas', monospace;
+    --sans: 'Geist', 'Inter', 'Segoe UI', system-ui, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1118;
+      --surface: #181b25;
+      --surface-alt: #1e2230;
+      --border: #2e3346;
+      --border-subtle: #252a3a;
+      --text: #e4e7ee;
+      --text-muted: #9aa0b4;
+      --text-dim: #636a80;
+      --accent: #4d9ef5;
+      --accent-light: #172640;
+      --accent-dark: #80bfff;
+      --green: #34d27b;
+      --green-bg: #0d2618;
+      --amber: #f5b731;
+      --amber-bg: #2a1f08;
+      --red: #f06543;
+      --red-bg: #2a1208;
+      --purple: #a78bfa;
+      --purple-bg: #1a1230;
+      --teal: #2dd4bf;
+      --teal-bg: #0d2626;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1118;
+    --surface: #181b25;
+    --surface-alt: #1e2230;
+    --border: #2e3346;
+    --border-subtle: #252a3a;
+    --text: #e4e7ee;
+    --text-muted: #9aa0b4;
+    --text-dim: #636a80;
+    --accent: #4d9ef5;
+    --accent-light: #172640;
+    --accent-dark: #80bfff;
+    --green: #34d27b;
+    --green-bg: #0d2618;
+    --amber: #f5b731;
+    --amber-bg: #2a1f08;
+    --red: #f06543;
+    --red-bg: #2a1208;
+    --purple: #a78bfa;
+    --purple-bg: #1a1230;
+    --teal: #2dd4bf;
+    --teal-bg: #0d2626;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 24px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 1.65rem;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    margin: 0 0 32px 0;
+  }
+
+  h2 {
+    font-size: 1.05rem;
+    font-weight: 650;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin: 40px 0 16px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  h3 {
+    font-size: 0.92rem;
+    font-weight: 650;
+    margin: 0 0 8px 0;
+  }
+
+  /* Architecture diagram */
+  .arch-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .arch-layer {
+    position: relative;
+    padding: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .arch-layer:first-child {
+    border-radius: 10px 10px 0 0;
+  }
+
+  .arch-layer:last-child {
+    border-radius: 0 0 10px 10px;
+  }
+
+  .arch-layer + .arch-layer {
+    border-top: none;
+  }
+
+  .layer-label {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    background: var(--surface-alt);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  .apps-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .app-card {
+    border-radius: 8px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    position: relative;
+  }
+
+  .app-card.public {
+    border-color: var(--accent);
+    background: var(--accent-light);
+  }
+
+  .app-card.internal {
+    border-color: var(--border);
+    background: var(--surface-alt);
+  }
+
+  .app-name {
+    font-weight: 650;
+    font-size: 0.92rem;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  .badge-public {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .badge-internal {
+    background: var(--surface-alt);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+
+  .badge-tcp {
+    background: var(--purple-bg);
+    color: var(--purple);
+  }
+
+  .badge-https {
+    background: var(--green-bg);
+    color: var(--green);
+  }
+
+  .app-detail {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .ports-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+  }
+
+  .port-chip {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--surface-alt);
+    color: var(--text-muted);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .port-chip.ext {
+    background: var(--amber-bg);
+    color: var(--amber);
+    border-color: transparent;
+  }
+
+  /* Connection arrows between layers */
+  .connections {
+    padding: 12px 20px;
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+
+  .conn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .conn-arrow {
+    color: var(--accent);
+  }
+
+  /* Services row */
+  .services-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .svc-card {
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .svc-icon {
+    font-size: 1.5rem;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .svc-name {
+    font-weight: 600;
+    font-size: 0.82rem;
+    margin-bottom: 2px;
+  }
+
+  .svc-detail {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    font-family: var(--mono);
+  }
+
+  /* Decisions table */
+  .decisions-grid {
+    display: grid;
+    gap: 8px;
+  }
+
+  .decision-row {
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+  }
+
+  .decision-id {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .decision-body {
+    min-width: 0;
+  }
+
+  .decision-title {
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+
+  .decision-choice {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .decision-status {
+    font-size: 0.72rem;
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+
+  .status-done {
+    color: var(--green);
+  }
+
+  .status-future {
+    color: var(--amber);
+  }
+
+  /* Deployment sequence */
+  .deploy-steps {
+    display: grid;
+    gap: 0;
+    position: relative;
+  }
+
+  .step {
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-bottom: none;
+    position: relative;
+  }
+
+  .step:first-child {
+    border-radius: 8px 8px 0 0;
+  }
+
+  .step:last-child {
+    border-radius: 0 0 8px 8px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .step-num {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-align: center;
+  }
+
+  .step-num.gate {
+    color: var(--red);
+  }
+
+  .step-name {
+    font-size: 0.82rem;
+    font-weight: 500;
+  }
+
+  .step-jira {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--text-dim);
+  }
+
+  .step.active {
+    background: var(--accent-light);
+    border-color: var(--accent);
+  }
+
+  .step.active + .step {
+    border-top-color: var(--accent);
+  }
+
+  .step.active .step-num {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* Ports table */
+  .ports-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ports-table th {
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .ports-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-subtle);
+    vertical-align: middle;
+  }
+
+  .ports-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .ports-table .port-num {
+    font-family: var(--mono);
+    font-weight: 600;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+
+  /* External clients */
+  .ext-layer {
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    padding: 14px 20px;
+    margin-bottom: 8px;
+  }
+
+  .ext-row {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+  }
+
+  .ext-client {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ext-client-icon {
+    font-size: 1.1rem;
+  }
+
+  /* Security backlog */
+  .backlog-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+  }
+
+  .backlog-item + .backlog-item {
+    margin-top: 6px;
+  }
+
+  .backlog-label {
+    font-size: 0.82rem;
+    font-weight: 500;
+  }
+
+  .backlog-note {
+    font-size: 0.74rem;
+    color: var(--text-muted);
+  }
+
+  .priority-low {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--teal);
+    background: var(--teal-bg);
+    padding: 2px 8px;
+    border-radius: 3px;
+    align-self: center;
+  }
+
+  .priority-med {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--amber);
+    background: var(--amber-bg);
+    padding: 2px 8px;
+    border-radius: 3px;
+    align-self: center;
+  }
+
+  @media (max-width: 680px) {
+    .apps-row, .services-row {
+      grid-template-columns: 1fr;
+    }
+    .decision-row {
+      grid-template-columns: 48px 1fr;
+    }
+    .decision-status {
+      grid-column: 1 / -1;
+    }
+    .ext-row {
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+</style>
+
+<div class="page">
+
+  <h1>ASPS Azure Architecture</h1>
+  <p class="subtitle">Anti-Scam Protection System — Azure Container Apps deployment, North Europe</p>
+
+  <!-- External Clients -->
+  <div class="ext-layer">
+    <div class="ext-row">
+      <span class="ext-client"><span class="ext-client-icon">&#x1F310;</span> Admin Panel (browser)</span>
+      <span class="ext-client"><span class="ext-client-icon">&#x1F5A5;</span> Desktop Agent (Windows)</span>
+      <span class="ext-client"><span class="ext-client-icon">&#x1F517;</span> Chrome Extension</span>
+    </div>
+  </div>
+
+  <!-- Architecture Layers -->
+  <div class="arch-grid">
+
+    <!-- Container Apps Layer -->
+    <div class="arch-layer" style="background: var(--surface-alt);">
+      <span class="layer-label">Container Apps Environment &middot; cae-asps-dev</span>
+      <div style="margin-top: 18px;">
+        <div class="apps-row">
+
+          <div class="app-card public">
+            <div class="app-name">WebApi <span class="badge badge-https">HTTPS</span></div>
+            <div class="app-detail">
+              Razor Pages admin UI + REST API<br>
+              Keycloak SSO, SignalR notifications
+            </div>
+            <div class="ports-list">
+              <span class="port-chip">:5001</span>
+            </div>
+          </div>
+
+          <div class="app-card internal">
+            <div class="app-name">Backend <span class="badge badge-internal">internal</span></div>
+            <div class="app-detail">
+              .NET 8 host service<br>
+              CQRS gateway, alert listener, notifications<br>
+              Python analyzer (subprocess)
+            </div>
+            <div class="ports-list">
+              <span class="port-chip">:5556 CQRS</span>
+              <span class="port-chip ext">:50001 alerts</span>
+              <span class="port-chip">:50002 notif</span>
+            </div>
+          </div>
+
+          <div class="app-card public">
+            <div class="app-name">Keycloak <span class="badge badge-https">HTTPS</span></div>
+            <div class="app-detail">
+              OIDC provider (SSO)<br>
+              Realm: asps
+            </div>
+            <div class="ports-list">
+              <span class="port-chip">:8080</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Connections -->
+    <div class="connections">
+      <span class="conn">WebApi <span class="conn-arrow">&rarr;</span> :5556 CQRS+CURVE</span>
+      <span class="conn">WebApi <span class="conn-arrow">&larr;</span> :50002 PUB/SUB</span>
+      <span class="conn">Agents <span class="conn-arrow">&rarr;</span> :50001 CURVE</span>
+    </div>
+
+    <!-- Azure Services Layer -->
+    <div class="arch-layer">
+      <span class="layer-label">Azure Managed Services</span>
+      <div style="margin-top: 18px;">
+        <div class="services-row">
+          <div class="svc-card">
+            <span class="svc-icon">&#x1F4BE;</span>
+            <div class="svc-name">MySQL Flexible</div>
+            <div class="svc-detail">mysql-asps-dev<br>aspsbackend2db + keycloak</div>
+          </div>
+          <div class="svc-card">
+            <span class="svc-icon">&#x1F511;</span>
+            <div class="svc-name">Key Vault</div>
+            <div class="svc-detail">kv-asps-dev<br>DB creds, CQRS secret, KC secrets</div>
+          </div>
+          <div class="svc-card">
+            <span class="svc-icon">&#x1F4C1;</span>
+            <div class="svc-name">Azure Files</div>
+            <div class="svc-detail">staspsdev<br>CURVE key files</div>
+          </div>
+          <div class="svc-card">
+            <span class="svc-icon">&#x1F464;</span>
+            <div class="svc-name">Managed Identity</div>
+            <div class="svc-detail">id-asps-dev<br>ACR pull + KV read</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Architecture Decisions -->
+  <h2>Architecture Decisions</h2>
+  <div class="decisions-grid">
+    <div class="decision-row">
+      <span class="decision-id">AD-1</span>
+      <div class="decision-body">
+        <div class="decision-title">Python Analyzers</div>
+        <div class="decision-choice">Multi-stage Docker now, HTTP API separation later (ASPS-708)</div>
+      </div>
+      <span class="decision-status status-done">zero code change</span>
+    </div>
+    <div class="decision-row">
+      <span class="decision-id">AD-2</span>
+      <div class="decision-body">
+        <div class="decision-title">CURVE Key Loading</div>
+        <div class="decision-choice">Azure Files mount at /keys &mdash; CurveKeyManager unchanged</div>
+      </div>
+      <span class="decision-status status-done">zero code change</span>
+    </div>
+    <div class="decision-row">
+      <span class="decision-id">AD-3</span>
+      <div class="decision-body">
+        <div class="decision-title">Port 50001 Ingress</div>
+        <div class="decision-choice">TCP pass-through + keepalive (idle=60s, interval=30s) + VNet required</div>
+      </div>
+      <span class="decision-status status-future">~4 lines code</span>
+    </div>
+    <div class="decision-row">
+      <span class="decision-id">AD-4</span>
+      <div class="decision-body">
+        <div class="decision-title">Port 5555 (Legacy)</div>
+        <div class="decision-choice">Not exposed in cloud &mdash; deprecation tracked in ASPS-717</div>
+      </div>
+      <span class="decision-status status-done">zero code change</span>
+    </div>
+    <div class="decision-row">
+      <span class="decision-id">AD-5</span>
+      <div class="decision-body">
+        <div class="decision-title">Database Migrations</div>
+        <div class="decision-choice">Container Apps Job with --migrate-only flag</div>
+      </div>
+      <span class="decision-status status-future">flag in Program.cs</span>
+    </div>
+    <div class="decision-row">
+      <span class="decision-id">AD-6</span>
+      <div class="decision-body">
+        <div class="decision-title">Keycloak</div>
+        <div class="decision-choice">Container App &mdash; same realm/clients as local dev</div>
+      </div>
+      <span class="decision-status status-done">zero code change</span>
+    </div>
+    <div class="decision-row">
+      <span class="decision-id">AD-7</span>
+      <div class="decision-body">
+        <div class="decision-title">Infrastructure as Code</div>
+        <div class="decision-choice">CLI first &rarr; convert to Bicep after deployment works</div>
+      </div>
+      <span class="decision-status status-future">Phase 2</span>
+    </div>
+  </div>
+
+  <!-- Deployment Sequence -->
+  <h2>Deployment Sequence</h2>
+  <div class="deploy-steps">
+    <div class="step active">
+      <span class="step-num gate">CP-0</span>
+      <span class="step-name">VNet + Networking Validation</span>
+      <span class="step-jira">ASPS-703</span>
+    </div>
+    <div class="step">
+      <span class="step-num">1</span>
+      <span class="step-name">Azure MySQL Flexible Server</span>
+      <span class="step-jira">ASPS-695</span>
+    </div>
+    <div class="step">
+      <span class="step-num">2</span>
+      <span class="step-name">Key Vault + Managed Identity</span>
+      <span class="step-jira">ASPS-696</span>
+    </div>
+    <div class="step">
+      <span class="step-num">3</span>
+      <span class="step-name">Storage Account + Azure Files</span>
+      <span class="step-jira">ASPS-697</span>
+    </div>
+    <div class="step">
+      <span class="step-num">4</span>
+      <span class="step-name">WebApi Dockerfile + ACR push</span>
+      <span class="step-jira">ASPS-698</span>
+    </div>
+    <div class="step">
+      <span class="step-num">5</span>
+      <span class="step-name">Backend image (multi-stage + Python)</span>
+      <span class="step-jira">ASPS-701</span>
+    </div>
+    <div class="step">
+      <span class="step-num">6</span>
+      <span class="step-name">Deploy Keycloak</span>
+      <span class="step-jira">ASPS-700</span>
+    </div>
+    <div class="step">
+      <span class="step-num">7</span>
+      <span class="step-name">Migration Job (EF Core)</span>
+      <span class="step-jira">ASPS-704</span>
+    </div>
+    <div class="step">
+      <span class="step-num">8</span>
+      <span class="step-name">Deploy Backend</span>
+      <span class="step-jira">ASPS-701</span>
+    </div>
+    <div class="step">
+      <span class="step-num">9</span>
+      <span class="step-name">Deploy WebApi</span>
+      <span class="step-jira">ASPS-702</span>
+    </div>
+    <div class="step">
+      <span class="step-num">10</span>
+      <span class="step-name">Service Discovery + Networking</span>
+      <span class="step-jira">ASPS-703</span>
+    </div>
+    <div class="step">
+      <span class="step-num">11</span>
+      <span class="step-name">End-to-End Tests</span>
+      <span class="step-jira">&mdash;</span>
+    </div>
+    <div class="step">
+      <span class="step-num">12</span>
+      <span class="step-name">Monitoring (App Insights)</span>
+      <span class="step-jira">ASPS-705</span>
+    </div>
+    <div class="step">
+      <span class="step-num">13</span>
+      <span class="step-name">CI/CD (GitHub Actions)</span>
+      <span class="step-jira">ASPS-706</span>
+    </div>
+    <div class="step">
+      <span class="step-num">14</span>
+      <span class="step-name">Bicep &mdash; Infrastructure as Code</span>
+      <span class="step-jira">&mdash;</span>
+    </div>
+  </div>
+
+  <!-- Ports -->
+  <h2>Ports &amp; Protocols</h2>
+  <div class="table-wrap">
+    <table class="ports-table">
+      <thead>
+        <tr>
+          <th>Port</th>
+          <th>Protocol</th>
+          <th>Service</th>
+          <th>Exposure</th>
+          <th>Security</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="port-num">5001</td>
+          <td>HTTP</td>
+          <td>WebApi</td>
+          <td><span class="badge badge-public">public</span></td>
+          <td>HTTPS + Keycloak SSO</td>
+        </tr>
+        <tr>
+          <td class="port-num">5556</td>
+          <td>TCP</td>
+          <td>Backend CQRS</td>
+          <td><span class="badge badge-internal">internal</span></td>
+          <td>CURVE + HMAC-SHA256</td>
+        </tr>
+        <tr>
+          <td class="port-num">50001</td>
+          <td>TCP</td>
+          <td>Backend Alerts</td>
+          <td><span class="badge badge-tcp">ext tcp</span></td>
+          <td>CURVE encryption</td>
+        </tr>
+        <tr>
+          <td class="port-num">50002</td>
+          <td>TCP</td>
+          <td>Backend Notifications</td>
+          <td><span class="badge badge-internal">internal</span></td>
+          <td>CURVE encryption</td>
+        </tr>
+        <tr style="opacity: 0.5;">
+          <td class="port-num" style="text-decoration: line-through;">5555</td>
+          <td>TCP</td>
+          <td>Backend (legacy)</td>
+          <td><span style="font-size: 0.75rem; color: var(--red);">blocked</span></td>
+          <td>None &mdash; excluded</td>
+        </tr>
+        <tr>
+          <td class="port-num">8080</td>
+          <td>HTTP</td>
+          <td>Keycloak</td>
+          <td><span class="badge badge-public">public</span></td>
+          <td>HTTPS + admin credentials</td>
+        </tr>
+        <tr>
+          <td class="port-num">3306</td>
+          <td>TCP</td>
+          <td>MySQL</td>
+          <td><span class="badge badge-internal">private</span></td>
+          <td>Username/password (VNet)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Security Backlog -->
+  <h2>Security Backlog (Post-MVP)</h2>
+  <div class="backlog-item">
+    <div>
+      <div class="backlog-label">CURVE keys in Azure Files</div>
+      <div class="backlog-note">Private crypto key in file share &rarr; move to Key Vault / HSM</div>
+    </div>
+    <span class="priority-med">medium</span>
+  </div>
+  <div class="backlog-item">
+    <div>
+      <div class="backlog-label">MySQL authentication</div>
+      <div class="backlog-note">Username/password &rarr; Managed Identity / Entra token auth</div>
+    </div>
+    <span class="priority-low">low</span>
+  </div>
+  <div class="backlog-item">
+    <div>
+      <div class="backlog-label">Port 5555 deprecation</div>
+      <div class="backlog-note">Code still exists in Backend &rarr; consolidate into port 5556 (ASPS-717)</div>
+    </div>
+    <span class="priority-low">low</span>
+  </div>
+
+</div>

@@ -99,6 +99,14 @@ After QA returns **FAIL**:
 | In Review → Done | 41 | Orchestrator (after code review approval + merge) |
 | In Review → In Progress | 21 | Orchestrator (if code review fails) |
 
+## Parent issue status propagation
+
+When a JIRA issue has child issues (epic → stories, story → sub-tasks):
+
+- **The parent issue must transition to In Progress when work begins on its first child issue** — not when the user asks. This applies to epics, stories with sub-tasks, and any parent-child JIRA hierarchy.
+- The orchestrator checks the parent's status before delegating child work. If the parent is still To Do, transition it to In Progress first.
+- The parent moves to Done only when all child issues are Done (or explicitly closed).
+
 ## Handoff sync with JIRA
 
 Every JIRA status change must be mirrored in the task's handoff file (`docs/task-memory/<TASK_NAME>_HANDOFF.md`):

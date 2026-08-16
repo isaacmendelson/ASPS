@@ -51,6 +51,10 @@ When to do work myself (CEO hat) vs spawn a sub-agent.
 - Time-sensitive: user is waiting and a sub-agent adds 5+ minutes
 - The user is debugging interactively and wants me responsive
 
+## No idle agents
+
+When a sub-agent completes a task, the orchestrator must immediately assign it the next task in the backlog. An idle agent is a wasted agent. Don't wait for the user to ask "what about X?" — proactively delegate the next piece of work. This applies to all agent types.
+
 ## Spawn prompt minimum
 
 Every implementation prompt must include:
