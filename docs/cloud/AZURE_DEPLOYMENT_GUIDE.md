@@ -21,15 +21,20 @@
 | Backend Image | `asps-backend:0.2.0` | ACR | Pushed |
 | WebApi Image | `asps-webapi:0.1.0` | ACR | Pushed |
 
+| Application Insights | `appi-asps-dev` | North Europe | Connected |
 | Container App: Keycloak | `ca-keycloak-dev` | North Europe | **Running** |
-| Container App: Backend | `ca-backend-dev` | North Europe | **Running** |
-| Container App: WebApi | `ca-webapi-dev` | North Europe | **Running** |
+| Container App: WebApi+Backend | `ca-webapi-dev` | North Europe | **Running** (sidecar) |
+| Container App: Backend (old) | `ca-backend-dev` | North Europe | **Deactivated** |
 
-All three application services deployed and verified.
+All services deployed, verified, and data migrated from local.
 
 ---
 
-## Target Architecture
+## Target Architecture — Sidecar Pattern
+
+> **Why sidecar?** Container Apps TCP ingress (Envoy proxy) does NOT forward ZMQ/CURVE
+> (ZMTP wire protocol). DNS resolves, TCP connects, but the CURVE handshake fails through
+> the proxy. Sidecar containers share localhost — no proxy, no problem.
 
 ```
                     Internet
@@ -37,19 +42,22 @@ All three application services deployed and verified.
               Azure Container Apps Environment (cae-asps-dev)
                        |
          ┌─────────────┼─────────────┐
-         |             |             |
-    WebApi (public)  Backend     Keycloak
-    HTTPS ingress    (internal)  (auth endpoint)
-         |             |             |
-         |       ┌─────┼─────┐      |
-         |       |     |     |      |
-         |     :5556 :50001 :50002  |
-         |     CQRS  Alerts  Notif  |
-         |     (int) (ext)   (int)  |
-         |       |     |     |      |
-         └───────┴─────┴─────┴──────┘
-                       |
-              ┌────────┼────────┬─────────┐
+         |                           |
+    ca-webapi-dev (sidecar)      ca-keycloak-dev
+    ┌──────────────────────┐     (auth endpoint)
+    │ WebApi (main, :8080) │         |
+    │  └→ localhost:5556   │         |
+    │  └→ localhost:5555   │         |
+    │  └→ localhost:50001  │         |
+    │                      │         |
+    │ Backend (sidecar)    │         |
+    │  CQRS    tcp://*:5556│         |
+    │  NetMQ   tcp://*:5555│         |
+    │  Alerts  tcp://*:50001         |
+    │  Notif   tcp://*:50002         |
+    └──────────────────────┘         |
+                       |             |
+              ┌────────┼────────┬────┴────┐
               |        |        |         |
          Azure MySQL  PG Flex  Key Vault  Azure Files
          Flex Server  (KC DB)  (secrets)  (CURVE keys)
@@ -482,43 +490,100 @@ Key container settings:
 - Startup probe: `/health/started`, 30s delay, 50 failures × 10s = 530s window
 - Liveness probe: `/health/live`, 30s interval, 3 failures
 
-### Step 7: Deploy Backend Container App (ASPS-701) — DONE
+### Steps 7+8: Deploy WebApi + Backend as Sidecar (ASPS-701/702) — DONE
 
-**Status: Running** | FQDN: `ca-backend-dev.internal.purplesand-dfb51ae4.northeurope.azurecontainerapps.io`
+**Status: Running** | URL: `https://ca-webapi-dev.purplesand-dfb51ae4.northeurope.azurecontainerapps.io/`
+**Revision:** `0000002` (WebApi main + Backend sidecar)
 
-1. Create container app with internal TCP ingress:
-```bash
-az containerapp create \
-  --name ca-backend-dev --resource-group rg-asps-dev \
-  --environment cae-asps-dev \
-  --image acraspsisaacdev.azurecr.io/asps-backend:0.2.0 \
-  --registry-server acraspsisaacdev.azurecr.io \
-  --registry-identity <IDENTITY_ID> \
-  --target-port 5555 --exposed-port 5555 \
-  --transport tcp --ingress internal \
-  --min-replicas 1 --max-replicas 1 \
-  --cpu 1 --memory 2Gi \
-  --secrets db-connection-string=<CONN_STR> cqrs-shared-secret=<SECRET> \
-  --env-vars \
-    ConnectionStrings__DefaultConnection=secretref:db-connection-string \
-    CQRS__SharedSecret=secretref:cqrs-shared-secret \
-    Security__CurveEnabled=true \
-    Security__KeysFilePath=/keys/curve-server-keys.json \
-    Security__ServerPublicKeyFilePath=/keys/curve-server-public-key.txt \
-    NetMQ__BusinessEndpoint=tcp://*:5555 \
-    NetMQ__RealTimeListenerPort=50001 \
-    NetMQ__NotificationPublisherPort=50002 \
-    Python__ExecutablePath=python3 \
-    Python__AnalyzersFolderPath=/app/Analyzers \
-    ASPNETCORE_ENVIRONMENT=Docker
-```
+> **Architecture change:** Originally deployed as separate Container Apps. TCP ingress
+> (Envoy proxy) failed to forward ZMQ/CURVE protocol. Switched to sidecar pattern —
+> both containers in `ca-webapi-dev`, communicate via localhost. Standalone `ca-backend-dev`
+> deactivated (kept as rollback safety net).
 
-2. Add volume mount via YAML (CLI doesn't support volume mounts):
+Deploy via YAML (`az containerapp update --yaml`):
 ```yaml
 properties:
+  configuration:
+    ingress:
+      external: true
+      targetPort: 8080
+      transport: Http
+    secrets:
+    - name: db-connection-string
+      value: <FROM_KEY_VAULT>
+    - name: cqrs-shared-secret
+      value: <FROM_KEY_VAULT>
+    - name: kc-client-secret
+      value: <FROM_KEY_VAULT>
   template:
     containers:
-    - name: ca-backend-dev
+    - name: webapi
+      image: acraspsisaacdev.azurecr.io/asps-webapi:0.1.0
+      env:
+      - name: ConnectionStrings__DefaultConnection
+        secretRef: db-connection-string
+      - name: CQRS__Endpoint
+        value: tcp://localhost:5556
+      - name: CQRS__SharedSecret
+        secretRef: cqrs-shared-secret
+      - name: CQRS__ClientId
+        value: asps-webapi
+      - name: NetMQ__BusinessEndpoint
+        value: tcp://localhost:5555
+      - name: NetMQ__AlertListenerEndpoint
+        value: tcp://localhost:50001
+      - name: Security__CurveEnabled
+        value: "true"
+      - name: Security__CurveClientOnly
+        value: "true"
+      - name: Security__ServerPublicKeyFilePath
+        value: /keys/curve-server-public-key.txt
+      - name: Keycloak__Authority
+        value: https://ca-keycloak-dev.purplesand-dfb51ae4.northeurope.azurecontainerapps.io/realms/asps
+      - name: Keycloak__ClientId
+        value: asps-webapi
+      - name: Keycloak__ClientSecret
+        secretRef: kc-client-secret
+      - name: Keycloak__RequireHttpsMetadata
+        value: "true"
+      - name: ASPNETCORE_ENVIRONMENT
+        value: Docker
+      resources:
+        cpu: 0.5
+        memory: 1Gi
+      volumeMounts:
+      - volumeName: curve-keys
+        mountPath: /keys
+    - name: backend
+      image: acraspsisaacdev.azurecr.io/asps-backend:0.2.0
+      env:
+      - name: ConnectionStrings__DefaultConnection
+        secretRef: db-connection-string
+      - name: CQRS__BindEndpoint
+        value: tcp://*:5556
+      - name: CQRS__SharedSecret
+        secretRef: cqrs-shared-secret
+      - name: Security__CurveEnabled
+        value: "true"
+      - name: Security__KeysFilePath
+        value: /keys/curve-server-keys.json
+      - name: Security__ServerPublicKeyFilePath
+        value: /keys/curve-server-public-key.txt
+      - name: NetMQ__BusinessEndpoint
+        value: tcp://*:5555
+      - name: NetMQ__RealTimeListenerPort
+        value: "50001"
+      - name: NetMQ__NotificationPublisherPort
+        value: "50002"
+      - name: Python__ExecutablePath
+        value: python3
+      - name: Python__AnalyzersFolderPath
+        value: /app/Analyzers
+      - name: ASPNETCORE_ENVIRONMENT
+        value: Docker
+      resources:
+        cpu: 1.0
+        memory: 2Gi
       volumeMounts:
       - volumeName: curve-keys
         mountPath: /keys
@@ -526,78 +591,44 @@ properties:
     - name: curve-keys
       storageType: AzureFile
       storageName: curvekeys
+    scale:
+      minReplicas: 1
+      maxReplicas: 1
 ```
-
-3. Add additional TCP port mappings via YAML:
-```yaml
-properties:
-  configuration:
-    ingress:
-      additionalPortMappings:
-      - external: false
-        targetPort: 5556
-        exposedPort: 5556
-      - external: false
-        targetPort: 50001
-        exposedPort: 50001
-      - external: false
-        targetPort: 50002
-        exposedPort: 50002
-```
-
-**Verified services:** CQRS Gateway (5556, CURVE + HMAC), Alert Listener (50001, ROUTER, CURVE), Notification Publisher (50002, CURVE), ASView, TokenStore, SimulationRunner, OutboxPruning.
-
-### Step 8: Deploy WebApi Container App (ASPS-702) — DONE
-
-**Status: Running** | URL: `https://ca-webapi-dev.purplesand-dfb51ae4.northeurope.azurecontainerapps.io/`
-
-```bash
-az containerapp create \
-  --name ca-webapi-dev --resource-group rg-asps-dev \
-  --environment cae-asps-dev \
-  --image acraspsisaacdev.azurecr.io/asps-webapi:0.1.0 \
-  --registry-server acraspsisaacdev.azurecr.io \
-  --registry-identity <IDENTITY_ID> \
-  --target-port 8080 --ingress external --transport http \
-  --min-replicas 1 --max-replicas 1 \
-  --cpu 1 --memory 2Gi \
-  --secrets db-connection-string=<CONN_STR> cqrs-shared-secret=<SECRET> kc-client-secret=<SECRET> \
-  --env-vars \
-    ConnectionStrings__DefaultConnection=secretref:db-connection-string \
-    CQRS__Endpoint=tcp://ca-backend-dev.internal.<ENV_DOMAIN>:5556 \
-    CQRS__SharedSecret=secretref:cqrs-shared-secret \
-    CQRS__ClientId=asps-webapi \
-    NetMQ__BusinessEndpoint=tcp://ca-backend-dev.internal.<ENV_DOMAIN>:5555 \
-    NetMQ__AlertListenerEndpoint=tcp://ca-backend-dev.internal.<ENV_DOMAIN>:50001 \
-    Security__CurveEnabled=true \
-    Security__CurveClientOnly=true \
-    Security__ServerPublicKeyFilePath=/keys/curve-server-public-key.txt \
-    Keycloak__Authority=https://ca-keycloak-dev.<ENV_DOMAIN>/realms/asps \
-    Keycloak__ClientId=asps-webapi \
-    Keycloak__ClientSecret=secretref:kc-client-secret \
-    Keycloak__RequireHttpsMetadata=true \
-    ASPNETCORE_ENVIRONMENT=Docker
-```
-
-Volume mount same as Backend (Azure Files `curvekeys` → `/keys/`).
 
 **Keycloak OIDC setup** (via REST API):
 1. Realm `asps` created with brute force protection
 2. Client `asps-webapi` — confidential, standard flow, redirect to WebApi URL
-3. SSO flow verified: Login page → Keycloak redirect → login form
+3. User `isaac` (ID `5b631279-4ef0-4a78-898c-1c8451cc295e`) — synced from local Keycloak via partial-import
+4. SSO flow verified: Login → Keycloak → Dashboard
 
-### Step 9: Configure Networking (ASPS-703) — DONE
+**E2E verified:** `GetVersionQuery` ✓, `GetDashboardStatsQuery` ✓, SSO login ✓
 
-Internal service discovery verified — Container Apps Environment provides automatic DNS:
-- Backend: `ca-backend-dev.internal.purplesand-dfb51ae4.northeurope.azurecontainerapps.io` (TCP ports 5555, 5556, 50001, 50002)
-- Keycloak: `ca-keycloak-dev.purplesand-dfb51ae4.northeurope.azurecontainerapps.io` (HTTPS)
-- WebApi: `ca-webapi-dev.purplesand-dfb51ae4.northeurope.azurecontainerapps.io` (HTTPS)
+### Step 9: Networking (ASPS-703) — DONE
 
-**Fix applied:** CQRS Gateway was binding to `tcp://127.0.0.1:5556` (localhost only) — unreachable from other containers. Added `CQRS__BindEndpoint=tcp://*:5556` env var to Backend.
+Sidecar pattern — all inter-service communication via `localhost`. No TCP ingress needed for Backend ports.
+
+- WebApi → Backend CQRS: `tcp://localhost:5556`
+- WebApi → Backend NetMQ: `tcp://localhost:5555`
+- WebApi → Backend Alerts: `tcp://localhost:50001`
+- Keycloak: `https://ca-keycloak-dev.purplesand-dfb51ae4.northeurope.azurecontainerapps.io` (external HTTPS ingress)
+
+**Note:** Device-facing TCP ports (50001, 50002) are NOT externally reachable in sidecar mode. OK for dev — production will need a different networking approach.
 
 ### Step 10: Database Migration (ASPS-704) — DONE (manual)
 
-All 24 EF Core migrations applied directly to Azure MySQL via `dotnet ef database update`.
+29 migrations total: 24 applied via `dotnet ef database update`, 5 applied manually via SQL
+(migrations without `.Designer.cs` files that EF Core couldn't track).
+
+**Data migration:** Local MySQL → Azure MySQL via `mysqldump` (CMD, not PowerShell to avoid BOM encoding issues):
+```bash
+# Export (from CMD, not PowerShell!)
+"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysqldump.exe" -h 127.0.0.1 -P 3306 -uroot -p<PASSWORD> --no-create-info --complete-insert --single-transaction --set-gtid-purged=OFF --column-statistics=0 --ignore-table=ASPSBackend2DB.__efmigrationshistory ASPSBackend2DB > C:\Tmp\asps-data.sql
+
+# Import (from CMD)
+"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -h mysql-asps-dev.mysql.database.azure.com -P 3306 -uaspsadmin -p --ssl-mode=REQUIRED --force aspsbackend2db < C:\Tmp\asps-data.sql
+```
+
 For future migrations, use Container Apps Job with `--migrate-only` flag (see AD-5).
 
 ```bash
@@ -659,9 +690,11 @@ Before monitoring/CI/CD, verify the system works:
 - Federated credentials: main branch + pull requests
 - Roles: Contributor on rg-asps-dev, AcrPush on ACR
 
-**Manual setup required:**
-1. GitHub repo → Settings → Secrets → Add `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`
-2. GitHub repo → Settings → Environments → Create `dev` environment
+**Setup completed (2026-08-18):**
+1. GitHub repo → Settings → Secrets → `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` ✓
+2. GitHub repo → Settings → Environments → `dev` environment created ✓
+
+**NOTE:** Deploy steps need update for sidecar YAML deployment (currently `az containerapp update --image`).
 
 ### Step 14: Bicep — Infrastructure as Code (AD-7)
 
@@ -691,7 +724,7 @@ Convert the working deployment to Bicep templates:
 
 ## Environment Variables Reference
 
-### Backend (ca-backend-dev)
+### Backend (ca-webapi-dev, sidecar container)
 
 | Variable | Value | Source |
 |---|---|---|
@@ -705,11 +738,11 @@ Convert the working deployment to Bicep templates:
 | `Python__ExecutablePath` | `python3` | Static |
 | `Keycloak__Authority` | `https://ca-keycloak-dev.<DOMAIN>/realms/asps` | Static |
 
-### WebApi (ca-webapi-dev)
+### WebApi (ca-webapi-dev, main container)
 
 | Variable | Value | Source |
 |---|---|---|
-| `CQRS__Endpoint` | `tcp://ca-backend-dev:5556` | Static (service discovery) |
+| `CQRS__Endpoint` | `tcp://localhost:5556` | Static (sidecar localhost) |
 | `CQRS__SharedSecret` | HMAC shared secret | Key Vault secret |
 | `Security__CurveEnabled` | `true` | Static |
 | `Security__CurveClientOnly` | `true` | Static |
@@ -765,3 +798,19 @@ Items accepted for MVP but flagged for future improvement:
   Managed Identity access to Key Vault secrets.
 - **Key Vault references over plain secrets** — use `secretref:` and `keyvaultref:` in Container Apps
   config, not plain secret values passed through CI/CD.
+
+### From Deployment (2026-08-17/18)
+- **Container Apps TCP ingress does NOT forward ZMQ/CURVE** — Envoy proxy strips ZMTP wire protocol.
+  DNS resolves, TCP connects, but CURVE handshake fails. Solution: sidecar pattern (localhost networking).
+- **Sidecar pattern works** — both containers in same Container App share localhost. CQRS via
+  `tcp://localhost:5556` bypasses the proxy entirely.
+- **EF Core migrations without `.Designer.cs` are invisible** — `dotnet ef database update` silently
+  skips them. Must apply manually via SQL. Check `__EFMigrationsHistory` vs migration files.
+- **PowerShell `Out-File` adds BOM** — corrupts MySQL dump files. Always use CMD for mysqldump/mysql.
+- **PowerShell `<` redirection not supported** — use CMD for piping files into mysql.
+- **Local Keycloak port conflict** — `wslrelay` can grab the same port on IPv6 `[::1]`, causing
+  browser to hit the wrong service. Use a different port or access via `127.0.0.1`.
+- **Keycloak partial-import preserves user IDs** — `POST /admin/realms/{realm}/partialImport` respects
+  the `id` field, unlike `POST .../users` which ignores it. Use for syncing users between environments.
+- **Azure MySQL `lower_case_table_names=1` is immutable** — breaks Keycloak Liquibase migrations.
+  Use PostgreSQL for Keycloak (its recommended DB anyway).
