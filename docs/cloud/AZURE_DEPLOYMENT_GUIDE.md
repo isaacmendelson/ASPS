@@ -13,9 +13,19 @@
 | Container Registry | `acraspsisaacdev.azurecr.io` | North Europe | Operational |
 | Log Analytics | `log-asps-dev` | North Europe | Provisioned |
 | Container Apps Env | `cae-asps-dev` | North Europe | Provisioned |
-| Backend Image | `asps-backend:0.1.0` | ACR | Pushed |
+| MySQL Flexible Server | `mysql-asps-dev` | North Europe | Ready |
+| PostgreSQL Flexible Server | `pg-asps-keycloak-dev` | North Europe | Ready (Keycloak only) |
+| Key Vault | `kv-asps-dev` | North Europe | RBAC mode |
+| Managed Identity | `id-asps-dev` | North Europe | KV Secrets User + AcrPull |
+| Storage Account | `staspsdev` | North Europe | curve-keys file share |
+| Backend Image | `asps-backend:0.2.0` | ACR | Pushed |
+| WebApi Image | `asps-webapi:0.1.0` | ACR | Pushed |
 
-Application services are NOT yet deployed.
+| Container App: Keycloak | `ca-keycloak-dev` | North Europe | **Running** |
+| Container App: Backend | `ca-backend-dev` | North Europe | **Running** |
+| Container App: WebApi | `ca-webapi-dev` | North Europe | **Running** |
+
+All three application services deployed and verified.
 
 ---
 
@@ -39,10 +49,10 @@ Application services are NOT yet deployed.
          |       |     |     |      |
          └───────┴─────┴─────┴──────┘
                        |
-              ┌────────┼────────┐
-              |        |        |
-         Azure MySQL  Key Vault  Azure Files
-         Flex Server  (secrets)  (CURVE keys)
+              ┌────────┼────────┬─────────┐
+              |        |        |         |
+         Azure MySQL  PG Flex  Key Vault  Azure Files
+         Flex Server  (KC DB)  (secrets)  (CURVE keys)
 ```
 
 Platform: **Azure Container Apps** (not AKS) — simpler, cheaper for dev, automatic HTTPS, built-in scaling.
@@ -176,14 +186,19 @@ Manual rollback: `dotnet ef database update <PreviousMigration>` from a connecte
 
 ### AD-6: Keycloak approach
 
-**Decision:** Option A — Keycloak as Container App (same setup as local dev).
+**Decision:** Option A — Keycloak as Container App with **PostgreSQL** backend (not MySQL).
 
 **Problem:** ASPS uses Keycloak as OIDC provider for the admin panel SSO. Locally it runs as a Docker
 container on port 8180 with a MySQL-backed `keycloak` database. Need to decide how to run it in Azure.
 
+**MySQL incompatibility:** Azure MySQL Flexible Server enforces `lower_case_table_names=1` (read-only,
+immutable). Keycloak 26.0's Liquibase changelogs create tables with mixed-case names that collide when
+MySQL lowercases them, causing "Table already exists" errors during first-start migration. PostgreSQL is
+Keycloak's recommended database and avoids this issue entirely.
+
 **Options evaluated:**
 - **A) Keycloak Container App (chosen)** — deploy the same Keycloak image as a Container App.
-  Use the Azure MySQL Flexible Server (separate `keycloak` database). Export local realm and import to cloud.
+  Use a dedicated Azure PostgreSQL Flexible Server for the `keycloak` database. Export local realm and import to cloud.
   Zero code changes — same Authority URL, same client IDs, same OIDC flow.
 - **B) Microsoft Entra ID** — replace Keycloak with Azure AD/Entra ID. Managed service, zero maintenance,
   MFA built-in. But requires code changes (claims mapping, token validation, auth flow adjustments).
@@ -440,120 +455,150 @@ docker push acraspsisaacdev.azurecr.io/asps-backend:0.2.0
 
 ### Step 6: Deploy Keycloak (ASPS-700)
 
+> **Note:** Uses PostgreSQL (not MySQL) due to Azure MySQL `lower_case_table_names=1` incompatibility.
+> First-start Liquibase migration (148 changesets) needs ~2-5 min — startup probe configured with 530s window.
+
 ```bash
-az containerapp create \
-  --resource-group rg-asps-dev \
-  --name ca-keycloak-dev \
-  --environment cae-asps-dev \
-  --image quay.io/keycloak/keycloak:26.0 \
-  --target-port 8080 \
-  --ingress external \
-  --min-replicas 1 --max-replicas 1 \
-  --cpu 0.5 --memory 1Gi \
-  --command "start" \
-  --env-vars \
-    KC_DB=mysql \
-    KC_DB_URL=jdbc:mysql://mysql-asps-dev.mysql.database.azure.com:3306/keycloak \
-    KC_DB_USERNAME=aspsadmin \
-    KC_HOSTNAME_STRICT=false \
-    KC_HTTP_ENABLED=true \
-  --secrets \
-    kc-db-password=keyvaultref:https://kv-asps-dev.vault.azure.net/secrets/mysql-admin-password,identityref:/subscriptions/<SUB>/resourceGroups/rg-asps-dev/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-asps-dev \
-    kc-admin-password=keyvaultref:https://kv-asps-dev.vault.azure.net/secrets/keycloak-admin-password,identityref:/subscriptions/<SUB>/resourceGroups/rg-asps-dev/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-asps-dev
+# 1. Create PostgreSQL Flexible Server (if not exists)
+az postgres flexible-server create \
+  --resource-group rg-asps-dev --name pg-asps-keycloak-dev \
+  --location northeurope --admin-user kcadmin --admin-password "<FROM_KV>" \
+  --sku-name Standard_B1ms --tier Burstable --storage-size 32 --version 16 \
+  --public-access 0.0.0.0 --yes
+
+# 2. Create keycloak database
+az postgres flexible-server db create \
+  --resource-group rg-asps-dev --server-name pg-asps-keycloak-dev --database-name keycloak
+
+# 3. Deploy Container App with custom probes (YAML — see kc-create.yaml)
+az containerapp create --resource-group rg-asps-dev --name ca-keycloak-dev \
+  --yaml kc-create.yaml
 ```
 
-### Step 7: Deploy Backend Container App (ASPS-701)
+Key container settings:
+- Image: `quay.io/keycloak/keycloak:26.0`
+- Command: `/opt/keycloak/bin/kc.sh start-dev`
+- CPU/Memory: 1.0 / 2Gi (needed for migration)
+- Startup probe: `/health/started`, 30s delay, 50 failures × 10s = 530s window
+- Liveness probe: `/health/live`, 30s interval, 3 failures
 
+### Step 7: Deploy Backend Container App (ASPS-701) — DONE
+
+**Status: Running** | FQDN: `ca-backend-dev.internal.purplesand-dfb51ae4.northeurope.azurecontainerapps.io`
+
+1. Create container app with internal TCP ingress:
 ```bash
 az containerapp create \
-  --resource-group rg-asps-dev \
-  --name ca-backend-dev \
+  --name ca-backend-dev --resource-group rg-asps-dev \
   --environment cae-asps-dev \
   --image acraspsisaacdev.azurecr.io/asps-backend:0.2.0 \
-  --target-port 5556 \
-  --transport tcp \
-  --ingress internal \
-  --min-replicas 1 --max-replicas 1 \
-  --cpu 1 --memory 2Gi \
-  --user-assigned <IDENTITY_ID> \
   --registry-server acraspsisaacdev.azurecr.io \
   --registry-identity <IDENTITY_ID> \
+  --target-port 5555 --exposed-port 5555 \
+  --transport tcp --ingress internal \
+  --min-replicas 1 --max-replicas 1 \
+  --cpu 1 --memory 2Gi \
+  --secrets db-connection-string=<CONN_STR> cqrs-shared-secret=<SECRET> \
   --env-vars \
-    Python__AnalyzersFolderPath=/app/Analyzers \
-    Python__ExecutablePath=python3 \
+    ConnectionStrings__DefaultConnection=secretref:db-connection-string \
+    CQRS__SharedSecret=secretref:cqrs-shared-secret \
     Security__CurveEnabled=true \
     Security__KeysFilePath=/keys/curve-server-keys.json \
     Security__ServerPublicKeyFilePath=/keys/curve-server-public-key.txt \
-    CQRS__BindEndpoint=tcp://*:5556
+    NetMQ__BusinessEndpoint=tcp://*:5555 \
+    NetMQ__RealTimeListenerPort=50001 \
+    NetMQ__NotificationPublisherPort=50002 \
+    Python__ExecutablePath=python3 \
+    Python__AnalyzersFolderPath=/app/Analyzers \
+    ASPNETCORE_ENVIRONMENT=Docker
 ```
 
-Volume mount for CURVE keys (Azure Files):
-```bash
-# Add storage to Container Apps Environment
-az containerapp env storage set \
-  --resource-group rg-asps-dev \
-  --name cae-asps-dev \
-  --storage-name curvekeys \
-  --azure-file-account-name staspsdev \
-  --azure-file-account-key <STORAGE_KEY> \
-  --azure-file-share-name curve-keys \
-  --access-mode ReadWrite
-
-# Update container app with volume mount
-# (requires YAML manifest or ARM/Bicep template for volume mounts)
+2. Add volume mount via YAML (CLI doesn't support volume mounts):
+```yaml
+properties:
+  template:
+    containers:
+    - name: ca-backend-dev
+      volumeMounts:
+      - volumeName: curve-keys
+        mountPath: /keys
+    volumes:
+    - name: curve-keys
+      storageType: AzureFile
+      storageName: curvekeys
 ```
 
-### Step 8: Deploy WebApi Container App (ASPS-702)
+3. Add additional TCP port mappings via YAML:
+```yaml
+properties:
+  configuration:
+    ingress:
+      additionalPortMappings:
+      - external: false
+        targetPort: 5556
+        exposedPort: 5556
+      - external: false
+        targetPort: 50001
+        exposedPort: 50001
+      - external: false
+        targetPort: 50002
+        exposedPort: 50002
+```
+
+**Verified services:** CQRS Gateway (5556, CURVE + HMAC), Alert Listener (50001, ROUTER, CURVE), Notification Publisher (50002, CURVE), ASView, TokenStore, SimulationRunner, OutboxPruning.
+
+### Step 8: Deploy WebApi Container App (ASPS-702) — DONE
+
+**Status: Running** | URL: `https://ca-webapi-dev.purplesand-dfb51ae4.northeurope.azurecontainerapps.io/`
 
 ```bash
 az containerapp create \
-  --resource-group rg-asps-dev \
-  --name ca-webapi-dev \
+  --name ca-webapi-dev --resource-group rg-asps-dev \
   --environment cae-asps-dev \
   --image acraspsisaacdev.azurecr.io/asps-webapi:0.1.0 \
-  --target-port 5001 \
-  --ingress external \
-  --min-replicas 1 --max-replicas 1 \
-  --cpu 0.5 --memory 1Gi \
-  --user-assigned <IDENTITY_ID> \
   --registry-server acraspsisaacdev.azurecr.io \
   --registry-identity <IDENTITY_ID> \
+  --target-port 8080 --ingress external --transport http \
+  --min-replicas 1 --max-replicas 1 \
+  --cpu 1 --memory 2Gi \
+  --secrets db-connection-string=<CONN_STR> cqrs-shared-secret=<SECRET> kc-client-secret=<SECRET> \
   --env-vars \
-    CQRS__Endpoint=tcp://ca-backend-dev:5556 \
+    ConnectionStrings__DefaultConnection=secretref:db-connection-string \
+    CQRS__Endpoint=tcp://ca-backend-dev.internal.<ENV_DOMAIN>:5556 \
+    CQRS__SharedSecret=secretref:cqrs-shared-secret \
+    CQRS__ClientId=asps-webapi \
+    NetMQ__BusinessEndpoint=tcp://ca-backend-dev.internal.<ENV_DOMAIN>:5555 \
+    NetMQ__AlertListenerEndpoint=tcp://ca-backend-dev.internal.<ENV_DOMAIN>:50001 \
     Security__CurveEnabled=true \
     Security__CurveClientOnly=true \
     Security__ServerPublicKeyFilePath=/keys/curve-server-public-key.txt \
-    Keycloak__Authority=https://ca-keycloak-dev.<ENV_DOMAIN>/realms/asps
+    Keycloak__Authority=https://ca-keycloak-dev.<ENV_DOMAIN>/realms/asps \
+    Keycloak__ClientId=asps-webapi \
+    Keycloak__ClientSecret=secretref:kc-client-secret \
+    Keycloak__RequireHttpsMetadata=true \
+    ASPNETCORE_ENVIRONMENT=Docker
 ```
 
-Volume mount for CURVE keys (read-only):
-```bash
-az containerapp env storage set \
-  --resource-group rg-asps-dev \
-  --name cae-asps-dev \
-  --storage-name curvekeysro \
-  --azure-file-account-name staspsdev \
-  --azure-file-account-key <STORAGE_KEY> \
-  --azure-file-share-name curve-keys \
-  --access-mode ReadOnly
-```
+Volume mount same as Backend (Azure Files `curvekeys` → `/keys/`).
 
-### Step 9: Configure Networking (ASPS-703)
+**Keycloak OIDC setup** (via REST API):
+1. Realm `asps` created with brute force protection
+2. Client `asps-webapi` — confidential, standard flow, redirect to WebApi URL
+3. SSO flow verified: Login page → Keycloak redirect → login form
 
-> VNet was validated/established in Step 0. This step configures service-level networking.
+### Step 9: Configure Networking (ASPS-703) — DONE
 
-Internal service discovery (Container Apps Environment auto-provides DNS):
-- Backend: `ca-backend-dev` resolves internally
-- Keycloak: `ca-keycloak-dev` resolves internally
+Internal service discovery verified — Container Apps Environment provides automatic DNS:
+- Backend: `ca-backend-dev.internal.purplesand-dfb51ae4.northeurope.azurecontainerapps.io` (TCP ports 5555, 5556, 50001, 50002)
+- Keycloak: `ca-keycloak-dev.purplesand-dfb51ae4.northeurope.azurecontainerapps.io` (HTTPS)
+- WebApi: `ca-webapi-dev.purplesand-dfb51ae4.northeurope.azurecontainerapps.io` (HTTPS)
 
-External endpoints:
-- WebApi: `https://ca-webapi-dev.<ENV_DOMAIN>` (HTTPS, public)
-- Backend port 50001: TCP ingress via `additionalPortMappings` (desktop agent alerts)
-- Keycloak: `https://ca-keycloak-dev.<ENV_DOMAIN>` (HTTPS, auth endpoints)
+**Fix applied:** CQRS Gateway was binding to `tcp://127.0.0.1:5556` (localhost only) — unreachable from other containers. Added `CQRS__BindEndpoint=tcp://*:5556` env var to Backend.
 
-### Step 10: Database Migration (ASPS-704)
+### Step 10: Database Migration (ASPS-704) — DONE (manual)
 
-Container Apps Job with `--migrate-only` flag (see AD-5).
+All 24 EF Core migrations applied directly to Azure MySQL via `dotnet ef database update`.
+For future migrations, use Container Apps Job with `--migrate-only` flag (see AD-5).
 
 ```bash
 az containerapp job create \
@@ -581,13 +626,42 @@ Before monitoring/CI/CD, verify the system works:
 7. **Notifications (port 50002)** — WebApi SignalR hub receives PUB/SUB notifications
 8. **Analyzer** — URL analysis works end-to-end via subprocess in multi-stage image
 
-### Step 12: Monitoring (ASPS-705)
+### Step 12: Monitoring (ASPS-705) — DONE
 
-TBD — Application Insights setup.
+**Log Analytics:** Container Apps Environment → `log-asps-dev` workspace (stdout/stderr).
 
-### Step 13: CI/CD (ASPS-706)
+**Application Insights:** `appi-asps-dev` (workspace-based, linked to Log Analytics). SDK integration into .NET apps is a future code change.
 
-TBD — GitHub Actions workflows.
+**Alerts** (email to isaacmendelson@gmail.com via `ag-asps-dev` action group):
+
+| Alert | Severity | Condition | Window |
+|---|---|---|---|
+| `alert-backend-down` | 1 (Critical) | Replicas < 1 | 5min |
+| `alert-webapi-down` | 1 (Critical) | Replicas < 1 | 5min |
+| `alert-keycloak-down` | 1 (Critical) | Replicas < 1 | 5min |
+| `alert-backend-restarts` | 2 (Error) | RestartCount > 3 | 15min |
+| `alert-webapi-restarts` | 2 (Error) | RestartCount > 3 | 15min |
+
+### Step 13: CI/CD (ASPS-706) — IN PROGRESS
+
+**Workflow:** `.github/workflows/deploy.yml`
+
+**Pipeline stages:**
+1. `detect-changes` — dorny/paths-filter to determine which images need rebuild
+2. `build-test` — `dotnet build` + `dotnet test` on ubuntu-latest
+3. `build-push-backend` — ACR cloud build, tag = `YYYYMMDD-<sha7>`
+4. `build-push-webapi` — ACR cloud build, same tagging
+5. `deploy-backend` — `az containerapp update --image`
+6. `deploy-webapi` — `az containerapp update --image`
+
+**Auth:** Azure AD OIDC (no stored credentials):
+- App: `github-actions-asps` (`e3acd155-ce1a-4257-8a41-fd8017e7e72a`)
+- Federated credentials: main branch + pull requests
+- Roles: Contributor on rg-asps-dev, AcrPush on ACR
+
+**Manual setup required:**
+1. GitHub repo → Settings → Secrets → Add `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`
+2. GitHub repo → Settings → Environments → Create `dev` environment
 
 ### Step 14: Bicep — Infrastructure as Code (AD-7)
 
@@ -648,12 +722,15 @@ Convert the working deployment to Bicep templates:
 
 | Variable | Value | Source |
 |---|---|---|
-| `KC_DB` | `mysql` | Static |
-| `KC_DB_URL` | `jdbc:mysql://mysql-asps-dev.mysql.database.azure.com:3306/keycloak` | Static |
-| `KC_DB_USERNAME` | `aspsadmin` | Static |
-| `KC_DB_PASSWORD` | MySQL password | Key Vault secret |
+| `KC_DB` | `postgres` | Static |
+| `KC_DB_URL` | `jdbc:postgresql://pg-asps-keycloak-dev.postgres.database.azure.com:5432/keycloak` | Static |
+| `KC_DB_USERNAME` | `kcadmin` | Static |
+| `KC_DB_PASSWORD` | PostgreSQL password | Key Vault (`postgres-keycloak-password`) |
+| `KC_HOSTNAME_STRICT` | `false` | Static |
+| `KC_HTTP_ENABLED` | `true` | Static |
+| `KC_PROXY_HEADERS` | `xforwarded` | Static |
 | `KEYCLOAK_ADMIN` | `admin` | Static |
-| `KEYCLOAK_ADMIN_PASSWORD` | Admin password | Key Vault secret |
+| `KEYCLOAK_ADMIN_PASSWORD` | Admin password | Key Vault (`keycloak-admin-password`) |
 
 ---
 

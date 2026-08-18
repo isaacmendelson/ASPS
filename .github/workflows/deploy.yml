@@ -1,0 +1,161 @@
+name: Build and Deploy to Azure
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ASPSBackend14_J/**"
+      - "Analyzers/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+    inputs:
+      deploy_backend:
+        description: "Deploy Backend"
+        type: boolean
+        default: true
+      deploy_webapi:
+        description: "Deploy WebApi"
+        type: boolean
+        default: true
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  ACR_NAME: acraspsisaacdev
+  RESOURCE_GROUP: rg-asps-dev
+  BACKEND_APP: ca-backend-dev
+  WEBAPI_APP: ca-webapi-dev
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      webapi: ${{ steps.changes.outputs.webapi }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            backend:
+              - 'ASPSBackend14_J/ASPSBackend/**'
+              - 'ASPSBackend14_J/Business/**'
+              - 'ASPSBackend14_J/Common/**'
+              - 'ASPSBackend14_J/Interface/**'
+              - 'Analyzers/**'
+            webapi:
+              - 'ASPSBackend14_J/WebApi/**'
+              - 'ASPSBackend14_J/Business/**'
+              - 'ASPSBackend14_J/Common/**'
+              - 'ASPSBackend14_J/Interface/**'
+
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Build solution
+        run: dotnet build ASPSBackend14_J/ASPSBackend.sln -c Release --nologo
+      - name: Run tests
+        run: dotnet test ASPSBackend14_J/ASPS.Tests/ASPS.Tests.csproj --nologo -c Release --no-build
+
+  build-push-backend:
+    needs: [detect-changes, build-test]
+    if: needs.detect-changes.outputs.backend == 'true' || github.event.inputs.deploy_backend == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set image tag
+        id: meta
+        run: echo "tag=$(date +%Y%m%d)-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Build and push Backend image
+        run: |
+          az acr build \
+            --registry ${{ env.ACR_NAME }} \
+            --image asps-backend:${{ steps.meta.outputs.tag }} \
+            --image asps-backend:latest \
+            --file ASPSBackend14_J/ASPSBackend/Dockerfile \
+            .
+
+  build-push-webapi:
+    needs: [detect-changes, build-test]
+    if: needs.detect-changes.outputs.webapi == 'true' || github.event.inputs.deploy_webapi == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set image tag
+        id: meta
+        run: echo "tag=$(date +%Y%m%d)-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Build and push WebApi image
+        run: |
+          az acr build \
+            --registry ${{ env.ACR_NAME }} \
+            --image asps-webapi:${{ steps.meta.outputs.tag }} \
+            --image asps-webapi:latest \
+            --file ASPSBackend14_J/WebApi/Dockerfile \
+            ASPSBackend14_J
+
+  deploy-backend:
+    needs: build-push-backend
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy Backend
+        run: |
+          az containerapp update \
+            --name ${{ env.BACKEND_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/asps-backend:${{ needs.build-push-backend.outputs.image-tag }}
+
+  deploy-webapi:
+    needs: build-push-webapi
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy WebApi
+        run: |
+          az containerapp update \
+            --name ${{ env.WEBAPI_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/asps-webapi:${{ needs.build-push-webapi.outputs.image-tag }}
