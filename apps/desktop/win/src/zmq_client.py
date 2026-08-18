@@ -9,43 +9,20 @@ import json
 import logging
 import socket
 import threading
-import uuid
 from typing import Optional, Dict, Any, List
-from datetime import datetime
-from generated.messaging.v1.message_envelope import create_envelope, validate_envelope
+from alert_builders import (
+    build_url_alert,
+    wrap_url_alert_envelope,
+    validate_url_alert_envelope_response,
+    build_track_url_alert,
+    build_remote_access_alert,
+    build_tab_closed_alert,
+    build_tab_changed_alert,
+    build_request_token_message,
+    build_refresh_token_message,
+)
 
 logger = logging.getLogger(__name__)
-
-
-# Priority enum mirror of Common.Enums.Priority on the backend.
-class _Priority:
-    LOW = 0
-    MEDIUM = 1
-    HIGH = 2
-    CRITICAL = 3
-
-
-def _is_danger_active() -> bool:
-    """Lazy import to avoid a circular dep — services/__init__.py loads
-    monitor_service which imports get_local_ip from this module."""
-    try:
-        from services.danger_mode import danger_mode
-        return danger_mode.active
-    except Exception:
-        return False
-
-
-def _effective_priority(default: int) -> int:
-    """While the agent is in ImmediateDanger mode every outbound alert is
-    elevated to Critical; otherwise the caller's default is preserved."""
-    return _Priority.CRITICAL if _is_danger_active() else default
-
-
-def _attach_immediate_danger(device_info: Dict[str, Any]) -> Dict[str, Any]:
-    """Stamp DeviceInfo with the current ImmediateDanger flag so the backend
-    can correlate any alert to the danger window it was sent during."""
-    device_info["ImmediateDanger"] = _is_danger_active()
-    return device_info
 
 
 def get_local_ip() -> str:
@@ -306,40 +283,15 @@ class ZMQClient:
         if self.server_public_key:
             print(f"[ZMQ] Server key ({len(self.server_public_key)} bytes): {self.server_public_key[:20]}...")
 
-        # Ensure token is a string
-        if token is None:
-            token = ""
-
-        alert = {
-            "AlertId": str(uuid.uuid4()),
-            "AlertType": "UrlAlert",
-            "DeviceInfo": _attach_immediate_danger({
-                "DeviceUid": device_uid,
-                "DeviceType": device_type,
-                "OperatingSystem": os_type,
-                "MACAddress": mac,
-                "IP": ip_address
-            }),
-            "Timestamp": datetime.utcnow().isoformat() + "Z",
-            "Priority": _effective_priority(_Priority.MEDIUM),
-            "Token": token,
-            "Url": url,
-            "Trackers": trackers or [],
-            "IFrameDomains": iframes or [],
-            "UserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-            "TabId": tab_id
-        }
+        alert = build_url_alert(
+            device_uid=device_uid, url=url, token=token, trackers=trackers,
+            iframes=iframes, mac=mac, device_type=device_type, os_type=os_type,
+            ip_address=ip_address, tab_id=tab_id,
+        )
         wire_message = alert
+        context = None
         if envelope is not None:
-            validate_envelope(envelope)
-            context = dict(envelope["context"])
-            context["deviceId"] = device_uid
-            if context["url"] != url or context["tabId"] != tab_id:
-                raise ValueError("validation.immutable_context_mismatch")
-            wire_message = create_envelope(
-                "url_scan.request", "desktop", context, {"alert": alert},
-                request_id=envelope["requestId"],
-                correlation_id=envelope["correlationId"])
+            wire_message, context = wrap_url_alert_envelope(alert, envelope, device_uid, url, tab_id)
 
         with self._send_lock:
             if not self.connect():
@@ -348,11 +300,7 @@ class ZMQClient:
             try:
                 response = self.send_alert(wire_message)
                 if envelope is not None and response is not None:
-                    validate_envelope(response, require_device_id=True)
-                    if (response["requestId"] != envelope["requestId"] or
-                            response["correlationId"] != envelope["correlationId"] or
-                            response["context"] != context):
-                        raise ValueError("validation.immutable_context_mismatch")
+                    validate_url_alert_envelope_response(response, envelope, context)
                 return response
             finally:
                 self.close()
@@ -398,27 +346,12 @@ class ZMQClient:
         print(f"[ZMQ] From: {from_url}")
         print(f"[ZMQ] Duration: {duration}s")
 
-        alert = {
-            "AlertId": str(uuid.uuid4()),
-            "AlertType": "TrackUrlAlert",
-            "DeviceInfo": _attach_immediate_danger({
-                "DeviceUid": device_uid,
-                "DeviceType": device_type,
-                "OperatingSystem": os_type,
-                "MACAddress": mac,
-                "IP": ip_address
-            }),
-            "Timestamp": datetime.utcnow().isoformat() + "Z",
-            "Priority": _effective_priority(_Priority.MEDIUM),
-            "Token": token or "",
-            "Url": url,
-            "FromUrl": from_url,
-            "Duration": duration,
-            "ScamInProgressKey": scam_in_progress_key,
-            "UserAgent": user_agent or "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-            "TabId": tab_id,
-            "Timezone": timezone
-        }
+        alert = build_track_url_alert(
+            device_uid=device_uid, url=url, from_url=from_url, duration=duration,
+            scam_in_progress_key=scam_in_progress_key, ip_address=ip_address,
+            user_agent=user_agent, tab_id=tab_id, timezone=timezone, token=token,
+            mac=mac, device_type=device_type, os_type=os_type,
+        )
 
         with self._send_lock:
             if not self.connect():
@@ -495,50 +428,20 @@ class ZMQClient:
         if remote_country:
             print(f"[ZMQ] Remote Location: {remote_country} ({remote_country_code})")
 
-        # Ensure token is a string
-        if token is None:
-            token = ""
+        alert = build_remote_access_alert(
+            device_uid=device_uid, remote_app=remote_app, running_processes=running_processes,
+            connection_url=connection_url, connection_status=connection_status,
+            session_status=session_status, token=token, mac=mac, device_type=device_type,
+            os_type=os_type, direction=direction, confidence=confidence,
+            remote_country=remote_country, remote_country_code=remote_country_code,
+            browser_tabs=browser_tabs, ip_address=ip_address, remote_os=remote_os,
+            remote_version=remote_version, connection_type=connection_type,
+            file_transfer_active=file_transfer_active, file_transfers=file_transfers,
+            remote_id=remote_id, remote_name=remote_name, logged_user=logged_user,
+            connection_id=connection_id, software=software,
+        )
 
-        alert = {
-            "AlertId": str(uuid.uuid4()),
-            "AlertType": "RemoteAccessAlert",
-            "DeviceInfo": _attach_immediate_danger({
-                "DeviceUid": device_uid,
-                "DeviceType": device_type,
-                "OperatingSystem": os_type,
-                "MACAddress": mac,
-                "IP": ip_address
-            }),
-            "Timestamp": datetime.utcnow().isoformat() + "Z",
-            "Priority": _effective_priority(_Priority.MEDIUM),
-            "Token": token,
-            "RemoteAccessApp": remote_app,
-            "RunningProcesses": running_processes,
-            "ConnectionUrl": connection_url,
-            "ConnectionStatus": connection_status,
-            "SessionStatus": session_status,
-            # Enhanced detection fields
-            "Direction": direction,
-            "Confidence": confidence,
-            "RemoteCountry": remote_country,
-            "RemoteCountryCode": remote_country_code,
-            # Deep detection fields
-            "RemoteOS": remote_os,
-            "RemoteVersion": remote_version,
-            "ConnectionType": connection_type,
-            "FileTransferActive": file_transfer_active,
-            "FileTransfers": file_transfers,
-            # Session identity / forensics
-            "RemoteId": remote_id,
-            "RemoteName": remote_name,
-            "LoggedUser": logged_user,
-            "ConnectionId": connection_id,
-            "Software": software,
-        }
-
-        # Include browser tabs if provided (nullable — omit field entirely when None)
         if browser_tabs is not None:
-            alert["BrowserTabs"] = browser_tabs
             print(f"[ZMQ] Including {len(browser_tabs)} browser tab(s) in alert")
 
         with self._send_lock:
@@ -574,22 +477,10 @@ class ZMQClient:
         print("=" * 70)
         print(f"[ZMQ] TabId={tab_id}, Url={url}")
 
-        alert = {
-            "AlertId": str(uuid.uuid4()),
-            "AlertType": "TabClosedAlert",
-            "DeviceInfo": _attach_immediate_danger({
-                "DeviceUid": device_uid,
-                "DeviceType": device_type,
-                "OperatingSystem": os_type,
-                "MACAddress": mac,
-                "IP": ip_address,
-            }),
-            "Timestamp": datetime.utcnow().isoformat() + "Z",
-            "Priority": _effective_priority(_Priority.HIGH),
-            "Token": token or "",
-            "TabId": tab_id,
-            "Url": url,
-        }
+        alert = build_tab_closed_alert(
+            device_uid=device_uid, tab_id=tab_id, url=url, token=token,
+            ip_address=ip_address, mac=mac, device_type=device_type, os_type=os_type,
+        )
 
         with self._send_lock:
             if not self.connect():
@@ -625,24 +516,12 @@ class ZMQClient:
         print("=" * 70)
         print(f"[ZMQ] TabId={tab_id}, Url={url}, sensitive={is_sensitive_website}, loggedIn={is_logged_in}")
 
-        alert = {
-            "AlertId": str(uuid.uuid4()),
-            "AlertType": "TabChangedAlert",
-            "DeviceInfo": _attach_immediate_danger({
-                "DeviceUid": device_uid,
-                "DeviceType": device_type,
-                "OperatingSystem": os_type,
-                "MACAddress": mac,
-                "IP": ip_address,
-            }),
-            "Timestamp": datetime.utcnow().isoformat() + "Z",
-            "Priority": _effective_priority(_Priority.HIGH),
-            "Token": token or "",
-            "TabId": tab_id,
-            "Url": url,
-            "IsSensitiveWebsite": is_sensitive_website,
-            "IsLoggedIn": is_logged_in,
-        }
+        alert = build_tab_changed_alert(
+            device_uid=device_uid, tab_id=tab_id, url=url,
+            is_sensitive_website=is_sensitive_website, is_logged_in=is_logged_in,
+            token=token, ip_address=ip_address, mac=mac, device_type=device_type,
+            os_type=os_type,
+        )
 
         with self._send_lock:
             if not self.connect():
@@ -659,11 +538,7 @@ class ZMQClient:
         Returns:
             Response dict with status, token, expiration, serverPublicKey
         """
-        message = {
-            "MessageType": "RequestToken",
-            "DeviceUid": device_uid,
-            "Email": email,
-        }
+        message = build_request_token_message(device_uid, email)
 
         with self._send_lock:
             if not self.connect():
@@ -695,12 +570,7 @@ class ZMQClient:
         Returns:
             Response dict with status, token, expiration, serverPublicKey
         """
-        message = {
-            "MessageType": "RefreshToken",
-            "DeviceUid": device_uid,
-            "Token": old_token,
-            "Timestamp": datetime.utcnow().isoformat() + "Z",
-        }
+        message = build_refresh_token_message(device_uid, old_token)
 
         with self._send_lock:
             if not self.connect():

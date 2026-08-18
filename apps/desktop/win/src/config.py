@@ -27,6 +27,17 @@ BACKEND_HOST = "127.0.0.1"  # Local testing
 BACKEND_REQ_PORT = 50001  # Request/Response (REQ/REP pattern)
 BACKEND_SUB_PORT = 50002  # Notifications (PUB/SUB pattern)
 
+# Transport selection (ASPS-721 / ADR-004): "zmq" (default — direct ZMQ REQ/SUB
+# to the Backend, local dev) or "ws" (WebSocket to the WebApi gateway at
+# /ws/agent, which bridges to the Backend's ZMQ sockets — see
+# docs/architecture/WS-AGENT-PROTOCOL.md). Overridden per-environment via
+# config_<env>.py (e.g. config_azure.py sets TRANSPORT_MODE = "ws").
+TRANSPORT_MODE = os.environ.get('TRANSPORT_MODE', 'zmq')
+
+# WebSocket gateway URL — only used when TRANSPORT_MODE == "ws".
+# e.g. "wss://ca-webapi-dev.purplesand-dfb51ae4.northeurope.azurecontainerapps.io/ws/agent"
+WS_URL = os.environ.get('WS_URL', '')
+
 # CURVE Encryption - Server public key (Z85 encoded)
 # The backend generates its keypair on first run and logs the public key.
 # Set this value via environment variable or a local config file — never hardcode in source.
@@ -60,6 +71,14 @@ def _load_curve_public_key() -> str:
          (source 1).
     """
     import platform as _platform
+
+    # WS transport (ASPS-721): CURVE is not used — TLS (wss://) is the
+    # transport security boundary instead (see ADR-004 "Security analysis").
+    # Startup must NOT abort for a missing CURVE key when the agent isn't
+    # going to use CURVE at all.
+    if TRANSPORT_MODE == "ws":
+        print("[CONFIG] TRANSPORT_MODE=ws — CURVE key not required, skipping CURVE key lookup")
+        return ""
 
     # 1. Environment variable
     env_key = _os.environ.get("ANTISCAM_CURVE_PUBLIC_KEY", "")
@@ -122,7 +141,10 @@ def _load_curve_public_key() -> str:
         "  There is NO plaintext fallback — all connections must use CURVE."
     )
 
-BACKEND_SERVER_PUBLIC_KEY_Z85 = _load_curve_public_key()
+# NOTE: BACKEND_SERVER_PUBLIC_KEY_Z85 is assigned at the very bottom of this
+# file — AFTER the config_override import — so that TRANSPORT_MODE reflects
+# any environment override (e.g. config_azure.py setting TRANSPORT_MODE="ws")
+# before the CURVE key lookup decides whether to run at all.
 
 # Whitelist - IPs and ports to ignore in remote access detection
 WHITELIST_IPS = [
@@ -383,3 +405,12 @@ try:
     from config_override import *  # noqa: F401, F403
 except ImportError:
     pass
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CURVE server public key — resolved LAST, after the override above, so that
+# TRANSPORT_MODE reflects any environment override (e.g. config_azure.py
+# setting TRANSPORT_MODE="ws") before deciding whether CURVE is required.
+# See _load_curve_public_key() docstring near the top of this file.
+# ─────────────────────────────────────────────────────────────────────────────
+BACKEND_SERVER_PUBLIC_KEY_Z85 = _load_curve_public_key()

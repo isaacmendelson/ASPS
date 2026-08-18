@@ -20,6 +20,7 @@
 10. [Browser Tabs Policy](#10-browser-tabs-policy)
 11. [Extension Communication (WebSocket)](#11-extension-communication-websocket)
 12. [Backend Communication (ZMQ)](#12-backend-communication-zmq)
+12a. [Backend Communication (WebSocket, cloud path)](#12a-backend-communication-websocket-cloud-path)
 13. [Protective Actions](#13-protective-actions)
 14. [Notification System](#14-notification-system)
 15. [System Tray](#15-system-tray)
@@ -53,9 +54,10 @@ The Desktop Agent (`AntiScam.exe`) is a Python 3.11 Windows application that:
 
 ```
 main.py (AntiScamApp)
-├── core/container.py          ← DI container (singleton)
-│   ├── ZMQClient              ← REQ socket → Backend port 50001
-│   ├── NotificationClient     ← SUB socket ← Backend port 50002
+├── core/container.py          ← DI container (singleton); selects transport via TRANSPORT_MODE (ASPS-718)
+│   ├── ZMQClient              ← REQ socket → Backend port 50001 (TRANSPORT_MODE="zmq", default)
+│   ├── NotificationClient     ← SUB socket ← Backend port 50002 (TRANSPORT_MODE="zmq", default)
+│   ├── WSClient (ws_client.py)← wss:// → WebApi /ws/agent gateway (TRANSPORT_MODE="ws"; ASPS-718)
 │   ├── ExtensionServer        ← WebSocket server (ports 8080–8484)
 │   ├── AuthManager            ← Token lifecycle (RequestToken/RefreshToken)
 │   │   └── hardware_id.py     ← Stable device UID from hardware serials
@@ -480,6 +482,42 @@ Event loop reference captured at `set_extension_server()` time.
 
 ---
 
+## 12a. Backend Communication (WebSocket, cloud path)
+
+**Files:** `ws_client.py`, `alert_builders.py`, `config_azure.py` (ASPS-718)
+
+**Status:** New feature; alternate transport to the ZMQ path in §12. Full protocol: `docs/architecture/WS-AGENT-PROTOCOL.md`. Design rationale: `docs/architecture/decisions/ADR-004-ASPS-718-WEBSOCKET-GATEWAY.md`.
+
+### Why
+
+In Azure Container Apps, the Backend's ZMQ ports (50001/50002) are not externally reachable — the Envoy sidecar does not forward raw ZMTP. `ws_client.py` connects instead to a WebSocket gateway (`/ws/agent`, subprotocol `asps-agent-v1`) hosted by WebApi, which bridges to the same Backend ZMQ sockets on `localhost`. Backend itself is unchanged.
+
+### Transport selection
+
+`config.py` exposes `TRANSPORT_MODE` (`"zmq"` default, local/on-prem) or `"ws"` (Azure). `config_azure.py` is a build-time override that sets `TRANSPORT_MODE="ws"` and `WS_URL`. `core/container.py` reads `TRANSPORT_MODE` and wires either the existing `ZMQClient` + `NotificationClient` pair, or a single shared `WSClient` instance, into the same consumer interfaces (`scan_service.py`, `notification_handler.py`, etc.) — no other component needs to know which transport is active.
+
+### `WSClient`
+
+Combines the `ZMQClient` (outbound alert/token requests) and `NotificationClient` (inbound SUB) roles over one persistent `wss://` connection, instead of two separate sockets:
+
+- Outbound: same alert/token payloads as `zmq_client.py`, built via the shared `alert_builders.py` (extracted so both transports stay byte-for-byte identical — DRY).
+- Inbound: same notification types as `notification_client.py` (§12 table).
+
+### Security
+
+- **TLS replaces CURVE** as the transport-security boundary for the cloud path — `wss://` terminates at the Container Apps managed certificate. CURVE key provisioning is skipped when `TRANSPORT_MODE="ws"` (`config.py`).
+- **Device-token auth** is still enforced at the application layer — at the gateway (WebApi) and again at the Backend — independent of transport.
+- **Reconnection:** auto-replays auth and re-subscribes on reconnect, with exponential backoff from 1s up to 30s.
+
+### Config.py additions (ASPS-718)
+
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| `TRANSPORT_MODE` | `"zmq"` | `"zmq"` (local ZMQ REQ/SUB) or `"ws"` (cloud WebSocket via `/ws/agent`) |
+| `WS_URL` | unset (zmq mode) / set by `config_azure.py` | `wss://` endpoint for `/ws/agent` |
+
+---
+
 ## 13. Protective Actions
 
 **File:** `services/protection_service.py`
@@ -701,6 +739,8 @@ Singleton accessed via `Container.instance()`. All components are **lazily insta
 | Backend host | `127.0.0.1` (dev) / `app.asps.io` (prod) | env var / config_override.py |
 | Backend REQ port | `50001` | config |
 | Backend SUB port | `50002` | config |
+| `TRANSPORT_MODE` (ASPS-718) | `"zmq"` | `"zmq"` (local) or `"ws"` (Azure, via `config_azure.py`) |
+| `WS_URL` (ASPS-718) | unset | set by `config_azure.py` when `TRANSPORT_MODE="ws"` |
 | Extension ports | `[8080, 8181, 8282, 8383, 8484]` | config |
 | Monitor interval | `5s` | env |
 | ImmediateDanger alert interval | `10s` | env |
