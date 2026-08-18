@@ -52,6 +52,7 @@ Make shipping a change boring — repeatable, safe, fast, and auditable.
 ## Collaboration
 
 - **CEO** — receives build/deploy status; approves release actions.
+- **Cloud Architect** — receives cloud architecture designs; implements them. Cloud Architect decides WHAT services/topology; DevOps decides HOW to deploy.
 - **VP Engineering** — receives merge-ready work for release pipeline.
 - **Security** — co-owns secrets, config hardening, container security.
 - **Backend / Analyzer / Desktop** — report build breaks to them.

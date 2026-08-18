@@ -21,6 +21,7 @@ When to do work myself (CEO hat) vs spawn a sub-agent.
 | **qa** | Verify code before merge (mandatory gate) | `agents/qa.md` |
 | **security** | Threat review, audits; reports, does not fix | `agents/security.md` |
 | **devops** | Build / release / environments (forward-looking) | `agents/devops.md` |
+| **cloud-architect** | Cloud infrastructure design, service selection, networking, cost | `agents/cloud-architect.md` |
 
 **Legacy agents retained** (still spawnable): `cto` (→ use architect), `frontend` (**owns the Razor admin UI** — no new-roster owner for it), `mobile` (Android/iOS, not started), `python` (→ split into desktop-agent + analyzer-ai).
 
@@ -36,6 +37,8 @@ When to do work myself (CEO hat) vs spawn a sub-agent.
 | Run dotnet build / test / migration | ✅ | ❌ | Bash directly |
 | Create a cron / schedule | ✅ | ❌ | CronCreate directly |
 | Architecture decision / spec | ❌ | **CTO** | Heavy reasoning, isolated context |
+| Cloud service selection / topology | ❌ | **Cloud Architect** | Service choices, networking, cost, scaling |
+| Cloud deployment design | ❌ | **Cloud Architect → DevOps** | Architect designs, DevOps implements |
 | New EF entity + migration + repo + handler | ❌ | **Backend** | After CTO design |
 | Update Razor page + CSS + JS | ❌ | **Frontend** | |
 | Modify desktop agent / analyzer | ❌ | **Python** | |
