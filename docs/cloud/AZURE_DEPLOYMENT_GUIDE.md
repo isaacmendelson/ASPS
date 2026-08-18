@@ -694,6 +694,10 @@ Before monitoring/CI/CD, verify the system works:
 1. GitHub repo → Settings → Secrets → `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` ✓
 2. GitHub repo → Settings → Environments → `dev` environment created ✓
 
+**TODO — `dev` environment hardening:**
+- Required reviewers — אישור לפני deploy
+- Branch restriction — רק main יכול לעשות deploy
+
 **NOTE:** Deploy steps need update for sidecar YAML deployment (currently `az containerapp update --image`).
 
 ### Step 14: Bicep — Infrastructure as Code (AD-7)
