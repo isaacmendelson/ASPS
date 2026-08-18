@@ -54,6 +54,20 @@ The principal runtime path is shown below. An intake acknowledgement on port 500
 [SignalR hub endpoint exists, but no Backend PUB subscriber/forwarder is registered]
 ```
 
+**Cloud path (ASPS-718/ADR-004):** in Azure Container Apps, ports 50001/50002 are not externally reachable (Envoy sidecar does not forward raw ZMTP). Desktop/mobile agents that need cloud connectivity instead go through a WebSocket gateway in WebApi, which bridges to the same Backend ZMQ sockets on localhost. The direct ZMQ path above is unchanged and remains the local-dev/on-prem path.
+
+```
+[Desktop Agent (Python)] — cloud path:
+     |  WebSocket (wss://.../ws/agent, subprotocol asps-agent-v1)
+     v
+[WebApi — AgentWebSocketMiddleware / AgentGatewayService]
+     |  ZMQ REQ → localhost:50001 / ZMQ SUB ← localhost:50002 (no CURVE; localhost-only)
+     v
+[ASPSBackend — unchanged]
+```
+
+See `docs/architecture/decisions/ADR-004-ASPS-718-WEBSOCKET-GATEWAY.md` and `docs/architecture/WS-AGENT-PROTOCOL.md` for the full protocol and rationale.
+
 ### Ports Reference
 
 | Port | Direction | Protocol | Encryption | Purpose |
@@ -67,6 +81,7 @@ The principal runtime path is shown below. An intake acknowledgement on port 500
 | 3306 | Backend → MySQL | MySQL protocol | None (security debt — no SSL) | Persistent storage |
 | 8080–8484 | Extension ↔ Agent | WebSocket (`ws://localhost`) | None; no client authentication or Origin allow-list | Browser extension ↔ desktop agent; first free port in `[8080,8181,8282,8383,8484]` |
 | 8180 | WebApi → Keycloak | HTTP | None (dev only) | OIDC authentication (dev Keycloak instance) |
+| `/ws/agent` | Agent → WebApi | WebSocket (`wss://`) | TLS (Container Apps managed cert) | Cloud agent gateway — bridges to Backend ZMQ on localhost (ASPS-718/ADR-004) |
 
 Source: (`CLAUDE.md`; `apps/desktop/win/src/config.py`; `ASPSBackend14_J/ASPSBackend/appsettings.json`)
 
@@ -191,6 +206,8 @@ A stateless ASP.NET Core web application providing the admin dashboard (Razor Pa
 | `NetMQClientService` | `WebApi/Services/` | Raw NetMQ REQ to Backend port 5555 |
 | `AdminClaimsTransformer` | `WebApi/` | Maps Keycloak claims / known usernames → `Admin` role claim |
 | `SimulationRunner` | (shared from Business) | Background service for scripted simulations; also registered in WebApi |
+| `AgentGatewayService` | `WebApi/Services/AgentGatewayService.cs` | Singleton `IHostedService`; bridges `/ws/agent` to Backend ZMQ (localhost:50001 REQ, localhost:50002 SUB) (ASPS-718) |
+| `AgentWebSocketMiddleware` | `WebApi/Middleware/AgentWebSocketMiddleware.cs` | HTTP upgrade handler for `/ws/agent`; registered before `UseAuthentication` (ASPS-718) |
 
 ### Tech Stack
 
@@ -210,11 +227,14 @@ A stateless ASP.NET Core web application providing the admin dashboard (Razor Pa
 - REST: `GET /api/users`, `GET /api/userdevices/{uid}`, `GET/POST /api/alerts`, `GET /api/version`
 - SignalR: `ws[s]://host/notificationshub?deviceUid=&token=` (devices); a connection with no credentials is currently accepted and treated as “admin” without verifying an admin identity
 - Swagger: `GET /swagger` (dev only)
+- `WS /ws/agent` — WebSocket gateway for desktop/mobile agents (subprotocol `asps-agent-v1`); bridges to Backend ZMQ on localhost. Application-layer auth (device tokens), not Keycloak (ASPS-718/ADR-004; see `docs/architecture/WS-AGENT-PROTOCOL.md`).
 
 **Outbound:**
 
 - NetMQ REQ to `tcp://localhost:5556` (CQRS typed commands/queries)
 - NetMQ REQ to `tcp://localhost:5555` (raw CQRS)
+- ZMQ REQ to `tcp://localhost:50001` (agent alert forwarding via the `/ws/agent` gateway) (ASPS-718)
+- ZMQ SUB to `tcp://localhost:50002` (notification forwarding via the `/ws/agent` gateway) (ASPS-718)
 - SignalR grouping/subscription methods exist, but no registered service publishes Backend results into the hub
 
 **Authorization:**
@@ -263,9 +283,12 @@ A Python system-tray application running on the user's Windows PC. It bridges th
 | File | Path | Responsibility |
 |------|------|----------------|
 | `main.py` | `apps/desktop/win/src/main.py` | Entry point; startup orchestration; `AntiScamApp` class |
-| Desktop configuration | `apps/desktop/win/src/config.py` | Ports: `BACKEND_REQ_PORT=50001`, `BACKEND_SUB_PORT=50002`, `EXTENSION_PORTS=[8080,8181,8282,8383,8484]` |
+| Desktop configuration | `apps/desktop/win/src/config.py` | Ports: `BACKEND_REQ_PORT=50001`, `BACKEND_SUB_PORT=50002`, `EXTENSION_PORTS=[8080,8181,8282,8383,8484]`; also `TRANSPORT_MODE` (`"zmq"` default / `"ws"`), `WS_URL` (ASPS-718) |
 | `zmq_client.py` | `src/zmq_client.py` | ZMQ REQ socket to Backend port 50001; sends URL, tracked-URL and remote-access alerts plus token requests. No Agent-side `RegisterDevice` operation was found. |
 | `notification_client.py` | `src/notification_client.py` | ZMQ SUB socket on port 50002; consumes device-topic analysis, ImmediateDanger lifecycle, tracked-domain and browser-tab-policy messages. No ACK/replay/persistent queue exists. |
+| `ws_client.py` | `src/ws_client.py` | WebSocket transport client (ASPS-718); `WSClient` combines the `ZMQClient` + `NotificationClient` roles over a single persistent `wss://` connection to `/ws/agent`. Used when `TRANSPORT_MODE="ws"`. |
+| `alert_builders.py` | `src/alert_builders.py` | Shared payload builders (ASPS-718); extracted from `zmq_client.py` so both transports build identical JSON payloads (DRY). |
+| `config_azure.py` | `src/config_azure.py` | Azure environment override (ASPS-718): sets `TRANSPORT_MODE="ws"` and `WS_URL`. |
 | `extension_server.py` | `src/extension_server.py` | Unauthenticated local WebSocket server; scans the configured port list and coordinates browser-tab requests/responses. |
 | `auth_manager.py` | `src/auth_manager.py` | Token lifecycle: request, refresh, expiry check; stores via `keyring` with file-based fallback |
 | `hardware_id.py` | `src/hardware_id.py` | Stable device UID from motherboard/BIOS/disk serial (PowerShell); fallback to Windows `MachineGuid`; format `PC-{16hex}`; cached at `%APPDATA%\AntiScam\device_id` |
@@ -276,7 +299,7 @@ A Python system-tray application running on the user's Windows PC. It bridges th
 | `notification_manager.py` | `src/notification_manager.py` | Routes incoming Backend notifications to handlers |
 | `handlers/extension_handler.py` | `src/handlers/` | Dispatches extension messages: `url_check`, `track_url_alert`, `ping` |
 | `handlers/notification_handler.py` | `src/handlers/` | Processes Backend notification messages; broadcasts typed events to extension |
-| `core/container.py` | `src/core/container.py` | Dependency injection container |
+| `core/container.py` | `src/core/container.py` | Dependency injection container; selects transport (ZMQ vs. shared `WSClient`) based on `TRANSPORT_MODE` (ASPS-718) |
 | `enums.py` | `src/enums.py` | Python-side enums mirroring `Common.Enums` |
 | `browser_tabs_policy` | `src/` | Manages `BrowserTabsPolicyOverride` (mode + valid_until); resets on agent restart |
 
@@ -284,7 +307,7 @@ A Python system-tray application running on the user's Windows PC. It bridges th
 
 - Python 3.11 (Windows)
 - `pyzmq` — ZeroMQ bindings with CURVE encryption
-- `websockets` — async WebSocket server
+- `websockets` — async WebSocket server (Extension bridge); also used by `ws_client.py` as the WS transport client to Backend/WebApi gateway in cloud mode (ASPS-718)
 - `psutil` — remote-access process detection
 - `geoip2` — country lookup for remote connections
 - `keyring` — OS credential store for token persistence
@@ -314,6 +337,10 @@ Source: (`apps/desktop/win/src/config.py`; `apps/desktop/win/requirements.txt`; 
 
 **Inbound from Backend (ZMQ SUB, port 50002, CURVE):** topic filter `device:{deviceUid}`.
 
+**Outbound to Backend (WebSocket, cloud path — ASPS-718/ADR-004):**
+
+When `TRANSPORT_MODE="ws"`, the agent connects to `/ws/agent` via `wss://` (TLS). Same JSON payloads as the ZMQ path. Protocol: `docs/architecture/WS-AGENT-PROTOCOL.md`.
+
 **WebSocket to Extension:** `ws://localhost:{first-free-in-8080-8484}`. This is an unauthenticated local application protocol, not a trusted security boundary.
 
 | Message | Direction | Status | Current gap |
@@ -337,6 +364,8 @@ Chrome extension sends `url_check` → `extension_server.py` → `scan_service.c
 Backend publishes result → `notification_client.py` SUB socket receives → `notification_manager` routes → `notification_handler.py` attempts protective-action dispatch and broadcasts to the Extension via WebSocket. Dispatch currently becomes a no-op because Backend emits `SubjectKey` (`Common/Models/ProtectiveAction.cs:29`) while the Agent reads `Subject` and defaults it to `0` (`services/protection_service.py:48`).
 
 `remote_monitor.py` polls processes on adaptive schedule → builds `RemoteAccessAlert` → `zmq_client.send_remote_access_alert()`.
+
+**Cloud mode (ASPS-718):** when `TRANSPORT_MODE="ws"`, `ws_client.py` replaces `zmq_client.py` + `notification_client.py`, sending and receiving the identical JSON payloads (built by the shared `alert_builders.py`) over a single `wss://` connection to `/ws/agent` instead of ZMQ REQ/SUB.
 
 Source: (`docs/ASPS_DATA_FLOW.md §3.2–3.4`)
 
@@ -366,21 +395,23 @@ Source: (`docs/ASPS_DATA_FLOW.md §3.2–3.4`)
 
 ### Purpose
 
-Android and iOS agents that will perform the same role as the Desktop Agent but for mobile devices: URL monitoring (via Accessibility Service / Network Extension), SMS/call screening, remote-access app detection, and forwarding alerts to the Backend over the same ZMQ CURVE wire protocol.
+Android and iOS agents that will perform the same role as the Desktop Agent but for mobile devices: URL monitoring (via Accessibility Service / Network Extension), SMS/call screening, remote-access app detection, and forwarding alerts to the Backend over the same wire protocol as the Desktop Agent.
+
+**Transport option (ASPS-718/ADR-004):** the planned mobile agents can use the same `/ws/agent` WebSocket endpoint as the Desktop Agent's cloud path instead of ZMQ CURVE. This is a key benefit of ADR-004 — it avoids the need for a native ZMQ library in Kotlin/Swift (no mature, maintained ZeroMQ binding exists for either platform), and standard WebSocket/TLS support is already available on both. Wire payloads are identical either way; see `docs/architecture/WS-AGENT-PROTOCOL.md`.
 
 ### Components
 
 No implementation exists. Target architecture from `docs/ASPS_DATA_FLOW.md §10`:
 
-- **Android:** Accessibility Service (URL hooks), SMS BroadcastReceiver, CallScreeningService, App-detect (PackageInstaller observer), ZMQ-CURVE client
+- **Android:** Accessibility Service (URL hooks), SMS BroadcastReceiver, CallScreeningService, App-detect (PackageInstaller observer), ZMQ-CURVE client or `/ws/agent` WebSocket client (ASPS-718)
 - **iOS:** Network Extension (URL hooks), Message Filter Extension, Call Directory Extension, periodic blacklist sync (no real-time per-call API)
-- **Shared:** ZMQ REQ client (port 50001), ZMQ SUB listener (port 50002), same alert JSON schema as Desktop Agent
+- **Shared:** ZMQ REQ client (port 50001) + ZMQ SUB listener (port 50002), **or** a single `wss://.../ws/agent` WebSocket connection (ASPS-718/ADR-004) — same alert JSON schema as Desktop Agent either way
 
 ### Tech Stack
 
 - Android: Kotlin (planned) (`CLAUDE.md §Stack`)
 - iOS: Swift (planned) (`CLAUDE.md §Stack`)
-- ZeroMQ CURVE transport (same wire protocol as Desktop Agent)
+- ZeroMQ CURVE transport (same wire protocol as Desktop Agent), **or** WebSocket (`wss://`) to `/ws/agent` (ASPS-718/ADR-004) — preferred for cloud connectivity given the lack of maintained ZMQ bindings on mobile
 - `DeviceInfo.DeviceType = 2` (MobilePhone), `OperatingSystem = 4` (Android) or `5` (iOS)
 
 ### Interfaces / Contracts

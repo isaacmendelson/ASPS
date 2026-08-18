@@ -66,6 +66,17 @@ ASPS (Anti-Scam Protection System) is a real-time fraud detection system that mo
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
+**Cloud path (ASPS-718/ADR-004):** the ZMQ path above (ports 50001/50002, CurveZMQ) is the local/direct path used in on-prem and local-dev deployments. Cloud-connected agents (Azure Container Apps, where raw ZMTP is not externally routable) instead connect over WebSocket to WebApi's `/ws/agent` gateway, which bridges to the same Backend ZMQ sockets on `localhost`:
+
+```
+[Desktop/Mobile Agent] ──wss://…/ws/agent──► [WebApi: AgentWebSocketMiddleware / AgentGatewayService]
+                                                        │  ZMQ REQ localhost:50001 / ZMQ SUB localhost:50002
+                                                        ▼
+                                              [ASPSBackend — unchanged, agent-agnostic]
+```
+
+Payloads forwarded verbatim (no field renaming) — see `docs/architecture/decisions/ADR-004-ASPS-718-WEBSOCKET-GATEWAY.md` and `docs/architecture/WS-AGENT-PROTOCOL.md`.
+
 ---
 
 # 3. Detailed Data Flow
@@ -792,6 +803,8 @@ The exported file is fully offline-viewable. `save()` becomes a no-op (one-time 
 # 10. Mobile Agent Data Flow (target spec)
 
 Android and iOS agents do not exist yet, but the Backend is mobile-aware. When they're built, their data flow will be **identical to Desktop** for URL alerts, with extra mobile-specific signals on top.
+
+**Transport note (ASPS-718/ADR-004):** the ZMQ-CURVE transport shown below is one option. Mobile agents can instead use the same `/ws/agent` WebSocket gateway as the Desktop Agent's cloud path (§2), avoiding the need for a ZMQ library in Kotlin/Swift. Alert JSON payloads are identical either way. See `docs/architecture/WS-AGENT-PROTOCOL.md`.
 
 ```
 ┌────────────────────────────────────────────────────┐

@@ -1,6 +1,7 @@
 using Business.Services;
 using Business.Messaging;
 using WebApi.Services;
+using WebApi.Middleware;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -357,6 +358,14 @@ builder.Services.AddSingleton<NetMQClientService>(sp =>
 builder.Services.AddSingleton<SimulationRunner>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<SimulationRunner>());
 
+// ========================================
+// AGENT WEBSOCKET GATEWAY (ASPS-720 / ADR-004)
+// Bridges /ws/agent WebSocket connections to Backend's ZMQ sockets on localhost
+// (ROUTER 50001, PUB 50002). See docs/architecture/WS-AGENT-PROTOCOL.md.
+// ========================================
+builder.Services.AddSingleton<AgentGatewayService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<AgentGatewayService>());
+
 var app = builder.Build();
 
 // IMPORTANT: UseForwardedHeaders MUST be first!
@@ -368,6 +377,17 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 app.UseHttpsRedirection();
+
+// Agent WebSocket gateway MUST be registered before UseAuthentication/UseAuthorization:
+// this WebApi's authorization fallback policy requires an authenticated Keycloak Admin,
+// but desktop agents authenticate at the application layer (RequestToken/RefreshToken
+// over the WS "request" frame) rather than via Keycloak. See AgentWebSocketMiddleware
+// XML doc for the full rationale.
+app.UseWebSockets(new WebSocketOptions
+{
+    KeepAliveInterval = TimeSpan.FromSeconds(30)
+});
+app.UseMiddleware<AgentWebSocketMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {

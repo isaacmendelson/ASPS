@@ -155,50 +155,62 @@ def _make_zmq_client(server_public_key=None):
 # Test suite
 # ---------------------------------------------------------------------------
 
+def _run_curve_loader(env=None, local_file_content=None,
+                       backend_file_content=None, platform_system="Windows"):
+    """
+    Drive config._load_curve_public_key with controlled filesystem and env
+    state. Shared by TestConfigCurveKeyLoader (default 'zmq' mode) and
+    TestConfigWSTransportCurveToleration (ASPS-721 'ws' mode) — a plain
+    module-level function (not a TestCase method) so it isn't picked up
+    twice via inheritance.
+
+    - env: dict of env vars (replaces os.environ for the call)
+    - local_file_content: str to return from ~/.antiscam/curve-public-key.txt,
+      or None if file should not exist.
+    - backend_file_content: str for the backend public key file,
+      or None if file should not exist.
+    """
+    sys.modules.pop("config", None)
+
+    def fake_exists(path):
+        path_str = str(path)
+        if ".antiscam" in path_str and "curve-public-key" in path_str:
+            return local_file_content is not None
+        if "ASPS" in path_str or ".asps" in path_str:
+            return backend_file_content is not None
+        return False
+
+    def fake_read_text(path_self):
+        path_str = str(path_self)
+        if ".antiscam" in path_str and "curve-public-key" in path_str:
+            return local_file_content or ""
+        if "ASPS" in path_str or ".asps" in path_str:
+            return backend_file_content or ""
+        return ""
+
+    import pathlib
+
+    with patch.dict(os.environ, env or {}, clear=True), \
+         patch("platform.system", return_value=platform_system), \
+         patch.object(pathlib.Path, "exists", fake_exists), \
+         patch.object(pathlib.Path, "read_text", fake_read_text):
+        # We need config to reimport cleanly — stub version again.
+        if "version" not in sys.modules:
+            _install_stub("version", VERSION="0.0.0-test")
+        import config  # noqa: PLC0415
+        return config._load_curve_public_key()
+
+
 class TestConfigCurveKeyLoader(unittest.TestCase):
     """config._load_curve_public_key must raise SystemExit on any missing-key path."""
 
-    def _run_loader(self, env=None, local_file_content=None,
+    @staticmethod
+    def _run_loader(env=None, local_file_content=None,
                     backend_file_content=None, platform_system="Windows"):
-        """
-        Drive _load_curve_public_key with controlled filesystem and env state.
-
-        - env: dict of env vars (replaces os.environ for the call)
-        - local_file_content: str to return from ~/.antiscam/curve-public-key.txt,
-          or None if file should not exist.
-        - backend_file_content: str for the backend public key file,
-          or None if file should not exist.
-        """
-        import importlib
-        sys.modules.pop("config", None)
-
-        def fake_exists(path):
-            path_str = str(path)
-            if ".antiscam" in path_str and "curve-public-key" in path_str:
-                return local_file_content is not None
-            if "ASPS" in path_str or ".asps" in path_str:
-                return backend_file_content is not None
-            return False
-
-        def fake_read_text(path_self):
-            path_str = str(path_self)
-            if ".antiscam" in path_str and "curve-public-key" in path_str:
-                return local_file_content or ""
-            if "ASPS" in path_str or ".asps" in path_str:
-                return backend_file_content or ""
-            return ""
-
-        import pathlib
-
-        with patch.dict(os.environ, env or {}, clear=True), \
-             patch("platform.system", return_value=platform_system), \
-             patch.object(pathlib.Path, "exists", fake_exists), \
-             patch.object(pathlib.Path, "read_text", fake_read_text):
-            # We need config to reimport cleanly — stub version again.
-            if "version" not in sys.modules:
-                _install_stub("version", VERSION="0.0.0-test")
-            import config  # noqa: PLC0415
-            return config._load_curve_public_key()
+        return _run_curve_loader(
+            env=env, local_file_content=local_file_content,
+            backend_file_content=backend_file_content, platform_system=platform_system,
+        )
 
     # --- AC1: missing key → error, not plaintext ---
 
@@ -262,6 +274,41 @@ class TestConfigCurveKeyLoader(unittest.TestCase):
             backend_file_content="b" * 40,
         )
         self.assertEqual(result, env_key)
+
+
+class TestConfigWSTransportCurveToleration(unittest.TestCase):
+    """
+    ASPS-721: when TRANSPORT_MODE == "ws", CURVE is not used (TLS is the
+    transport security boundary instead — see ADR-004). The loader must NOT
+    abort startup for a missing/empty CURVE key in this mode, unlike the
+    default "zmq" mode covered by TestConfigCurveKeyLoader above.
+    """
+
+    def test_ws_mode_returns_empty_string_with_no_key_sources(self):
+        """No key anywhere + TRANSPORT_MODE=ws -> '' , not SystemExit."""
+        result = _run_curve_loader(env={"TRANSPORT_MODE": "ws"})
+        self.assertEqual(result, "")
+
+    def test_ws_mode_returns_empty_string_even_with_empty_backend_key_file(self):
+        """Empty backend key file (CurveEnabled=false) + TRANSPORT_MODE=ws
+        must NOT raise — this is the exact scenario that raises SystemExit
+        in the default zmq mode (see test_empty_backend_key_file_raises_system_exit)."""
+        result = _run_curve_loader(env={"TRANSPORT_MODE": "ws"}, backend_file_content="")
+        self.assertEqual(result, "")
+
+    def test_ws_mode_ignores_a_present_curve_key_too(self):
+        """Even when a valid key IS present, WS mode still skips the lookup
+        entirely (CURVE is simply not part of this transport)."""
+        result = _run_curve_loader(
+            env={"TRANSPORT_MODE": "ws", "ANTISCAM_CURVE_PUBLIC_KEY": "z" * 40}
+        )
+        self.assertEqual(result, "")
+
+    def test_default_transport_mode_zmq_still_raises_system_exit(self):
+        """Regression guard: omitting TRANSPORT_MODE (default 'zmq') must
+        preserve the original fail-fast behavior."""
+        with self.assertRaises(SystemExit):
+            _run_curve_loader(env={})
 
 
 class TestZMQClientCurveEnforcement(unittest.TestCase):
@@ -441,6 +488,85 @@ class TestAuthManagerCurveEnforcement(unittest.TestCase):
             AuthManager(fake_zmq, {"id": "TEST-DEVICE-001"})
 
         fake_zmq.clear_server_public_key.assert_not_called()
+
+
+class TestAuthManagerWSTransportCurveToleration(unittest.TestCase):
+    """
+    ASPS-721: AuthManager must NOT require a CURVE key when
+    config.TRANSPORT_MODE == "ws" — mirrors config._load_curve_public_key's
+    own toleration (TestConfigWSTransportCurveToleration above). Without
+    this, a WS-mode agent with an empty BACKEND_SERVER_PUBLIC_KEY_Z85 would
+    still fail startup here even though config.py no longer aborts.
+    """
+
+    def tearDown(self):
+        sys.modules.pop("auth_manager", None)
+        sys.modules.pop("config", None)
+
+    def _make_config_stub(self, transport_mode: str, live_key: str = ""):
+        config_stub = types.ModuleType("config")
+        config_stub.DATA_DIR = "/tmp/antiscam-test"
+        config_stub.BACKEND_SERVER_PUBLIC_KEY_Z85 = live_key
+        config_stub.WEBAPI_URL = "http://localhost:5001"
+        config_stub.TRANSPORT_MODE = transport_mode
+        sys.modules["config"] = config_stub
+        return config_stub
+
+    def test_ws_mode_does_not_raise_with_empty_key(self):
+        """WS mode + empty CURVE key must NOT raise (this exact combination
+        raises RuntimeError in default 'zmq' mode — see
+        TestAuthManagerCurveEnforcement.test_init_raises_when_key_is_empty_string)."""
+        sys.modules.pop("auth_manager", None)
+        self._make_config_stub(transport_mode="ws", live_key="")
+
+        keyring_stub = sys.modules.get("keyring") or _install_stub("keyring")
+        keyring_stub.get_password = lambda svc, uid: None
+
+        from auth_manager import AuthManager  # noqa: PLC0415
+
+        fake_zmq = MagicMock()
+        with patch("pathlib.Path.exists", return_value=False):
+            manager = AuthManager(fake_zmq, {"id": "TEST-DEVICE-001"})  # must not raise
+
+        self.assertIsNone(manager.server_public_key)
+
+    def test_ws_mode_does_not_call_set_server_public_key(self):
+        """CURVE is not applied to the transport client at all in WS mode —
+        the WSClient's set_server_public_key is a documented no-op, but
+        AuthManager should not even attempt the call."""
+        sys.modules.pop("auth_manager", None)
+        self._make_config_stub(transport_mode="ws", live_key="")
+
+        keyring_stub = sys.modules.get("keyring") or _install_stub("keyring")
+        keyring_stub.get_password = lambda svc, uid: None
+
+        from auth_manager import AuthManager  # noqa: PLC0415
+
+        fake_zmq = MagicMock()
+        with patch("pathlib.Path.exists", return_value=False):
+            AuthManager(fake_zmq, {"id": "TEST-DEVICE-001"})
+
+        fake_zmq.set_server_public_key.assert_not_called()
+
+    def test_zmq_mode_default_still_requires_key_when_transport_mode_attribute_absent(self):
+        """Regression guard: a config stub with no TRANSPORT_MODE attribute
+        at all (as used by the pre-existing tests above) must still default
+        to the strict 'zmq' behavior."""
+        sys.modules.pop("auth_manager", None)
+        config_stub = types.ModuleType("config")
+        config_stub.DATA_DIR = "/tmp/antiscam-test"
+        config_stub.BACKEND_SERVER_PUBLIC_KEY_Z85 = ""
+        config_stub.WEBAPI_URL = "http://localhost:5001"
+        # Deliberately no TRANSPORT_MODE attribute.
+        sys.modules["config"] = config_stub
+
+        keyring_stub = sys.modules.get("keyring") or _install_stub("keyring")
+        keyring_stub.get_password = lambda svc, uid: None
+
+        from auth_manager import AuthManager  # noqa: PLC0415
+
+        with self.assertRaises(RuntimeError):
+            AuthManager(MagicMock(), {"id": "TEST-DEVICE-001"})
 
 
 class TestAuthManagerNoKeyOverwriteFromResponse(unittest.TestCase):

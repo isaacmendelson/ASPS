@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 from config import (
     VERSION, BACKEND_HOST, BACKEND_REQ_PORT, BACKEND_SUB_PORT,
-    OperatingSystem
+    OperatingSystem, TRANSPORT_MODE, WS_URL
 )
 
 
@@ -117,7 +117,19 @@ class Container:
 
     @property
     def zmq_client(self):
-        """ZMQ client for backend communication"""
+        """
+        Backend request/response transport.
+
+        TRANSPORT_MODE == "ws" (ASPS-721): a single WSClient instance is
+        shared between zmq_client and notification_client — it combines both
+        the request/response role (ZMQClient) and the notification-push role
+        (NotificationClient) over one persistent WebSocket connection, per
+        docs/architecture/WS-AGENT-PROTOCOL.md.
+
+        TRANSPORT_MODE == "zmq" (default): the original direct ZMQ REQ client.
+        """
+        if TRANSPORT_MODE == "ws":
+            return self._ws_client
         if self._zmq_client is None:
             from zmq_client import ZMQClient
             self._zmq_client = ZMQClient(BACKEND_HOST, BACKEND_REQ_PORT)
@@ -125,7 +137,10 @@ class Container:
 
     @property
     def notification_client(self):
-        """Notification client for receiving backend notifications"""
+        """Notification client for receiving backend notifications.
+        See zmq_client docstring for TRANSPORT_MODE == "ws" behavior."""
+        if TRANSPORT_MODE == "ws":
+            return self._ws_client
         if self._notification_client is None:
             from notification_client import NotificationClient
             self._notification_client = NotificationClient(
@@ -134,6 +149,15 @@ class Container:
                 BACKEND_SUB_PORT
             )
         return self._notification_client
+
+    @property
+    def _ws_client(self):
+        """Lazily-created, shared WSClient instance (TRANSPORT_MODE == "ws")."""
+        if self._zmq_client is None:
+            from ws_client import WSClient
+            self._zmq_client = WSClient(self.device_id, WS_URL)
+            self._notification_client = self._zmq_client
+        return self._zmq_client
 
     @property
     def extension_server(self):
