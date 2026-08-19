@@ -362,8 +362,15 @@ builder.Services.AddHostedService(provider => provider.GetRequiredService<Simula
 // AGENT WEBSOCKET GATEWAY (ASPS-720 / ADR-004)
 // Bridges /ws/agent WebSocket connections to Backend's ZMQ sockets on localhost
 // (ROUTER 50001, PUB 50002). See docs/architecture/WS-AGENT-PROTOCOL.md.
+//
+// AgentWebSocketMiddleware depends on IAgentBackendGateway/IAgentConnectionLimiter/
+// IOptions<AgentGatewayOptions> — never the concrete sealed AgentGatewayService —
+// so it can be exercised with test doubles in E2E/integration tests (ASPS-723).
 // ========================================
+builder.Services.Configure<AgentGatewayOptions>(builder.Configuration.GetSection("AgentGateway"));
 builder.Services.AddSingleton<AgentGatewayService>();
+builder.Services.AddSingleton<IAgentBackendGateway>(sp => sp.GetRequiredService<AgentGatewayService>());
+builder.Services.AddSingleton<IAgentConnectionLimiter>(sp => sp.GetRequiredService<AgentGatewayService>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<AgentGatewayService>());
 
 var app = builder.Build();

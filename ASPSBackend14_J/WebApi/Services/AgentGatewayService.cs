@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
 using Business.Services;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NetMQ;
 using NetMQ.Sockets;
 
@@ -29,7 +29,7 @@ public sealed class AgentGatewayOptions
 /// client on localhost, exactly like a desktop agent, using
 /// <see cref="CurveKeyManager.ApplyClientCurve"/> for CURVE (ADR-004 / ASPS-718 / ASPS-720).
 /// </summary>
-public sealed class AgentGatewayService : IAgentBackendGateway, IHostedService
+public sealed class AgentGatewayService : IAgentBackendGateway, IAgentConnectionLimiter, IHostedService
 {
     private readonly CurveKeyManager _curveKeyManager;
     private readonly ILogger<AgentGatewayService> _logger;
@@ -39,11 +39,11 @@ public sealed class AgentGatewayService : IAgentBackendGateway, IHostedService
 
     public AgentGatewayOptions Options { get; }
 
-    public AgentGatewayService(IConfiguration configuration, CurveKeyManager curveKeyManager, ILogger<AgentGatewayService> logger)
+    public AgentGatewayService(IOptions<AgentGatewayOptions> options, CurveKeyManager curveKeyManager, ILogger<AgentGatewayService> logger)
     {
         _curveKeyManager = curveKeyManager;
         _logger = logger;
-        Options = configuration.GetSection("AgentGateway").Get<AgentGatewayOptions>() ?? new AgentGatewayOptions();
+        Options = options.Value;
         _reqEndpoint = $"tcp://localhost:{Options.BackendReqPort}";
         _subEndpoint = $"tcp://localhost:{Options.BackendPubPort}";
     }
@@ -63,7 +63,7 @@ public sealed class AgentGatewayService : IAgentBackendGateway, IHostedService
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Per-IP connection limiting — used by AgentWebSocketMiddleware.
+    // IAgentConnectionLimiter — per-IP connection limiting, used by AgentWebSocketMiddleware.
     // ─────────────────────────────────────────────────────────────────────────
 
     public bool TryAcquireConnectionSlot(string clientIp)
