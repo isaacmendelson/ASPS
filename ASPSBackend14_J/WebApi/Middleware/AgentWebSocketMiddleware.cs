@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using WebApi.Services;
 
 namespace WebApi.Middleware;
@@ -11,13 +12,19 @@ namespace WebApi.Middleware;
 /// ASP.NET Core middleware implementing the <c>/ws/agent</c> WebSocket gateway —
 /// see <c>docs/architecture/WS-AGENT-PROTOCOL.md</c> and ADR-004 (ASPS-718/720).
 /// Bridges desktop-agent WebSocket connections to Backend's ZMQ sockets on
-/// localhost via <see cref="AgentGatewayService"/>.
+/// localhost via <see cref="IAgentBackendGateway"/> (implemented by
+/// <see cref="AgentGatewayService"/> in production).
 ///
 /// MUST be registered before <c>UseAuthentication</c>/<c>UseAuthorization</c> in
 /// Program.cs: this WebApi's authorization fallback policy requires an
 /// authenticated Keycloak Admin — device agents authenticate at the application
 /// layer instead (RequestToken/RefreshToken over the WS "request" frame, per
 /// section 4), so /ws/agent must never be subject to the Admin fallback policy.
+///
+/// Depends only on <see cref="IAgentBackendGateway"/> / <see cref="IAgentConnectionLimiter"/>
+/// / <see cref="IOptions{TOptions}"/> of <see cref="AgentGatewayOptions"/> — never the
+/// concrete sealed <see cref="AgentGatewayService"/> — so it can be exercised with test
+/// doubles in E2E/integration tests (ASPS-723).
 /// </summary>
 public sealed class AgentWebSocketMiddleware
 {
@@ -26,11 +33,13 @@ public sealed class AgentWebSocketMiddleware
 
     private readonly RequestDelegate _next;
     private readonly ILogger<AgentWebSocketMiddleware> _logger;
+    private readonly AgentGatewayOptions _options;
 
-    public AgentWebSocketMiddleware(RequestDelegate next, ILogger<AgentWebSocketMiddleware> logger)
+    public AgentWebSocketMiddleware(RequestDelegate next, ILogger<AgentWebSocketMiddleware> logger, IOptions<AgentGatewayOptions> options)
     {
         _next = next;
         _logger = logger;
+        _options = options.Value;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -41,15 +50,7 @@ public sealed class AgentWebSocketMiddleware
             return;
         }
 
-        // Resolved lazily, only for /ws/agent requests: AgentGatewayService's
-        // constructor pulls in CurveKeyManager, which reads CURVE key material
-        // from disk. Injecting it as a method parameter would force ASP.NET Core
-        // to resolve (and construct) it for every request through this global
-        // middleware, not just agent connections — breaking any environment
-        // that hasn't provisioned CURVE keys, regardless of path.
-        var gateway = context.RequestServices.GetRequiredService<AgentGatewayService>();
-
-        if (!gateway.Options.Enabled)
+        if (!_options.Enabled)
         {
             context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
             return;
@@ -68,8 +69,18 @@ public sealed class AgentWebSocketMiddleware
             return;
         }
 
+        // Resolved lazily, only for /ws/agent requests: the production
+        // IAgentBackendGateway/IAgentConnectionLimiter implementation
+        // (AgentGatewayService) pulls in CurveKeyManager, which reads CURVE key
+        // material from disk. Injecting it as a constructor parameter would force
+        // ASP.NET Core to resolve (and construct) it for every request through
+        // this global middleware, not just agent connections — breaking any
+        // environment that hasn't provisioned CURVE keys, regardless of path.
+        var gateway = context.RequestServices.GetRequiredService<IAgentBackendGateway>();
+        var limiter = context.RequestServices.GetRequiredService<IAgentConnectionLimiter>();
+
         var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-        if (!gateway.TryAcquireConnectionSlot(clientIp))
+        if (!limiter.TryAcquireConnectionSlot(clientIp))
         {
             _logger.LogWarning("Rejected /ws/agent upgrade — connection limit exceeded for {ClientIp}", clientIp);
             context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
@@ -86,14 +97,15 @@ public sealed class AgentWebSocketMiddleware
         }
         finally
         {
-            gateway.ReleaseConnectionSlot(clientIp);
+            limiter.ReleaseConnectionSlot(clientIp);
         }
     }
 
     private async Task RunConnectionAsync(
-        WebSocket webSocket, AgentGatewayService gateway, string connectionId, CancellationToken serverStopping)
+        WebSocket webSocket, IAgentBackendGateway gateway, string connectionId, CancellationToken serverStopping)
     {
-        var options = gateway.Options;
+        var options = _options;
+
         var connection = new AgentConnection(
             gateway,
             (json, ct) => SendAsync(webSocket, json, ct),

@@ -189,7 +189,7 @@ When build output shows `MSB3027` / `MSB3021` (file lock) — compilation succee
 |---|---|---|
 | **Executive** | CEO (default) | `.claude/hats/ceo/` |
 | **C-level** | vp-engineering, product, knowledge-manager | `.claude/hats/<role>/` |
-| **Technical** | architect, backend, desktop-agent, browser-extension, analyzer-ai, devops, qa, security | `.claude/hats/<role>/` |
+| **Technical** | architect, backend, desktop-agent, browser-extension, analyzer-ai, devops, qa, security, tech-writer | `.claude/hats/<role>/` |
 | **Legacy** | cto, frontend, mobile, python | `.claude/hats/<role>/` |
 
 Agent definitions: `.claude/agents/<role>.md`. Routing rules: `.claude/hats/ceo/delegation.md`.

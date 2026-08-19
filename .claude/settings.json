@@ -1,8 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dotnet ef *)",
-      "Bash(\"C:\\\\Program Files\\\\MySQL\\\\MySQL Server 8.0\\\\bin\\\\mysql.exe\" -h 127.0.0.1 -P 3306 -uroot -pzappa22 ASPSBackend2DB -e \"SHOW TABLES LIKE '%Consent%'; SHOW TABLES LIKE '%RiskScore%'; DESCRIBE UserConsentPreferences;\")"
+      "Bash(*)",
+      "PowerShell(*)",
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Agent",
+      "mcp__ccd_session__mark_chapter",
+      "mcp__ccd_session__spawn_task"
     ]
   }
 }

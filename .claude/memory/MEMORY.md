@@ -32,3 +32,9 @@
 - [CEO never codes](feedback_ceo_no_coding.md) — CEO orchestrates only; all code changes delegated to specialist agents, even one-line fixes
 - [Continue between phases](feedback_continue_phases.md) — Don't wait for approval between phases when path is clear; keep moving
 - [JIRA auto-sync on delegation](feedback_jira_auto_sync.md) — Create sub-tasks and set In Progress BEFORE agents start; don't mark Done prematurely
+- [JIRA agent labels](feedback_jira_agent_labels.md) — Always set Labels with the handling agent name(s) when creating/updating issues
+- [Parent JIRA status](feedback_parent_jira_status.md) — Update parent epic/story to In Progress when first child work begins
+- [Memory in project repo](feedback_memory_in_project.md) — Save memories to `.claude/memory/` in the project, not just Claude's auto-memory path
+- [Always create ADRs](feedback_always_create_adrs.md) — Create ADR in `docs/architecture/decisions/` whenever architecture decisions are made
+- [No idle agents](feedback_no_idle_agents.md) — When agent finishes a task, immediately assign the next one
+- [PR only after all sub-tasks done](feedback_pr_after_all_subtasks.md) — Don't create PR/merge while sub-tasks are still open
