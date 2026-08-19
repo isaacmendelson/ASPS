@@ -1,9 +1,9 @@
 # ASPS-718: WebSocket Gateway for Desktop Agent Cloud Connectivity
 
 **JIRA:** ASPS-718 (Story under ASPS-693 Epic)
-**Status:** In Progress — code merged to main via PR #29, ASPS-723 (E2E test) still To Do
-**Branch:** `asps-718-websocket-gateway-for-desktop-agent-cloud-connectivity`
-**Commit:** `f37e5cf`
+**Status:** Done — merged to main via PR #30
+**Branch:** `asps-718-websocket-gateway-for-desktop-agent-cloud-connectivity` (merged)
+**Commits:** `f37e5cf` (720/721/722), `358fa38` (723 refactor), `864b644` (723 E2E tests)
 **Last updated:** 2026-08-19
 
 ---
@@ -26,7 +26,7 @@ WebSocket gateway in WebApi that bridges WS connections (through HTTP ingress) t
 | ASPS-720 | Backend: WebSocket Gateway hosted service | backend | Done (JIRA Done 2026-08-19) |
 | ASPS-721 | Desktop Agent: WebSocket transport layer | desktop-agent | Done (JIRA Done 2026-08-19) |
 | ASPS-722 | Message protocol: WS-ZMQ frame mapping spec | architect | Done |
-| ASPS-723 | E2E test: Desktop agent alert via WebSocket | backend → qa | In Progress (JIRA In Progress 2026-08-19) |
+| ASPS-723 | E2E test: Desktop agent alert via WebSocket | backend → qa | Done (JIRA Done 2026-08-19) |
 
 ## Architecture
 
@@ -107,14 +107,18 @@ Modified files:
 
 ## Continuation Point
 
-PR #29 merged 2026-08-19. ASPS-718 In Progress (ASPS-723 still open).
+### ASPS-723: E2E Test — Complete
 
-### ASPS-723: E2E Test — Current Status
+**Testability refactor (commit `358fa38`):**
+- Extracted `IAgentConnectionLimiter` interface from `AgentGatewayService`
+- Middleware resolves `IAgentBackendGateway` + `IAgentConnectionLimiter` via DI (not concrete class)
+- `Program.cs` registers both interfaces as singleton facades over `AgentGatewayService`
+- `AgentGatewayOptions` bound via `IOptions<>` pattern
 
-**QA assessment (2026-08-19):** Testability blocker found.
-- `AgentWebSocketMiddleware.cs:50` resolves concrete sealed `AgentGatewayService` instead of `IAgentBackendGateway` interface
-- This prevents mock injection for E2E tests of the success path (auth + alert forwarding + notifications)
-- 8 of 12 E2E scenarios can be tested without changes (HTTP rejection, unauthenticated errors, frame validation)
-- 4 scenarios blocked: auth round-trip, alert forwarding, notification delivery
+**E2E tests (commit `864b644`):**
+- `AgentWebSocketE2ETests.cs` — 12 integration tests using `WebApplicationFactory<Program>` with mock DI
+- `AgentWebSocketMiddlewareTests.cs` — DI seam verification test
+- Tests cover: HTTP 400/503/429 rejection, WS upgrade, invalid JSON, unauthenticated requests, oversized frames, auth round-trip, alert forwarding with correlation ID, notification subscription/push, backend timeout
+- **Final results: 1725 passed, 0 failed, 7 skipped**
 
-**Fix in progress:** Backend agent refactoring middleware to resolve `IAgentBackendGateway` + connection limiter interface instead of concrete class. After fix completes → QA agent writes full E2E test suite.
+All sub-tasks Done. Merged to main via PR #30 (2026-08-19). ASPS-718 → Done.
