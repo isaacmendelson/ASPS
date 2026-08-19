@@ -122,10 +122,10 @@ exercised in this session.
 
 ## Pre-existing issue found (out of scope, flagged not fixed)
 
-`.claude/rules/task-workflow.md` had an uncommitted working-tree change when I checked status
-before committing (JIRA transition-21 wording + new "Agent labels on JIRA issues" section) that
-I did not make. Left uncommitted / excluded from this branch's commits — not part of ASPS-724.
-Flagging for the orchestrator/CEO to commit separately if intended.
+`.claude/rules/task-workflow.md` had an uncommitted working-tree change when the DevOps agent
+checked status (JIRA transition-21 wording + new "Agent labels on JIRA issues" section). The
+orchestrator/CEO subsequently committed it as `7136b14` on this branch. Not part of ASPS-724
+scope but included in the branch history.
 
 ## Changed files
 

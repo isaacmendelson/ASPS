@@ -75,7 +75,7 @@ Backend runs as a **sidecar container** inside the WebApi Container App (`ca-web
 **Status:** Running
 
 - Realm: `asps`
-- Client: `asps-webapi` (confidential, OIDC)
+- Clients: `asps-webapi` (confidential, OIDC), `asps-angular-admin` (public, PKCE S256)
 - Startup probe: `/health/started`, 530s window (for Liquibase migrations)
 - Liveness probe: `/health/live`, 30s interval
 
