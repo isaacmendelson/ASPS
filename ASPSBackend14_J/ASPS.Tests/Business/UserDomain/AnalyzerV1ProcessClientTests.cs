@@ -14,6 +14,8 @@ public class AnalyzerV1ProcessClientTests
         var analyzerDirectory = Path.Combine(
             repositoryRoot, "Analyzers", "basic-url-analyzer");
         var python = Path.Combine(analyzerDirectory, ".venv", "Scripts", "python.exe");
+        if (!File.Exists(python))
+            return; // Python venv not available (CI)
         var identity = new MessageIdentityV1(
             Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
             "device-1", "12", "https://127.0.0.1/");
