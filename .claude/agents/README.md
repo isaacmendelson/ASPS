@@ -32,6 +32,7 @@ Each file defines **one role** in the AI OS using a fixed skeleton:
 | [qa.md](qa.md) | Technical | QA — pre-merge verification gate |
 | [security.md](security.md) | Technical | Security — threat review & posture |
 | [devops.md](devops.md) | Technical | DevOps — build / release / environments |
+| [tech-writer.md](tech-writer.md) | Technical | Tech Writer — specifications, ICDs, system documentation |
 
 ## Retained legacy agents
 

@@ -22,6 +22,7 @@ When to do work myself (CEO hat) vs spawn a sub-agent.
 | **security** | Threat review, audits; reports, does not fix | `agents/security.md` |
 | **devops** | Build / release / environments (forward-looking) | `agents/devops.md` |
 | **cloud-architect** | Cloud infrastructure design, service selection, networking, cost | `agents/cloud-architect.md` |
+| **tech-writer** | Specifications, ICDs, system documentation from code/JIRA | `agents/tech-writer.md` |
 
 **Legacy agents retained** (still spawnable): `cto` (→ use architect), `frontend` (**owns the Razor admin UI** — no new-roster owner for it), `mobile` (Android/iOS, not started), `python` (→ split into desktop-agent + analyzer-ai).
 
@@ -45,6 +46,7 @@ When to do work myself (CEO hat) vs spawn a sub-agent.
 | Pre-merge review of non-trivial code | ❌ | **QA** | **MANDATORY** |
 | Security audit | ❌ | **3 parallel general-purpose** | Existing pattern |
 | Deep research with many file reads | ❌ | **Explore / general-purpose** | Protects my context |
+| Write/update specs, ICDs, system docs | ❌ | **Tech Writer** | Reads code + JIRA, produces documentation |
 | Cross-stack feature (backend + frontend) | ❌ | **CTO breaks down → spawns programmers in parallel** | |
 
 ## When NOT to delegate (override the matrix)
