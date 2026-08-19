@@ -175,7 +175,7 @@
 
   .apps-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 12px;
   }
 
@@ -555,6 +555,12 @@
     align-self: center;
   }
 
+  @media (max-width: 900px) {
+    .apps-row {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
   @media (max-width: 680px) {
     .apps-row, .services-row {
       grid-template-columns: 1fr;
@@ -629,6 +635,17 @@
             </div>
             <div class="ports-list">
               <span class="port-chip">:8080</span>
+            </div>
+          </div>
+
+          <div class="app-card public">
+            <div class="app-name">Angular Admin <span class="badge badge-https">HTTPS</span></div>
+            <div class="app-detail">
+              Angular admin dashboard<br>
+              nginx + runtime config, calls WebApi/Keycloak directly
+            </div>
+            <div class="ports-list">
+              <span class="port-chip">:80</span>
             </div>
           </div>
 

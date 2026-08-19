@@ -2,7 +2,7 @@
 
 **JIRA:** ASPS-693 (Epic)
 **Status:** In Progress
-**Last updated:** 2026-08-18
+**Last updated:** 2026-08-19
 
 ---
 
@@ -21,7 +21,7 @@
 | 10. Database Migration | ASPS-704 | Done | 29 migrations (24 EF + 5 manual) |
 | 11. E2E Verification | — | Done | CQRS queries flowing WebApi→Backend→MySQL |
 | 12. Monitoring | ASPS-705 | Done | Log Analytics, App Insights, 5 alerts |
-| 13. CI/CD Pipeline | ASPS-706 | In Progress | Workflow created, secrets pending |
+| 13. CI/CD Pipeline | ASPS-706 | Done | Sidecar YAML deploy, OIDC auth, GitHub secrets + env configured |
 
 ## Architecture — Sidecar Pattern
 
@@ -130,9 +130,12 @@ ca-webapi-dev (Container App)
 - **Auth:** Azure AD app `github-actions-asps` (OIDC federated credentials for main + PRs)
 - **Roles:** Contributor on rg-asps-dev, AcrPush on ACR
 - **Triggers:** Push to main (when Backend/WebApi code changes), manual dispatch
-- **Pipeline:** detect-changes → build-test → build-push-{backend,webapi} → deploy-{backend,webapi}
-- **PENDING:** GitHub secrets (`AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`) must be set via GitHub web UI. Environment `dev` must be created.
-- **NOTE:** deploy-webapi step needs update for sidecar YAML deployment instead of simple image update
+- **Pipeline:** detect-changes → build-test → build-push-{backend,webapi,angular} → deploy (sidecar YAML)
+- **GitHub secrets:** `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` — configured
+- **GitHub environment:** `dev` — created
+- **Sidecar deploy:** Exports YAML → patches image tags with sed → re-applies via `az containerapp update --yaml`
+- **Manual dispatch:** `gh workflow run deploy.yml -f deploy_backend=true -f deploy_webapi=true`
+- **Angular admin:** build-push job exists, no Container App yet (future)
 
 ## Networking Fix — History
 
@@ -162,17 +165,15 @@ All recorded in `__EFMigrationsHistory`. Total: 29 migrations.
 - DataProtection keys stored in ephemeral container storage (WebApi warning) — needs persistent volume or Azure Blob
 - Application Insights SDK not yet integrated into .NET code (requires code change + rebuild)
 - Sidecar pattern means device-facing TCP ports (50001, 50002) are NOT externally reachable — OK for dev, needs separate Backend app or different networking for production
-- CI/CD deploy step needs update for sidecar YAML deployment (currently does simple `az containerapp update --image`)
+- CI/CD pipeline complete — sidecar YAML deploy working; Angular admin Container App not yet created
 
 ## Continuation Point
 
 **E2E verified working.** Dashboard loads, CQRS queries succeed, SSO flow works.
 
 Remaining:
-- Set GitHub Actions secrets via web UI (3 values: `AZURE_CLIENT_ID=e3acd155-ce1a-4257-8a41-fd8017e7e72a`, `AZURE_TENANT_ID=5d3a01c0-eccb-4b50-8798-609b92c89098`, `AZURE_SUBSCRIPTION_ID=d9f067ae-8b6e-42a9-a45f-4918c20f2bbb`)
-- Create GitHub environment "dev"
-- Update CI/CD pipeline deploy step for sidecar YAML deployment
 - Delete `ca-backend-dev` once sidecar is confirmed stable
+- Create Angular admin Container App in Azure
 - Bicep IaC (future)
 - Application Insights SDK integration (future code change)
 - Production networking for device-facing ports (future)
