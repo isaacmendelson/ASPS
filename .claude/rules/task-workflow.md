@@ -94,10 +94,18 @@ After QA returns **FAIL**:
 
 | Transition | ID | Who triggers |
 |---|---|---|
-| To Do → In Progress | 21 | Orchestrator (on assignment) |
+| To Do → In Progress | 21 | Orchestrator (on assignment) or implementing agent (on start) |
 | In Progress → In Review | 31 | Developer agent (after QA PASS + PR opened) |
 | In Review → Done | 41 | Orchestrator (after code review approval + merge) |
 | In Review → In Progress | 21 | Orchestrator (if code review fails) |
+
+## Agent labels on JIRA issues
+
+Every agent that works on a JIRA issue must add its agent name to the issue's **Labels** field before starting work. This makes it clear which agent handled each issue.
+
+- When an agent receives a task, it sets the label to its own role name (e.g., `devops`, `backend`, `security`).
+- If multiple agents work on the same issue, all agent names appear as labels.
+- The orchestrator sets labels when creating sub-tasks if the assignee agent is known.
 
 ## Parent issue status propagation
 
