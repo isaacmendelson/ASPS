@@ -143,6 +143,13 @@ When a sub-agent reports work done — open the actual files and confirm before 
 ### No silent side-fixes
 If I notice another bug while doing X — mention it, ask whether to address, don't bundle silently.
 
+### Azure docs — update on every change
+Any change to Azure infrastructure, CI/CD pipeline, Container Apps, or cloud configuration must update the relevant docs before the work is considered done:
+- `docs/cloud/AZURE_DEPLOYMENT_GUIDE.md` — step-by-step guide, current state table
+- `docs/cloud/AZURE_ARCHITECTURE.md` — architecture overview, resource inventory
+- `docs/cloud/ASPS_Azure_Architecture.html` — visual diagram
+- `docs/cloud/azure/troubleshooting.md` — new issues and solutions
+
 ### Destructive operations — confirm first
 `rm -rf`, `git reset --hard`, `git push --force`, `DROP TABLE`, etc. — always confirm.
 

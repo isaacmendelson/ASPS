@@ -18,15 +18,17 @@
 | Key Vault | `kv-asps-dev` | North Europe | RBAC mode |
 | Managed Identity | `id-asps-dev` | North Europe | KV Secrets User + AcrPull |
 | Storage Account | `staspsdev` | North Europe | curve-keys file share |
-| Backend Image | `asps-backend:0.2.0` | ACR | Pushed |
-| WebApi Image | `asps-webapi:0.1.0` | ACR | Pushed |
+| Backend Image | `asps-backend:latest` | ACR | CI/CD auto-tagged `YYYYMMDD-<sha7>` |
+| WebApi Image | `asps-webapi:latest` | ACR | CI/CD auto-tagged `YYYYMMDD-<sha7>` |
+| Angular Admin Image | `asps-angular-admin:latest` | ACR | CI/CD auto-tagged (no Container App yet) |
 
 | Application Insights | `appi-asps-dev` | North Europe | Connected |
 | Container App: Keycloak | `ca-keycloak-dev` | North Europe | **Running** |
 | Container App: WebApi+Backend | `ca-webapi-dev` | North Europe | **Running** (sidecar) |
+| Container App: Angular Admin | `ca-angular-admin-dev` | — | **Planned** (image in ACR, no app) |
 | Container App: Backend (old) | `ca-backend-dev` | North Europe | **Deactivated** |
 
-All services deployed, verified, and data migrated from local.
+All services deployed, verified, and data migrated from local. CI/CD pipeline operational.
 
 ---
 
@@ -215,27 +217,29 @@ Keycloak's recommended database and avoids this issue entirely.
 **Implementation:**
 1. Pin Keycloak image version (match local dev version)
 2. Mirror image to ACR: `acraspsisaacdev.azurecr.io/keycloak:<version>`
-3. Create `keycloak` database on Azure MySQL Flexible Server
+3. Create `keycloak` database on Azure PostgreSQL Flexible Server (NOT MySQL — see AD-6)
 4. Export local realm: `docker exec keycloak /opt/keycloak/bin/kc.sh export --realm asps --file /tmp/realm.json`
 5. Deploy Container App:
    ```bash
    az containerapp create \
-     --name ca-asps-keycloak \
+     --name ca-keycloak-dev \
      --resource-group rg-asps-dev \
      --environment cae-asps-dev \
-     --image acraspsisaacdev.azurecr.io/keycloak:<version> \
+     --image quay.io/keycloak/keycloak:26.0 \
      --target-port 8080 \
      --ingress external \
      --min-replicas 1 --max-replicas 1 \
-     --cpu 0.5 --memory 1Gi \
+     --cpu 1.0 --memory 2Gi \
      --env-vars \
-       KC_DB=mysql \
-       KC_DB_URL=secretref:kc-db-url \
-       KC_DB_USERNAME=secretref:kc-db-user \
+       KC_DB=postgres \
+       KC_DB_URL=jdbc:postgresql://pg-asps-keycloak-dev.postgres.database.azure.com:5432/keycloak \
+       KC_DB_USERNAME=kcadmin \
        KC_DB_PASSWORD=secretref:kc-db-pass \
-       KEYCLOAK_ADMIN=secretref:kc-admin-user \
+       KEYCLOAK_ADMIN=admin \
        KEYCLOAK_ADMIN_PASSWORD=secretref:kc-admin-pass \
-       KC_HOSTNAME_STRICT=false
+       KC_HOSTNAME_STRICT=false \
+       KC_HTTP_ENABLED=true \
+       KC_PROXY_HEADERS=xforwarded
    ```
 6. Import realm to cloud Keycloak
 7. Update Backend + WebApi `Authority` URLs to point to cloud Keycloak FQDN
@@ -277,7 +281,7 @@ experience with a production-like system.
 
 Order matters — each step depends on the previous ones.
 
-### Step 0: Networking Validation — Checkpoint 0
+### Step 0: Networking Validation — Checkpoint 0 — DONE
 
 > **Gate:** Must pass before any resource provisioning.
 
@@ -321,7 +325,7 @@ az containerapp env create \
 - External TCP ingress is supported (requires VNet)
 - Private connectivity to MySQL is possible via VNet integration / private endpoint
 
-### Step 1: Azure Database for MySQL Flexible Server (ASPS-695)
+### Step 1: Azure Database for MySQL Flexible Server (ASPS-695) — DONE
 
 ```bash
 # Create MySQL Flexible Server
@@ -336,9 +340,8 @@ az mysql flexible-server create \
   --version 8.0.21 \
   --public-access None
 
-# Create databases
+# Create database (Keycloak uses PostgreSQL — see Step 6)
 az mysql flexible-server db create --resource-group rg-asps-dev --server-name mysql-asps-dev --database-name aspsbackend2db
-az mysql flexible-server db create --resource-group rg-asps-dev --server-name mysql-asps-dev --database-name keycloak
 ```
 
 Connection string format for EF Core (Pomelo):
@@ -346,7 +349,7 @@ Connection string format for EF Core (Pomelo):
 server=mysql-asps-dev.mysql.database.azure.com;port=3306;database=aspsbackend2db;user=aspsadmin;password=<PASSWORD>;SslMode=Required;
 ```
 
-### Step 2: Azure Key Vault + Managed Identity (ASPS-696)
+### Step 2: Azure Key Vault + Managed Identity (ASPS-696) — DONE
 
 ```bash
 # Create Key Vault
@@ -383,7 +386,7 @@ az keyvault secret set --vault-name kv-asps-dev --name keycloak-admin-password -
 az keyvault secret set --vault-name kv-asps-dev --name keycloak-client-secret --value "<SECRET>"
 ```
 
-### Step 3: Azure Storage Account + Files Share (ASPS-697)
+### Step 3: Azure Storage Account + Files Share (ASPS-697) — DONE
 
 ```bash
 # Create Storage Account
@@ -403,7 +406,7 @@ az storage share create \
 az storage account keys list --resource-group rg-asps-dev --account-name staspsdev --query "[0].value" -o tsv
 ```
 
-### Step 4: Create WebApi Dockerfile + push to ACR (ASPS-698)
+### Step 4: Create WebApi Dockerfile + push to ACR (ASPS-698) — DONE
 
 ```dockerfile
 # WebApi Dockerfile (ASPSBackend14_J/WebApi/Dockerfile)
@@ -431,7 +434,7 @@ az acr login --name acraspsisaacdev
 docker push acraspsisaacdev.azurecr.io/asps-webapi:0.1.0
 ```
 
-### Step 5: Update Backend Docker image (ASPS-701)
+### Step 5: Update Backend Docker image (ASPS-701) — DONE
 
 The existing `asps-backend:0.1.0` needs updating to include Python + Playwright (AD-1 Phase 1).
 
@@ -461,7 +464,7 @@ docker build -f ASPSBackend/Dockerfile -t acraspsisaacdev.azurecr.io/asps-backen
 docker push acraspsisaacdev.azurecr.io/asps-backend:0.2.0
 ```
 
-### Step 6: Deploy Keycloak (ASPS-700)
+### Step 6: Deploy Keycloak (ASPS-700) — DONE
 
 > **Note:** Uses PostgreSQL (not MySQL) due to Azure MySQL `lower_case_table_names=1` incompatibility.
 > First-start Liquibase migration (148 changesets) needs ~2-5 min — startup probe configured with 530s window.
@@ -644,7 +647,7 @@ az containerapp job create \
 # Verify job has same network connectivity to MySQL and Managed Identity for Key Vault secrets
 ```
 
-### Step 11: End-to-End Tests
+### Step 11: End-to-End Tests — DONE
 
 Before monitoring/CI/CD, verify the system works:
 
@@ -673,32 +676,49 @@ Before monitoring/CI/CD, verify the system works:
 | `alert-backend-restarts` | 2 (Error) | RestartCount > 3 | 15min |
 | `alert-webapi-restarts` | 2 (Error) | RestartCount > 3 | 15min |
 
-### Step 13: CI/CD (ASPS-706) — IN PROGRESS
+### Step 13: CI/CD (ASPS-706) — DONE
 
 **Workflow:** `.github/workflows/deploy.yml`
 
 **Pipeline stages:**
 1. `detect-changes` — dorny/paths-filter to determine which images need rebuild
-2. `build-test` — `dotnet build` + `dotnet test` on ubuntu-latest
-3. `build-push-backend` — ACR cloud build, tag = `YYYYMMDD-<sha7>`
+2. `build-test` — `dotnet build` + `dotnet test` on ubuntu-latest (full clone for Nerdbank.GitVersioning)
+3. `build-push-backend` — ACR cloud build (`az acr build`), tag = `YYYYMMDD-<sha7>` + `latest`
 4. `build-push-webapi` — ACR cloud build, same tagging
-5. `deploy-backend` — `az containerapp update --image`
-6. `deploy-webapi` — `az containerapp update --image`
+5. `build-push-angular` — ACR cloud build for Angular admin (no Container App yet)
+6. `deploy` — unified sidecar deployment:
+   - Export current Container App YAML (`az containerapp show --output yaml`)
+   - Patch WebApi image tag with `sed`
+   - Patch Backend sidecar image tag with `sed`
+   - Apply updated YAML (`az containerapp update --yaml app.yaml`)
+   - Verify deployment (check latest revision name)
+
+**Why YAML patching?** `az containerapp update --image` only updates the main container. Backend runs as a sidecar — the only way to update it is via full YAML export/patch/apply.
 
 **Auth:** Azure AD OIDC (no stored credentials):
 - App: `github-actions-asps` (`e3acd155-ce1a-4257-8a41-fd8017e7e72a`)
-- Federated credentials: main branch + pull requests
+- Federated credentials:
+  - `github-actions-main` — subject: `repo:isaacmendelson/ASPS:ref:refs/heads/main` (build jobs)
+  - `github-actions-pr` — subject: `repo:isaacmendelson/ASPS:pull_request` (PR builds)
+  - `github-env-dev` — subject: `repo:isaacmendelson/ASPS:environment:dev` (deploy job)
 - Roles: Contributor on rg-asps-dev, AcrPush on ACR
 
-**Setup completed (2026-08-18):**
+**Triggers:**
+- **Automatic:** push to `main` with changes in `ASPSBackend14_J/`, `Analyzers/`, `apps/admin/angular/`, or `.github/workflows/deploy.yml`
+- **Manual:** `gh workflow run deploy.yml -f deploy_backend=true -f deploy_webapi=true` (requires `Actions` permission on GitHub PAT)
+
+**Setup completed (2026-08-19):**
 1. GitHub repo → Settings → Secrets → `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` ✓
 2. GitHub repo → Settings → Environments → `dev` environment created ✓
+3. Pipeline green — build+test passing ✓
+4. GitHub PAT updated with Actions permission for workflow dispatch ✓
+5. Azure AD federated credential `github-env-dev` added for deploy job ✓
 
 **TODO — `dev` environment hardening:**
 - Required reviewers — אישור לפני deploy
 - Branch restriction — רק main יכול לעשות deploy
 
-**NOTE:** Deploy steps need update for sidecar YAML deployment (currently `az containerapp update --image`).
+**Angular admin:** Pipeline builds and pushes the image to ACR, but no Container App exists yet. Future step.
 
 ### Step 14: Bicep — Infrastructure as Code (AD-7)
 
