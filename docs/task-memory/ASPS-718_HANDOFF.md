@@ -26,7 +26,7 @@ WebSocket gateway in WebApi that bridges WS connections (through HTTP ingress) t
 | ASPS-720 | Backend: WebSocket Gateway hosted service | backend | Done (JIRA Done 2026-08-19) |
 | ASPS-721 | Desktop Agent: WebSocket transport layer | desktop-agent | Done (JIRA Done 2026-08-19) |
 | ASPS-722 | Message protocol: WS-ZMQ frame mapping spec | architect | Done |
-| ASPS-723 | E2E test: Desktop agent alert via WebSocket | qa | To Do |
+| ASPS-723 | E2E test: Desktop agent alert via WebSocket | backend → qa | In Progress (JIRA In Progress 2026-08-19) |
 
 ## Architecture
 
@@ -107,7 +107,14 @@ Modified files:
 
 ## Continuation Point
 
-All complete. PR #29 merged 2026-08-19. JIRA ASPS-718 → Done.
+PR #29 merged 2026-08-19. ASPS-718 In Progress (ASPS-723 still open).
 
-Remaining follow-up:
-- ASPS-723: E2E test (Desktop agent alert via WebSocket to Azure) — To Do
+### ASPS-723: E2E Test — Current Status
+
+**QA assessment (2026-08-19):** Testability blocker found.
+- `AgentWebSocketMiddleware.cs:50` resolves concrete sealed `AgentGatewayService` instead of `IAgentBackendGateway` interface
+- This prevents mock injection for E2E tests of the success path (auth + alert forwarding + notifications)
+- 8 of 12 E2E scenarios can be tested without changes (HTTP rejection, unauthenticated errors, frame validation)
+- 4 scenarios blocked: auth round-trip, alert forwarding, notification delivery
+
+**Fix in progress:** Backend agent refactoring middleware to resolve `IAgentBackendGateway` + connection limiter interface instead of concrete class. After fix completes → QA agent writes full E2E test suite.
