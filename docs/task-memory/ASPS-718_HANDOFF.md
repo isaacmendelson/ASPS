@@ -1,7 +1,9 @@
 # ASPS-718: WebSocket Gateway for Desktop Agent Cloud Connectivity
 
 **JIRA:** ASPS-718 (Story under ASPS-693 Epic)
-**Status:** In Progress — implementation complete, pending QA + commit
+**Status:** In Progress — code merged to main via PR #29, ASPS-723 (E2E test) still To Do
+**Branch:** `asps-718-websocket-gateway-for-desktop-agent-cloud-connectivity`
+**Commit:** `f37e5cf`
 **Last updated:** 2026-08-19
 
 ---
@@ -21,8 +23,8 @@ WebSocket gateway in WebApi that bridges WS connections (through HTTP ingress) t
 | JIRA | Task | Agent | Status |
 |---|---|---|---|
 | ASPS-719 | ADR: WebSocket Gateway architecture decision | architect | Done |
-| ASPS-720 | Backend: WebSocket Gateway hosted service | backend | Done (code verified, not committed) |
-| ASPS-721 | Desktop Agent: WebSocket transport layer | desktop-agent | Done (code verified, not committed) |
+| ASPS-720 | Backend: WebSocket Gateway hosted service | backend | Done (JIRA Done 2026-08-19) |
+| ASPS-721 | Desktop Agent: WebSocket transport layer | desktop-agent | Done (JIRA Done 2026-08-19) |
 | ASPS-722 | Message protocol: WS-ZMQ frame mapping spec | architect | Done |
 | ASPS-723 | E2E test: Desktop agent alert via WebSocket | qa | To Do |
 
@@ -95,10 +97,17 @@ Modified files:
 5. **`alert_builders.py` extracted** — DRY: both transports produce byte-identical payloads
 6. **TRANSPORT_MODE config** — "zmq" (default, local) or "ws" (Azure); selected via config_override.py at build time
 
+## Completed Steps
+
+- [x] CEO code review of both implementations — verified
+- [x] System specification docs updated (ASPS_System_Specification.md, ASPS_DATA_FLOW.md, DESKTOP_AGENT_FEATURES.md)
+- [x] All changes committed to branch `asps-718-websocket-gateway-for-desktop-agent-cloud-connectivity` (commit `f37e5cf`)
+- [x] Branch pushed to origin
+- [x] JIRA: ASPS-720, ASPS-721 → Done (2026-08-19)
+
 ## Continuation Point
 
-Implementation complete. Next steps:
-1. CEO code review of both implementations
-2. QA gate (ASPS-723: E2E test)
-3. Commit all changes to task branch
-4. Update JIRA statuses (ASPS-720, ASPS-721 → Done)
+All complete. PR #29 merged 2026-08-19. JIRA ASPS-718 → Done.
+
+Remaining follow-up:
+- ASPS-723: E2E test (Desktop agent alert via WebSocket to Azure) — To Do
