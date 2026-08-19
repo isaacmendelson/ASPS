@@ -128,6 +128,69 @@ docker compose up -d keycloak
 
 **Note:** Must run from the project directory (where `docker-compose.yml` lives). Running from another directory gives "no configuration file provided".
 
+## Container Apps — nginx CrashLoopBackOff, "host not found in upstream"
+
+**Symptom:**
+```
+2026/08/19 18:53:31 [emerg] 1#1: host not found in upstream "webapi" in /etc/nginx/conf.d/default.conf:18
+nginx: [emerg] host not found in upstream "webapi" in /etc/nginx/conf.d/default.conf:18
+```
+Container replica stuck in `CrashLoopBackOff`, `runningState: Waiting`.
+
+**Cause:** `apps/admin/angular/nginx.conf` had `proxy_pass http://webapi:8080/...` blocks
+targeting the Docker-Compose-only service hostname `webapi`. nginx resolves upstream
+hostnames **at config-load time** (no `resolver` + variable indirection was used), so if the
+hostname doesn't resolve via DNS — true for any environment other than the Compose network,
+including Azure Container Apps — nginx refuses to start at all.
+
+**Resolution:** confirmed the Angular app never calls those relative paths (`ApiService` and
+`SignalRService` always use the absolute `RuntimeConfigService.apiUrl`), so the blocks were
+dead code. Removed both `proxy_pass` location blocks from `nginx.conf`. Rebuilt and pushed the
+image (`az acr build`), then `az containerapp update --image <new-tag>`.
+
+**Diagnosis commands:**
+```bash
+az containerapp replica list --name <app> --resource-group <rg> \
+  --query "[0].properties.containers[].{name:name,ready:ready,state:runningState,details:runningStateDetails}"
+az containerapp logs show --name <app> --resource-group <rg> --container <container> --tail 60
+```
+
+## `az` CLI — resource ID rejected despite looking correct (MSYS path conversion)
+
+**Symptom:**
+```
+ERROR: --registry-identity must be an identity resource ID or 'system' or 'system-environment'
+```
+even though the resource ID string looks correct and validates fine when tested directly against
+`azure.mgmt.core.tools.is_valid_resource_id`.
+
+**Cause:** Git Bash / MSYS2 on Windows auto-converts arguments that look like POSIX absolute paths
+(anything starting with `/`) into Windows paths before they reach the process — so
+`/subscriptions/<id>/resourceGroups/...` silently gets mangled before `az` ever sees it.
+
+**Resolution:** set `export MSYS_NO_PATHCONV=1` before running `az` commands that pass Azure
+resource IDs as arguments (`--registry-identity`, `--user-assigned`, `--scope`, etc.) from Git Bash.
+
+## `az acr build` — UnicodeEncodeError while streaming build logs (Windows console)
+
+**Symptom:**
+```
+UnicodeEncodeError: 'charmap' codec can't encode character '❯' in position 108
+```
+CLI crashes while streaming remote build logs (e.g. Angular CLI's `❯` banner character), even
+though the ACR Task itself keeps running and can succeed.
+
+**Cause:** Windows console codepage (cp1252) can't render some UTF-8 characters emitted by the
+build (npm/ng banners). This is a local log-streaming display failure, not a build failure.
+
+**Resolution:** the remote ACR Task run is unaffected — poll it independently instead of relying
+on the crashed CLI output:
+```bash
+az acr task list-runs --registry <registry> --top 1 --query "[0].status" -o tsv
+```
+Setting `export PYTHONIOENCODING=utf-8` before the command reduces (but doesn't fully eliminate)
+the crash risk.
+
 ## Local dev — Docker containers using stale images
 
 **Symptom:** After `docker compose build`, containers still run old code.

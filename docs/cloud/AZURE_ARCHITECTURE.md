@@ -21,7 +21,7 @@ Backend runs as a **sidecar container** inside the WebApi Container App (`ca-web
     ┌──────────────────┼──────────────────────────────┐
     |                  |                              |
     |   ca-webapi-dev (sidecar)    ca-keycloak-dev    |   ca-angular-admin-dev
-    |   ┌─────────────────────┐    (OIDC provider)    |   (planned)
+    |   ┌─────────────────────┐    (OIDC provider)    |   (nginx SPA)
     |   │ WebApi (main, :8080)│         |             |
     |   │  → localhost:5556   │         |             |
     |   │  → localhost:5555   │         |             |
@@ -79,12 +79,22 @@ Backend runs as a **sidecar container** inside the WebApi Container App (`ca-web
 - Startup probe: `/health/started`, 530s window (for Liquibase migrations)
 - Liveness probe: `/health/live`, 30s interval
 
-### ca-angular-admin-dev — Angular Admin (planned)
+### ca-angular-admin-dev — Angular Admin
 
-**Status:** Not yet created
-**Image:** `asps-angular-admin:<tag>` (built and pushed to ACR by CI/CD)
+**URL:** `https://ca-angular-admin-dev.purplesand-dfb51ae4.northeurope.azurecontainerapps.io/`
+**Ingress:** External HTTPS on port 80 (nginx)
+**Image:** `asps-angular-admin:<tag>` (built and pushed to ACR by CI/CD, deployed by `deploy-angular` job)
+**CPU/Memory:** 0.25 / 0.5 Gi
+**Status:** Running (ASPS-724)
 
-The Angular admin dashboard. Currently runs locally (`npm start` on 4200) or via Docker Compose (nginx on 4201). CI/CD pipeline builds the image, but no Container App exists in Azure yet.
+The Angular admin dashboard SPA, served by nginx. Runtime config (`apiUrl`, `keycloakUrl`,
+`keycloakRealm`, `keycloakClientId`) is written to `/assets/runtime-config.json` from
+container env vars (`API_URL`, `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`) at
+startup — same image works unmodified across dev/staging/prod. The SPA calls `ca-webapi-dev`
+and `ca-keycloak-dev` directly (absolute URLs), not through nginx `proxy_pass` — CORS on
+`ca-webapi-dev` allows this origin. Registry auth and identity reuse `id-asps-dev` (already
+has `AcrPull`), same pattern as `ca-webapi-dev`. Also runs locally via `npm start` (port 4200)
+or Docker Compose (nginx on 4201).
 
 ### ca-backend-dev — Backend standalone (deactivated)
 
@@ -137,6 +147,7 @@ All inter-service communication within `ca-webapi-dev` uses **localhost** (sidec
 | 50002 | TCP | Backend Notifications | Internal (localhost) | CURVE encryption |
 | 5555 | TCP | Backend (legacy) | Not exposed | None — excluded |
 | 8080 | HTTP | Keycloak | Public HTTPS (ingress) | Admin credentials |
+| 80 | HTTP | Angular Admin (nginx) | Public HTTPS (ingress) | Keycloak OIDC (PKCE, browser-side) |
 | 3306 | TCP | MySQL | Private | Username/password |
 
 **Note:** Device-facing TCP ports (50001, 50002) are NOT externally reachable in sidecar mode. OK for dev — production will need direct TCP ingress or a separate Backend Container App.
@@ -153,17 +164,20 @@ push to main (code changes)
        |
   detect-changes ──→ build-test
        |                  |
-  ┌────┴────┐            |
-  |         |            |
-build-push  build-push   build-push
+  ┌────┴──────┬──────────┐
+  |           |          |
+build-push  build-push  build-push
  backend     webapi      angular
-  |         |
-  └────┬────┘
-       |
-    deploy (sidecar YAML patch)
+  |           |          |
+  └─────┬─────┘          |
+        |                |
+     deploy          deploy-angular
+  (sidecar YAML)    (simple --image)
 ```
 
-**Deploy mechanism:** Export Container App YAML → patch image tags with `sed` → re-apply with `az containerapp update --yaml`. This is required because `--image` only updates the main container, not sidecars.
+**Deploy mechanism (WebApi + Backend):** Export Container App YAML → patch image tags with `sed` → re-apply with `az containerapp update --yaml`. Required because `--image` only updates the main container, not sidecars.
+
+**Deploy mechanism (Angular Admin):** `ca-angular-admin-dev` is a single-container app — `az containerapp update --image` is sufficient, no YAML patching needed.
 
 **Manual trigger:** `gh workflow run deploy.yml -f deploy_backend=true -f deploy_webapi=true`
 
@@ -196,6 +210,7 @@ Detailed in [AZURE_DEPLOYMENT_GUIDE.md](AZURE_DEPLOYMENT_GUIDE.md#architecture-d
 | AD-5 | Database Migrations | Container Apps Job with `--migrate-only` flag |
 | AD-6 | Keycloak | Container App with PostgreSQL (MySQL incompatible) |
 | AD-7 | Infrastructure as Code | CLI first → Bicep after deployment stabilizes |
+| AD-8 | Angular Admin Deployment | Standalone Container App (not sidecar), reuse `id-asps-dev` for ACR pull, CORS + Keycloak public client added (ASPS-724) |
 
 ---
 

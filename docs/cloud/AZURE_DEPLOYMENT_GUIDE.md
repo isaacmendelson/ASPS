@@ -20,12 +20,12 @@
 | Storage Account | `staspsdev` | North Europe | curve-keys file share |
 | Backend Image | `asps-backend:latest` | ACR | CI/CD auto-tagged `YYYYMMDD-<sha7>` |
 | WebApi Image | `asps-webapi:latest` | ACR | CI/CD auto-tagged `YYYYMMDD-<sha7>` |
-| Angular Admin Image | `asps-angular-admin:latest` | ACR | CI/CD auto-tagged (no Container App yet) |
+| Angular Admin Image | `asps-angular-admin:latest` | ACR | CI/CD auto-tagged `YYYYMMDD-<sha7>` |
 
 | Application Insights | `appi-asps-dev` | North Europe | Connected |
 | Container App: Keycloak | `ca-keycloak-dev` | North Europe | **Running** |
 | Container App: WebApi+Backend | `ca-webapi-dev` | North Europe | **Running** (sidecar) |
-| Container App: Angular Admin | `ca-angular-admin-dev` | — | **Planned** (image in ACR, no app) |
+| Container App: Angular Admin | `ca-angular-admin-dev` | North Europe | **Running** (ASPS-724) |
 | Container App: Backend (old) | `ca-backend-dev` | North Europe | **Deactivated** |
 
 All services deployed, verified, and data migrated from local. CI/CD pipeline operational.
@@ -718,9 +718,71 @@ Before monitoring/CI/CD, verify the system works:
 - Required reviewers — אישור לפני deploy
 - Branch restriction — רק main יכול לעשות deploy
 
-**Angular admin:** Pipeline builds and pushes the image to ACR, but no Container App exists yet. Future step.
+**Angular admin:** `build-push-angular` builds and pushes the image to ACR; `deploy-angular`
+(added ASPS-724) then runs `az containerapp update --image` against `ca-angular-admin-dev` —
+simple single-container update, no sidecar YAML patching needed.
 
-### Step 14: Bicep — Infrastructure as Code (AD-7)
+### Step 14: Angular Admin Container App (ASPS-724) — DONE
+
+**Status: Running** | URL: `https://ca-angular-admin-dev.purplesand-dfb51ae4.northeurope.azurecontainerapps.io/`
+
+```bash
+az containerapp create \
+  --name ca-angular-admin-dev \
+  --resource-group rg-asps-dev \
+  --environment cae-asps-dev \
+  --image acraspsisaacdev.azurecr.io/asps-angular-admin:latest \
+  --target-port 80 \
+  --ingress external \
+  --registry-server acraspsisaacdev.azurecr.io \
+  --registry-identity <id-asps-dev resource ID> \
+  --user-assigned <id-asps-dev resource ID> \
+  --min-replicas 1 --max-replicas 1 \
+  --cpu 0.25 --memory 0.5Gi \
+  --env-vars \
+    API_URL=https://ca-webapi-dev.purplesand-dfb51ae4.northeurope.azurecontainerapps.io \
+    KEYCLOAK_URL=https://ca-keycloak-dev.purplesand-dfb51ae4.northeurope.azurecontainerapps.io \
+    KEYCLOAK_REALM=asps \
+    KEYCLOAK_CLIENT_ID=asps-angular-admin
+```
+
+**Registry auth:** reuses the `id-asps-dev` managed identity (already has `AcrPull`) — same
+pattern as `ca-webapi-dev`, no new secrets.
+
+**Bug found + fixed during deployment:** `nginx.conf` had two `proxy_pass` blocks targeting the
+Docker-Compose-only hostname `webapi` (`/api/` and `/notificationshub`). nginx resolves upstream
+hostnames at config-load time; when `webapi` doesn't resolve (any environment other than the
+Compose network), nginx refuses to start → `CrashLoopBackOff`. The Angular app never actually
+calls those relative paths — `ApiService`/`SignalRService` always use the absolute
+`RuntimeConfigService.apiUrl` — so the blocks were dead code. Removed them from
+`apps/admin/angular/nginx.conf`; image rebuilt (`asps-angular-admin:20260819-nginxfix`) and
+redeployed. See [troubleshooting.md](azure/troubleshooting.md).
+
+**CORS:** `ca-webapi-dev` had no `Cors__AllowedOrigins__*` set (fell back to
+`http://localhost:4200` only). Added:
+```bash
+az containerapp update --name ca-webapi-dev --resource-group rg-asps-dev \
+  --container-name webapi \
+  --set-env-vars "Cors__AllowedOrigins__0=https://ca-angular-admin-dev.purplesand-dfb51ae4.northeurope.azurecontainerapps.io"
+```
+Verified via CORS preflight (`OPTIONS` with `Origin` header) → `access-control-allow-origin` echoes
+the Angular admin origin.
+
+**Keycloak client:** `asps-angular-admin` created in the `asps` realm (previously missing —
+confirmed via `GET /admin/realms/asps/clients?clientId=asps-angular-admin` returning `[]`).
+Per `docs/specs/ANGULAR_ADMIN_ARCHITECTURE.md` §3.6: public client, Standard Flow only, PKCE
+S256, redirect URIs / web origins / root URL set to the Container App URL (plus `localhost:4200`
+and `:4201` for local dev). Three protocol mappers added: `groups` (Group Membership →
+`groups` claim), `realm roles` (User Realm Role → `realm_access.roles`), `audience`
+(Audience Resolve → includes `asps-angular-admin` in token audience).
+
+**Verified:**
+- `GET /` → 200, SPA HTML served
+- `GET /assets/runtime-config.json` → correct `apiUrl`/`keycloakUrl`/`keycloakRealm`/`keycloakClientId`
+- CORS preflight from the Angular admin origin against `ca-webapi-dev` → allowed
+- Keycloak OIDC discovery (`/realms/asps/.well-known/openid-configuration`) → resolves, issuer matches
+
+### Step 15: Bicep — Infrastructure as Code (AD-7)
 
 Convert the working deployment to Bicep templates:
 
