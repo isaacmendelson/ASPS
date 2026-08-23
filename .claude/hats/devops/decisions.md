@@ -29,3 +29,28 @@ Verify each decision against current files before relying on it.
 
 - `CQRS_SHARED_SECRET` is the only mandatory external env var for compose.
   It uses `${VAR:?msg}` syntax to fail fast if missing.
+
+## Azure Container Apps — `az containerapp` CLI extension bug (2026-08-22, ASPS-727/728)
+
+- `az containerapp update --yaml`, `--replace-env-vars`, and `--set-env-vars` (extension
+  `1.3.0b4`, latest available) silently drop every plain (non-`secretRef`) env var value
+  on write — only `secretRef`-backed entries survive. Reproduced twice independently.
+  The only proven-safe CLI pattern is the existing CI/CD one: export YAML, `sed`-patch
+  *only* the image tag string, re-apply — do not restructure env/ingress via the CLI.
+- For anything else (new env vars, ingress port changes, etc.), use
+  `az rest --method patch --url ".../Microsoft.App/containerApps/{name}?api-version=2025-07-01"`
+  with a full `properties.configuration` + `properties.template` JSON body instead.
+  Fetch real secret values first via `az containerapp secret list --show-values` (ARM
+  PATCH does not auto-preserve secrets like the CLI does) — keep them in ephemeral
+  scratch files only, never logged or committed. Strip these fields from `show` output
+  before PATCHing (rejected as unknown at this api-version): `targetPortHttpScheme`
+  (ingress), `revisionTransitionThreshold`, `targetLabel` (configuration), `imageType`
+  (per container), `customMetricsSettings` (template). Poll
+  `properties.provisioningState` to `Succeeded` before issuing a new PATCH if a prior
+  operation may still be in flight (`409 ContainerAppOperationInProgress` otherwise).
+- Container Apps TCP ingress `external` is an all-or-nothing switch tied to whichever
+  port is the *main* `ingress.targetPort` — you cannot mark an `additionalPortMappings`
+  entry `external: true` while the main port's own `external` is `false`
+  (`ContainerAppInvalidIngressAdditionalPortMappings`). To get one port internal and
+  others external on the same app, make one of the *external* ports the main ingress
+  port and move the internal one into `additionalPortMappings` with `external: false`.

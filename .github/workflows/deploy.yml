@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       deploy_backend:
-        description: "Deploy Backend (sidecar)"
+        description: "Deploy Backend"
         type: boolean
         default: true
       deploy_webapi:
@@ -31,6 +31,7 @@ env:
   ACR_NAME: acraspsisaacdev
   RESOURCE_GROUP: rg-asps-dev
   WEBAPI_APP: ca-webapi-dev
+  BACKEND_APP: ca-backend-dev
   ANGULAR_APP: ca-angular-admin-dev
 
 jobs:
@@ -164,14 +165,13 @@ jobs:
             apps/admin/angular
 
   # ── Deploy to Azure Container Apps ────────────────────────
-  # Backend runs as a sidecar inside ca-webapi-dev (not a standalone app).
-  # Updating the sidecar requires exporting the current YAML, patching the
-  # image tag, and re-applying — `az containerapp update --image` only
-  # touches the main container.
+  # WebApi and Backend are separate standalone Container Apps (ASPS-729/730 —
+  # Backend split out of the ca-webapi-dev sidecar). Each is a simple
+  # single-container image update — no YAML export/patch/apply needed.
 
-  deploy:
-    needs: [build-push-backend, build-push-webapi]
-    if: always() && (needs.build-push-backend.result == 'success' || needs.build-push-webapi.result == 'success')
+  deploy-webapi:
+    needs: [build-push-webapi]
+    if: needs.build-push-webapi.result == 'success'
     runs-on: ubuntu-latest
     environment: dev
     steps:
@@ -182,39 +182,51 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Export current Container App config
-        run: |
-          az containerapp show \
-            --name ${{ env.WEBAPI_APP }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --output yaml > app.yaml
-
-      - name: Patch WebApi image
-        if: needs.build-push-webapi.result == 'success'
+      - name: Deploy WebApi image
         run: |
           TAG="${{ needs.build-push-webapi.outputs.image-tag }}"
-          sed -i "s|${{ env.ACR_NAME }}.azurecr.io/asps-webapi:[^ ]*|${{ env.ACR_NAME }}.azurecr.io/asps-webapi:${TAG}|g" app.yaml
-          echo "WebApi image → asps-webapi:${TAG}"
-
-      - name: Patch Backend sidecar image
-        if: needs.build-push-backend.result == 'success'
-        run: |
-          TAG="${{ needs.build-push-backend.outputs.image-tag }}"
-          sed -i "s|${{ env.ACR_NAME }}.azurecr.io/asps-backend:[^ ]*|${{ env.ACR_NAME }}.azurecr.io/asps-backend:${TAG}|g" app.yaml
-          echo "Backend sidecar image → asps-backend:${TAG}"
-
-      - name: Deploy sidecar Container App
-        run: |
           az containerapp update \
             --name ${{ env.WEBAPI_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --yaml app.yaml
+            --image ${{ env.ACR_NAME }}.azurecr.io/asps-webapi:${TAG}
+          echo "WebApi image → asps-webapi:${TAG}"
 
       - name: Verify deployment
         run: |
           sleep 15
           az containerapp show \
             --name ${{ env.WEBAPI_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "properties.latestRevisionName" \
+            --output tsv
+
+  deploy-backend:
+    needs: [build-push-backend]
+    if: needs.build-push-backend.result == 'success'
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy Backend image
+        run: |
+          TAG="${{ needs.build-push-backend.outputs.image-tag }}"
+          az containerapp update \
+            --name ${{ env.BACKEND_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/asps-backend:${TAG}
+          echo "Backend image → asps-backend:${TAG}"
+
+      - name: Verify deployment
+        run: |
+          sleep 15
+          az containerapp show \
+            --name ${{ env.BACKEND_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --query "properties.latestRevisionName" \
             --output tsv

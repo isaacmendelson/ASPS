@@ -655,8 +655,8 @@
 
     <!-- Connections -->
     <div class="connections">
-      <span class="conn">WebApi <span class="conn-arrow">&rarr;</span> :5556 CQRS+CURVE</span>
-      <span class="conn">WebApi <span class="conn-arrow">&larr;</span> :50002 PUB/SUB</span>
+      <span class="conn">WebApi <span class="conn-arrow">&rarr;</span> ca-backend-dev:5556 CQRS+CURVE (app-name TCP)</span>
+      <span class="conn">WebApi /ws/agent <span class="conn-arrow">&harr;</span> ca-backend-dev:50001/50002 (app-name TCP)</span>
       <span class="conn">Agents <span class="conn-arrow">&rarr;</span> :50001 CURVE</span>
     </div>
 
@@ -830,6 +830,16 @@
       <span class="step-name">Bicep &mdash; Infrastructure as Code</span>
       <span class="step-jira">&mdash;</span>
     </div>
+    <div class="step">
+      <span class="step-num">15</span>
+      <span class="step-name">Angular Admin Container App</span>
+      <span class="step-jira">ASPS-724</span>
+    </div>
+    <div class="step">
+      <span class="step-num">16</span>
+      <span class="step-name">Split Backend from WebApi sidecar &rarr; standalone (app-name TCP addressing)</span>
+      <span class="step-jira">ASPS-725&ndash;730</span>
+    </div>
   </div>
 
   <!-- Ports -->
@@ -871,8 +881,8 @@
           <td class="port-num">50002</td>
           <td>TCP</td>
           <td>Backend Notifications</td>
-          <td><span class="badge badge-internal">internal</span></td>
-          <td>CURVE encryption</td>
+          <td><span class="badge badge-tcp">ext tcp</span></td>
+          <td>CURVE encryption (app-name addressed by WebApi&rsquo;s /ws/agent gateway)</td>
         </tr>
         <tr style="opacity: 0.5;">
           <td class="port-num" style="text-decoration: line-through;">5555</td>
