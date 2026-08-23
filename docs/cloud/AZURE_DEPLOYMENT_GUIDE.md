@@ -24,45 +24,46 @@
 
 | Application Insights | `appi-asps-dev` | North Europe | Connected |
 | Container App: Keycloak | `ca-keycloak-dev` | North Europe | **Running** |
-| Container App: WebApi+Backend | `ca-webapi-dev` | North Europe | **Running** (sidecar) |
+| Container App: WebApi | `ca-webapi-dev` | North Europe | **Running** (standalone, sidecar removed ASPS-729) |
+| Container App: Backend | `ca-backend-dev` | North Europe | **Running** (standalone, ASPS-727) |
 | Container App: Angular Admin | `ca-angular-admin-dev` | North Europe | **Running** (ASPS-724) |
-| Container App: Backend (old) | `ca-backend-dev` | North Europe | **Deactivated** |
 
 All services deployed, verified, and data migrated from local. CI/CD pipeline operational.
 
 ---
 
-## Target Architecture — Sidecar Pattern
+## Target Architecture — Standalone Backend + WebApi (ASPS-725/726/727/728/729)
 
-> **Why sidecar?** Container Apps TCP ingress (Envoy proxy) does NOT forward ZMQ/CURVE
-> (ZMTP wire protocol). DNS resolves, TCP connects, but the CURVE handshake fails through
-> the proxy. Sidecar containers share localhost — no proxy, no problem.
+> **History:** originally deployed as a sidecar (Backend + WebApi in one Container App,
+> communicating via localhost) because Container Apps TCP ingress via **FQDN** does NOT
+> forward ZMQ/CURVE (ZMTP wire protocol) — DNS resolves, TCP connects, but the CURVE
+> handshake fails through the Envoy/HTTP-aware proxy path. ASPS-726 proved that **app-name
+> addressing** (`tcp://ca-backend-dev:<port>`, not the app's public FQDN) between two
+> Container Apps in the same environment forwards ZMQ/CURVE correctly. This unblocked
+> splitting Backend into its own standalone Container App (ASPS-727), pointing WebApi's
+> CQRS client and `/ws/agent` gateway (`AgentGatewayService`) at it via app-name TCP
+> (ASPS-728), and removing the sidecar entirely (ASPS-729).
 
 ```
                     Internet
                        |
-              Azure Container Apps Environment (cae-asps-dev)
+              Azure Container Apps Environment (cae-asps-dev, VNet-integrated)
                        |
-         ┌─────────────┼─────────────┐
-         |                           |
-    ca-webapi-dev (sidecar)      ca-keycloak-dev
-    ┌──────────────────────┐     (auth endpoint)
-    │ WebApi (main, :8080) │         |
-    │  └→ localhost:5556   │         |
-    │  └→ localhost:5555   │         |
-    │  └→ localhost:50001  │         |
-    │                      │         |
-    │ Backend (sidecar)    │         |
-    │  CQRS    tcp://*:5556│         |
-    │  NetMQ   tcp://*:5555│         |
-    │  Alerts  tcp://*:50001         |
-    │  Notif   tcp://*:50002         |
-    └──────────────────────┘         |
-                       |             |
-              ┌────────┼────────┬────┴────┐
-              |        |        |         |
+         ┌─────────────┼─────────────┬─────────────────┐
+         |                           |                 |
+    ca-webapi-dev                ca-backend-dev    ca-keycloak-dev
+    ┌──────────────────────┐     ┌────────────────┐  (auth endpoint)
+    │ WebApi (main, :8080) │     │ CQRS  tcp://*:5556
+    │  └→ ca-backend-dev:5556    │ NetMQ tcp://*:5555 (not exposed, AD-4)
+    │  └→ ca-backend-dev:50001/  │ Alerts tcp://*:50001 (external)
+    │       :50002 (/ws/agent)   │ Notif  tcp://*:50002 (external)
+    └──────────────────────┘     └────────────────┘
+                       |                 |            |
+              ┌────────┼────────┬───────┴────┬────────┘
+              |        |        |            |
          Azure MySQL  PG Flex  Key Vault  Azure Files
-         Flex Server  (KC DB)  (secrets)  (CURVE keys)
+         Flex Server  (KC DB)  (secrets)  (CURVE keys, shared:
+                                            webapi reads, backend r/w)
 ```
 
 Platform: **Azure Container Apps** (not AKS) — simpler, cheaper for dev, automatic HTTPS, built-in scaling.
@@ -108,6 +109,14 @@ Platform: **Azure Container Apps** (not AKS) — simpler, cheaper for dev, autom
 ### AD-3: Port 50001 (alert ingress)
 
 **Decision:** Use Container Apps TCP ingress via `additionalPortMappings`. Works as TCP pass-through — ZeroMQ/CURVE traffic passes transparently.
+
+> **Correction (ASPS-726, 2026-08-22):** the pass-through claim above is true for **external**
+> ingress (device-facing, port 50001/50002 on `ca-backend-dev`) but does NOT hold for
+> Container-App-to-Container-App traffic addressed by **FQDN** — that path goes through the
+> same Envoy/HTTP-aware proxy and strips the ZMTP wire protocol. What does work,
+> confirmed by direct test, is **app-name addressing** between two Container Apps in the
+> same environment (`tcp://ca-backend-dev:5556`, not the FQDN) — this is how WebApi now
+> reaches Backend post-ASPS-728/729, instead of localhost/sidecar networking.
 
 **Requirements:**
 1. Container Apps Environment MUST be deployed into a VNet (required for external TCP ingress)
@@ -274,6 +283,53 @@ version-controlled, but adds upfront investment.
 **Rationale for revision:** The deployment itself is the best context for writing Bicep — converting
 working CLI commands to templates, not writing templates from scratch. This also provides real IaC
 experience with a production-like system.
+
+### AD-9: Backend split from WebApi sidecar
+
+**Decision:** Standalone `ca-backend-dev` Container App + internal TCP ingress with app-name
+addressing, replacing the WebApi+Backend sidecar pattern.
+
+**Problem:** The sidecar pattern (AD-3's original rationale) coupled WebApi and Backend
+scaling/lifecycle — redeploying Backend required touching the WebApi Container App's YAML,
+and the two components couldn't scale independently.
+
+**Options evaluated:**
+- **A) Keep sidecar** — rejected, doesn't unblock independent scaling/deploys.
+- **B) Standalone Backend + FQDN ingress (chosen: rejected on testing)** — the original
+  assumption was that Container Apps TCP ingress cannot forward ZMQ/CURVE at all (any
+  addressing mode). ASPS-726 re-tested this specifically with **app-name** addressing
+  (as opposed to the FQDN addressing implicitly assumed in the original AD-3 test) and found
+  it **does** work.
+- **C) Standalone Backend + app-name TCP addressing (chosen)** — `ca-backend-dev` becomes a
+  standalone Container App with internal TCP ingress (5556) + external TCP ingress
+  (50001/50002, AD-3). WebApi connects via `tcp://ca-backend-dev:<port>` (app name, resolved
+  within the Container Apps Environment's internal DNS), not FQDN and not localhost.
+
+**Implementation (ASPS-725 through ASPS-730):**
+1. ASPS-726 — practical CURVE test proving app-name addressing works (see AD-3 correction above)
+2. ASPS-727 — reactivate `ca-backend-dev` as standalone Container App (own CPU/memory, own
+   CURVE key volume mount in read-write mode)
+3. ASPS-728 — point WebApi's CQRS client (`CQRS__Endpoint`) at `tcp://ca-backend-dev:5556`
+   (sidecar `backend` container kept running as a safety net during the transition)
+4. ASPS-729 — found and fixed a real gap: `AgentGatewayService` (the `/ws/agent` WebSocket
+   gateway bridging browser/other WebSocket clients to Backend's ROUTER/PUB sockets) hardcoded
+   `localhost` for ports 50001/50002 with no configurable host — this would have silently
+   broken (no exception, ZMQ connect is lazy) once the sidecar was removed. Fixed by adding
+   `AgentGatewayOptions.BackendHost` (default `"localhost"`, configurable via
+   `AgentGateway__BackendHost`). Set to `ca-backend-dev` on `ca-webapi-dev`, verified via
+   startup logs (`AgentGatewayService started — REQ endpoint tcp://ca-backend-dev:50001,
+   SUB endpoint tcp://ca-backend-dev:50002`), then removed the Backend sidecar container from
+   `ca-webapi-dev` entirely. WebApi resources reduced back to just its own 0.5 CPU / 1 Gi
+   (Backend's 1.0 CPU / 2 Gi allocation freed). The Azure Files `curve-keys` volume mount was
+   **kept** on WebApi — `CurveKeyManager` in client mode still reads the CURVE server public
+   key from `/keys/curve-server-public-key.txt` on that same mount.
+5. ASPS-730 — simplified CI/CD: `ca-backend-dev` and `ca-webapi-dev` are now both
+   single-container apps, so `az containerapp update --image` deploys each directly (same
+   pattern as `deploy-angular`) — no more YAML export/`sed`-patch/re-apply for a sidecar.
+
+**Rollback:** the previous sidecar YAML (WebApi + Backend containers together) is preserved in
+git history (this file, pre-ASPS-729 revision) and in `ca-webapi-dev`'s revision history
+(`ca-webapi-dev--0000005`, sidecar still present) if a rollback is ever needed.
 
 ---
 
@@ -493,9 +549,15 @@ Key container settings:
 - Startup probe: `/health/started`, 30s delay, 50 failures × 10s = 530s window
 - Liveness probe: `/health/live`, 30s interval, 3 failures
 
-### Steps 7+8: Deploy WebApi + Backend as Sidecar (ASPS-701/702) — DONE
+### Steps 7+8: Deploy WebApi + Backend as Sidecar (ASPS-701/702) — HISTORICAL, superseded by ASPS-725/729 (see Step 16)
 
-**Status: Running** | URL: `https://ca-webapi-dev.purplesand-dfb51ae4.northeurope.azurecontainerapps.io/`
+> **Superseded (2026-08-23, ASPS-729):** the sidecar pattern documented in this section was
+> removed. Backend now runs as its own standalone Container App (`ca-backend-dev`) and WebApi
+> connects to it over internal TCP via app-name addressing. See **Step 16** below for the
+> current architecture and the reasoning (AD-9). This section is kept for historical record
+> and rollback reference only — the YAML below no longer reflects the running configuration.
+
+**Status (at the time): Running** | URL: `https://ca-webapi-dev.purplesand-dfb51ae4.northeurope.azurecontainerapps.io/`
 **Revision:** `0000002` (WebApi main + Backend sidecar)
 
 > **Architecture change:** Originally deployed as separate Container Apps. TCP ingress
@@ -607,16 +669,18 @@ properties:
 
 **E2E verified:** `GetVersionQuery` ✓, `GetDashboardStatsQuery` ✓, SSO login ✓
 
-### Step 9: Networking (ASPS-703) — DONE
+### Step 9: Networking (ASPS-703) — HISTORICAL, superseded by ASPS-725/729 (see Step 16)
 
-Sidecar pattern — all inter-service communication via `localhost`. No TCP ingress needed for Backend ports.
+> At the time: sidecar pattern — all inter-service communication via `localhost`. No TCP
+> ingress needed for Backend ports. **This has since been replaced** — see Step 16 for the
+> current app-name TCP addressing approach.
 
 - WebApi → Backend CQRS: `tcp://localhost:5556`
 - WebApi → Backend NetMQ: `tcp://localhost:5555`
 - WebApi → Backend Alerts: `tcp://localhost:50001`
 - Keycloak: `https://ca-keycloak-dev.purplesand-dfb51ae4.northeurope.azurecontainerapps.io` (external HTTPS ingress)
 
-**Note:** Device-facing TCP ports (50001, 50002) are NOT externally reachable in sidecar mode. OK for dev — production will need a different networking approach.
+**Note:** Device-facing TCP ports (50001, 50002) were NOT externally reachable in sidecar mode. Post-ASPS-727, they are directly exposed on standalone `ca-backend-dev`.
 
 ### Step 10: Database Migration (ASPS-704) — DONE (manual)
 
@@ -680,20 +744,23 @@ Before monitoring/CI/CD, verify the system works:
 
 **Workflow:** `.github/workflows/deploy.yml`
 
-**Pipeline stages:**
+**Pipeline stages (current, post-ASPS-730):**
 1. `detect-changes` — dorny/paths-filter to determine which images need rebuild
 2. `build-test` — `dotnet build` + `dotnet test` on ubuntu-latest (full clone for Nerdbank.GitVersioning)
 3. `build-push-backend` — ACR cloud build (`az acr build`), tag = `YYYYMMDD-<sha7>` + `latest`
 4. `build-push-webapi` — ACR cloud build, same tagging
-5. `build-push-angular` — ACR cloud build for Angular admin (no Container App yet)
-6. `deploy` — unified sidecar deployment:
-   - Export current Container App YAML (`az containerapp show --output yaml`)
-   - Patch WebApi image tag with `sed`
-   - Patch Backend sidecar image tag with `sed`
-   - Apply updated YAML (`az containerapp update --yaml app.yaml`)
-   - Verify deployment (check latest revision name)
+5. `build-push-angular` — ACR cloud build for Angular admin
+6. `deploy-webapi` — `az containerapp update --image` against `ca-webapi-dev` (single container)
+7. `deploy-backend` — `az containerapp update --image` against `ca-backend-dev` (single container)
+8. `deploy-angular` — `az containerapp update --image` against `ca-angular-admin-dev` (single container)
 
-**Why YAML patching?** `az containerapp update --image` only updates the main container. Backend runs as a sidecar — the only way to update it is via full YAML export/patch/apply.
+> **Historical (pre-ASPS-730):** WebApi and Backend used to be deployed together via a single
+> `deploy` job that exported the `ca-webapi-dev` sidecar YAML, patched both image tags with
+> `sed`, and re-applied the whole YAML — because `az containerapp update --image` only updates
+> the container(s) you target and the sidecar had two containers sharing one Container App.
+> ASPS-729 removed the sidecar (Backend is now its own Container App), so ASPS-730 replaced
+> that single `deploy` job with two independent `deploy-webapi` / `deploy-backend` jobs, each a
+> plain `--image` update — same simple pattern `deploy-angular` already used.
 
 **Auth:** Azure AD OIDC (no stored credentials):
 - App: `github-actions-asps` (`e3acd155-ce1a-4257-8a41-fd8017e7e72a`)
@@ -792,17 +859,61 @@ Convert the working deployment to Bicep templates:
 4. Git-track under `infra/` or `deploy/bicep/`
 5. Integrate into CI/CD pipeline (Step 13)
 
+### Step 16: Split Backend into standalone Container App (ASPS-725/726/727/728/729/730) — DONE
+
+**Status: Running** | `ca-webapi-dev` (WebApi only) + `ca-backend-dev` (Backend only, active)
+
+See **AD-9** for the full rationale. Summary of the executed change:
+
+1. **ASPS-726 (test):** confirmed app-name TCP addressing (`tcp://ca-backend-dev:5556`, not
+   FQDN) forwards the ZMQ/CURVE handshake correctly between two Container Apps.
+2. **ASPS-727:** `ca-backend-dev` reactivated as a standalone Container App — same image as
+   the sidecar, own CPU/memory (1.0/2Gi), CURVE keys volume mounted read-write. Ingress:
+   50001 (main, external), 50002 (`additionalPortMappings`, external), 5556
+   (`additionalPortMappings`, internal). Port 5555 not mapped at all (AD-4).
+3. **ASPS-728:** `ca-webapi-dev`'s `webapi` container env vars updated —
+   `CQRS__Endpoint=tcp://ca-backend-dev:5556` (the sidecar `backend` container was kept
+   running as a safety net during the transition).
+4. **ASPS-729:**
+   - Added `AgentGateway__BackendHost=ca-backend-dev` to `webapi`'s env (requires an image
+     built from a commit including PR #32 / commit `4b2460e` — the AgentGatewayService
+     configurable-host fix; the image running at the time predated that fix and the env var
+     was inert until redeployed with a newer image).
+   - Verified via container logs: `AgentGatewayService started — REQ endpoint
+     tcp://ca-backend-dev:50001, SUB endpoint tcp://ca-backend-dev:50002`.
+   - Removed the `backend` sidecar container from `ca-webapi-dev` entirely (ARM PATCH,
+     `properties.template.containers` reduced to just `webapi`).
+   - `ca-webapi-dev` resources back down to just WebApi's own 0.5 CPU / 1 Gi (Backend's
+     1.0 CPU / 2 Gi freed).
+   - Azure Files `curve-keys` volume **kept** on `ca-webapi-dev` — `CurveKeyManager` client
+     mode still reads `/keys/curve-server-public-key.txt` from it.
+   - Verified again after removal: revision `Healthy`/`RunningAtMaxScale`, clean startup logs
+     (no connection errors), `GET /` → 302 (Keycloak redirect, proves the app serves
+     requests), Keycloak OIDC discovery → 200, standalone `ca-backend-dev` still
+     `Healthy`/`RunningAtMaxScale`.
+5. **ASPS-730:** `.github/workflows/deploy.yml` — replaced the single sidecar `deploy` job
+   (YAML export → `sed` patch → re-apply) with two independent jobs, `deploy-webapi` and
+   `deploy-backend`, each a plain `az containerapp update --image` (same pattern as
+   `deploy-angular`). Added `BACKEND_APP: ca-backend-dev` to the workflow's top-level `env`.
+
+**Az CLI note:** used the `az rest --method patch` workaround (see
+[`.claude/hats/devops/decisions.md`](../../.claude/hats/devops/decisions.md)) for both the
+env-var addition and the container-removal PATCH — `az containerapp update
+--set-env-vars`/`--yaml` silently drops plain env var values on this CLI extension version.
+The plain `--image`-only updates (new WebApi image, and the CI/CD jobs) do not hit this bug
+and used the normal CLI.
+
 ---
 
 ## Ports Reference
 
 | Port | Protocol | Service | Exposure | Notes |
 |---|---|---|---|---|
-| 5001 | HTTP | WebApi | Public (HTTPS via ingress) | Admin panel + REST API |
-| 5556 | TCP | Backend CQRS | Internal only | WebApi → Backend commands/queries |
-| 50001 | TCP | Backend Alerts | External (TBD) | Desktop agents → Backend (CURVE) |
-| 50002 | TCP | Backend Notifications | Internal only | Backend → WebApi (PUB/SUB) |
-| 5555 | TCP | Backend (legacy) | NOT exposed | Security debt — exclude from deployment |
+| 8080 | HTTP | WebApi | Public (HTTPS via ingress) | Admin panel + REST API |
+| 5556 | TCP | Backend CQRS | Internal only (app-name TCP ingress on `ca-backend-dev`) | WebApi → Backend commands/queries |
+| 50001 | TCP | Backend Alerts | External | Desktop agents → Backend (CURVE) |
+| 50002 | TCP | Backend Notifications | External (app-name addressed by WebApi's `/ws/agent` gateway) | Backend → WebApi (PUB/SUB) |
+| 5555 | TCP | Backend (legacy) | NOT exposed | Security debt — exclude from deployment (AD-4) |
 | 8080 | HTTP | Keycloak | Public (HTTPS via ingress) | OIDC login/token endpoints |
 | 3306 | TCP | MySQL | Private endpoint | Backend + Keycloak only |
 
@@ -810,7 +921,7 @@ Convert the working deployment to Bicep templates:
 
 ## Environment Variables Reference
 
-### Backend (ca-webapi-dev, sidecar container)
+### Backend (ca-backend-dev, standalone Container App, post-ASPS-727)
 
 | Variable | Value | Source |
 |---|---|---|
@@ -818,21 +929,24 @@ Convert the working deployment to Bicep templates:
 | `CQRS__SharedSecret` | HMAC shared secret | Key Vault secret |
 | `CQRS__BindEndpoint` | `tcp://*:5556` | Static |
 | `Security__CurveEnabled` | `true` | Static |
-| `Security__KeysFilePath` | `/keys/curve-server-keys.json` | Static (Azure Files mount) |
+| `Security__KeysFilePath` | `/keys/curve-server-keys.json` | Static (Azure Files mount, read-write) |
 | `Security__ServerPublicKeyFilePath` | `/keys/curve-server-public-key.txt` | Static (Azure Files mount) |
 | `Python__AnalyzersFolderPath` | `/app/Analyzers` | Static |
 | `Python__ExecutablePath` | `python3` | Static |
-| `Keycloak__Authority` | `https://ca-keycloak-dev.<DOMAIN>/realms/asps` | Static |
+| `NetMQ__BusinessEndpoint` | `tcp://*:5555` | Static (legacy, AD-4, not exposed) |
+| `NetMQ__RealTimeListenerPort` | `50001` | Static |
+| `NetMQ__NotificationPublisherPort` | `50002` | Static |
 
-### WebApi (ca-webapi-dev, main container)
+### WebApi (ca-webapi-dev, standalone Container App, post-ASPS-729 — sidecar removed)
 
 | Variable | Value | Source |
 |---|---|---|
-| `CQRS__Endpoint` | `tcp://localhost:5556` | Static (sidecar localhost) |
+| `CQRS__Endpoint` | `tcp://ca-backend-dev:5556` | Static (app-name TCP, not localhost) |
 | `CQRS__SharedSecret` | HMAC shared secret | Key Vault secret |
+| `AgentGateway__BackendHost` | `ca-backend-dev` | Static (ASPS-729 — `/ws/agent` gateway target host) |
 | `Security__CurveEnabled` | `true` | Static |
 | `Security__CurveClientOnly` | `true` | Static |
-| `Security__ServerPublicKeyFilePath` | `/keys/curve-server-public-key.txt` | Static (Azure Files mount) |
+| `Security__ServerPublicKeyFilePath` | `/keys/curve-server-public-key.txt` | Static (Azure Files mount, read-only use — kept after sidecar removal) |
 | `Keycloak__Authority` | `https://ca-keycloak-dev.<DOMAIN>/realms/asps` | Static |
 | `Keycloak__ClientId` | `asps-webapi` | Static |
 | `Keycloak__ClientSecret` | Keycloak client secret | Key Vault secret |

@@ -2,8 +2,9 @@
 
 **JIRA:** ASPS-724 (sub-task of ASPS-693 epic)
 **Branch:** `asps-724-create-angular-admin-container-app`
-**Status:** In Progress
+**Status:** Done
 **Last updated:** 2026-08-19
+**Merged:** PR #31 → main (commit `b375c04`)
 
 ---
 

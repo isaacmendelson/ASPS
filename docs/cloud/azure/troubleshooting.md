@@ -201,3 +201,57 @@ the crash risk.
 ```bash
 docker compose up -d --force-recreate
 ```
+
+## `az acr build` — Permission denied packing `.vs\...\.vsidx` (Windows)
+
+**Symptom:**
+```
+WARNING: Packing source code into tar to upload...
+ERROR: [Errno 13] Permission denied: 'ASPSBackend14_J\.vs\ASPSBackend\FileContentIndex\<guid>.vsidx'
+```
+
+**Cause:** `az acr build` tars the entire source directory tree for upload **before** it
+applies `.dockerignore` filtering (confirmed: `.dockerignore` already excludes `.vs/`, but the
+local packing step still tries to read every file first). Visual Studio locks its `.vs\`
+cache/index files while running, causing a Windows file-lock `PermissionError` mid-tar — this
+is unrelated to the actual Docker build context and happens even when `.vs/` is correctly
+`.dockerignore`d.
+
+**Resolution:** build from a clean, `.vs`-free copy of the tracked source instead of the live
+working directory. `git archive` only exports tracked files (so gitignored dirs like `.vs/`,
+`bin/`, `obj/` are never present), and never touches locked files:
+```bash
+git archive HEAD | tar -x -C /path/to/scratch/build-src
+az acr build --registry <acr> --image <repo>:<tag> \
+  --file /path/to/scratch/build-src/ASPSBackend14_J/WebApi/Dockerfile \
+  /path/to/scratch/build-src/ASPSBackend14_J
+```
+Alternative (not used, more disruptive): close Visual Studio first so `.vs\` unlocks.
+
+## Container Apps — env var change has no runtime effect (image predates the code that reads it)
+
+**Symptom:** Set a new plain env var (e.g. `AgentGateway__BackendHost=ca-backend-dev`) on a
+Container App, PATCH succeeds, revision goes `Healthy` — but the application log still shows
+the **old** hardcoded/default behavior (e.g. `AgentGatewayService started — REQ endpoint
+tcp://localhost:50001` instead of the new host).
+
+**Cause:** the currently-deployed image was built from a commit **before** the code change
+that added support for reading that config key. Setting the env var is inert — the binary in
+that image doesn't have the corresponding `IOptions<T>` property or config-binding call at all,
+so nothing reads it (no error, since ASP.NET Core config binding silently ignores unknown keys).
+Encountered in ASPS-729: `ca-webapi-dev` was running `asps-webapi:20260819-0604ba5`
+(commit `0604ba5`), which predates commit `4b2460e` (`AgentGatewayService` configurable
+`BackendHost`, merged in PR #32/`9f834bb`).
+
+**Diagnosis:** compare the deployed image's build commit against the commit that introduced the
+config-reading code:
+```bash
+az containerapp show --name <app> --resource-group <rg> \
+  --query "properties.template.containers[?name=='<container>'].image" -o tsv
+# image tag convention: YYYYMMDD-<sha7> — check if <sha7> is an ancestor of the fix commit
+git merge-base --is-ancestor <sha7> <fix-commit-sha> && echo "image predates the fix"
+```
+
+**Resolution:** rebuild and push a new image from a commit that includes the fix (see the
+`git archive` workaround above for the `.vs` lock issue), then redeploy that image tag to the
+Container App before relying on the new env var/config key.
