@@ -16,6 +16,7 @@ public sealed class AgentGatewayOptions
     public int MaxFrameSize { get; set; } = 262144;
     public int UnauthenticatedTimeoutSeconds { get; set; } = 30;
     public int AuthenticatedIdleTimeoutSeconds { get; set; } = 300;
+    public string BackendHost { get; set; } = "localhost";
     public int BackendReqPort { get; set; } = 50001;
     public int BackendPubPort { get; set; } = 50002;
     public int RequestTimeoutSeconds { get; set; } = 10;
@@ -44,8 +45,8 @@ public sealed class AgentGatewayService : IAgentBackendGateway, IAgentConnection
         _curveKeyManager = curveKeyManager;
         _logger = logger;
         Options = options.Value;
-        _reqEndpoint = $"tcp://localhost:{Options.BackendReqPort}";
-        _subEndpoint = $"tcp://localhost:{Options.BackendPubPort}";
+        _reqEndpoint = $"tcp://{Options.BackendHost}:{Options.BackendReqPort}";
+        _subEndpoint = $"tcp://{Options.BackendHost}:{Options.BackendPubPort}";
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
