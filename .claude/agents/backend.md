@@ -43,4 +43,5 @@ Implement server-side changes that do exactly what was specified — verified in
 - [ ] Change does exactly what was specified — verified, not assumed.
 - [ ] Build clean (0 `CS####`); migration SQL reviewed and applied cleanly.
 - [ ] No regression to existing entities/migrations/messaging.
+- [ ] Affected specification documents identified and listed in hand-off (do NOT edit specs — TechWriter handles updates per [task-workflow.md](../../rules/task-workflow.md#specification-update-rule)).
 - [ ] QA PASS obtained.

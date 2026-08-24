@@ -40,6 +40,14 @@ const BADGE_CONFIG = {
 
 function startLoadingState() {
   iconService.startLoadingAnimation();
+  // ASPS-734: also clear stateManager's in-memory scan state, not just
+  // chrome.storage.local. buildStatusResponse() (read by the popup) pulls
+  // from stateManager — leaving it stale here showed the previous page's
+  // score/risk until "Scan Page" was clicked (scanCurrentTab() already does
+  // this reset for the manual-scan path).
+  stateManager.set('scan.score', null);
+  stateManager.set('scan.riskType', null);
+  stateManager.set('scan.protectiveAction', null);
   chrome.storage.local.set({
     currentPageScanning: true,
     currentPageScore: null,

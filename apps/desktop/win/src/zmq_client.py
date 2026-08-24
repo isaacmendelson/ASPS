@@ -16,9 +16,13 @@ from alert_builders import (
     wrap_url_alert_default_envelope,
     validate_url_alert_envelope_response,
     build_track_url_alert,
+    wrap_track_url_alert_default_envelope,
     build_remote_access_alert,
+    wrap_remote_access_alert_default_envelope,
     build_tab_closed_alert,
+    wrap_tab_closed_alert_default_envelope,
     build_tab_changed_alert,
+    wrap_tab_changed_alert_default_envelope,
     build_request_token_message,
     build_refresh_token_message,
 )
@@ -363,13 +367,18 @@ class ZMQClient:
             user_agent=user_agent, tab_id=tab_id, timezone=timezone, token=token,
             mac=mac, device_type=device_type, os_type=os_type,
         )
+        # Every TrackUrlAlert must travel inside a v1 track_url.request
+        # envelope -- same reason as UrlAlert (ASPS-732): the Azure backend
+        # rejects schemaVersion-less messages with "Legacy messaging v0 is
+        # disabled" when Messaging:AcceptLegacyV0=false.
+        wire_message, _ = wrap_track_url_alert_default_envelope(alert, device_uid, url, tab_id)
 
         with self._send_lock:
             if not self.connect():
                 return None
 
             try:
-                return self.send_alert(alert)
+                return self.send_alert(wire_message)
             finally:
                 self.close()
 
@@ -455,12 +464,16 @@ class ZMQClient:
         if browser_tabs is not None:
             print(f"[ZMQ] Including {len(browser_tabs)} browser tab(s) in alert")
 
+        # Every RemoteAccessAlert must travel inside a v1 remote_access.request
+        # envelope -- same reason as UrlAlert (ASPS-732).
+        wire_message, _ = wrap_remote_access_alert_default_envelope(alert, device_uid)
+
         with self._send_lock:
             if not self.connect():
                 return None
 
             try:
-                return self.send_alert(alert)
+                return self.send_alert(wire_message)
             finally:
                 self.close()
 
@@ -492,12 +505,15 @@ class ZMQClient:
             device_uid=device_uid, tab_id=tab_id, url=url, token=token,
             ip_address=ip_address, mac=mac, device_type=device_type, os_type=os_type,
         )
+        # Every TabClosedAlert must travel inside a v1 tab_closed.request
+        # envelope -- same reason as UrlAlert (ASPS-732).
+        wire_message, _ = wrap_tab_closed_alert_default_envelope(alert, device_uid, url, tab_id)
 
         with self._send_lock:
             if not self.connect():
                 return None
             try:
-                return self.send_alert(alert)
+                return self.send_alert(wire_message)
             finally:
                 self.close()
 
@@ -533,12 +549,15 @@ class ZMQClient:
             token=token, ip_address=ip_address, mac=mac, device_type=device_type,
             os_type=os_type,
         )
+        # Every TabChangedAlert must travel inside a v1 tab_changed.request
+        # envelope -- same reason as UrlAlert (ASPS-732).
+        wire_message, _ = wrap_tab_changed_alert_default_envelope(alert, device_uid, url, tab_id)
 
         with self._send_lock:
             if not self.connect():
                 return None
             try:
-                return self.send_alert(alert)
+                return self.send_alert(wire_message)
             finally:
                 self.close()
 

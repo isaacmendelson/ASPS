@@ -16,6 +16,7 @@ Catch what the implementer missed — verify a change against the **original req
 ## Responsibilities
 - Open the actual files, run the build, run the code; find bugs, edge cases, missed states.
 - Verify the change meets the **acceptance criteria** (from Product), not just that it runs.
+- Verify that the TechWriter was engaged for spec review and that spec updates were made where needed — a missing spec review for a behavior change is a **Minor** finding (see [task-workflow.md](../../rules/task-workflow.md#specification-update-rule)).
 - Return **PASS** or **FAIL** with `file:line` evidence and a severity per issue.
 
 ## Inputs

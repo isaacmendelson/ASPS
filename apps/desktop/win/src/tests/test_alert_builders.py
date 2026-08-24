@@ -28,6 +28,14 @@ from alert_builders import (
     build_url_alert,
     wrap_url_alert_envelope,
     wrap_url_alert_default_envelope,
+    build_track_url_alert,
+    wrap_track_url_alert_default_envelope,
+    build_tab_closed_alert,
+    wrap_tab_closed_alert_default_envelope,
+    build_tab_changed_alert,
+    wrap_tab_changed_alert_default_envelope,
+    build_remote_access_alert,
+    wrap_remote_access_alert_default_envelope,
 )
 from generated.messaging.v1.message_envelope import validate_envelope, canonicalize_url
 
@@ -121,6 +129,207 @@ class TestWrapUrlAlertDefaultEnvelope(unittest.TestCase):
 
         # Must not raise.
         validate_url_alert_envelope_response(response, wire_message, context)
+
+
+class TestWrapTrackUrlAlertDefaultEnvelope(unittest.TestCase):
+    """ASPS-732: TrackUrlAlert must travel inside a track_url.request v1
+    envelope for the same reason UrlAlert does -- the Azure backend rejects
+    any schemaVersion-less message when AcceptLegacyV0=false."""
+
+    def setUp(self):
+        patcher = patch.object(alert_builders, "_is_danger_active", return_value=False)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_produces_a_schema_valid_track_url_request_envelope(self):
+        alert = build_track_url_alert(device_uid="PC-1", url="https://example.com/", tab_id="42")
+
+        wire_message, context = wrap_track_url_alert_default_envelope(
+            alert, device_uid="PC-1", url="https://example.com/", tab_id="42")
+
+        self.assertIs(validate_envelope(wire_message), wire_message)
+        self.assertEqual(wire_message["messageType"], "track_url.request")
+        self.assertEqual(wire_message["source"], "desktop")
+        self.assertIsNone(wire_message["outcome"])
+        self.assertEqual(context, {"deviceId": "PC-1", "tabId": "42", "url": "https://example.com/"})
+        self.assertEqual(wire_message["context"], context)
+        self.assertEqual(wire_message["payload"]["alert"], alert)
+
+    def test_canonicalizes_url_and_keeps_alert_url_in_sync(self):
+        raw_url = "https://EXAMPLE.com"
+        alert = build_track_url_alert(device_uid="PC-1", url=raw_url, tab_id="7")
+
+        wire_message, context = wrap_track_url_alert_default_envelope(
+            alert, device_uid="PC-1", url=raw_url, tab_id="7")
+
+        canonical = canonicalize_url(raw_url)
+        self.assertEqual(context["url"], canonical)
+        self.assertEqual(wire_message["payload"]["alert"]["Url"], canonical)
+
+    def test_empty_tab_id_normalizes_to_zero_sentinel(self):
+        alert = build_track_url_alert(device_uid="PC-1", url="https://example.com/", tab_id="")
+
+        wire_message, context = wrap_track_url_alert_default_envelope(
+            alert, device_uid="PC-1", url="https://example.com/", tab_id="")
+
+        self.assertEqual(context["tabId"], "0")
+        self.assertEqual(wire_message["payload"]["alert"]["TabId"], "0")
+
+    def test_device_id_is_stamped_into_context(self):
+        alert = build_track_url_alert(device_uid="PC-1", url="https://example.com/", tab_id="1")
+
+        _, context = wrap_track_url_alert_default_envelope(
+            alert, device_uid="PC-1", url="https://example.com/", tab_id="1")
+
+        self.assertEqual(context["deviceId"], "PC-1")
+
+
+class TestWrapTabClosedAlertDefaultEnvelope(unittest.TestCase):
+    """ASPS-732: TabClosedAlert must travel inside a tab_closed.request
+    v1 envelope."""
+
+    def setUp(self):
+        patcher = patch.object(alert_builders, "_is_danger_active", return_value=False)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_produces_a_schema_valid_tab_closed_request_envelope(self):
+        alert = build_tab_closed_alert(device_uid="PC-1", tab_id="42", url="https://example.com/")
+
+        wire_message, context = wrap_tab_closed_alert_default_envelope(
+            alert, device_uid="PC-1", url="https://example.com/", tab_id="42")
+
+        self.assertIs(validate_envelope(wire_message), wire_message)
+        self.assertEqual(wire_message["messageType"], "tab_closed.request")
+        self.assertEqual(wire_message["source"], "desktop")
+        self.assertIsNone(wire_message["outcome"])
+        self.assertEqual(context, {"deviceId": "PC-1", "tabId": "42", "url": "https://example.com/"})
+        self.assertEqual(wire_message["payload"]["alert"], alert)
+
+    def test_canonicalizes_url_and_keeps_alert_url_in_sync(self):
+        raw_url = "https://EXAMPLE.com"
+        alert = build_tab_closed_alert(device_uid="PC-1", tab_id="7", url=raw_url)
+
+        wire_message, context = wrap_tab_closed_alert_default_envelope(
+            alert, device_uid="PC-1", url=raw_url, tab_id="7")
+
+        canonical = canonicalize_url(raw_url)
+        self.assertEqual(context["url"], canonical)
+        self.assertEqual(wire_message["payload"]["alert"]["Url"], canonical)
+
+    def test_empty_tab_id_normalizes_to_zero_sentinel(self):
+        alert = build_tab_closed_alert(device_uid="PC-1", tab_id="", url="https://example.com/")
+
+        wire_message, context = wrap_tab_closed_alert_default_envelope(
+            alert, device_uid="PC-1", url="https://example.com/", tab_id="")
+
+        self.assertEqual(context["tabId"], "0")
+        self.assertEqual(wire_message["payload"]["alert"]["TabId"], "0")
+
+
+class TestWrapTabChangedAlertDefaultEnvelope(unittest.TestCase):
+    """ASPS-732: TabChangedAlert must travel inside a tab_changed.request
+    v1 envelope."""
+
+    def setUp(self):
+        patcher = patch.object(alert_builders, "_is_danger_active", return_value=False)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_produces_a_schema_valid_tab_changed_request_envelope(self):
+        alert = build_tab_changed_alert(device_uid="PC-1", tab_id="42", url="https://example.com/")
+
+        wire_message, context = wrap_tab_changed_alert_default_envelope(
+            alert, device_uid="PC-1", url="https://example.com/", tab_id="42")
+
+        self.assertIs(validate_envelope(wire_message), wire_message)
+        self.assertEqual(wire_message["messageType"], "tab_changed.request")
+        self.assertEqual(wire_message["source"], "desktop")
+        self.assertIsNone(wire_message["outcome"])
+        self.assertEqual(context, {"deviceId": "PC-1", "tabId": "42", "url": "https://example.com/"})
+        self.assertEqual(wire_message["payload"]["alert"], alert)
+
+    def test_canonicalizes_url_and_keeps_alert_url_in_sync(self):
+        raw_url = "https://EXAMPLE.com"
+        alert = build_tab_changed_alert(device_uid="PC-1", tab_id="7", url=raw_url)
+
+        wire_message, context = wrap_tab_changed_alert_default_envelope(
+            alert, device_uid="PC-1", url=raw_url, tab_id="7")
+
+        canonical = canonicalize_url(raw_url)
+        self.assertEqual(context["url"], canonical)
+        self.assertEqual(wire_message["payload"]["alert"]["Url"], canonical)
+
+    def test_empty_tab_id_normalizes_to_zero_sentinel(self):
+        alert = build_tab_changed_alert(device_uid="PC-1", tab_id="", url="https://example.com/")
+
+        wire_message, context = wrap_tab_changed_alert_default_envelope(
+            alert, device_uid="PC-1", url="https://example.com/", tab_id="")
+
+        self.assertEqual(context["tabId"], "0")
+        self.assertEqual(wire_message["payload"]["alert"]["TabId"], "0")
+
+
+class TestWrapRemoteAccessAlertDefaultEnvelope(unittest.TestCase):
+    """ASPS-732: RemoteAccessAlert must travel inside a remote_access.request
+    v1 envelope. Unlike the other alert types, RemoteAccessAlert has no Url
+    or TabId field -- context.url is derived from ConnectionUrl (prefixed
+    with https:// when it has no scheme, e.g. a bare IP) or a fixed
+    sentinel when ConnectionUrl is absent; context.tabId is always "0"."""
+
+    def setUp(self):
+        patcher = patch.object(alert_builders, "_is_danger_active", return_value=False)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_produces_a_schema_valid_remote_access_request_envelope(self):
+        alert = build_remote_access_alert(
+            device_uid="PC-1", remote_app="1", running_processes=2,
+            connection_url="192.168.1.1", connection_status="1", session_status="1")
+
+        wire_message, context = wrap_remote_access_alert_default_envelope(alert, device_uid="PC-1")
+
+        self.assertIs(validate_envelope(wire_message), wire_message)
+        self.assertEqual(wire_message["messageType"], "remote_access.request")
+        self.assertEqual(wire_message["source"], "desktop")
+        self.assertIsNone(wire_message["outcome"])
+        self.assertEqual(wire_message["payload"]["alert"], alert)
+
+    def test_bare_ip_connection_url_gets_https_scheme_prepended(self):
+        alert = build_remote_access_alert(
+            device_uid="PC-1", remote_app="1", running_processes=2,
+            connection_url="192.168.1.1", connection_status="1", session_status="1")
+
+        _, context = wrap_remote_access_alert_default_envelope(alert, device_uid="PC-1")
+
+        self.assertEqual(context["url"], "https://192.168.1.1/")
+
+    def test_missing_connection_url_falls_back_to_sentinel(self):
+        alert = build_remote_access_alert(
+            device_uid="PC-1", remote_app="1", running_processes=2,
+            connection_url="", connection_status="1", session_status="1")
+
+        _, context = wrap_remote_access_alert_default_envelope(alert, device_uid="PC-1")
+
+        self.assertEqual(context["url"], "https://remote-access.internal/")
+
+    def test_tab_id_is_always_zero_sentinel(self):
+        alert = build_remote_access_alert(
+            device_uid="PC-1", remote_app="1", running_processes=2,
+            connection_url="192.168.1.1", connection_status="1", session_status="1")
+
+        _, context = wrap_remote_access_alert_default_envelope(alert, device_uid="PC-1")
+
+        self.assertEqual(context["tabId"], "0")
+
+    def test_device_id_is_stamped_into_context(self):
+        alert = build_remote_access_alert(
+            device_uid="PC-1", remote_app="1", running_processes=2,
+            connection_url="192.168.1.1", connection_status="1", session_status="1")
+
+        _, context = wrap_remote_access_alert_default_envelope(alert, device_uid="PC-1")
+
+        self.assertEqual(context["deviceId"], "PC-1")
 
 
 if __name__ == "__main__":

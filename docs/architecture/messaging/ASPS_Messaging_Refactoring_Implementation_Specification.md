@@ -209,6 +209,7 @@ switch (command.CommandType)
 - **Two paths:**
   - Direct: `JsonConvert.DeserializeObject<T>(json, settings)`
   - Validated: `MessageEnvelopeValidator.DeserializeAndValidate()` for V1 envelopes
+- **V1 envelope coverage (ASPS-732):** As of 2026-08-25, all alert types use the V1 envelope: `url_scan.request`, `track_url.request`, `tab_closed.request`, `tab_changed.request`, `remote_access.request`. Token/registration messages remain flat JSON. Azure production runs with `Messaging:AcceptLegacyV0=false`.
 - **No MessagePack, no Protobuf** — pure JSON throughout
 
 ## 4.7 Security Architecture

@@ -141,6 +141,10 @@ Source: (`ASPSBackend14_J/ASPSBackend/Program.cs`; `docs/system-specifications/A
 | `UrlAlert` | token-validated | URL visited by user; includes `Url`, `Trackers`, `IFrameDomains`, `TabId`, `IPAddress`, `DeviceInfo`, `Token` |
 | `TrackUrlAlert` | token-validated | Tracked-domain navigation/form context with source URL, duration, tab, timezone and optional scam correlation key |
 | `RemoteAccessAlert` | token-validated | Remote-access app state change; includes `RemoteAccessApp` (enum), `Direction`, `SessionStatus`, `ConnectionStatus`, `BrowserTabs[]`, forensic fields |
+| `TabClosedAlert` | token-validated | Tab closed during ImmediateDanger; includes `TabId`, `Url` |
+| `TabChangedAlert` | token-validated | URL changed in tab during ImmediateDanger; includes `TabId`, `Url`, `IsSensitiveWebsite`, `IsLoggedIn` |
+
+**Message envelope (ASPS-732):** All alert types use the v1 message envelope (`MessageEnvelopeV1`, `schemaVersion: "1.0"`) when sent to the Backend. The `messageType` field discriminates: `url_scan.request`, `track_url.request`, `tab_closed.request`, `tab_changed.request`, `remote_access.request`. The Azure Backend runs with `Messaging:AcceptLegacyV0=false`, rejecting v0 (envelope-less) messages. The Desktop Agent wraps every alert in a v1 envelope via `alert_builders.py` (shared between ZMQ and WebSocket transports). Token/registration messages (`RequestToken`, `RefreshToken`, `RegisterDevice`) are not enveloped — they use their existing flat JSON format with `SupportedSchemaMajors=[1]`.
 
 **Outbound (port 50002, ZMQ PUB, CURVE):**
 
@@ -384,6 +388,7 @@ Source: (`docs/ASPS_DATA_FLOW.md §3.2–3.4`)
 - SCRUM-901: Code anti-reverse-engineering/obfuscation (status: To Do)
 - SCRUM-902: Code-signing with Authenticode certificate (status: To Do)
 - `signalr_client.py`, `tcp_client.py`, `google_auth.py` and `remote_monitor_backup.py` are inactive alternate/legacy paths and are not evidence of production capabilities.
+- ASPS-736: Python `Severity` enum was misaligned with C# `Common.Enums.Severity` (`Unknown=0, Low=1, Medium=2, High=3, Critical=4`). Python had `Low=0, Medium=1, High=2, Critical=3` — missing `Unknown` and off-by-one. Bug opened; `get_severity_name` also needs to handle string values returned by Backend.
 
 ---
 
@@ -922,4 +927,4 @@ The following are unresolved decisions, not unknown implementation status:
 
 ---
 
-*Last updated: 2026-07-22. Audit baseline: repository code under `C:\Jobs\ASPS\GitHub\Software\`; `docs/system-specifications/ASPS_Unified_System_Requirements_2026-07-15.md`; `docs/ASPS_DATA_FLOW.md`; `docs/system-specifications/ASPS_System_Overview.md`; and component-specific Markdown files under `docs/` and `docs/system-specifications/`. Ticket/design status was not treated as proof of implementation.*
+*Last updated: 2026-08-25. Incremental update: added v1 envelope documentation for all alert types (ASPS-732), TabClosedAlert and TabChangedAlert to inbound contract table, Severity enum alignment note (ASPS-736). Full audit baseline (2026-07-22): repository code under `C:\Jobs\ASPS\GitHub\Software\`; `docs/system-specifications/ASPS_Unified_System_Requirements_2026-07-15.md`; `docs/ASPS_DATA_FLOW.md`; `docs/system-specifications/ASPS_System_Overview.md`; and component-specific Markdown files under `docs/` and `docs/system-specifications/`. Ticket/design status was not treated as proof of implementation.*

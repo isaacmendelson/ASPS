@@ -47,6 +47,7 @@ The implementing agent must complete **all** of the following before notifying t
 6. **Re-run all tests** — after the merge, run the full test suite again. All tests must pass.
 7. **Push to remote** — push the task branch to GitHub (or the configured remote).
 8. **Notify orchestrator** — report "ready for QA" to the orchestrator with: JIRA issue ID, changed files, implementation summary, test commands with pass/fail/skip counts.
+9. **Specification documents updated** — see [Specification update rule](#specification-update-rule) below. The agent must review and update any affected spec/design documents before requesting QA.
 
 **Merge conflict escalation:** if merging `main` into the branch causes conflicts, the agent attempts to resolve them. If resolution is not straightforward, the agent escalates to the orchestrator with the conflict details.
 
@@ -122,6 +123,44 @@ Every JIRA status change must be mirrored in the task's handoff file (`docs/task
 - When transitioning a task in JIRA, update the handoff file in the same action.
 - The handoff must include the current JIRA status and the date of the last status change.
 - When a task moves to Done, the handoff receives a final update with the Done status, date, commit hash, and QA evidence.
+
+## Specification update rule
+
+Updating specification and design documents is an **integral part of completing every task** — not a separate activity.
+
+### Who may edit specification documents
+
+Only **CEO**, **Architect**, or **TechWriter** may edit specification documents. Implementing agents (backend, desktop-agent, browser-extension, analyzer-ai, devops) **do not edit specs** — they report which specs may be affected.
+
+**Scope:** this rule covers system specifications, ICDs, SRS, protocol docs, data flow docs, and design documents under `docs/system-specifications/`, `docs/architecture/`, and `docs/ASPS_DATA_FLOW.md`. Infrastructure/deployment docs (`docs/cloud/`) remain owned by DevOps.
+
+### Workflow
+
+```
+Implementation done
+  ├─ QA (verifies code)              ── in parallel
+  └─ TechWriter (reviews specs)
+        └─ Architect (approves spec changes)
+Then: merge
+```
+
+1. **Implementing agent** — includes in its hand-off a list of spec documents that may be affected by the change, and why. Does NOT edit them.
+2. **CEO/orchestrator** — spawns TechWriter in parallel with QA.
+3. **TechWriter** — reviews the affected specs against the implementation. Drafts updates. If a bug fix touches a feature **not yet documented** in the specs, adds the feature (undocumented features are spec debt; a bug fix is the trigger to pay it).
+4. **Architect** — reviews and approves TechWriter's spec changes. This also keeps the Architect informed of system evolution.
+5. **QA** — verifies that the TechWriter was engaged and spec updates were made where needed. A missing spec review is a **Minor** finding.
+
+### Specification document index
+
+| Document type | Location | When affected |
+|---|---|---|
+| System Specification | `docs/system-specifications/ASPS_System_Specification.md` | Contracts, interfaces, protocols, enums |
+| Desktop Agent Features | `docs/system-specifications/DESKTOP_AGENT_FEATURES.md` | Desktop agent behavior, enums, config |
+| System Overview | `docs/system-specifications/ASPS_System_Overview.md` | Architecture, communication flows |
+| Data Flow | `docs/ASPS_DATA_FLOW.md` | Alert types, data paths, processing pipeline |
+| Messaging Spec | `docs/architecture/messaging/` | Message formats, envelope, serialization |
+| WebSocket Protocol | `docs/architecture/WS-AGENT-PROTOCOL.md` | WebSocket transport, message types |
+| ADRs | `docs/architecture/decisions/` | Architecture decisions |
 
 ## Rules
 

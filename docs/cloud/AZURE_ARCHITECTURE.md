@@ -54,6 +54,31 @@ into its own Container App (ASPS-727), pointing WebApi's CQRS client and `/ws/ag
 
 ---
 
+## Messaging Protocol — v1 Envelope Enforcement (ASPS-732)
+
+The Backend Container App (`ca-backend-dev`) runs with **`Messaging:AcceptLegacyV0=false`** —
+there is no legacy fallback in the cloud environment. All client messages reaching the Backend
+must use the **v1 envelope format** (payload includes a `schemaVersion` field).
+
+**Enforcement:** `AlertProcessor.RouteMessageAsync()` checks incoming messages for
+`schemaVersion`:
+- Present → routed through the v1 handling path.
+- Absent → routed to `ProcessLegacyAlertAsync()`, which rejects the message when
+  `Messaging:AcceptLegacyV0=false`.
+
+**Status by alert type (2026-08-25):**
+All alert types are v1-compliant (ASPS-732):
+- `UrlAlert` — wraps in `url_scan.request` v1 envelope (commit `d51fb80`).
+- `TrackUrlAlert` — wraps in `track_url.request` v1 envelope.
+- `TabClosedAlert` — wraps in `tab_closed.request` v1 envelope.
+- `TabChangedAlert` — wraps in `tab_changed.request` v1 envelope.
+- `RemoteAccessAlert` — wraps in `remote_access.request` v1 envelope.
+
+See [AD-10 in the Deployment Guide](AZURE_DEPLOYMENT_GUIDE.md#ad-10-messaging-protocol-version-enforcement-v0-legacy-vs-v1-envelope)
+for full detail.
+
+---
+
 ## Container Apps
 
 ### ca-webapi-dev — WebApi (standalone)
@@ -250,6 +275,7 @@ Detailed in [AZURE_DEPLOYMENT_GUIDE.md](AZURE_DEPLOYMENT_GUIDE.md#architecture-d
 | AD-7 | Infrastructure as Code | CLI first → Bicep after deployment stabilizes |
 | AD-8 | Angular Admin Deployment | Standalone Container App (not sidecar), reuse `id-asps-dev` for ACR pull, CORS + Keycloak public client added (ASPS-724) |
 | AD-9 | Backend split from WebApi sidecar | Standalone `ca-backend-dev` + internal TCP ingress with **app-name addressing** (`ca-backend-dev:<port>`) — confirmed to forward ZMQ/CURVE where FQDN addressing does not (ASPS-725/726/727/728/729/730) |
+| AD-10 | Messaging protocol version enforcement | Azure Backend runs `Messaging:AcceptLegacyV0=false` — all messages must use v1 envelope (`schemaVersion`); legacy (no `schemaVersion`) messages are rejected by `ProcessLegacyAlertAsync()`. `UrlAlert` compliant (commit `d51fb80`); remaining alert types tracked in ASPS-732 |
 | AD-11 | Keycloak health probe fix | Keycloak 26 serves `/health/*` on a separate management interface (port 9000, `KC_HEALTH_ENABLED=true` required) — not the main HTTP port. Probes retargeted to port 9000; fixed CrashLoopBackOff (810+ restarts) caused by 404s on the 8080 probe (ASPS-735) |
 
 ---

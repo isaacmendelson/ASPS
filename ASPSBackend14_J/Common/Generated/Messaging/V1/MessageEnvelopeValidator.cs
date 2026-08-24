@@ -18,7 +18,11 @@ public static partial class MessageEnvelopeValidator
     };
     private static readonly HashSet<string> MessageTypes = new(StringComparer.Ordinal)
     {
-        "url_scan.request", "url_scan.accepted", "url_scan.result", "url_scan.error"
+        "url_scan.request", "url_scan.accepted", "url_scan.result", "url_scan.error",
+        "track_url.request", "track_url.accepted", "track_url.result", "track_url.error",
+        "tab_closed.request", "tab_closed.accepted", "tab_closed.result", "tab_closed.error",
+        "tab_changed.request", "tab_changed.accepted", "tab_changed.result", "tab_changed.error",
+        "remote_access.request", "remote_access.accepted", "remote_access.result", "remote_access.error"
     };
     private static readonly HashSet<string> Sources = new(StringComparer.Ordinal)
     {
@@ -98,13 +102,17 @@ public static partial class MessageEnvelopeValidator
 
     private static MessagingEnvelopeValidationResult ValidateOutcome(MessageEnvelopeV1 envelope)
     {
-        var requiresOutcome = envelope.MessageType is "url_scan.result" or "url_scan.error";
+        // Generalized by messageType suffix (".result" / ".error") rather than a hardcoded
+        // "url_scan" family name, so every alert family added to MessageTypes above gets the
+        // same outcome-shape validation for free.
+        var isResult = envelope.MessageType.EndsWith(".result", StringComparison.Ordinal);
+        var isError = envelope.MessageType.EndsWith(".error", StringComparison.Ordinal);
+        var requiresOutcome = isResult || isError;
         if (!requiresOutcome) return envelope.Outcome is null ? MessagingEnvelopeValidationResult.Valid : Invalid("protocol.invalid_outcome", "Request must have a null outcome.");
         if (envelope.Outcome is null) return Invalid("protocol.missing_outcome", "Result messages require an outcome.");
         var success = envelope.Outcome.Status == "success";
         var error = envelope.Outcome.Status == "error";
-        if (envelope.MessageType == "url_scan.result" && !success ||
-            envelope.MessageType == "url_scan.error" && !error)
+        if (isResult && !success || isError && !error)
             return Invalid("protocol.invalid_outcome", "outcome.status does not match messageType.");
         if (!success && !error) return Invalid("protocol.invalid_outcome", "outcome.status must be success or error.");
         if (success == (envelope.Outcome.Result is null) || error == (envelope.Outcome.Error is null))

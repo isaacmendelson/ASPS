@@ -39,4 +39,5 @@ Implement extension behavior (UI + content + messaging) that works within MV3 co
 ## Definition of Done
 - [ ] Change works within MV3; websocket to the agent verified.
 - [ ] Manual smoke test documented for UI changes.
+- [ ] Affected specification documents identified and listed in hand-off (do NOT edit specs — TechWriter handles updates per [task-workflow.md](../../rules/task-workflow.md#specification-update-rule)).
 - [ ] No secrets in the bundle; QA PASS obtained.

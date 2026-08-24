@@ -6,7 +6,15 @@ from uuid import UUID, uuid4
 
 SCHEMA_VERSION = "1.0"
 SCHEMA_SHA256 = "__SCHEMA_SHA256__"
-MESSAGE_TYPES = {"url_scan.request", "url_scan.accepted", "url_scan.result", "url_scan.error"}
+_MESSAGE_TYPE_PREFIXES = ("url_scan", "track_url", "tab_closed", "tab_changed", "remote_access")
+_MESSAGE_TYPE_SUFFIXES = ("request", "accepted", "result", "error")
+MESSAGE_TYPES = {
+    f"{prefix}.{suffix}" for prefix in _MESSAGE_TYPE_PREFIXES for suffix in _MESSAGE_TYPE_SUFFIXES
+}
+
+# messageType suffixes whose outcome must be null (request-shaped envelopes --
+# ASPS-732 extends this pattern from url_scan.* to every alert-carrying type).
+_NULL_OUTCOME_SUFFIXES = (".request", ".accepted")
 SOURCES = {"extension", "desktop", "backend", "analyzer"}
 
 class ContractError(ValueError):
@@ -67,11 +75,11 @@ def validate_envelope(value: dict, require_device_id: bool = False) -> dict:
     return value
 
 def _validate_outcome(message_type: str, outcome) -> None:
-    if message_type in ("url_scan.request", "url_scan.accepted"):
+    if message_type.endswith(_NULL_OUTCOME_SUFFIXES):
         if outcome is not None:
             raise ContractError("protocol.invalid_outcome", "Request outcome must be null")
         return
-    expected = "success" if message_type == "url_scan.result" else "error"
+    expected = "success" if message_type.endswith(".result") else "error"
     if not isinstance(outcome, dict) or outcome.get("status") != expected:
         raise ContractError("protocol.invalid_outcome", "Outcome discriminator does not match message type")
     if expected == "success" and (set(outcome) != {"status", "result"} or not isinstance(outcome["result"], dict)):

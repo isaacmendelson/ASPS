@@ -2,19 +2,23 @@
 
 **Last updated:** 2026-08-25
 
-## ASPS-735 — Keycloak CrashLoopBackOff fix
+## Azure Container Apps — production deployment (ASPS-693)
 
-- `ca-keycloak-dev` was in CrashLoopBackOff (810+ restarts) — startup probe hit `/health/started`
-  on port 8080, which 404'd because `KC_HEALTH_ENABLED` was never set and Keycloak 26 serves
-  health/metrics on a separate management interface (port 9000 by default).
-- Fix: added `KC_HEALTH_ENABLED=true` + `KC_HTTP_MANAGEMENT_PORT=9000` env vars, repointed both
-  probes (`/health/live`, `/health/started`) from port 8080 to 9000. Applied via ARM PATCH
-  (env var addition — unsafe via `az containerapp update`, see `decisions.md`).
-- Verified: revision `ca-keycloak-dev--0000002` Healthy, replica `ready: true`, `restartCount: 0`.
-  Startup log confirms: `Management interface listening on http://0.0.0.0:9000`.
-- Docs updated: `docs/cloud/AZURE_ARCHITECTURE.md` (AD-11), `docs/cloud/AZURE_DEPLOYMENT_GUIDE.md`,
-  `docs/cloud/azure/troubleshooting.md`, `.claude/hats/devops/decisions.md`.
-- No image change (still `quay.io/keycloak/keycloak:26.0`), config-only fix.
+- `ca-backend-dev` running revision `ca-backend-dev--0000015`, image `manual-20260825-test-fix`
+- `ca-webapi-dev` running image `20260824-9230e0e` (WebSocket gateway active)
+- `ca-keycloak-dev` revision `ca-keycloak-dev--0000002` Healthy (ASPS-735 fix applied)
+- `ca-angular-admin-dev` running
+- All apps deployed and stable in `cae-asps-dev` (North Europe)
+
+## Recent deploys
+
+| Date | App | Image tag | Changes |
+|---|---|---|---|
+| 2026-08-25 | ca-backend-dev | `manual-20260825-test-fix` | Rebuild from `asps-732-v1-envelope-on-all-alert-types` (commit `588765f`, includes `18a403d` test-code removal + main merge) — supersedes `manual-20260825-v1env-fix`, which was accidentally built with debug test-message code still present |
+| 2026-08-25 | ca-keycloak-dev | (config only) | ASPS-735: fixed CrashLoopBackOff — probes 8080→9000, `KC_HEALTH_ENABLED=true` |
+| 2026-08-25 | ca-backend-dev | `manual-20260825-v1env-fix` | V1 envelope for all alert types — later found to still contain debug test-message code, superseded same day |
+| 2026-08-24 | ca-webapi-dev | `20260824-9230e0e` | WebSocket gateway `/ws/agent` |
+| 2026-08-24 | ca-backend-dev | `manual-20260824-1623` | Initial Azure deployment |
 
 ## ASPS-626 — Reproducible build/test baselines
 
@@ -23,38 +27,19 @@
   - Analyzer: 343 passed, 5 skipped, 0 failed
   - Desktop: 245 passed, 2 xfailed, 0 failed
   - Extension: 221 passed, 74 known-quarantined failures (7 files, expiry 2026-08-12)
-- Baseline checker PASS — exact SHA-256 hashes match all quarantined groups.
-- NuGet locked-mode restore PASS.
-- SDK conflict resolved: global.json pins 9.0.308 (host); Dockerfiles pin SDK 8.0.423 (container).
-- All changes committed to branch `ASPS-626-reproducible-build-test-baselines`.
-- Ready for independent QA review. DevOps must remediate any QA FAIL before resubmission.
+- Branch: `ASPS-626-reproducible-build-test-baselines`
 
 ## ASPS-656 — Angular Admin Docker container (nginx)
 
 - Branch: `asps-642-angular-admin-client` (worktree commit b7b3845)
-- Dockerfile rewritten for `context: ./apps/admin/angular` (self-contained, local COPY paths)
-- Node base pinned to `node:20-alpine`; nginx pinned to `nginx:1.27-alpine`
-- Build output path corrected: `dist/angular/browser` (Angular 18 application builder)
-- nginx.conf: added `/api/` proxy pass and `/notificationshub` SignalR WebSocket proxy to `webapi:8080`
-- docker-compose: added `angular-admin` service on port 4201, `asps-network`
-- `.dockerignore` created: excludes `node_modules`, `dist`, `.angular`, `.git`
-- Status: committed to worktree branch, ready for merge to `asps-642-angular-admin-client`
-
-## Docker stack stabilization
-
-- Analyzer crash loop fixed: entrypoint now runs iptables as root, drops to
-  UID 10001 via `setpriv` with `SETUID/SETGID/SETPCAP` caps (dropped after
-  firewall init). tmpfs at `/run` for iptables lock file.
-- Keycloak client secret mismatch resolved (runtime fix in Keycloak volume,
-  not persisted to a realm-export).
-- All 5 containers running stable: mysql (healthy), backend, webapi, keycloak
-  (healthy), analyzer.
+- Deployed to `ca-angular-admin-dev`
 
 ## Backlog
 
-- Export Keycloak realm to a JSON file for reproducible setup.
-- Add healthchecks to backend and webapi containers.
-- Establish CI/CD pipeline (GitHub Actions).
-- Set up container registry for image publishing.
-- Add centralized logging.
-- Cloud deployment planning.
+- CI/CD pipeline (GitHub Actions) — not yet built
+- Application-level health check endpoints (`/healthz`)
+- App Insights SDK integration for telemetry
+- Secret rotation mechanism for CQRS shared secret
+- Bicep/IaC for infrastructure reproducibility
+- Keycloak realm export for reproducible setup
+- Centralized logging in Azure

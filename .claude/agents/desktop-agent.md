@@ -40,4 +40,5 @@ Implement the desktop agent so it reliably connects, authenticates, and exchange
 ## Definition of Done
 - [ ] Change does exactly what was specified — verified in a real run on Windows.
 - [ ] Connection/auth/reconnect behavior confirmed against backend + extension.
+- [ ] Affected specification documents identified and listed in hand-off (do NOT edit specs — TechWriter handles updates per [task-workflow.md](../../rules/task-workflow.md#specification-update-rule)).
 - [ ] No secrets committed; QA PASS obtained.

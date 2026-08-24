@@ -655,6 +655,11 @@ class TestWSClientPayloadParity(unittest.TestCase):
         self.assertEqual(sent["payload"]["alert"]["Url"], sent["context"]["url"])
 
     def test_send_remote_access_alert_payload_matches_alert_builders(self):
+        """RemoteAccessAlert now travels inside a v1 remote_access.request
+        envelope (ASPS-732), same reason as UrlAlert -- the alert embedded
+        in payload.alert must still match alert_builders byte-for-byte."""
+        import generated.messaging.v1.message_envelope as message_envelope
+
         client = WSClient("PC-1", "wss://example.invalid/ws/agent")
         captured = self._capture_alert(client)
 
@@ -670,10 +675,17 @@ class TestWSClientPayloadParity(unittest.TestCase):
             direction="incoming", confidence="high",
         )
         sent = captured["alert"]
+        self.assertIs(message_envelope.validate_envelope(sent), sent)
+        self.assertEqual(sent["messageType"], "remote_access.request")
+        self.assertEqual(sent["source"], "desktop")
+        self.assertEqual(sent["context"], {
+            "deviceId": "PC-1", "tabId": "0", "url": "https://192.168.1.1/",
+        })
+        inner = sent["payload"]["alert"]
         for key in ("AlertId", "Timestamp"):
-            sent.pop(key, None)
+            inner.pop(key, None)
             expected.pop(key, None)
-        self.assertEqual(sent, expected)
+        self.assertEqual(inner, expected)
 
     def test_send_request_token_message_matches_alert_builders(self):
         client = WSClient("PC-1", "wss://example.invalid/ws/agent")

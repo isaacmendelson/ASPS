@@ -150,6 +150,31 @@ public class AlertProcessor
         return await ProcessAlertAsync(alert.ToString(Formatting.None), alert);
     }
 
+    /// <summary>
+    /// Maps a v1 envelope's request messageType to the concrete alert entity it carries and the
+    /// messageType of its "accepted" response. ASPS-732 extends the envelope ingress from
+    /// url_scan.request only to every alert family the desktop agent sends; the discriminator
+    /// (<see cref="Common.Models.DeviceAlert.AlertType"/>) is stamped here from this map — not
+    /// trusted from the wire — so <see cref="ProcessAlertAsync"/> always dispatches through the
+    /// correct branch regardless of what the client put in payload.alert.AlertType.
+    /// </summary>
+    private static readonly IReadOnlyDictionary<string, (string Accepted, Type EntityType, string Discriminator)> EnvelopeRequestTypes =
+        new Dictionary<string, (string, Type, string)>(StringComparer.Ordinal)
+        {
+            ["url_scan.request"] = ("url_scan.accepted", typeof(UrlAlert), nameof(UrlAlert)),
+            ["track_url.request"] = ("track_url.accepted", typeof(TrackUrlAlert), nameof(TrackUrlAlert)),
+            ["tab_closed.request"] = ("tab_closed.accepted", typeof(TabClosedAlert), nameof(TabClosedAlert)),
+            ["tab_changed.request"] = ("tab_changed.accepted", typeof(TabChangedAlert), nameof(TabChangedAlert)),
+            ["remote_access.request"] = ("remote_access.accepted", typeof(RemoteAccessAlert), nameof(RemoteAccessAlert)),
+        };
+
+    /// <summary>Request types whose payload.alert carries Url/TabId that must echo the envelope's immutable context.
+    /// RemoteAccessAlert has no Url/TabId of its own (ConnectionUrl is not a tab context) — only DeviceUid is checked.</summary>
+    private static readonly HashSet<string> UrlBasedEnvelopeRequestTypes = new(StringComparer.Ordinal)
+    {
+        "url_scan.request", "track_url.request", "tab_closed.request", "tab_changed.request"
+    };
+
     internal async Task<object> ProcessEnvelopeAsync(string message, JObject wire)
     {
         var validation = MessageEnvelopeValidator.DeserializeAndValidate(
@@ -157,23 +182,29 @@ public class AlertProcessor
         if (!validation.IsValid)
             return CreateEnvelopeError(wire, validation.ErrorCode!, validation.ErrorMessage!);
 
-        if (envelope!.MessageType != "url_scan.request")
-            return CreateEnvelopeError(wire, "protocol.unsupported_message_type", "Backend ingress accepts url_scan.request only.");
+        if (!EnvelopeRequestTypes.TryGetValue(envelope!.MessageType, out var mapping))
+            return CreateEnvelopeError(wire, "protocol.unsupported_message_type",
+                "Backend ingress accepts url_scan.request, track_url.request, tab_closed.request, tab_changed.request, remote_access.request only.");
 
         var alertToken = wire["payload"]?["alert"];
         if (alertToken is not JObject alertObject)
             return CreateEnvelopeError(wire, "protocol.invalid_payload", "payload.alert is required.");
 
         var alertDeviceId = alertObject["DeviceInfo"]?["DeviceUid"]?.ToString();
-        var alertUrl = alertObject["Url"]?.ToString();
-        var alertTabId = alertObject["TabId"]?.ToString();
-        if (!string.Equals(alertDeviceId, envelope.Context.DeviceId, StringComparison.Ordinal) ||
-            !string.Equals(alertUrl, envelope.Context.Url, StringComparison.Ordinal) ||
-            !string.Equals(alertTabId, envelope.Context.TabId, StringComparison.Ordinal))
+        var contextMatches = string.Equals(alertDeviceId, envelope.Context.DeviceId, StringComparison.Ordinal);
+        if (contextMatches && UrlBasedEnvelopeRequestTypes.Contains(envelope.MessageType))
+        {
+            var alertUrl = alertObject["Url"]?.ToString();
+            var alertTabId = alertObject["TabId"]?.ToString();
+            contextMatches =
+                string.Equals(alertUrl, envelope.Context.Url, StringComparison.Ordinal) &&
+                string.Equals(alertTabId, envelope.Context.TabId, StringComparison.Ordinal);
+        }
+        if (!contextMatches)
             return CreateEnvelopeError(wire, "validation.immutable_context_mismatch", "payload.alert does not match immutable context.");
 
-        var typedAlert = JsonConvert.DeserializeObject<Common.Models.Alerts.UrlAlert>(
-            alertObject.ToString(Formatting.None));
+        var typedAlert = (Common.Models.DeviceAlert?)JsonConvert.DeserializeObject(
+            alertObject.ToString(Formatting.None), mapping.EntityType);
         if (typedAlert is null)
             return CreateEnvelopeError(wire, "protocol.invalid_payload", "payload.alert is invalid.");
 
@@ -187,7 +218,7 @@ public class AlertProcessor
                 MessageId = Guid.NewGuid(),
                 CorrelationId = envelope.CorrelationId,
                 RequestId = envelope.RequestId,
-                MessageType = "url_scan.accepted",
+                MessageType = mapping.Accepted,
                 SentAt = DateTimeOffset.UtcNow,
                 Source = "backend",
                 Context = envelope.Context,
@@ -197,6 +228,7 @@ public class AlertProcessor
             };
         }
 
+        typedAlert.AlertType = mapping.Discriminator;
         typedAlert.MessagingIdentity = new MessageIdentityV1(
             envelope.MessageId, envelope.CorrelationId, envelope.RequestId,
             envelope.Context.DeviceId!, envelope.Context.TabId, envelope.Context.Url);
@@ -209,7 +241,7 @@ public class AlertProcessor
             MessageId = Guid.NewGuid(),
             CorrelationId = envelope.CorrelationId,
             RequestId = envelope.RequestId,
-            MessageType = "url_scan.accepted",
+            MessageType = mapping.Accepted,
             SentAt = DateTimeOffset.UtcNow,
             Source = "backend",
             Context = envelope.Context,
@@ -228,12 +260,20 @@ public class AlertProcessor
             TabId = contextToken?["tabId"]?.Type == JTokenType.Null ? null : contextToken?["tabId"]?.ToString(),
             Url = contextToken?["url"]?.ToString() ?? "https://invalid.local/"
         };
+        // Derive the error family from the wire's own messageType (e.g. "track_url.request" ->
+        // "track_url.error") so a rejected non-url_scan envelope doesn't get mislabeled as a
+        // url_scan error. Falls back to url_scan.error when the wire messageType is missing,
+        // malformed, or not one of the known "<family>.request" shapes (e.g. schema-invalid input).
+        var wireMessageType = wire["messageType"]?.ToString();
+        var errorType = wireMessageType is not null && EnvelopeRequestTypes.ContainsKey(wireMessageType)
+            ? wireMessageType[..^".request".Length] + ".error"
+            : "url_scan.error";
         return new MessageEnvelopeV1
         {
             MessageId = Guid.NewGuid(),
             CorrelationId = ReadGuid(wire["correlationId"]),
             RequestId = ReadGuid(wire["requestId"]),
-            MessageType = "url_scan.error",
+            MessageType = errorType,
             SentAt = DateTimeOffset.UtcNow,
             Source = "backend",
             Context = context,

@@ -18,6 +18,7 @@ Keep ASPS coherent as it grows — produce designs and decisions that fit the ex
 - Choose approaches across the stack (.NET, EF, NetMQ, Python agents, extension, MySQL).
 - Author **ADRs** for significant decisions; mark superseded ones.
 - Guard system coherence — flag designs that fight the existing architecture or add debt.
+- **Approve specification changes** — review and approve spec updates drafted by TechWriter after task completion. This ensures specs stay coherent with the overall architecture. See [task-workflow.md](../../rules/task-workflow.md#specification-update-rule).
 
 ## Inputs
 - Acceptance criteria (Product) + task from VP Engineering.

@@ -492,6 +492,8 @@ handleResult(data, fromCache = false) {
 
 # 4. Alert Types
 
+**V1 message envelope (ASPS-732):** All alert types below are wrapped in a `MessageEnvelopeV1` (`schemaVersion: "1.0"`) before being sent to the Backend. The envelope adds `messageType` (e.g., `url_scan.request`, `track_url.request`, `remote_access.request`, `tab_closed.request`, `tab_changed.request`), correlation IDs, and context fields. The JSON payloads shown below are the inner `payload.alert` content. The Azure Backend rejects envelope-less (v0) messages when `Messaging:AcceptLegacyV0=false`.
+
 ## 4.1 UrlAlert
 Triggered when user visits a URL.
 
@@ -920,4 +922,4 @@ Until these alert types are implemented, mobile agents that need them should fal
 ---
 
 *Document generated for NotebookLLM presentation*
-*Last updated: 2026-04-29 — drift fixes (port 8765 → 8080-8484, HTTP → subprocess, Protective Actions enum), added §8 (WebApi data flow), §9 (Roadmap module flow), §10 (Mobile agent target flow).*
+*Last updated: 2026-08-25 — added v1 message envelope note for all alert types (ASPS-732), cloud path diagram (ASPS-718). Previous: 2026-04-29 — drift fixes (port 8765 → 8080-8484, HTTP → subprocess, Protective Actions enum), added §8 (WebApi data flow), §9 (Roadmap module flow), §10 (Mobile agent target flow).*

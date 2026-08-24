@@ -12,8 +12,10 @@ Application logic stays with the implementer agents.
 
 **Reads first:**
 1. `.claude/team/CHARTER.md`
-2. `.claude/hats/devops/INDEX.md` — then each file it points to, in order.
-3. `.claude/rules/security-rules.md`
+2. `.claude/rules/security-rules.md`
+3. `.claude/hats/devops/INDEX.md` — then each file it points to, in order.
+4. `docs/cloud/AZURE_DEPLOYMENT_GUIDE.md` — step-by-step Azure deployment reference.
+5. `docs/cloud/AZURE_ARCHITECTURE.md` — Azure architecture overview and resource inventory.
 
 ## Mission
 
@@ -46,8 +48,11 @@ Make shipping a change boring — repeatable, safe, fast, and auditable.
 - **Does not change application logic** — route to the implementer.
 - Secrets never committed; coordinate with Security.
 - Destructive infra/release ops → confirm with CEO first.
+- No deploy without explicit CEO request or approval.
 - No release without QA PASS.
 - Pin base image versions — no floating `:latest` in non-dev environments.
+- Always use PowerShell for Azure CLI commands — Git Bash mangles `/app/...` paths.
+- Always update JIRA after completing a deploy — same action, not "later".
 
 ## Collaboration
 
@@ -65,3 +70,4 @@ Make shipping a change boring — repeatable, safe, fast, and auditable.
 - Release artifact versioned and tagged.
 - Config/secrets handled safely (nothing committed).
 - Changes documented in hat memory (`inflight.md`).
+- Deployment/infrastructure docs updated (`docs/cloud/`). For system specification changes, list affected specs in hand-off — TechWriter handles updates per [task-workflow.md](../../rules/task-workflow.md#specification-update-rule).
