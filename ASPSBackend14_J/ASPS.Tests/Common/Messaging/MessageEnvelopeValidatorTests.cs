@@ -114,6 +114,65 @@ public class MessageEnvelopeValidatorTests
     }
 
     [Theory]
+    [InlineData("track_url.request")]
+    [InlineData("tab_closed.request")]
+    [InlineData("tab_changed.request")]
+    [InlineData("remote_access.request")]
+    public void Validate_NewAlertFamilyRequest_ReturnsValid(string messageType)
+    {
+        var result = MessageEnvelopeValidator.Validate(CreateRequest() with { MessageType = messageType });
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("track_url.result")]
+    [InlineData("tab_closed.result")]
+    [InlineData("tab_changed.result")]
+    [InlineData("remote_access.result")]
+    public void Validate_NewAlertFamilyResult_RequiresSuccessOutcome(string messageType)
+    {
+        using var document = JsonDocument.Parse("{}");
+        var request = CreateRequest();
+        var envelope = request with
+        {
+            MessageType = messageType,
+            Source = "backend",
+            Outcome = new MessageOutcomeV1 { Status = "success", Result = document.RootElement.Clone() }
+        };
+        MessageEnvelopeValidator.Validate(envelope).IsValid.Should().BeTrue();
+
+        var mismatched = envelope with
+        {
+            Outcome = new MessageOutcomeV1 { Status = "error", Error = new MessageErrorV1 { Code = "x.y", Message = "m" } }
+        };
+        MessageEnvelopeValidator.Validate(mismatched).ErrorCode.Should().Be("protocol.invalid_outcome");
+    }
+
+    [Theory]
+    [InlineData("track_url.error")]
+    [InlineData("tab_closed.error")]
+    [InlineData("tab_changed.error")]
+    [InlineData("remote_access.error")]
+    public void Validate_NewAlertFamilyError_RequiresErrorOutcome(string messageType)
+    {
+        var request = CreateRequest();
+        var envelope = request with
+        {
+            MessageType = messageType,
+            Source = "backend",
+            Outcome = new MessageOutcomeV1 { Status = "error", Error = new MessageErrorV1 { Code = "x.y", Message = "m" } }
+        };
+        MessageEnvelopeValidator.Validate(envelope).IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Validate_UnknownAlertFamily_ReturnsUnknownMessageTypeError()
+    {
+        var result = MessageEnvelopeValidator.Validate(CreateRequest() with { MessageType = "unknown_family.request" });
+        result.ErrorCode.Should().Be("protocol.unknown_message_type");
+    }
+
+    [Theory]
     [InlineData("https://Example.COM:443")]
     [InlineData("http://example.com:80")]
     public void CanonicalizeUrl_ReturnsCanonicalUrl(string source)

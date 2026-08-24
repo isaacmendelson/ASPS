@@ -54,6 +54,28 @@ into its own Container App (ASPS-727), pointing WebApi's CQRS client and `/ws/ag
 
 ---
 
+## Messaging Protocol — v1 Envelope Enforcement (ASPS-732)
+
+The Backend Container App (`ca-backend-dev`) runs with **`Messaging:AcceptLegacyV0=false`** —
+there is no legacy fallback in the cloud environment. All client messages reaching the Backend
+must use the **v1 envelope format** (payload includes a `schemaVersion` field).
+
+**Enforcement:** `AlertProcessor.RouteMessageAsync()` checks incoming messages for
+`schemaVersion`:
+- Present → routed through the v1 handling path.
+- Absent → routed to `ProcessLegacyAlertAsync()`, which rejects the message when
+  `Messaging:AcceptLegacyV0=false`.
+
+**Status by alert type (2026-08-24):**
+- `UrlAlert` — compliant, wraps in a `url_scan.request` v1 envelope (commit `d51fb80`).
+- `TrackUrlAlert`, `TabClosedAlert`, `TabChangedAlert`, `RemoteAccessAlert` — not yet
+  compliant; still need v1 envelopes. Tracked in **ASPS-732**.
+
+See [AD-10 in the Deployment Guide](AZURE_DEPLOYMENT_GUIDE.md#ad-10-messaging-protocol-version-enforcement-v0-legacy-vs-v1-envelope)
+for full detail.
+
+---
+
 ## Container Apps
 
 ### ca-webapi-dev — WebApi (standalone)
@@ -246,6 +268,7 @@ Detailed in [AZURE_DEPLOYMENT_GUIDE.md](AZURE_DEPLOYMENT_GUIDE.md#architecture-d
 | AD-7 | Infrastructure as Code | CLI first → Bicep after deployment stabilizes |
 | AD-8 | Angular Admin Deployment | Standalone Container App (not sidecar), reuse `id-asps-dev` for ACR pull, CORS + Keycloak public client added (ASPS-724) |
 | AD-9 | Backend split from WebApi sidecar | Standalone `ca-backend-dev` + internal TCP ingress with **app-name addressing** (`ca-backend-dev:<port>`) — confirmed to forward ZMQ/CURVE where FQDN addressing does not (ASPS-725/726/727/728/729/730) |
+| AD-10 | Messaging protocol version enforcement | Azure Backend runs `Messaging:AcceptLegacyV0=false` — all messages must use v1 envelope (`schemaVersion`); legacy (no `schemaVersion`) messages are rejected by `ProcessLegacyAlertAsync()`. `UrlAlert` compliant (commit `d51fb80`); remaining alert types tracked in ASPS-732 |
 
 ---
 

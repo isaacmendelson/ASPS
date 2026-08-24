@@ -42,9 +42,13 @@ from alert_builders import (
     wrap_url_alert_default_envelope,
     validate_url_alert_envelope_response,
     build_track_url_alert,
+    wrap_track_url_alert_default_envelope,
     build_remote_access_alert,
+    wrap_remote_access_alert_default_envelope,
     build_tab_closed_alert,
+    wrap_tab_closed_alert_default_envelope,
     build_tab_changed_alert,
+    wrap_tab_changed_alert_default_envelope,
     build_request_token_message,
     build_refresh_token_message,
 )
@@ -579,7 +583,10 @@ class WSClient:
             user_agent=user_agent, tab_id=tab_id, timezone=timezone, token=token,
             mac=mac, device_type=device_type, os_type=os_type,
         )
-        return self.send_alert(alert)
+        # Every TrackUrlAlert must travel inside a v1 track_url.request
+        # envelope -- same reason as UrlAlert (ASPS-732).
+        wire_message, _ = wrap_track_url_alert_default_envelope(alert, device_uid, url, tab_id)
+        return self.send_alert(wire_message)
 
     def send_remote_access_alert(
         self, device_uid: str, remote_app: str, running_processes: int,
@@ -606,7 +613,10 @@ class WSClient:
             remote_id=remote_id, remote_name=remote_name, logged_user=logged_user,
             connection_id=connection_id, software=software,
         )
-        return self.send_alert(alert)
+        # Every RemoteAccessAlert must travel inside a v1 remote_access.request
+        # envelope -- same reason as UrlAlert (ASPS-732).
+        wire_message, _ = wrap_remote_access_alert_default_envelope(alert, device_uid)
+        return self.send_alert(wire_message)
 
     def send_tab_closed_alert(
         self, device_uid: str, tab_id: str, url: str, token: str = '',
@@ -618,7 +628,10 @@ class WSClient:
             device_uid=device_uid, tab_id=tab_id, url=url, token=token,
             ip_address=ip_address, mac=mac, device_type=device_type, os_type=os_type,
         )
-        return self.send_alert(alert)
+        # Every TabClosedAlert must travel inside a v1 tab_closed.request
+        # envelope -- same reason as UrlAlert (ASPS-732).
+        wire_message, _ = wrap_tab_closed_alert_default_envelope(alert, device_uid, url, tab_id)
+        return self.send_alert(wire_message)
 
     def send_tab_changed_alert(
         self, device_uid: str, tab_id: str, url: str,
@@ -633,7 +646,10 @@ class WSClient:
             token=token, ip_address=ip_address, mac=mac, device_type=device_type,
             os_type=os_type,
         )
-        return self.send_alert(alert)
+        # Every TabChangedAlert must travel inside a v1 tab_changed.request
+        # envelope -- same reason as UrlAlert (ASPS-732).
+        wire_message, _ = wrap_tab_changed_alert_default_envelope(alert, device_uid, url, tab_id)
+        return self.send_alert(wire_message)
 
     # ── Token lifecycle (auto-subscribes on success; replayed on reconnect) ─
 

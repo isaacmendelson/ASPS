@@ -331,6 +331,31 @@ and the two components couldn't scale independently.
 git history (this file, pre-ASPS-729 revision) and in `ca-webapi-dev`'s revision history
 (`ca-webapi-dev--0000005`, sidecar still present) if a rollback is ever needed.
 
+### AD-10: Messaging protocol version enforcement (v0 legacy vs. v1 envelope)
+
+**Decision:** the Azure Backend runs with `Messaging:AcceptLegacyV0=false` — every client
+message reaching `ca-backend-dev` MUST use the v1 envelope format (a `schemaVersion` field
+present in the payload). There is no legacy fallback in the cloud environment.
+
+**How enforcement works:** `AlertProcessor.RouteMessageAsync()` inspects the incoming message
+for a `schemaVersion` field:
+- Present → routed through the v1 handling path.
+- Absent → routed to `ProcessLegacyAlertAsync()`, which **rejects** the message outright when
+  `Messaging:AcceptLegacyV0=false` (the Azure setting). Locally, `AcceptLegacyV0=true` still
+  allows old clients through during migration.
+
+**Current status of alert types (2026-08-24):**
+- `UrlAlert` — **compliant**. Now wraps its payload in a `url_scan.request` v1 envelope
+  (commit `d51fb80`).
+- `TrackUrlAlert`, `TabClosedAlert`, `TabChangedAlert`, `RemoteAccessAlert` — **not yet
+  compliant**. Still send without a `schemaVersion` envelope; these will be rejected by
+  `ca-backend-dev` until updated. Tracked in **ASPS-732**.
+
+**Implication for any new client/agent code:** do not add new message types or alert paths
+without a v1 envelope (`schemaVersion` + type-specific wrapper, e.g. `url_scan.request`) —
+they will silently fail against the Azure Backend even though they may work against a local
+Backend running with `AcceptLegacyV0=true`.
+
 ---
 
 ## Deployment Sequence
@@ -494,31 +519,97 @@ docker push acraspsisaacdev.azurecr.io/asps-webapi:0.1.0
 
 The existing `asps-backend:0.1.0` needs updating to include Python + Playwright (AD-1 Phase 1).
 
-```dockerfile
-# Backend multi-stage Dockerfile with Python + Playwright
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /src
-COPY . .
-RUN dotnet publish "ASPSBackend/ASPSBackend.csproj" -c Release -o /app/publish
+> **Current Dockerfile (2026-08-24):** the snippet below reflects the actual, up-to-date
+> `ASPSBackend14_J/ASPSBackend/Dockerfile`. Key points vs. the original version deployed here:
+> Python deps are installed from `requirements.lock.txt` (not cherry-picked packages), and
+> `Analyzers/` is copied **before** the `pip install` step so the lock file is available to it.
+> `--no-deps` is passed to `pip install` — the lock file already pins the full transitive
+> dependency set, so `pip` should not resolve anything on its own (see the Python 3.11
+> compatibility note right after the build commands below for why version pinning matters here).
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
-# Install Python 3.11 + Playwright deps
+```dockerfile
+# -------------------------
+# Build stage
+# -------------------------
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+
+WORKDIR /src
+
+# Copy project files first for better Docker layer caching
+COPY ["ASPSBackend14_J/ASPSBackend/ASPSBackend.csproj", "ASPSBackend14_J/ASPSBackend/"]
+COPY ["ASPSBackend14_J/Business/Business.csproj", "ASPSBackend14_J/Business/"]
+COPY ["ASPSBackend14_J/Common/Common.csproj", "ASPSBackend14_J/Common/"]
+COPY ["ASPSBackend14_J/Interface/Interface.csproj", "ASPSBackend14_J/Interface/"]
+
+RUN dotnet restore "ASPSBackend14_J/ASPSBackend/ASPSBackend.csproj"
+
+# Copy the full solution source
+COPY ASPSBackend14_J/ ASPSBackend14_J/
+
+WORKDIR "/src/ASPSBackend14_J/ASPSBackend"
+
+RUN dotnet publish "ASPSBackend.csproj" \
+    -c Release \
+    -o /app/publish \
+    --no-restore \
+    /p:UseAppHost=false
+
+# -------------------------
+# Runtime stage
+# -------------------------
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+
+# Install Python 3.11 + Playwright so the Backend host can invoke the
+# Analyzers/ microservices via subprocess (AD-1 Phase 1).
 RUN apt-get update && apt-get install -y python3 python3-pip python3-venv && \
-    python3 -m pip install --break-system-packages playwright scikit-learn requests && \
-    python3 -m playwright install chromium && \
-    python3 -m playwright install-deps && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
+
 COPY --from=build /app/publish .
+
+# Python analyzer microservices (invoked via subprocess, not HTTP — Phase 2/ASPS-708 will split this out)
 COPY Analyzers/ /app/Analyzers/
+
+# Install analyzer Python dependencies from the lock file
+RUN python3 -m pip install --break-system-packages --no-deps \
+    -r /app/Analyzers/basic-url-analyzer/requirements.lock.txt && \
+    python3 -m playwright install chromium && \
+    python3 -m playwright install-deps
+
+ENV ASPNETCORE_ENVIRONMENT=Docker
+
+# NetMQ ports — 5556 CQRS gateway (WebApi <-> Backend), 50001 real-time
+# alert listener, 50002 notification publisher. No HTTP port: this is a
+# backend host service, not a web app.
 EXPOSE 5556 50001 50002
+
 ENTRYPOINT ["dotnet", "ASPSBackend.dll"]
 ```
 
+> **Build context:** unlike `WebApi/Dockerfile`, this Dockerfile needs the repo **root** as
+> build context (not `ASPSBackend14_J/`), because it copies the Python `Analyzers/` directory,
+> which lives at `<repo-root>/Analyzers/` — a sibling of `ASPSBackend14_J/`, not a child of it.
+
 ```bash
-docker build -f ASPSBackend/Dockerfile -t acraspsisaacdev.azurecr.io/asps-backend:0.2.0 .
+# Build from the repo root:
+az acr build --registry acraspsisaacdev \
+  -t asps-backend:0.2.0 \
+  -f ASPSBackend14_J/ASPSBackend/Dockerfile .
+
+# local docker equivalent:
+docker build -f ASPSBackend14_J/ASPSBackend/Dockerfile -t acraspsisaacdev.azurecr.io/asps-backend:0.2.0 .
 docker push acraspsisaacdev.azurecr.io/asps-backend:0.2.0
 ```
+
+> **Python 3.11 compatibility note (2026-08-24):** the runtime base image
+> (`mcr.microsoft.com/dotnet/aspnet:8.0`, Debian bookworm) ships **Python 3.11** via
+> `apt-get install python3`. `requirements.lock.txt` must therefore be generated/pinned
+> against Python 3.11-compatible package versions — it is not safe to lock against whatever
+> versions a developer's local (newer) Python resolves. Specifically: `numpy >= 2.5` requires
+> Python >= 3.12, and `scipy >= 1.18` requires Python >= 3.12. Pin `numpy` to the `2.4.x` line
+> and `scipy` to the `1.17.x` line (or lower) in `requirements.lock.txt`, or the `pip install`
+> step in the Dockerfile above will fail to find a compatible wheel/build for Python 3.11.
 
 ### Step 6: Deploy Keycloak (ASPS-700) — DONE
 
@@ -748,6 +839,9 @@ Before monitoring/CI/CD, verify the system works:
 1. `detect-changes` — dorny/paths-filter to determine which images need rebuild
 2. `build-test` — `dotnet build` + `dotnet test` on ubuntu-latest (full clone for Nerdbank.GitVersioning)
 3. `build-push-backend` — ACR cloud build (`az acr build`), tag = `YYYYMMDD-<sha7>` + `latest`
+   (see **Known Issues — ACR build on Windows** in Lessons Learned for two local-build gotchas
+   that don't affect the Linux-hosted CI runner but do affect ad-hoc builds from a Windows dev
+   machine)
 4. `build-push-webapi` — ACR cloud build, same tagging
 5. `build-push-angular` — ACR cloud build for Angular admin
 6. `deploy-webapi` — `az containerapp update --image` against `ca-webapi-dev` (single container)
@@ -1014,3 +1108,41 @@ Items accepted for MVP but flagged for future improvement:
   the `id` field, unlike `POST .../users` which ignores it. Use for syncing users between environments.
 - **Azure MySQL `lower_case_table_names=1` is immutable** — breaks Keycloak Liquibase migrations.
   Use PostgreSQL for Keycloak (its recommended DB anyway).
+
+### Known Issues — ACR build on Windows (2026-08-24)
+
+- **`az acr build` crashes with `UnicodeEncodeError` on Windows** — when the build output
+  contains non-ASCII characters, the Windows `az` CLI (charmap/cp1252 console encoding) throws
+  `UnicodeEncodeError` while streaming logs, even though the remote ACR build itself may be
+  succeeding. **Workaround:** run with `--no-logs` to skip the local log stream, then poll
+  status with `az acr task list-runs --registry <registry> --top 1`, and if you need the raw
+  log content, download it directly via the REST API (`listLogSasUrl`) rather than through the
+  CLI's log streamer:
+  ```bash
+  az acr build --registry acraspsisaacdev -t asps-backend:<tag> \
+    -f ASPSBackend14_J/ASPSBackend/Dockerfile . --no-logs
+
+  az acr task list-runs --registry acraspsisaacdev --top 1 -o table
+
+  # Get a SAS URL for the raw log and download it directly (bypasses the CLI's console encoding)
+  az acr run show --registry acraspsisaacdev --run-id <RUN_ID> --query "id" -o tsv
+  az rest --method post \
+    --uri "https://management.azure.com/subscriptions/<SUB>/resourceGroups/rg-asps-dev/providers/Microsoft.ContainerRegistry/registries/acraspsisaacdev/listLogSasUrl?api-version=2019-06-01-preview" \
+    --body "{\"runId\": \"<RUN_ID>\"}"
+  ```
+- **Visual Studio `.vs/` lock files break `az acr build`'s source tar packing** — when building
+  from the repo root on a machine where Visual Studio has the solution open, `az acr build`
+  fails with `Permission denied` while tarring up the build context, because `.vs/` contains
+  files VS holds open/locked. **Workaround:** export a clean copy of the tracked source with
+  `git archive` and build from that instead of the working tree directly:
+  ```bash
+  mkdir -p /tmp/asps-build-src
+  git archive HEAD | tar -x -C /tmp/asps-build-src
+  cd /tmp/asps-build-src
+  az acr build --registry acraspsisaacdev -t asps-backend:<tag> \
+    -f ASPSBackend14_J/ASPSBackend/Dockerfile .
+  ```
+  (On this machine, use the scratchpad directory instead of `/tmp` — see session scratchpad
+  path.) `git archive` only exports committed, tracked files, so this also guarantees the
+  build context matches what's actually in git, with no stray local/untracked files leaking
+  into the image.

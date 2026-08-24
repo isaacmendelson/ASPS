@@ -197,6 +197,108 @@ def build_track_url_alert(
     }
 
 
+def wrap_track_url_alert_default_envelope(
+    alert: Dict[str, Any], device_uid: str, url: str, tab_id: str
+) -> Any:
+    """
+    Build and apply a synthetic v1 envelope for a TrackUrlAlert (ASPS-732),
+    mirroring wrap_url_alert_default_envelope: the Azure backend
+    (Messaging:AcceptLegacyV0=false) rejects any schemaVersion-less message
+    with "Legacy messaging v0 is disabled", so TrackUrlAlert must travel
+    inside a track_url.request envelope.
+
+    Canonicalizes the URL and normalizes tab_id to a non-empty decimal
+    string (default "0") for the same immutable-context reasons documented
+    on wrap_url_alert_default_envelope.
+
+    Returns (wire_message, context).
+    """
+    canonical_url = canonicalize_url(url)
+    normalized_tab_id = str(tab_id) if tab_id else "0"
+    if alert.get("Url") != canonical_url:
+        alert = {**alert, "Url": canonical_url}
+    if alert.get("TabId") != normalized_tab_id:
+        alert = {**alert, "TabId": normalized_tab_id}
+    context = {"deviceId": device_uid, "tabId": normalized_tab_id, "url": canonical_url}
+    wire_message = create_envelope("track_url.request", "desktop", context, {"alert": alert})
+    return wire_message, context
+
+
+def wrap_tab_closed_alert_default_envelope(
+    alert: Dict[str, Any], device_uid: str, url: str, tab_id: str
+) -> Any:
+    """
+    Build and apply a synthetic v1 envelope for a TabClosedAlert (ASPS-732).
+    Same canonicalization / tab_id-normalization rules as
+    wrap_url_alert_default_envelope. Returns (wire_message, context).
+    """
+    canonical_url = canonicalize_url(url)
+    normalized_tab_id = str(tab_id) if tab_id else "0"
+    if alert.get("Url") != canonical_url:
+        alert = {**alert, "Url": canonical_url}
+    if alert.get("TabId") != normalized_tab_id:
+        alert = {**alert, "TabId": normalized_tab_id}
+    context = {"deviceId": device_uid, "tabId": normalized_tab_id, "url": canonical_url}
+    wire_message = create_envelope("tab_closed.request", "desktop", context, {"alert": alert})
+    return wire_message, context
+
+
+def wrap_tab_changed_alert_default_envelope(
+    alert: Dict[str, Any], device_uid: str, url: str, tab_id: str
+) -> Any:
+    """
+    Build and apply a synthetic v1 envelope for a TabChangedAlert
+    (ASPS-732). Same canonicalization / tab_id-normalization rules as
+    wrap_url_alert_default_envelope. Returns (wire_message, context).
+    """
+    canonical_url = canonicalize_url(url)
+    normalized_tab_id = str(tab_id) if tab_id else "0"
+    if alert.get("Url") != canonical_url:
+        alert = {**alert, "Url": canonical_url}
+    if alert.get("TabId") != normalized_tab_id:
+        alert = {**alert, "TabId": normalized_tab_id}
+    context = {"deviceId": device_uid, "tabId": normalized_tab_id, "url": canonical_url}
+    wire_message = create_envelope("tab_changed.request", "desktop", context, {"alert": alert})
+    return wire_message, context
+
+
+# Sentinel context URL for RemoteAccessAlert when no ConnectionUrl is known --
+# RemoteAccessAlert has no Url field of its own, but the v1 envelope's
+# context.url is mandatory and must be canonical (validate_envelope enforces
+# an absolute http(s) URL).
+_REMOTE_ACCESS_SENTINEL_URL = "https://remote-access.internal/"
+
+
+def wrap_remote_access_alert_default_envelope(
+    alert: Dict[str, Any], device_uid: str
+) -> Any:
+    """
+    Build and apply a synthetic v1 envelope for a RemoteAccessAlert
+    (ASPS-732). Unlike every other alert type, RemoteAccessAlert has no Url
+    or TabId field -- there is no browser tab involved. context.url is
+    therefore derived from the alert's own ConnectionUrl (which may be a
+    bare IP such as "192.168.1.1" -- "https://" is prepended when no scheme
+    is present) or, when ConnectionUrl is absent/unusable, the fixed
+    _REMOTE_ACCESS_SENTINEL_URL. context.tabId is always "0" -- there is no
+    tab concept for a remote-access session.
+
+    Returns (wire_message, context).
+    """
+    connection_url = (alert.get("ConnectionUrl") or "").strip()
+    if connection_url:
+        candidate = connection_url if "://" in connection_url else f"https://{connection_url}"
+        try:
+            canonical_url = canonicalize_url(candidate)
+        except Exception:
+            canonical_url = _REMOTE_ACCESS_SENTINEL_URL
+    else:
+        canonical_url = _REMOTE_ACCESS_SENTINEL_URL
+
+    context = {"deviceId": device_uid, "tabId": "0", "url": canonical_url}
+    wire_message = create_envelope("remote_access.request", "desktop", context, {"alert": alert})
+    return wire_message, context
+
+
 def build_remote_access_alert(
     device_uid: str,
     remote_app: str,

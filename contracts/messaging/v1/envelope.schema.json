@@ -14,7 +14,13 @@
     "correlationId": { "$ref": "#/$defs/uuid" },
     "requestId": { "$ref": "#/$defs/uuid" },
     "messageType": {
-      "enum": ["url_scan.request", "url_scan.accepted", "url_scan.result", "url_scan.error"]
+      "enum": [
+        "url_scan.request", "url_scan.accepted", "url_scan.result", "url_scan.error",
+        "track_url.request", "track_url.accepted", "track_url.result", "track_url.error",
+        "tab_closed.request", "tab_closed.accepted", "tab_closed.result", "tab_closed.error",
+        "tab_changed.request", "tab_changed.accepted", "tab_changed.result", "tab_changed.error",
+        "remote_access.request", "remote_access.accepted", "remote_access.result", "remote_access.error"
+      ]
     },
     "sentAt": {
       "type": "string",
@@ -84,15 +90,39 @@
   },
   "allOf": [
     {
-      "if": { "properties": { "messageType": { "enum": ["url_scan.request", "url_scan.accepted"] } } },
+      "if": {
+        "properties": {
+          "messageType": {
+            "enum": [
+              "url_scan.request", "url_scan.accepted",
+              "track_url.request", "track_url.accepted",
+              "tab_closed.request", "tab_closed.accepted",
+              "tab_changed.request", "tab_changed.accepted",
+              "remote_access.request", "remote_access.accepted"
+            ]
+          }
+        }
+      },
       "then": { "properties": { "outcome": { "type": "null" } } }
     },
     {
-      "if": { "properties": { "messageType": { "const": "url_scan.result" } } },
+      "if": {
+        "properties": {
+          "messageType": {
+            "enum": ["url_scan.result", "track_url.result", "tab_closed.result", "tab_changed.result", "remote_access.result"]
+          }
+        }
+      },
       "then": { "properties": { "outcome": { "$ref": "#/$defs/successOutcome" } } }
     },
     {
-      "if": { "properties": { "messageType": { "const": "url_scan.error" } } },
+      "if": {
+        "properties": {
+          "messageType": {
+            "enum": ["url_scan.error", "track_url.error", "tab_closed.error", "tab_changed.error", "remote_access.error"]
+          }
+        }
+      },
       "then": { "properties": { "outcome": { "$ref": "#/$defs/errorOutcome" } } }
     }
   ]

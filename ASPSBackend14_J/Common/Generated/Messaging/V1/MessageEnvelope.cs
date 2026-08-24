@@ -10,7 +10,7 @@ namespace Common.Generated.Messaging.V1;
 public static class MessagingContractV1
 {
     public const string SchemaVersion = "1.0";
-    public const string EnvelopeSchemaSha256 = "19cd31af58cf9afa385c830a18e7cee4f7afbb663ae51c8945beb656fbb4f9d5";
+    public const string EnvelopeSchemaSha256 = "b2de9ddb5eca827d84359a1e19afc8fd8afeef4828da0b51cb12e5d2f9a58ba4";
 }
 
 /// <summary>
