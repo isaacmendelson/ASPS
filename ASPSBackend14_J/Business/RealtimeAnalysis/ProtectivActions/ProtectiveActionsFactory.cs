@@ -88,16 +88,6 @@ namespace Business.RealtimeAnalysis.ProtectivActions
                         protectiveActions.Add(trackingAction);
                     }
 
-
-
-
-                    msg = "test message";
-                    var a1 = new ProtectiveAction(deviceInfo.Key, ProtectiveActionType.DisplayNotification, AnalysisLevel.Device, msg, null);
-                    var a2 = new ProtectiveAction(deviceInfo.Key, ProtectiveActionType.SoundAlert, AnalysisLevel.Device, msg, null);
-                    var a3 = new ProtectiveAction(deviceInfo.UserKey!, ProtectiveActionType.EmailNotification, AnalysisLevel.Device, msg, null);
-
-                    protectiveActions.AddRange(new IProtectiveAction[] { a1, a2, a3 });
-
                     break;
             }
 
