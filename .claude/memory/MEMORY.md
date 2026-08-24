@@ -15,7 +15,7 @@
 - [NetMQ CURVE API Reference](reference_netmq_curve.md) — Correct API usage for NetMQ 4.0.1.13 CURVE
 - [Common Enums](reference_enums.md) — DeviceMonitoringStatus, DeviceType values (avoid wrong names)
 - [Python Clients](reference_python_clients.md) — Desktop agent paths, pyzmq, auth.json
-- [ASPS JIRA Instances](reference_jira.md) — Two parallel JIRA instances (old on-prem + new Atlassian Cloud); match tasks by title
+- [JIRA instance](reference_jira.md) — isaacmendelsonjira.atlassian.net, project ASPS, REST via direct URL
 - [Daily Security Audit Cron](reference_security_audit_cron.md) — 05:00 daily CISO audit; reports under `docs/security-audits/`; flag file `NEEDS_ATTENTION.md`
 - [Access keys file](reference_access_keys.md) — `ACCESS_KEYS.env` in project root has GitHub + JIRA tokens; read before asking the user
 
