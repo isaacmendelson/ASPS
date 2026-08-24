@@ -50,9 +50,6 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 # Analyzers/ microservices via subprocess (AD-1 Phase 1 — see
 # docs/cloud/AZURE_DEPLOYMENT_GUIDE.md and ADR-003).
 RUN apt-get update && apt-get install -y python3 python3-pip python3-venv && \
-    python3 -m pip install --break-system-packages playwright scikit-learn requests && \
-    python3 -m playwright install chromium && \
-    python3 -m playwright install-deps && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -61,6 +58,12 @@ COPY --from=build /app/publish .
 
 # Python analyzer microservices (invoked via subprocess, not HTTP — Phase 2/ASPS-708 will split this out)
 COPY Analyzers/ /app/Analyzers/
+
+# Install analyzer Python dependencies from the lock file
+RUN python3 -m pip install --break-system-packages --no-deps \
+    -r /app/Analyzers/basic-url-analyzer/requirements.lock.txt && \
+    python3 -m playwright install chromium && \
+    python3 -m playwright install-deps
 
 ENV ASPNETCORE_ENVIRONMENT=Docker
 
