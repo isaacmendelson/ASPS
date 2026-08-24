@@ -637,8 +637,21 @@ Key container settings:
 - Image: `quay.io/keycloak/keycloak:26.0`
 - Command: `/opt/keycloak/bin/kc.sh start-dev`
 - CPU/Memory: 1.0 / 2Gi (needed for migration)
-- Startup probe: `/health/started`, 30s delay, 50 failures × 10s = 530s window
-- Liveness probe: `/health/live`, 30s interval, 3 failures
+- `KC_HEALTH_ENABLED=true` — **required**, or `/health/*` 404s (see ASPS-735 fix below)
+- Startup probe: `/health/started` on port **9000** (management interface), 30s delay, 50 failures × 10s = 530s window
+- Liveness probe: `/health/live` on port **9000** (management interface), 30s interval, 3 failures
+
+> **ASPS-735 fix (2026-08-25):** the original deployment configured the probes with the
+> correct paths but pointed them at port 8080 and never set `KC_HEALTH_ENABLED=true`. Keycloak
+> 26 serves `/health/*` on a separate **management interface** (port 9000 by default,
+> confirmed in container logs: `Management interface listening on http://0.0.0.0:9000`), which
+> is only active once the health subsystem is enabled. Every request to `/health/started` on
+> 8080 returned 404, so the startup probe's `failureThreshold` of 50 was exhausted after ~530s
+> and Container Apps killed the container — a loop of 810+ restarts (CrashLoopBackOff). Fixed by
+> adding `KC_HEALTH_ENABLED=true` (and explicit `KC_HTTP_MANAGEMENT_PORT=9000`) and repointing
+> both probes to port 9000 via ARM PATCH (env var changes are not safe via
+> `az containerapp update` — see the CLI bug note above). See AD-11 in
+> `AZURE_ARCHITECTURE.md`.
 
 ### Steps 7+8: Deploy WebApi + Backend as Sidecar (ASPS-701/702) — HISTORICAL, superseded by ASPS-725/729 (see Step 16)
 
@@ -1058,6 +1071,8 @@ and used the normal CLI.
 | `KC_PROXY_HEADERS` | `xforwarded` | Static |
 | `KEYCLOAK_ADMIN` | `admin` | Static |
 | `KEYCLOAK_ADMIN_PASSWORD` | Admin password | Key Vault (`keycloak-admin-password`) |
+| `KC_HEALTH_ENABLED` | `true` | Static — required for `/health/*` probes to respond (ASPS-735) |
+| `KC_HTTP_MANAGEMENT_PORT` | `9000` | Static — explicit; matches Keycloak 26 default management interface port |
 
 ---
 
