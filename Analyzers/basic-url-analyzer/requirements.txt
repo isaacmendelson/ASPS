@@ -21,7 +21,7 @@ python-dateutil==2.9.0.post0
 
 # Machine Learning
 scikit-learn==1.8.0
-numpy==2.5.1
+numpy==2.4.6
 
 # LLM Integration (optional - for AI explanations)
 ollama==0.6.2
