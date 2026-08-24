@@ -13,6 +13,7 @@ from typing import Optional, Dict, Any, List
 from alert_builders import (
     build_url_alert,
     wrap_url_alert_envelope,
+    wrap_url_alert_default_envelope,
     validate_url_alert_envelope_response,
     build_track_url_alert,
     build_remote_access_alert,
@@ -288,10 +289,16 @@ class ZMQClient:
             iframes=iframes, mac=mac, device_type=device_type, os_type=os_type,
             ip_address=ip_address, tab_id=tab_id,
         )
-        wire_message = alert
-        context = None
+        # Every UrlAlert must travel inside a v1 url_scan.request envelope --
+        # the Azure backend (Messaging:AcceptLegacyV0=false) rejects any
+        # schemaVersion-less message with "Legacy messaging v0 is disabled".
+        # When the caller (e.g. the legacy `url_check` extension message)
+        # has no envelope of its own, synthesize one so the alert is never
+        # sent raw.
         if envelope is not None:
             wire_message, context = wrap_url_alert_envelope(alert, envelope, device_uid, url, tab_id)
+        else:
+            wire_message, context = wrap_url_alert_default_envelope(alert, device_uid, url, tab_id)
 
         with self._send_lock:
             if not self.connect():
@@ -299,8 +306,12 @@ class ZMQClient:
 
             try:
                 response = self.send_alert(wire_message)
-                if envelope is not None and response is not None:
-                    validate_url_alert_envelope_response(response, envelope, context)
+                if response is not None:
+                    # The wire message we sent is itself a valid envelope
+                    # (either the caller-supplied one, or the one we
+                    # synthesized above) -- always validate the response
+                    # against it, not only when the caller supplied one.
+                    validate_url_alert_envelope_response(response, envelope or wire_message, context)
                 return response
             finally:
                 self.close()

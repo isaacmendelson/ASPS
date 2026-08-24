@@ -16,7 +16,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from generated.messaging.v1.message_envelope import create_envelope, validate_envelope
+from generated.messaging.v1.message_envelope import canonicalize_url, create_envelope, validate_envelope
 
 
 # Priority enum mirror of Common.Enums.Priority on the backend.
@@ -86,10 +86,11 @@ def wrap_url_alert_envelope(
     alert: Dict[str, Any], envelope: Dict[str, Any], device_uid: str, url: str, tab_id: str
 ) -> Any:
     """
-    Wrap a UrlAlert in a MessageEnvelopeV1 request when an envelope is
-    supplied by the caller (ASPS-611). Returns the wire message to send
-    (either the envelope, or the raw `alert` unchanged when envelope is None)
-    together with the context dict used to validate the eventual response.
+    Wrap a UrlAlert in a MessageEnvelopeV1 request using a caller-supplied
+    envelope (ASPS-611) -- e.g. the url_scan.request envelope the browser
+    extension attaches to its scan. Returns the wire message to send
+    (the envelope, with `alert` embedded in `payload`) together with the
+    context dict used to validate the eventual response.
 
     Raises ValueError('validation.immutable_context_mismatch') if the
     envelope's context does not match the alert being sent.
@@ -104,6 +105,45 @@ def wrap_url_alert_envelope(
         request_id=envelope["requestId"],
         correlation_id=envelope["correlationId"])
     return wire_message, context
+
+
+def wrap_url_alert_default_envelope(
+    alert: Dict[str, Any], device_uid: str, url: str, tab_id: str
+) -> Any:
+    """
+    Build and apply a synthetic v1 envelope when no browser-supplied envelope
+    exists -- e.g. the legacy `url_check` extension message handled by
+    ExtensionHandler._handle_url_check, or any other UrlAlert caller that
+    predates the ASPS-611 envelope protocol.
+
+    The Azure backend runs with Messaging:AcceptLegacyV0=false, so any
+    message without a `schemaVersion` field is routed to
+    AlertProcessor.ProcessLegacyAlertAsync and rejected with "Legacy
+    messaging v0 is disabled". Every UrlAlert must therefore travel inside a
+    url_scan.request envelope -- even when the caller has no envelope of its
+    own to forward.
+
+    Canonicalizes the URL (context.url must already be canonical per
+    validate_envelope) and normalizes tab_id to a non-empty decimal string,
+    defaulting to "0" when unknown. tab_id is deliberately never left as
+    None/"": AlertProcessor.ProcessEnvelopeAsync compares the wire alert's
+    TabId against envelope.Context.TabId using JToken.ToString(), which
+    renders a JSON null as "" -- while the typed Context.TabId deserializes
+    a JSON null to a real C# null. "" != null, so a null tabId would fail
+    the backend's immutable-context check on every request. Using the same
+    non-null decimal string on both sides avoids that mismatch.
+
+    Returns (wire_message, context), matching wrap_url_alert_envelope.
+    """
+    canonical_url = canonicalize_url(url)
+    normalized_tab_id = str(tab_id) if tab_id else "0"
+    if alert.get("Url") != canonical_url:
+        alert = {**alert, "Url": canonical_url}
+    if alert.get("TabId") != normalized_tab_id:
+        alert = {**alert, "TabId": normalized_tab_id}
+    context = {"deviceId": device_uid, "tabId": normalized_tab_id, "url": canonical_url}
+    default_envelope = create_envelope("url_scan.request", "desktop", context, {})
+    return wrap_url_alert_envelope(alert, default_envelope, device_uid, canonical_url, normalized_tab_id)
 
 
 def validate_url_alert_envelope_response(

@@ -606,22 +606,53 @@ class TestWSClientPayloadParity(unittest.TestCase):
         return captured
 
     def test_send_url_alert_payload_matches_alert_builders(self):
+        """Every UrlAlert now travels inside a v1 url_scan.request envelope
+        (the Azure backend's Messaging:AcceptLegacyV0=false rejects raw
+        schemaVersion-less alerts) — the alert payload embedded in
+        payload.alert must still match alert_builders byte-for-byte."""
         client = WSClient("PC-1", "wss://example.invalid/ws/agent")
         captured = self._capture_alert(client)
 
         client.send_url_alert(device_uid="PC-1", url="https://example.com", token="tok",
                                trackers=[], iframes=[], tab_id="42")
 
+        canonical_url = "https://example.com/"  # canonicalize_url adds the root path
         expected = alert_builders.build_url_alert(
-            device_uid="PC-1", url="https://example.com", token="tok",
+            device_uid="PC-1", url=canonical_url, token="tok",
             trackers=[], iframes=[], tab_id="42",
         )
         sent = captured["alert"]
+        self.assertEqual(sent["schemaVersion"], "1.0")
+        self.assertEqual(sent["messageType"], "url_scan.request")
+        self.assertEqual(sent["source"], "desktop")
+        self.assertEqual(sent["context"], {
+            "deviceId": "PC-1", "tabId": "42", "url": canonical_url,
+        })
+        inner = sent["payload"]["alert"]
         # AlertId/Timestamp are freshly generated per call — compare everything else.
         for key in ("AlertId", "Timestamp"):
-            sent.pop(key, None)
+            inner.pop(key, None)
             expected.pop(key, None)
-        self.assertEqual(sent, expected)
+        self.assertEqual(inner, expected)
+
+    def test_send_url_alert_with_no_envelope_still_produces_valid_v1_envelope(self):
+        """Regression test for the legacy `url_check` extension message path
+        (ExtensionHandler._handle_url_check -> ScanService.check_url ->
+        send_url_alert with envelope=None): the wire message must be a
+        schema-valid url_scan.request envelope, not a raw alert dict."""
+        import generated.messaging.v1.message_envelope as message_envelope
+
+        client = WSClient("PC-1", "wss://example.invalid/ws/agent")
+        captured = self._capture_alert(client)
+
+        client.send_url_alert(device_uid="PC-1", url="https://example.com/page",
+                               tab_id="")
+
+        sent = captured["alert"]
+        self.assertIs(message_envelope.validate_envelope(sent), sent)
+        self.assertEqual(sent["context"]["tabId"], "0")  # never null/"" — see alert_builders
+        self.assertEqual(sent["payload"]["alert"]["TabId"], "0")
+        self.assertEqual(sent["payload"]["alert"]["Url"], sent["context"]["url"])
 
     def test_send_remote_access_alert_payload_matches_alert_builders(self):
         client = WSClient("PC-1", "wss://example.invalid/ws/agent")
