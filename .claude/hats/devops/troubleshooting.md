@@ -34,6 +34,17 @@ Stop-Process -Name "ServiceHub.IndexingService*" -Force
 ```
 Visual Studio will restart the indexer automatically within seconds.
 
+**Caveat — `git archive` only includes tracked files.** `Dockerfile.backend`
+`COPY`s `ASPSBackend14_J/ASPSBackend/appsettings.Docker.json`, which is
+git-ignored (per `feedback_gitignored_appsettings_use_envvars.md`) but still
+present on disk in a normal working copy. `git archive HEAD` silently drops
+it, and the build fails at the `COPY` step with "file not found in build
+context". If the `.vs` lock isn't actually blocking the build, prefer
+building directly from the working directory (`.dockerignore` already
+excludes `.vs/`, `bin/`, `obj/`) — only fall back to `git archive` when the
+lock genuinely reproduces, and if so, temporarily copy the missing
+gitignored file into the archived tree before building.
+
 ---
 
 ## ACR build context path — `Unable to find Dockerfile`

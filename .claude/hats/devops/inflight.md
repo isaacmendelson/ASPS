@@ -4,7 +4,7 @@
 
 ## Azure Container Apps — production deployment (ASPS-693)
 
-- `ca-backend-dev` running revision 0000014, image `manual-20260825-v1env-fix`
+- `ca-backend-dev` running revision `ca-backend-dev--0000015`, image `manual-20260825-test-fix`
 - `ca-webapi-dev` running image `20260824-9230e0e` (WebSocket gateway active)
 - `ca-keycloak-dev` revision `ca-keycloak-dev--0000002` Healthy (ASPS-735 fix applied)
 - `ca-angular-admin-dev` running
@@ -14,8 +14,9 @@
 
 | Date | App | Image tag | Changes |
 |---|---|---|---|
+| 2026-08-25 | ca-backend-dev | `manual-20260825-test-fix` | Rebuild from `asps-732-v1-envelope-on-all-alert-types` (commit `588765f`, includes `18a403d` test-code removal + main merge) — supersedes `manual-20260825-v1env-fix`, which was accidentally built with debug test-message code still present |
 | 2026-08-25 | ca-keycloak-dev | (config only) | ASPS-735: fixed CrashLoopBackOff — probes 8080→9000, `KC_HEALTH_ENABLED=true` |
-| 2026-08-25 | ca-backend-dev | `manual-20260825-v1env-fix` | V1 envelope for all alert types + removed test code |
+| 2026-08-25 | ca-backend-dev | `manual-20260825-v1env-fix` | V1 envelope for all alert types — later found to still contain debug test-message code, superseded same day |
 | 2026-08-24 | ca-webapi-dev | `20260824-9230e0e` | WebSocket gateway `/ws/agent` |
 | 2026-08-24 | ca-backend-dev | `manual-20260824-1623` | Initial Azure deployment |
 
