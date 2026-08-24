@@ -1,8 +1,8 @@
 # WebSocket Agent Protocol Specification
 
-> **Status:** Proposed
-> **Date:** 2026-08-19
-> **JIRA:** ASPS-722
+> **Status:** Implemented (ASPS-718 deployed to Azure; updated 2026-08-25)
+> **Date:** 2026-08-19 (original); 2026-08-25 (v1 envelope update)
+> **JIRA:** ASPS-722, ASPS-732
 > **ADR:** ADR-004 (ASPS-718)
 > **Audience:** Backend developer (.NET), Desktop-agent developer (Python)
 
@@ -22,8 +22,8 @@ application layer.
    and returned by the Backend are unchanged. The WS protocol wraps them in a
    thin frame envelope for routing and correlation.
 2. **JSON text frames only.** No binary framing, no compression extensions.
-3. **Preserve MessageEnvelopeV1 where applicable.** V1-capable messages use
-   the existing envelope; legacy messages use the existing flat JSON.
+3. **All alert types use MessageEnvelopeV1 (ASPS-732).** Every alert message
+   uses the v1 envelope. Token/registration messages use existing flat JSON.
 4. **Transport selected by configuration, not by message format.** The agent
    reads `transport: "zmq"` or `transport: "ws"` from config. The Backend's
    `AlertProcessor` is transport-agnostic.
@@ -502,7 +502,7 @@ protocol carries them unchanged in `request.payload`.
 | `AlertType: "RemoteAccessAlert"` | `DeviceInfo`, `Token`, `RemoteAccessApp`, `ConnectionUrl`, `Direction`, etc. |
 | `AlertType: "TabClosedAlert"` | `DeviceInfo`, `Token`, `TabId`, `Url` |
 | `AlertType: "TabChangedAlert"` | `DeviceInfo`, `Token`, `TabId`, `Url`, `IsSensitiveWebsite`, `IsLoggedIn` |
-| `schemaVersion: "1.0"` | V1 envelope with `messageType: "url_scan.request"` |
+| `schemaVersion: "1.0"` | V1 envelope — all alert types use this (ASPS-732). `messageType` values: `url_scan.request`, `track_url.request`, `tab_closed.request`, `tab_changed.request`, `remote_access.request` |
 
 ### Server-to-client (notification egress)
 
@@ -514,7 +514,7 @@ protocol carries them unchanged in `request.payload`.
 | `SetTrackedDomainsNotification` | `TrackedDomains`, `UserKeyField`, `Reason` |
 | `SetBrowserTabsPolicyNotification` | `DeviceUid`, `Mode`, `ValidUntil` |
 | (raw JSON) | Snapshot payload from `ReconnectSnapshotService` |
-| V1 envelope | `messageType: "url_scan.result"` with `outcome` |
+| V1 envelope | `messageType` response variants: `url_scan.result`, `track_url.result`, `tab_closed.result`, `tab_changed.result`, `remote_access.result` (ASPS-732) |
 
 ---
 

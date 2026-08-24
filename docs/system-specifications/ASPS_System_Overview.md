@@ -91,6 +91,10 @@ The platform consists of five main components working together in a distributed 
 
 Communication flows: The Chrome Extension communicates with the Desktop Agent via WebSocket on localhost. The Desktop Agent sends alerts to ASPSBackend via ZMQ REQ/REP (port 50001, CURVE encrypted) and receives notifications via ZMQ PUB/SUB (port 50002). ASPSBackend communicates with WebApi via internal NetMQ channels (ports 5555/5556, localhost only). The URL Analyzer is invoked as a Python subprocess by the backend.
 
+**Cloud deployment (ASPS-718, deployed 2026-08):** In Azure Container Apps, raw ZMQ ports are not externally reachable. Cloud-connected agents use a WebSocket gateway (`wss://.../ws/agent`, subprotocol `asps-agent-v1`) hosted by WebApi, which bridges to Backend ZMQ on localhost. The Desktop Agent selects transport via `TRANSPORT_MODE` (`"zmq"` for local, `"ws"` for cloud). See [`docs/architecture/WS-AGENT-PROTOCOL.md`](../../docs/architecture/WS-AGENT-PROTOCOL.md) and [`docs/architecture/decisions/ADR-004-ASPS-718-WEBSOCKET-GATEWAY.md`](../../docs/architecture/decisions/ADR-004-ASPS-718-WEBSOCKET-GATEWAY.md).
+
+**V1 message envelope (ASPS-732):** All alert types use `MessageEnvelopeV1` (`schemaVersion: "1.0"`) with `messageType` discriminators (`url_scan.request`, `track_url.request`, `remote_access.request`, `tab_closed.request`, `tab_changed.request`). Azure Backend runs with `Messaging:AcceptLegacyV0=false`.
+
 # 3. C# Backend (ASPSBackend14_J)
 
 The backend is a .NET 8 solution with five projects in a layered architecture. The ASPSBackend console application hosts all business logic and runs as a long-lived process. The WebApi is a stateless presentation layer with zero direct database access — all operations route through CQRS commands/queries over NetMQ.
@@ -475,8 +479,9 @@ For each detected tool: identifies running processes, active sessions, connectio
 
 | Channel | Protocol | Port(s) | Purpose |
 | --- | --- | --- | --- |
-| Backend Alerts | ZMQ REQ/REP | 50001 | Send alerts (UrlAlert, RemoteAccessAlert), manage tokens |
-| Backend Notifications | ZMQ PUB/SUB | 50002 | Receive analysis result notifications |
+| Backend Alerts (local) | ZMQ REQ/REP | 50001 | Send alerts (UrlAlert, RemoteAccessAlert, etc.), manage tokens |
+| Backend Notifications (local) | ZMQ PUB/SUB | 50002 | Receive analysis result notifications |
+| Backend (cloud, ASPS-718) | WebSocket (`wss://`) | `/ws/agent` | Combined alert + notification channel via WebApi gateway; replaces ZMQ when `TRANSPORT_MODE="ws"` |
 | Chrome Extension | WebSocket | 8080–8484 | Bidirectional communication with browser extension |
 
 ## Device Identification
@@ -529,9 +534,11 @@ Hardware-based stable device ID generated from motherboard serial, BIOS serial, 
 | File | Purpose |
 | --- | --- |
 | main.py | Entry point, startup orchestration |
-| config.py | Configuration constants |
-| zmq_client.py | Backend ZMQ REQ/REP communication |
-| notification_client.py | Backend ZMQ PUB/SUB notifications |
+| config.py | Configuration constants (includes `TRANSPORT_MODE`, `WS_URL` for cloud) |
+| zmq_client.py | Backend ZMQ REQ/REP communication (local transport) |
+| notification_client.py | Backend ZMQ PUB/SUB notifications (local transport) |
+| ws_client.py | Backend WebSocket communication (cloud transport, ASPS-718) |
+| alert_builders.py | Shared alert/token payload builders — used by both ZMQ and WS transports (ASPS-721); v1 envelope wrapping for all alert types (ASPS-732) |
 | extension_server.py | WebSocket server for Chrome extension |
 | remote_monitor.py | Remote access software detection (psutil) |
 | auth_manager.py | Token lifecycle management |
@@ -539,7 +546,7 @@ Hardware-based stable device ID generated from motherboard serial, BIOS serial, 
 | scan_service.py | URL scanning business logic |
 | protection_service.py | Protective action execution |
 | cache_manager.py | Local URL result caching |
-| core/container.py | Dependency injection container |
+| core/container.py | Dependency injection container (selects ZMQ vs WS transport) |
 
 # 7. Chrome Extension (JavaScript/MV3)
 
@@ -626,8 +633,9 @@ The extension connects to the Desktop Agent via WebSocket on localhost. It tries
 
 | Channel | From → To | Protocol | Port | Encryption | Pattern |
 | --- | --- | --- | --- | --- | --- |
-| Device Alerts | Agent → Backend | ZMQ REQ/REP | 50001 | CURVE (CurveZMQ) | Request/Reply |
-| Notifications | Backend → Agent | ZMQ PUB/SUB | 50002 | CURVE (CurveZMQ) | Publish/Subscribe |
+| Device Alerts (local) | Agent → Backend | ZMQ REQ/REP | 50001 | CURVE (CurveZMQ) | Request/Reply |
+| Notifications (local) | Backend → Agent | ZMQ PUB/SUB | 50002 | CURVE (CurveZMQ) | Publish/Subscribe |
+| Agent Gateway (cloud, ASPS-718) | Agent → WebApi → Backend | WebSocket (`wss://`) | `/ws/agent` | TLS (managed cert) | Combined req/resp + push |
 | Extension Comm | Extension ↔ Agent | WebSocket | 8080–8484 | None (localhost) | Bidirectional |
 | Internal CQRS | WebApi → Backend | ZMQ REQ/REP | 5555 | None (localhost) | Request/Reply |
 | CQRS Gateway | WebApi → Backend | ZMQ REQ/REP | 5556 | None (localhost) | Request/Reply |

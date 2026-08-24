@@ -1,6 +1,6 @@
 # Desktop Agent — Complete Feature Documentation
 
-**Version:** 0.1.1.1 | **Date:** 2026-06-30 | **Status:** Authoritative  
+**Version:** 0.1.1.1 | **Date:** 2026-08-25 | **Status:** Authoritative  
 **Source:** `apps/desktop/win/src/`  
 **Parent spec:** [`ASPS_System_Specification.md §3`](ASPS_System_Specification.md)
 
@@ -208,6 +208,20 @@ Domain (`urllib.parse.urlparse(url).netloc`) — not full URL. Same domain reuse
   "TabId": "..."
 }
 ```
+
+### V1 message envelope (ASPS-732)
+
+All alert types are wrapped in a `MessageEnvelopeV1` (`schemaVersion: "1.0"`) before being sent to the Backend. The Azure Backend rejects v0 (envelope-less) messages when `Messaging:AcceptLegacyV0=false`. Each alert type has a corresponding v1 `messageType`:
+
+| Alert Type | `messageType` |
+|---|---|
+| `UrlAlert` | `url_scan.request` |
+| `TrackUrlAlert` | `track_url.request` |
+| `TabClosedAlert` | `tab_closed.request` |
+| `TabChangedAlert` | `tab_changed.request` |
+| `RemoteAccessAlert` | `remote_access.request` |
+
+Envelope creation is handled by `alert_builders.py` (shared between ZMQ and WebSocket transports). Token/registration messages (`RequestToken`, `RefreshToken`) are not enveloped.
 
 ### Supplementary alert types
 
@@ -725,7 +739,7 @@ Singleton accessed via `Container.instance()`. All components are **lazily insta
 | `AlertFlagType` | NONE, RemoteAccess_AppRunning, RemoteAccess_ConnectionOpen, RemoteAccess_SessionActive |
 | `ResultStatusCode` | 200, 400, 401, 403, 404, 422, 500 |
 | `Priority` | Low, Medium, High, Critical |
-| `Severity` | Low, Medium, High, Critical |
+| `Severity` | Unknown=0, Low=1, Medium=2, High=3, Critical=4 (ASPS-736: aligned with C# `Common.Enums.Severity`) |
 | `AccountType` | Email, Communication, Social, Financial, Other |
 
 ---
@@ -826,3 +840,4 @@ URLs matching `localhost` or `127.0.0.1` are never sent to the Backend. `_is_loc
 | SCRUM-902 | Authenticode code signing | — |
 | WebSocket TLS | Extension ↔ Agent WebSocket is plain `ws://` (known security debt) | `extension_server.py` |
 | BrowserTabs policy persistence | Policy override resets on agent restart | `browser_tabs_policy.py` |
+| ASPS-736 | `Severity` enum was misaligned with C# Backend; `get_severity_name` does not handle string values from Backend | `enums.py` |
