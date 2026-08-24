@@ -25,6 +25,11 @@
 
 ## Lessons learned
 - [Docker .sh line endings](feedback_docker_sh_line_endings.md) — Windows CRLF in .sh files causes exit 127 in Alpine; always use LF + .gitattributes
+- [Docker deps from lockfile](feedback_docker_deps_from_lockfile.md) — Install Python deps from requirements.lock.txt, never cherry-pick; missing deps = silent analyzer failure
+- [Azure env vars: use PowerShell](feedback_azure_env_vars_powershell.md) — Git Bash MSYS2 mangles `/app/...` path values to `C:/Program Files/Git/app/...`
+- [Gitignored appsettings → use env vars](feedback_gitignored_appsettings_use_envvars.md) — appsettings.Docker.json absent from CI builds; use Container App env vars
+- [SupportedSchemaMajors required](feedback_supported_schema_majors.md) — All auth messages need `SupportedSchemaMajors=[1]`; Azure rejects v0
+- [Desktop config_override.py](feedback_config_override_check_first.md) — Check config_override.py first when debugging wrong desktop agent config
 
 ## Conventions
 - [GSD workflow selection](feedback_gsd_workflow.md) — GSD full for new features; direct delegation for defined remediation; agreed 2026-07-29
