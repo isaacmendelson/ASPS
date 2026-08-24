@@ -292,19 +292,32 @@ def build_tab_changed_alert(
 
 
 def build_request_token_message(device_uid: str, email: str = "") -> Dict[str, Any]:
-    """Build a RequestToken message."""
+    """Build a RequestToken message.
+
+    SupportedSchemaMajors advertises the messaging schema major versions
+    this agent understands (ASPS: v1 protocol negotiation). The Backend
+    (AlertProcessor.HandleRegisterDevice) defaults a missing/absent field
+    to [0], which fails negotiation in environments where AcceptLegacyV0
+    is false (e.g. Azure). Must always be sent.
+    """
     return {
         "MessageType": "RequestToken",
         "DeviceUid": device_uid,
         "Email": email,
+        "SupportedSchemaMajors": [1],
     }
 
 
 def build_refresh_token_message(device_uid: str, old_token: str) -> Dict[str, Any]:
-    """Build a RefreshToken message."""
+    """Build a RefreshToken message.
+
+    SupportedSchemaMajors is included for forward compatibility even
+    though HandleRefreshToken does not currently gate on it.
+    """
     return {
         "MessageType": "RefreshToken",
         "DeviceUid": device_uid,
         "Token": old_token,
         "Timestamp": datetime.utcnow().isoformat() + "Z",
+        "SupportedSchemaMajors": [1],
     }

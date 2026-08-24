@@ -95,7 +95,8 @@ public class DeviceLoginModel : PageModel
                 DeviceUid = DeviceUid,
                 Email = Email,
                 DeviceType = 1, // PersonalComputer
-                OperatingSystem = 1 // Windows
+                OperatingSystem = 1, // Windows
+                SupportedSchemaMajors = new[] { 1 }
             };
 
             var response = SendToBackend(registerMessage);

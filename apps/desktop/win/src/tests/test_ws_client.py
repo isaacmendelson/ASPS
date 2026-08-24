@@ -474,7 +474,8 @@ class TestWSClientAuthStateAndSubscribe(unittest.TestCase):
         client.send_request_token("PC-TEST-001", "john@example.com")
 
         self.assertEqual(client._last_auth_payload, {
-            "MessageType": "RequestToken", "DeviceUid": "PC-TEST-001", "Email": "john@example.com"
+            "MessageType": "RequestToken", "DeviceUid": "PC-TEST-001", "Email": "john@example.com",
+            "SupportedSchemaMajors": [1],
         })
 
     def test_refresh_token_success_also_marks_authenticated_and_subscribes(self):

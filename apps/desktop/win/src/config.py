@@ -22,6 +22,7 @@ EXTENSION_PORTS = [8080, 8181, 8282, 8383, 8484]
 
 # Backend Server - ZeroMQ
 BACKEND_HOST = "127.0.0.1"  # Local testing
+#BACKEND_HOST = "ca-backend-dev.purplesand-dfb51ae4.northeurope.azurecontainerapps.io"   #Azure
 #BACKEND_HOST = "app.asps.io"  # AWS Production
 #BACKEND_HOST = "100.88.78.75"  # Old local server
 BACKEND_REQ_PORT = 50001  # Request/Response (REQ/REP pattern)
@@ -372,8 +373,17 @@ LOG_FILE = "events.jsonl"
 CONFIG_FILE = "config.json"
 
 # WebApi URL (for device registration page)
+_AZURE_WEBAPI_MAP = {
+    "ca-backend-dev.purplesand-dfb51ae4.northeurope.azurecontainerapps.io":
+        "https://ca-webapi-dev.purplesand-dfb51ae4.northeurope.azurecontainerapps.io",
+}
+
 def _detect_webapi_url() -> str:
-    """Auto-detect WebApi: Docker on 8080, VS Debug on 5002."""
+    """Auto-detect WebApi: Azure from BACKEND_HOST, or local probe on 8080/5002."""
+    if BACKEND_HOST in _AZURE_WEBAPI_MAP:
+        url = _AZURE_WEBAPI_MAP[BACKEND_HOST]
+        print(f"[CONFIG] WebAPI matched Azure backend: {url}")
+        return url
     import socket
     for port, url in [(8080, "http://localhost:8080"), (5002, "https://localhost:5002")]:
         try:
