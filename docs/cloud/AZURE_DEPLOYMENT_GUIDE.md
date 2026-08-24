@@ -344,12 +344,13 @@ for a `schemaVersion` field:
   `Messaging:AcceptLegacyV0=false` (the Azure setting). Locally, `AcceptLegacyV0=true` still
   allows old clients through during migration.
 
-**Current status of alert types (2026-08-24):**
-- `UrlAlert` — **compliant**. Now wraps its payload in a `url_scan.request` v1 envelope
-  (commit `d51fb80`).
-- `TrackUrlAlert`, `TabClosedAlert`, `TabChangedAlert`, `RemoteAccessAlert` — **not yet
-  compliant**. Still send without a `schemaVersion` envelope; these will be rejected by
-  `ca-backend-dev` until updated. Tracked in **ASPS-732**.
+**Current status of alert types (2026-08-25):**
+All alert types are **v1-compliant** (ASPS-732):
+- `UrlAlert` — wraps in `url_scan.request` v1 envelope (commit `d51fb80`).
+- `TrackUrlAlert` — wraps in `track_url.request` v1 envelope.
+- `TabClosedAlert` — wraps in `tab_closed.request` v1 envelope.
+- `TabChangedAlert` — wraps in `tab_changed.request` v1 envelope.
+- `RemoteAccessAlert` — wraps in `remote_access.request` v1 envelope.
 
 **Implication for any new client/agent code:** do not add new message types or alert paths
 without a v1 envelope (`schemaVersion` + type-specific wrapper, e.g. `url_scan.request`) —
