@@ -35,7 +35,7 @@ COPY ASPSBackend14_J/WebApi/ WebApi/
 RUN dotnet publish WebApi/WebApi.csproj -c Release -o /app/publish --no-restore
 
 # --- Stage 2: Runtime ---
-FROM mcr.microsoft.com/dotnet/aspnet:8.0.29 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.11 AS runtime
 WORKDIR /app
 
 # Copy published app
