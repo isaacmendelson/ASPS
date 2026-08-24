@@ -70,3 +70,4 @@ Make shipping a change boring — repeatable, safe, fast, and auditable.
 - Release artifact versioned and tagged.
 - Config/secrets handled safely (nothing committed).
 - Changes documented in hat memory (`inflight.md`).
+- Deployment/infrastructure docs updated (`docs/cloud/`). For system specification changes, list affected specs in hand-off — TechWriter handles updates per [task-workflow.md](../../rules/task-workflow.md#specification-update-rule).

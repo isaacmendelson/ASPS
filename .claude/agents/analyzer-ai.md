@@ -40,4 +40,5 @@ Implement analyzer logic that is correct, explainable, and reproducible — turn
 ## Definition of Done
 - [ ] Logic does exactly what was specified — validated on known cases.
 - [ ] Input/output contract documented and versioned.
+- [ ] Affected specification documents identified and listed in hand-off (do NOT edit specs — TechWriter handles updates per [task-workflow.md](../../rules/task-workflow.md#specification-update-rule)).
 - [ ] No accuracy regression vs. baseline; QA PASS obtained.
