@@ -1,7 +1,7 @@
 using Business.Messaging;
+using Business.Messaging.Abstractions;
 using Common.Entities;
 using Interface.Repositories;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -12,23 +12,19 @@ namespace ASPS.Tests.Business.Messaging;
 /// ASPS-620: OutboxNotificationPublisher wraps INotificationEgress and
 /// persists every notification to the outbox before sending over ZMQ.
 ///
-/// Uses a real NetMQNotificationEgress (bound to a random test port, as existing
-/// NetMQNotificationEgressTests do) because Moq cannot proxy that class without
-/// a live ZMQ socket being constructed.
+/// Uses a mocked INotificationEgress so these tests never bind a real
+/// ZMQ socket/TCP port (avoids AddressAlreadyInUseException under parallel
+/// CI test execution).
 /// </summary>
-public class OutboxNotificationPublisherTests : IDisposable
+public class OutboxNotificationPublisherTests
 {
-    private readonly NetMQNotificationEgress _inner;
+    private readonly Mock<INotificationEgress> _mockInner;
     private readonly Mock<INotificationOutboxRepository> _mockOutboxRepo;
     private readonly OutboxNotificationPublisher _sut;
 
     public OutboxNotificationPublisherTests()
     {
-        var config = BuildConfiguration();
-        var loggerFactory = LoggerFactory.Create(b => b.AddConsole());
-
-        // Real publisher on a test port (no ZMQ encryption needed for unit tests)
-        _inner = new NetMQNotificationEgress(config, loggerFactory.CreateLogger<NetMQNotificationEgress>());
+        _mockInner = new Mock<INotificationEgress>();
 
         _mockOutboxRepo = new Mock<INotificationOutboxRepository>();
         _mockOutboxRepo
@@ -37,9 +33,9 @@ public class OutboxNotificationPublisherTests : IDisposable
 
         var scopeFactory = BuildScopeFactory(_mockOutboxRepo.Object);
         _sut = new OutboxNotificationPublisher(
-            _inner,
+            _mockInner.Object,
             scopeFactory,
-            loggerFactory.CreateLogger<OutboxNotificationPublisher>());
+            Mock.Of<ILogger<OutboxNotificationPublisher>>());
     }
 
     // ─── Null payloads are not sent to inner (guard clause) ───
@@ -103,17 +99,6 @@ public class OutboxNotificationPublisherTests : IDisposable
 
     // ─── Helpers ───
 
-    private static IConfiguration BuildConfiguration()
-    {
-        var randomPort = new Random().Next(58000, 59000);
-        return new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                { "NetMQ:NotificationPublisherPort", randomPort.ToString() }
-            })
-            .Build();
-    }
-
     private static IServiceScopeFactory BuildScopeFactory(INotificationOutboxRepository repo)
     {
         var services = new ServiceCollection();
@@ -126,6 +111,4 @@ public class OutboxNotificationPublisherTests : IDisposable
         mockFactory.Setup(f => f.CreateScope()).Returns(mockScope.Object);
         return mockFactory.Object;
     }
-
-    public void Dispose() => _inner.Dispose();
 }
