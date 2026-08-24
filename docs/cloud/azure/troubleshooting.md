@@ -374,3 +374,41 @@ az containerapp update --name <app> --resource-group <rg> `
 CI-built Docker images. For Container Apps, env vars are the correct mechanism for
 environment-specific config — they're visible in the Azure portal, versionable via IaC, and
 don't require the file to be tracked in git.
+
+## Container Apps — Keycloak CrashLoopBackOff, startup probe 404s on `/health/started` (ASPS-735)
+
+**Symptom:** `ca-keycloak-dev` replica stuck in a restart loop (810+ restarts,
+`ready: false`, `runningState: Running` but never becoming ready). Container Apps kills and
+restarts the container roughly every ~8.5 minutes (530s startup probe window exhausted).
+
+**Cause:** the startup/liveness probes pointed at the correct paths (`/health/started`,
+`/health/live`) but the **wrong port** (8080, the main app port), and the Keycloak health
+subsystem was never enabled (`KC_HEALTH_ENABLED` was unset). Keycloak 26 only serves
+`/health/*` on a separate **management interface**, port **9000** by default, and only once
+health is explicitly enabled — confirmed in container startup logs:
+```
+Keycloak 26.0.8 on JVM ... started ... Listening on: http://0.0.0.0:8080. Management interface listening on http://0.0.0.0:9000.
+```
+Every probe request to `8080/health/started` returned 404, so `failureThreshold: 50 ×
+periodSeconds: 10` (530s) was exhausted after every restart, and Container Apps killed the
+container again — an infinite loop.
+
+**Diagnosis:**
+```powershell
+az containerapp show --name ca-keycloak-dev --resource-group rg-asps-dev `
+  --query "properties.template.containers[0].probes" -o json
+az containerapp replica list --name ca-keycloak-dev --resource-group rg-asps-dev `
+  --query "[].{name:name, containers:properties.containers[].{restarts:restartCount, ready:ready, state:runningState}}" -o json
+az containerapp logs show --name ca-keycloak-dev --resource-group rg-asps-dev --type console --tail 40
+# look for "Management interface listening on http://0.0.0.0:<port>" in the startup log
+```
+
+**Resolution:** added `KC_HEALTH_ENABLED=true` and `KC_HTTP_MANAGEMENT_PORT=9000` env vars,
+and repointed both probes' `httpGet.port` from 8080 to 9000. Applied via ARM PATCH (adding an
+env var is not safe via `az containerapp update` — see the CLI env-var-dropping bug above).
+Verified: new revision `Healthy`, replica `ready: true`, `restartCount: 0`.
+
+**Key insight:** Keycloak 26+ moved health/metrics endpoints to a separate management port by
+default (a change from earlier 2x versions where they lived on the main HTTP port). Any probe
+config written against older Keycloak docs/examples will silently 404 unless both
+`KC_HEALTH_ENABLED=true` is set and the probe targets port 9000, not the ingress port.

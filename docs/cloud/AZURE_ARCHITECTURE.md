@@ -113,8 +113,12 @@ for 50002/5556 — see AD-3 correction below)
 
 - Realm: `asps`
 - Clients: `asps-webapi` (confidential, OIDC), `asps-angular-admin` (public, PKCE S256)
-- Startup probe: `/health/started`, 530s window (for Liquibase migrations)
-- Liveness probe: `/health/live`, 30s interval
+- Startup probe: `/health/started` on port **9000** (management interface), 530s window (failureThreshold 50 × periodSeconds 10 + 30s initial delay)
+- Liveness probe: `/health/live` on port **9000** (management interface), 30s interval
+- `KC_HEALTH_ENABLED=true` env var required — Keycloak 26 health/metrics endpoints are served on a
+  separate **management interface** (port 9000 by default), not the main HTTP port (8080). Probes
+  must target port 9000, and the health subsystem must be explicitly enabled, or `/health/*` returns
+  404 and the startup probe kills the container every ~8.5 min (ASPS-735, see AD-11).
 
 ### ca-angular-admin-dev — Angular Admin
 
@@ -246,6 +250,7 @@ Detailed in [AZURE_DEPLOYMENT_GUIDE.md](AZURE_DEPLOYMENT_GUIDE.md#architecture-d
 | AD-7 | Infrastructure as Code | CLI first → Bicep after deployment stabilizes |
 | AD-8 | Angular Admin Deployment | Standalone Container App (not sidecar), reuse `id-asps-dev` for ACR pull, CORS + Keycloak public client added (ASPS-724) |
 | AD-9 | Backend split from WebApi sidecar | Standalone `ca-backend-dev` + internal TCP ingress with **app-name addressing** (`ca-backend-dev:<port>`) — confirmed to forward ZMQ/CURVE where FQDN addressing does not (ASPS-725/726/727/728/729/730) |
+| AD-11 | Keycloak health probe fix | Keycloak 26 serves `/health/*` on a separate management interface (port 9000, `KC_HEALTH_ENABLED=true` required) — not the main HTTP port. Probes retargeted to port 9000; fixed CrashLoopBackOff (810+ restarts) caused by 404s on the 8080 probe (ASPS-735) |
 
 ---
 

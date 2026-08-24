@@ -54,3 +54,17 @@ Verify each decision against current files before relying on it.
   (`ContainerAppInvalidIngressAdditionalPortMappings`). To get one port internal and
   others external on the same app, make one of the *external* ports the main ingress
   port and move the internal one into `additionalPortMappings` with `external: false`.
+
+## Keycloak health probes — management interface port (2026-08-25, ASPS-735)
+
+- Keycloak 26+ serves `/health/*` (and `/metrics`) on a separate **management interface**,
+  port **9000** by default — not the main HTTP port (8080) used for OIDC/admin traffic. This is
+  only active once the health subsystem is explicitly enabled via `KC_HEALTH_ENABLED=true`.
+  Container Apps probes execute directly against the container's declared port (no ingress
+  exposure required), so the fix is: set `KC_HEALTH_ENABLED=true` (+ explicit
+  `KC_HTTP_MANAGEMENT_PORT=9000`) and point `probes[].httpGet.port` at 9000, not 8080.
+- `ca-keycloak-dev` was originally deployed with probes pointing at the correct paths but port
+  8080, and without `KC_HEALTH_ENABLED` — every probe request 404'd, exhausting the startup
+  probe's `failureThreshold` (50 × 10s = 530s) and causing an 810+ restart CrashLoopBackOff.
+  Fixed via ARM PATCH (env var addition — not safe via `az containerapp update`, see the CLI
+  bug entry above). See AD-11 in `docs/cloud/AZURE_ARCHITECTURE.md`.

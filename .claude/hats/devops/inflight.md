@@ -1,6 +1,20 @@
 # DevOps In-Flight Work
 
-**Last updated:** 2026-08-02
+**Last updated:** 2026-08-25
+
+## ASPS-735 — Keycloak CrashLoopBackOff fix
+
+- `ca-keycloak-dev` was in CrashLoopBackOff (810+ restarts) — startup probe hit `/health/started`
+  on port 8080, which 404'd because `KC_HEALTH_ENABLED` was never set and Keycloak 26 serves
+  health/metrics on a separate management interface (port 9000 by default).
+- Fix: added `KC_HEALTH_ENABLED=true` + `KC_HTTP_MANAGEMENT_PORT=9000` env vars, repointed both
+  probes (`/health/live`, `/health/started`) from port 8080 to 9000. Applied via ARM PATCH
+  (env var addition — unsafe via `az containerapp update`, see `decisions.md`).
+- Verified: revision `ca-keycloak-dev--0000002` Healthy, replica `ready: true`, `restartCount: 0`.
+  Startup log confirms: `Management interface listening on http://0.0.0.0:9000`.
+- Docs updated: `docs/cloud/AZURE_ARCHITECTURE.md` (AD-11), `docs/cloud/AZURE_DEPLOYMENT_GUIDE.md`,
+  `docs/cloud/azure/troubleshooting.md`, `.claude/hats/devops/decisions.md`.
+- No image change (still `quay.io/keycloak/keycloak:26.0`), config-only fix.
 
 ## ASPS-626 — Reproducible build/test baselines
 
