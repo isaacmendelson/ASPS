@@ -1,117 +1,107 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { TOOL_DEFINITIONS, executeTool } from "./tools.js";
-import { loadSystemPrompt } from "./context.js";
-import { getMessages, addMessage } from "./session.js";
+import { query } from "@anthropic-ai/claude-agent-sdk";
+import type { CanUseTool, Options, SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import { matchDangerousBashCommand } from "./security.js";
+import { getSessionId, setSessionId } from "./session.js";
+import { TELEGRAM_SYSTEM_PROMPT_APPEND } from "./context.js";
 
-type MessageParam = Anthropic.Messages.MessageParam;
-type ContentBlock = Anthropic.Messages.ContentBlock;
-type ToolResultBlockParam = Anthropic.Messages.ToolResultBlockParam;
+const DEFAULT_MAX_TURNS = 20; // Safety limit, mirrors the previous hand-rolled agentic loop.
 
-const anthropic = new Anthropic();
-
-let cachedSystemPrompt: string | null = null;
-
-function getSystemPrompt(): string {
-  if (!cachedSystemPrompt) {
-    const workingDir = process.env.WORKING_DIR || process.cwd();
-    cachedSystemPrompt = loadSystemPrompt(workingDir);
-  }
-  return cachedSystemPrompt;
-}
-
-/** Extract text content from a response. */
-function extractText(content: ContentBlock[]): string {
-  return content
-    .filter((block): block is Anthropic.Messages.TextBlock => block.type === "text")
-    .map((block) => block.text)
-    .join("\n");
-}
-
-/** Check if the response contains tool use blocks. */
-function hasToolUse(content: ContentBlock[]): boolean {
-  return content.some((block) => block.type === "tool_use");
-}
-
-/** Execute all tool calls in a response and return tool results. */
-async function executeToolCalls(
-  content: ContentBlock[],
-): Promise<ToolResultBlockParam[]> {
-  const results: ToolResultBlockParam[] = [];
-
-  for (const block of content) {
-    if (block.type === "tool_use") {
-      const toolResult = await executeTool(
-        block.name,
-        block.input as Record<string, unknown>,
-      );
-      results.push({
-        type: "tool_result",
-        tool_use_id: block.id,
-        content: toolResult,
-      });
+/**
+ * Permission guard mirroring the project's destructive-command denylist
+ * (see security.ts — single source of truth, do not duplicate the pattern
+ * list). Bash commands matching a dangerous pattern are denied; every other
+ * tool call (including native Read/Edit/Write/Grep/Glob and the allow-listed
+ * MCP tools) is auto-allowed so the bot can operate autonomously over
+ * Telegram without a human present to answer a permission prompt.
+ *
+ * Must never resolve to `null` — an accidental null leaves the SDK's
+ * permission request unanswered and the tool call blocked indefinitely.
+ */
+export const canUseTool: CanUseTool = async (toolName, input) => {
+  if (toolName === "Bash" && typeof input.command === "string") {
+    const matched = matchDangerousBashCommand(input.command);
+    if (matched) {
+      return {
+        behavior: "deny",
+        message: `Blocked: command matches a destructive pattern (${matched.source}). Destructive operations are not auto-executed via Telegram.`,
+      };
     }
   }
+  return { behavior: "allow" };
+};
 
-  return results;
+function buildOptions(userId: number): Options {
+  const workingDir = process.env.WORKING_DIR || process.cwd();
+  const model = process.env.MODEL;
+  const maxTurns = Number(process.env.MAX_TURNS) || DEFAULT_MAX_TURNS;
+  const resume = getSessionId(userId);
+
+  return {
+    cwd: workingDir,
+    ...(model ? { model } : {}),
+    maxTurns,
+    permissionMode: "default",
+    canUseTool,
+    // "project" loads CLAUDE.md + .mcp.json + .claude/settings.json from cwd,
+    // so the agent onboards itself exactly like an interactive Claude Code
+    // session (see CLAUDE.md's own "at session start" instructions).
+    settingSources: ["project"],
+    // Auto-allow the knowledge-engine MCP tools so Telegram turns don't stall
+    // on a permission prompt nobody is present to answer.
+    allowedTools: [
+      "mcp__knowledge-engine__knowledge_search",
+      "mcp__knowledge-engine__knowledge_ask",
+    ],
+    systemPrompt: {
+      type: "preset",
+      preset: "claude_code",
+      append: TELEGRAM_SYSTEM_PROMPT_APPEND,
+    },
+    ...(resume ? { resume } : {}),
+  };
 }
 
 /**
- * Run the agentic loop: send messages to Claude, execute any tool calls,
- * and continue until Claude produces a final text response.
+ * Run one Telegram user turn through the Claude Agent SDK.
  *
- * Calls onToolUse callback after each tool round so the caller can
- * send typing indicators.
+ * Streams every `SDKMessage` (system/assistant/tool/result) to `onEvent` —
+ * the caller uses this to drive the Telegram typing indicator while the
+ * agent works. Persists the SDK session id returned in the `result` message
+ * per Telegram user so the next call from the same user resumes the same
+ * multi-turn conversation via `resume`.
  */
 export async function runAgent(
   userId: number,
   userMessage: string,
-  onToolUse?: () => void,
+  onEvent?: (message: SDKMessage) => void,
 ): Promise<string> {
-  const messages = getMessages(userId);
+  const options = buildOptions(userId);
 
-  // Add the user's message
-  addMessage(userId, { role: "user", content: userMessage });
+  let finalText = "";
 
-  const model = process.env.MODEL || "claude-sonnet-4-20250514";
-  const maxTokens = Number(process.env.MAX_TOKENS) || 8192;
-  const systemPrompt = getSystemPrompt();
+  for await (const message of query({ prompt: userMessage, options })) {
+    onEvent?.(message);
 
-  let iterations = 0;
-  const maxIterations = 20; // Safety limit on agentic loop
-
-  while (iterations < maxIterations) {
-    iterations++;
-
-    const response = await anthropic.messages.create({
-      model,
-      max_tokens: maxTokens,
-      system: systemPrompt,
-      messages: getMessages(userId),
-      tools: TOOL_DEFINITIONS,
-    });
-
-    // If no tool use, we're done — return the text
-    if (response.stop_reason === "end_turn" || !hasToolUse(response.content)) {
-      const text = extractText(response.content);
-      // Add assistant response to history
-      addMessage(userId, { role: "assistant", content: response.content });
-      return text || "(no response)";
+    if (message.type === "result") {
+      setSessionId(userId, message.session_id);
+      if (message.subtype === "success") {
+        finalText = message.result;
+      } else {
+        const detail = message.errors.length ? ` ${message.errors.join(" ")}` : "";
+        finalText = `Agent stopped (${message.subtype}).${detail}`;
+      }
     }
-
-    // Tool use: add assistant message, execute tools, add results
-    addMessage(userId, { role: "assistant", content: response.content });
-
-    const toolResults = await executeToolCalls(response.content);
-    addMessage(userId, { role: "user", content: toolResults });
-
-    // Notify caller that tools were used (for typing indicator)
-    onToolUse?.();
   }
 
-  return "Agent reached maximum iteration limit. The task may be too complex for a single message.";
+  return finalText || "(no response)";
 }
 
-/** Invalidate cached system prompt (e.g., after project files change). */
+/**
+ * Kept for `/reload` command compatibility. The Agent SDK spawns a fresh
+ * Claude Code process per turn and reads CLAUDE.md / project settings from
+ * disk every time (`settingSources: ["project"]`), so there is no
+ * in-process system-prompt cache left to invalidate — reload is inherent.
+ */
 export function reloadSystemPrompt(): void {
-  cachedSystemPrompt = null;
+  // No-op: settingSources: ["project"] re-reads CLAUDE.md on every turn.
 }

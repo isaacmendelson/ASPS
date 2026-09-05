@@ -86,7 +86,7 @@ export function startBot(): void {
 
   // /start command
   bot.onText(/\/start/, async (msg) => {
-    if (!isAuthorized(msg.from!.id)) return;
+    if (!msg.from || !isAuthorized(msg.from.id)) return;
     await bot.sendMessage(
       msg.chat.id,
       "ASPS CEO Bot online. Send me a message and I'll process it with full project context and tool access.\n\nCommands:\n/reset — Clear conversation history\n/model — Show current model\n/reload — Reload system prompt",
@@ -95,21 +95,21 @@ export function startBot(): void {
 
   // /reset command
   bot.onText(/\/reset/, async (msg) => {
-    if (!isAuthorized(msg.from!.id)) return;
-    clearSession(msg.from!.id);
+    if (!msg.from || !isAuthorized(msg.from.id)) return;
+    clearSession(msg.from.id);
     await bot.sendMessage(msg.chat.id, "Session cleared.");
   });
 
   // /model command
   bot.onText(/\/model/, async (msg) => {
-    if (!isAuthorized(msg.from!.id)) return;
-    const model = process.env.MODEL || "claude-sonnet-4-20250514";
+    if (!msg.from || !isAuthorized(msg.from.id)) return;
+    const model = process.env.MODEL || "(Claude Code CLI default)";
     await bot.sendMessage(msg.chat.id, `Current model: ${model}`);
   });
 
   // /reload command — reload system prompt from disk
   bot.onText(/\/reload/, async (msg) => {
-    if (!isAuthorized(msg.from!.id)) return;
+    if (!msg.from || !isAuthorized(msg.from.id)) return;
     reloadSystemPrompt();
     await bot.sendMessage(msg.chat.id, "System prompt reloaded from disk.");
   });
@@ -133,7 +133,8 @@ export function startBot(): void {
 
     try {
       const response = await runAgent(msg.from.id, msg.text, () => {
-        // Restart typing indicator after tool use round
+        // Restart typing indicator on every streamed SDK event so it stays
+        // fresh across long tool-use rounds.
         stopTyping();
         stopTyping = startTypingIndicator(msg.chat.id);
       });
@@ -160,6 +161,24 @@ export function startBot(): void {
         `Error processing message: ${errorMsg}`,
       );
     }
+  });
+
+  // Edited messages are not re-processed as new turns, but the auth gate
+  // still applies to every inbound update — silently drop edits from
+  // anyone not on the allow-list.
+  bot.on("edited_message", (msg) => {
+    if (!msg.from || !isAuthorized(msg.from.id)) return;
+  });
+
+  // Callback queries (inline-keyboard taps). No inline keyboards are sent
+  // today, but the handler enforces the allow-list on this update type too
+  // and acknowledges the query so the Telegram client clears its spinner.
+  bot.on("callback_query", async (cbQuery) => {
+    if (!cbQuery.from || !isAuthorized(cbQuery.from.id)) {
+      await bot.answerCallbackQuery(cbQuery.id, { text: "Unauthorized" }).catch(() => {});
+      return;
+    }
+    await bot.answerCallbackQuery(cbQuery.id).catch(() => {});
   });
 
   // Handle polling errors
