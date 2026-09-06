@@ -60,6 +60,18 @@ load_config() {
     : "${SWAP_SIZE_GB:?SWAP_SIZE_GB must be set in config.env}"
     : "${SECRETS_DIR:?SECRETS_DIR must be set in config.env}"
 
+    # LOCK_ROOT is optional (defaults to false — see 01-harden.sh step 4 /
+    # ASPS-740 security remediation). Not required so existing config.env
+    # files from before this option existed keep working unchanged.
+    : "${LOCK_ROOT:=false}"
+    case "${LOCK_ROOT,,}" in
+        true|false) ;;
+        *)
+            log_error "LOCK_ROOT must be 'true' or 'false' in config.env, got: ${LOCK_ROOT}"
+            exit 1
+            ;;
+    esac
+
     if [[ "$ASPSBOT_SSH_PUBLIC_KEY" == *"your-key-here"* ]]; then
         log_error "ASPSBOT_SSH_PUBLIC_KEY in config.env is still the placeholder value."
         log_error "Paste your real SSH public key (e.g. contents of ~/.ssh/id_ed25519.pub) and re-run."
@@ -96,4 +108,67 @@ write_if_changed() {
 
 package_installed() {
     dpkg -s "$1" >/dev/null 2>&1
+}
+
+# --- sshd verification (ASPS-740 security remediation) -------------------
+#
+# Both helpers below are the AUTHORITATIVE post-merge checks — they must be
+# used as the actual gate before opening UFW / declaring success, not just
+# as extra logging. File contents/naming alone (drop-in order, sshd -t
+# syntax validation) are NOT sufficient: Ubuntu 24.04 socket-activates sshd
+# (sshd_config's "Port" is silently ignored while ssh.socket owns the
+# listening socket) and sshd_config.d/*.conf is first-value-wins in lexical
+# order (an earlier drop-in, e.g. a cloud image's 50-cloud-init.conf, can
+# silently win over ours) — in both cases `sshd -t` still reports success.
+
+# Returns 0 only if `sshd -T`'s fully-merged, effective configuration
+# actually has PasswordAuthentication no / PermitRootLogin no /
+# PubkeyAuthentication yes. This reflects every sshd_config.d/*.conf
+# merged together (first-value-wins), so it catches an earlier drop-in
+# (e.g. 50-cloud-init.conf) winning over ours regardless of filename.
+assert_effective_sshd_config() {
+    local merged pa pr pk
+    merged="$(sshd -T 2>/dev/null)" || true
+    if [[ -z "$merged" ]]; then
+        log_error "sshd -T produced no output — cannot verify the effective sshd configuration."
+        return 1
+    fi
+    pa="$(awk 'tolower($1)=="passwordauthentication"{print tolower($2)}' <<<"$merged")"
+    pr="$(awk 'tolower($1)=="permitrootlogin"{print tolower($2)}' <<<"$merged")"
+    pk="$(awk 'tolower($1)=="pubkeyauthentication"{print tolower($2)}' <<<"$merged")"
+    if [[ "$pa" != "no" || "$pr" != "no" || "$pk" != "yes" ]]; then
+        log_error "Effective sshd config (sshd -T, the authoritative post-merge view) does not match the hardening intent: PasswordAuthentication=${pa:-<unset>} PermitRootLogin=${pr:-<unset>} PubkeyAuthentication=${pk:-<unset>}. A lower-sorting or vendor drop-in (e.g. 50-cloud-init.conf) may still be winning over our hardening drop-in. Aborting."
+        return 1
+    fi
+    log_info "Effective sshd config confirmed (sshd -T): PasswordAuthentication=no PermitRootLogin=no PubkeyAuthentication=yes."
+    return 0
+}
+
+# Returns 0 only if sshd is ACTUALLY listening on the given port right now
+# (ss -tlnp), not merely configured to. Catches Ubuntu 24.04's ssh.socket
+# socket-activation silently keeping sshd on :22 (or wherever ssh.socket
+# points it) while sshd_config's "Port" directive — which sshd -t validates
+# as syntactically fine — is ignored.
+assert_sshd_listening() {
+    local port="$1"
+    local matches
+    matches="$(ss -tlnp 2>/dev/null | awk -v p=":${port}\$" '$4 ~ p')" || true
+    if [[ -z "$matches" ]]; then
+        log_error "No listener found on port ${port} (ss -tlnp). sshd is not actually bound there — aborting BEFORE touching UFW so the box is never left reachable only on a port UFW would deny."
+        return 1
+    fi
+    if ! grep -q 'sshd' <<<"$matches"; then
+        log_error "Port ${port} has a listener but it is not sshd (ss -tlnp): ${matches}. Aborting before touching UFW."
+        return 1
+    fi
+    log_info "Confirmed sshd is listening on ${port}: ${matches}"
+    return 0
+}
+
+# Returns 0 if ssh.socket (systemd socket activation) currently owns the
+# SSH listening socket — the Ubuntu 24.04 default. When true, sshd_config's
+# "Port" directive has no effect until socket activation is disabled and
+# ssh.service takes over binding the port itself.
+ssh_socket_activation_active() {
+    systemctl is-enabled ssh.socket >/dev/null 2>&1 || systemctl is-active ssh.socket >/dev/null 2>&1
 }

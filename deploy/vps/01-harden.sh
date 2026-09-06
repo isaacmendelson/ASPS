@@ -11,10 +11,16 @@
 # IMPORTANT — do not lock yourself out:
 #   Keep your CURRENT root/console session open until you have confirmed, in
 #   a SEPARATE terminal, that you can log in as `${ASPSBOT_USER}` on the
-#   (possibly new) SSH port with your key. This script reloads sshd (not a
-#   full restart) after validating the new config with `sshd -t`, but a
-#   misconfigured cloud firewall/security group in front of the box, or a
-#   wrong/missing public key, can still lock you out. Test before closing.
+#   (possibly new) SSH port with your key. This script validates the new
+#   sshd config with `sshd -t`, disables Ubuntu 24.04's ssh.socket
+#   activation when needed (otherwise sshd_config's "Port" is silently
+#   ignored), and asserts sshd is ACTUALLY listening on SSH_PORT before it
+#   ever touches UFW — but a misconfigured cloud firewall/security group in
+#   front of the box (e.g. Hostinger's own panel firewall, if a non-22
+#   SSH_PORT is used) or a wrong/missing public key can still lock you out.
+#   Test before closing. Root's password is left untouched by default
+#   (LOCK_ROOT=false) specifically so a console/rescue path to root remains
+#   if aspsbot/sudo ever breaks — see step 4.
 
 set -euo pipefail
 
@@ -77,23 +83,91 @@ fi
 # first login, e.g. `passwd aspsbot` from the console). SSH auth to the
 # account itself is key-only (enforced below via sshd_config).
 
-log_step "4/9 — lock direct root login"
-# Belt-and-suspenders: sshd_config's PermitRootLogin no (below) is the real
-# control. Locking the root password additionally prevents root login via
-# any other console/recovery path that might fall back to password auth.
-# Skipped harmlessly if root has no usable password already.
-if passwd -S root 2>/dev/null | awk '{print $2}' | grep -qx 'L'; then
-    log_info "root password already locked — skipped."
+log_step "4/9 — root login lockout (opt-in via LOCK_ROOT — off by default)"
+# PermitRootLogin no (step 5) is the REAL control — it blocks root over SSH
+# entirely, so root's password becomes irrelevant to remote access either
+# way. Locking the root password on top of that is a security-review
+# finding (ASPS-740 remediation, Major #2): if it runs before a WORKING
+# sudo escalation path exists, it can leave the box with no path to root at
+# all. `aspsbot` is created above with no password (shadow `!`) — its
+# password is only ever set manually by the operator on first console
+# login — so at the time this script normally runs, `sudo` has nothing to
+# prompt against yet. Locking root at that moment = root locked AND sudo
+# unusable = provider-rescue-only lockout.
+#
+# Default: LEAVE ROOT'S PASSWORD ALONE. PermitRootLogin no already closes
+# the SSH vector; keeping the root password lets the Hostinger
+# console/rescue path reach root if aspsbot/sudo is ever broken later.
+# Set LOCK_ROOT=true in config.env — after you've set an aspsbot password
+# and confirmed `sudo -v` works as aspsbot — to opt into the extra lock.
+if [[ "${LOCK_ROOT,,}" != "true" ]]; then
+    log_info "LOCK_ROOT=false (default) — root password left as-is. PermitRootLogin no (next step) already blocks root over SSH; console/rescue access to root is preserved intentionally. Set LOCK_ROOT=true once ${ASPSBOT_USER} has a working sudo password if you want passwd -l root too."
 else
-    passwd -l root
-    log_info "root password locked (passwd -l root)."
+    aspsbot_pw_status="$(passwd -S "$ASPSBOT_USER" 2>/dev/null | awk '{print $2}')"
+    if [[ "$aspsbot_pw_status" != "P" ]]; then
+        log_warn "LOCK_ROOT=true but ${ASPSBOT_USER} has no usable password set (passwd -S: ${aspsbot_pw_status:-unknown}) — sudo would have no password to prompt against. SKIPPING root lock to avoid a total lockout (no root login AND no working sudo). Run 'passwd ${ASPSBOT_USER}' as root first, then re-run this script to have LOCK_ROOT take effect."
+    elif passwd -S root 2>/dev/null | awk '{print $2}' | grep -qx 'L'; then
+        log_info "root password already locked — skipped."
+    else
+        passwd -l root
+        chage -d 0 "$ASPSBOT_USER"
+        log_info "root password locked (passwd -l root). Forced ${ASPSBOT_USER} to (re)set its password on next login (chage -d 0) since sudo is now the only escalation path."
+    fi
 fi
 
 log_step "5/9 — sshd hardening (drop-in, validated before reload)"
-sshd_dropin="/etc/ssh/sshd_config.d/99-aspsbot-hardening.conf"
+
+# --- Ubuntu 24.04 socket activation (ASPS-740 security remediation, Blocker) ---
+# Fresh Ubuntu 24.04 ships ssh.socket (systemd socket activation) owning the
+# listening socket. While ssh.socket is active, sshd_config's "Port"
+# directive is IGNORED — sshd keeps listening wherever ssh.socket points it
+# (:22) — even though `sshd -t` still reports success (it only checks
+# syntax, not what ends up listening). Left unhandled, this silently
+# defeats a custom SSH_PORT: step 6 would open only SSH_PORT/tcp in UFW
+# while sshd stays on 22, i.e. reachable on a port UFW blocks == lockout.
+# Fix: disable socket activation and let ssh.service bind the port itself,
+# the traditional way, so "Port" below actually takes effect. Idempotent —
+# no-op if ssh.socket is already disabled (e.g. a non-default image, or a
+# second run of this script).
+socket_switched=false
+if ssh_socket_activation_active; then
+    log_warn "ssh.socket is active/enabled (Ubuntu 24.04 socket activation) — sshd_config's Port directive would be silently ignored. Disabling ssh.socket and switching to ssh.service so Port ${SSH_PORT} actually takes effect."
+    systemctl disable --now ssh.socket >/dev/null 2>&1 || true
+    systemctl unmask ssh.service >/dev/null 2>&1 || true
+    systemctl enable ssh.service >/dev/null 2>&1 || true
+    socket_switched=true
+else
+    log_info "ssh.socket not active — sshd already runs as a traditional service; Port directive applies normally."
+fi
+
+# --- drop-in precedence (ASPS-740 security remediation, Major #1) --------
+# sshd is first-value-wins and reads sshd_config.d/*.conf in LEXICAL ORDER.
+# Cloud images commonly ship 50-cloud-init.conf with
+# "PasswordAuthentication yes", which sorts BEFORE a 99-*.conf and WINS —
+# password auth stays on while sshd -t still passes. Name our drop-in to
+# sort FIRST among the numbered ones, and additionally neutralize a known
+# common offender if present (belt-and-suspenders — filename order alone
+# is not a guarantee across every cloud image, which is why
+# assert_effective_sshd_config below is the real, authoritative gate).
+sshd_dropin="/etc/ssh/sshd_config.d/00-aspsbot-hardening.conf"
+old_sshd_dropin="/etc/ssh/sshd_config.d/99-aspsbot-hardening.conf"
+if [[ -f "$old_sshd_dropin" && "$old_sshd_dropin" != "$sshd_dropin" ]]; then
+    log_info "Removing superseded ${old_sshd_dropin} (renamed to sort first among sshd_config.d drop-ins)."
+    rm -f "$old_sshd_dropin"
+fi
+
+cloud_init_dropin="/etc/ssh/sshd_config.d/50-cloud-init.conf"
+if [[ -f "$cloud_init_dropin" ]] && grep -qE '^[[:space:]]*(PasswordAuthentication|PermitRootLogin)\b' "$cloud_init_dropin"; then
+    log_warn "Found ${cloud_init_dropin} setting PasswordAuthentication/PermitRootLogin — commenting those lines out so they cannot win over ${sshd_dropin}."
+    sed -i -E 's/^([[:space:]]*(PasswordAuthentication|PermitRootLogin)\b.*)$/# \1 (disabled by 01-harden.sh, ASPS-740 — see 00-aspsbot-hardening.conf)/' "$cloud_init_dropin"
+fi
+
+dropin_changed=false
 if write_if_changed "$sshd_dropin" <<EOF
 # Managed by deploy/vps/01-harden.sh (ASPS-740). Do not hand-edit — re-run
-# the script to change these values via config.env instead.
+# the script to change these values via config.env instead. Filename is
+# 00- (not 99-) so it sorts and wins FIRST among sshd_config.d/*.conf
+# drop-ins (sshd is first-value-wins) — see the comment above this block.
 Port ${SSH_PORT}
 PermitRootLogin no
 PasswordAuthentication no
@@ -108,21 +182,50 @@ ClientAliveCountMax 2
 MaxAuthTries 3
 EOF
 then
+    dropin_changed=true
     log_info "Wrote ${sshd_dropin}."
+fi
+
+if [[ "$dropin_changed" == true || "$socket_switched" == true ]]; then
     log_info "Validating sshd config (sshd -t)..."
     if ! sshd -t; then
         log_error "sshd -t FAILED against the new config. Reverting drop-in and aborting."
         rm -f "$sshd_dropin"
         exit 1
     fi
-    log_info "sshd -t OK. Reloading sshd (not restarting) to apply."
+    log_info "sshd -t OK (syntax only — does not prove what actually ends up listening; see the assertions below)."
     log_warn "KEEP THIS SESSION OPEN. Test a new login now: ssh -p ${SSH_PORT} ${ASPSBOT_USER}@<vps-ip>"
-    systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || {
-        log_error "Could not reload ssh/sshd via systemctl — reload manually and verify before disconnecting."
-        exit 1
-    }
+
+    if [[ "$socket_switched" == true ]]; then
+        log_info "Restarting ssh.service (switched off socket activation, a reload alone would not bind the new listener)..."
+        systemctl restart ssh.service 2>/dev/null || systemctl restart sshd.service 2>/dev/null || {
+            log_error "Could not restart ssh.service/sshd.service via systemctl after disabling socket activation. Aborting before touching UFW."
+            exit 1
+        }
+    else
+        log_info "Reloading sshd (not restarting) to apply..."
+        systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || {
+            log_error "Could not reload ssh/sshd via systemctl. Aborting before touching UFW."
+            exit 1
+        }
+    fi
 else
-    log_info "${sshd_dropin} already correct — skipped reload."
+    log_info "${sshd_dropin} already correct and ssh.socket already handled — skipped reload/restart."
+fi
+
+# --- authoritative post-merge/post-listen gate (ASPS-740 remediation) ----
+# Run on EVERY invocation (not just when something changed above) — cheap,
+# and catches drift such as an unattended-upgrade reintroducing
+# ssh.socket or a package update dropping a new sshd_config.d/*.conf that
+# wins over ours. MUST pass before step 6 touches UFW — a box that fails
+# here and still gets its firewall opened could be left reachable only on
+# a port/config UFW denies, or with password auth silently back on.
+log_info "Asserting effective sshd config and listening port before opening UFW..."
+if ! assert_effective_sshd_config; then
+    exit 1
+fi
+if ! assert_sshd_listening "${SSH_PORT}"; then
+    exit 1
 fi
 
 log_step "6/9 — UFW firewall (default deny incoming, allow outgoing, SSH only)"

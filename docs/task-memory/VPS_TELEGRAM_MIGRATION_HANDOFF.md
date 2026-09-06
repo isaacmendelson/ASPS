@@ -3,7 +3,7 @@
 **Task name:** VPS_TELEGRAM_MIGRATION
 **Owner hat:** CEO (orchestrator)
 **Created:** 2026-08-25
-**Status:** IN PROGRESS — user approved scope (D1–D4) on 2026-09-06. **Phase 4 (ASPS-743) DONE & MERGED to main (PR #39, merge commit `a6dc84f`) on 2026-09-06** — bot migrated to `@anthropic-ai/claude-agent-sdk` with a deny-by-default permission model + Telegram approval flow. Gates all PASS: QA (118/118 tests, independently verified), Security (PASS after 2 remediation rounds — 3 Blockers + 2 Majors found and closed), CEO code review. Code-level follow-up residuals (Minor/Nit) tracked on ASPS-745. **Phase 1 + 2 (ASPS-740/741) provisioning scripts authored on branch `asps-740-vps-provisioning-scripts` on 2026-09-06 — `bash -n` + shellcheck clean, NOT executed (no VPS yet), awaiting CEO + security review, no PR opened.** **Phases 0, 3, 5–7 gated on the user provisioning the Hostinger VPS (Phase 0, ASPS-739).**
+**Status:** IN PROGRESS — user approved scope (D1–D4) on 2026-09-06. **Phase 4 (ASPS-743) DONE & MERGED to main (PR #39, merge commit `a6dc84f`) on 2026-09-06** — bot migrated to `@anthropic-ai/claude-agent-sdk` with a deny-by-default permission model + Telegram approval flow. Gates all PASS: QA (118/118 tests, independently verified), Security (PASS after 2 remediation rounds — 3 Blockers + 2 Majors found and closed), CEO code review. Code-level follow-up residuals (Minor/Nit) tracked on ASPS-745. **Phase 1 + 2 (ASPS-740/741) provisioning scripts authored on branch `asps-740-vps-provisioning-scripts` on 2026-09-06 — `bash -n` + shellcheck clean, NOT executed (no VPS yet). Security review round 1: FAIL (1 Blocker + 2 Majors, all sshd-hardening correctness on Ubuntu 24.04). Remediated same day — see "Phase 1/2 continuation point" below — ready for security re-review.** **Phases 0, 3, 5–7 gated on the user provisioning the Hostinger VPS (Phase 0, ASPS-739).**
 
 ## JIRA
 | Item | Key | Status |
@@ -92,14 +92,14 @@ Do this first, on the fresh box, over the initial root session:
 5. `fail2ban` for sshd.
 6. Timezone, hostname, swap file (esp. on 4 GB box for builds).
 - **Deliverable:** hardened box, key-only SSH, firewall up. Security agent PASS on baseline.
-- **STATUS (2026-09-06): scripts authored, NOT executed.** See "Phase 1/2 continuation point" below — `deploy/vps/01-harden.sh` on branch `asps-740-vps-provisioning-scripts`. Waiting on Phase 0 (ASPS-739, user provisions the real VPS) before this can actually run and be verified.
+- **STATUS (2026-09-06): scripts authored, security remediation round 1 applied, NOT executed.** See "Phase 1/2 continuation point" below — `deploy/vps/01-harden.sh` on branch `asps-740-vps-provisioning-scripts`, now security-re-review-ready. Waiting on Phase 0 (ASPS-739, user provisions the real VPS) before this can actually run and be verified.
 
 ### Phase 2 — Runtime toolchain — owner: devops
 - Node.js 20 LTS (nvm or NodeSource), `git`, `ripgrep`, `build-essential`.
 - Claude Code CLI (for `setup-token` + as SDK dependency): `npm i -g @anthropic-ai/claude-code`.
 - Per D4: .NET 8 SDK, Python 3.11 + venv, Docker Engine + compose plugin (add `aspsbot` to `docker` group — note this is a privilege boundary; security to review).
 - **Deliverable:** `dotnet --version`, `node -v`, `python3 --version`, `docker ps` all green.
-- **STATUS (2026-09-06): scripts authored, NOT executed.** See "Phase 1/2 continuation point" below — `deploy/vps/02-toolchain.sh` on the same branch. Same Phase 0 gate as Phase 1.
+- **STATUS (2026-09-06): scripts authored, security remediation round 1 applied, NOT executed.** See "Phase 1/2 continuation point" below — `deploy/vps/02-toolchain.sh` on the same branch. Same Phase 0 gate as Phase 1.
 
 ### Phase 3 — Clone repo & wire secrets — owner: devops
 - `git clone` ASPS into `/home/aspsbot/ASPS` via deploy key/PAT.
@@ -382,6 +382,65 @@ no PR opened yet, per explicit instruction (CEO + security review the hardening 
    only; actually placing `ACCESS_KEYS.env`/the bot `.env` there is Phase 3 (ASPS-742, not yet
    authored) and referencing it via systemd `EnvironmentFile` is Phase 5 (ASPS-744).
 
+**Security review round 1 (2026-09-06): FAIL — 1 Blocker + 2 Majors, all sshd-hardening
+correctness defects on Ubuntu 24.04. Remediated same day on the same branch, security
+re-review requested:**
+
+1. **Blocker — sshd socket activation ignored the drop-in `Port`.** Ubuntu 24.04 ships
+   `ssh.socket` (systemd socket activation) listening on `:22`; with it active,
+   `sshd_config.d/*.conf`'s `Port` directive is silently ignored (sshd stays on 22) even though
+   `sshd -t` still passes — Step 6 would then open only the custom `SSH_PORT` in UFW, leaving the
+   box unreachable on the only port UFW allows. **Fix:** `01-harden.sh` now detects `ssh.socket`
+   activation (`ssh_socket_activation_active` in `lib.sh`), disables it and switches to
+   `ssh.service` binding the port directly (idempotent), and asserts via `ss -tlnp`
+   (`assert_sshd_listening`) that sshd is actually listening on `SSH_PORT` **before** touching UFW
+   — aborting first if not. **`SSH_PORT` default changed from `2222` to `22`** (a custom port is
+   still supported and safe with respect to this script now, but the VPS also sits behind
+   Hostinger's own cloud-panel firewall, separate from UFW — a non-22 port must also be opened
+   there, documented in `config.env.example`/README).
+2. **Major — drop-in precedence could leave password auth on (fail-open).** sshd is
+   first-value-wins over `sshd_config.d/*.conf` in lexical order; a cloud image's
+   `50-cloud-init.conf` (`PasswordAuthentication yes`) would sort before the old
+   `99-aspsbot-hardening.conf` and win, while `sshd -t` still passed. **Fix:** drop-in renamed to
+   `00-aspsbot-hardening.conf` (sorts first); `01-harden.sh` also comments out
+   `PasswordAuthentication`/`PermitRootLogin` in `50-cloud-init.conf` if found; and — the real
+   gate — `assert_effective_sshd_config` in `lib.sh` checks `sshd -T`'s fully-merged output for
+   `passwordauthentication no` / `permitrootlogin no` / `pubkeyauthentication yes` and aborts
+   before UFW if not true, on every run (not just when something changed).
+3. **Major — root could be locked before a working sudo path existed (total-lockout risk).**
+   `passwd -l root` ran unconditionally right after creating `aspsbot` with no password (set
+   manually later) — if the operator closed the root session first, the box had no root (locked)
+   and no working sudo (no password to prompt against) = provider-rescue only. **Fix:** new
+   `LOCK_ROOT` config flag, default `false` — root's password is left alone by default (safe,
+   since `PermitRootLogin no` already blocks root over SSH regardless). `LOCK_ROOT=true` only
+   actually locks root if `passwd -S aspsbot` shows a usable password (`P`); otherwise it skips
+   the lock with a loud warning instead of risking lockout, and forces `aspsbot` to (re)set its
+   password on next login (`chage -d 0`) once it does lock root.
+4. **Minor — NodeSource `curl \| bash -`** replaced with the keyring method
+   (`/etc/apt/keyrings/nodesource.gpg` + `signed-by=`), matching the Docker block's pattern.
+5. **Minor — deadsnakes/Python 3.11 dropped.** Re-checked against actual need: the agent's
+   build/test path is `docker compose up` and Analyzers carry their own Python in-container, so
+   the VPS host doesn't need 3.11. `02-toolchain.sh` now installs Ubuntu 24.04's system `python3`
+   (3.12) + `python3-venv` + `python3-dev` + `python3-pip` instead of the third-party PPA. This is
+   a deviation from D4's literal "Python 3.11" wording in section 2 above — flagging it here
+   rather than silently diverging; re-add deadsnakes if a concrete host-level 3.11 need surfaces.
+6. **Minor — Claude Code CLI version** left floating (not pinned), documented rationale
+   (self-updating dev-tool CLI, not a production image artifact) plus an idempotency guard
+   (`command -v claude` check) so re-runs don't force a reinstall.
+7. **.NET `.deb` bootstrap** — left as-is, accepted debt, no change (per remediation scope).
+
+All three scripts re-verified clean: `bash -n` (all three) and `shellcheck --shell=bash` via
+`koalaman/shellcheck:stable` (zero findings, all severities) after the fixes above. Line endings
+re-confirmed pure LF (no CRLF) via a byte-level check (`\r\n` / lone `\r` counts = 0 in all four
+changed files). No pure-bash helper was extracted for isolated unit testing — the new assertion
+functions (`assert_effective_sshd_config`, `assert_sshd_listening`,
+`ssh_socket_activation_active`) all depend on live `sshd -T`/`ss`/`systemctl` state and cannot be
+meaningfully unit-tested without a real host; see `deploy/vps/README.md` "Validation performed".
+
+**Changed files (remediation commit):** `deploy/vps/lib.sh`, `deploy/vps/01-harden.sh`,
+`deploy/vps/02-toolchain.sh`, `deploy/vps/config.env.example`, `deploy/vps/README.md`, this
+handoff file.
+
 **Validation performed (why this satisfies TDD rule item 9 — declarative config, no VPS to run
 against yet):**
 - `bash -n lib.sh 01-harden.sh 02-toolchain.sh` — all three clean.
@@ -409,17 +468,21 @@ not touched either — no Azure/Container Apps/CI-CD change (VPS is Hostinger, f
 the Azure backend per D1).
 
 **Next steps for CEO/security:**
-1. CEO code review of `deploy/vps/01-harden.sh`, `02-toolchain.sh`, `lib.sh` against
-   `.claude/rules/review-standards.md`.
-2. Security review of `01-harden.sh` specifically (sshd hardening correctness, UFW rules, fail2ban
-   config, root-lock decision, secrets-directory permissions) and of the docker-group warning in
-   `02-toolchain.sh` (accept D4's tradeoff or propose mitigation — this is also an ASPS-745 input).
-3. Resolve the flagged decisions above (`SSH_PORT` default, root-lock behavior, deadsnakes PPA)
-   with the CEO/user — override in `config.env`/the script if any are wrong.
-4. **Do not open a PR or merge yet** — explicit instruction. Once review passes, follow the normal
-   `task-workflow.md` flow (PR → JIRA to In Review → CEO merge → JIRA to Done) — but note there is
-   still no QA agent step analogous to app-code QA here; "QA" for this task is the review above
-   plus, ultimately, a real run against the VPS once Phase 0 completes.
+1. **Security RE-review** of `deploy/vps/01-harden.sh`, `02-toolchain.sh`, `lib.sh` on branch
+   `asps-740-vps-provisioning-scripts` against the round-1 findings above (all 1 Blocker + 2 Majors
+   + Minors addressed — see "Security review round 1" subsection above for fix detail per
+   finding). Not yet re-reviewed as of this update.
+2. CEO code review of the same files against `.claude/rules/review-standards.md` (not yet done —
+   was pending the security round before round 1, still pending after remediation).
+3. Decisions now resolved by this remediation (no longer open questions): `SSH_PORT` default is
+   now `22` (was `2222`); root-lock is now opt-in via `LOCK_ROOT=false` default (was unconditional
+   `passwd -l root`); deadsnakes/Python 3.11 dropped in favor of system Python 3.12 (was a PPA).
+   Flag to CEO/user only if any of these three resolutions themselves need to be revisited.
+4. **Do not open a PR or merge yet** — explicit instruction, unchanged. Once security re-review
+   and CEO code review both pass, follow the normal `task-workflow.md` flow (PR → JIRA to In
+   Review → CEO merge → JIRA to Done) — there is still no QA agent step analogous to app-code QA
+   here; "QA" for this task is the review above plus, ultimately, a real run against the VPS once
+   Phase 0 completes.
 5. **Phase 0 (ASPS-739)** is still the hard gate for actually *running* these scripts — authoring
    ahead of it was explicitly requested so Phases 1–2 are ready to execute the moment the VPS
    exists.
