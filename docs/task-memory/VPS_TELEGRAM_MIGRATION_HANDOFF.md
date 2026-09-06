@@ -12,13 +12,13 @@
 | Phase 0 — Provisioning & prerequisites | ASPS-739 | To Do (user action) |
 | Phase 1 — VPS baseline hardening | ASPS-740 | In Progress — scripts merged (PR #40); **execution gated on VPS** |
 | Phase 2 — Runtime toolchain | ASPS-741 | In Progress — scripts merged (PR #40); **execution gated on VPS** |
-| Phase 3 — Clone repo & wire secrets | ASPS-742 | In Progress — scripts authored on `asps-742-vps-clone-and-service-scripts`, not merged; **execution gated on VPS** |
+| Phase 3 — Clone repo & wire secrets | ASPS-742 | In Progress — scripts merged (PR #41); **execution gated on VPS** |
 | Phase 4 — Migrate bot to Claude Agent SDK | ASPS-743 | ✅ **Done — merged to main (PR #39, `a6dc84f`)** |
-| Phase 5 — 24/7 systemd service | ASPS-744 | In Progress — scripts authored on `asps-742-vps-clone-and-service-scripts`, not merged; **execution gated on VPS** |
+| Phase 5 — 24/7 systemd service | ASPS-744 | In Progress — scripts merged (PR #41); **execution gated on VPS** |
 | Phase 6 — Security deepening & audit | ASPS-745 | To Do (gated on VPS) |
 | Phase 7 — Verification & docs | ASPS-746 | To Do |
 
-**Gate:** All unblocked repo-only work is done — Phase 4 (bot) merged; Phase 1/2/3/5 provisioning scripts authored (Phase 1/2 merged, Phase 3/5 pending review/merge). Everything remaining (executing Phases 1–3, 5–7 on the box) needs the live VPS → **user provisions it in Phase 0 (ASPS-739)**.
+**Gate:** ALL unblocked repo-only work is done and merged — Phase 4 (bot, PR #39) + the full `deploy/vps/` provisioning chain 01→05 (Phases 1/2 PR #40, Phases 3/5 PR #41), all security + code reviewed, authored-but-unexecuted. Everything remaining (executing 01→05 on the box, then Phase 6 audit + Phase 7 E2E) needs the live VPS → **user provisions it in Phase 0 (ASPS-739)**. Execution-gate checklists live on ASPS-740 (SSH/root R1/R2) and ASPS-745 (Phase 3/5 residuals: SECRETS_DIR read-only, ~/.claude ReadWritePaths, PrivateDevices/syscall filter, GITHUB_TOKEN-in-env).
 
 ---
 
