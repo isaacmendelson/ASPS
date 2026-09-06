@@ -60,6 +60,60 @@ export function matchSecretPath(resolvedPath: string): RegExp | undefined {
   return SECRET_PATH_PATTERNS.find((pattern) => pattern.test(resolvedPath));
 }
 
+export interface SecretPathHit {
+  /** Dotted/bracketed path to the offending field, e.g. `edits[1].new_string`. */
+  field: string;
+  pattern: RegExp;
+}
+
+/**
+ * Fail-closed invariant underneath the per-tool `PATH_INPUT_FIELD` allowlist
+ * in `agent.ts` (ASPS-743 security re-review, Major M2).
+ *
+ * `PATH_INPUT_FIELD` only knows to check the ONE field a given tool is
+ * documented to carry a path in (`file_path`, `notebook_path`, ...). That
+ * breaks down for a write-capable tool the allowlist doesn't know about yet
+ * (a future SDK tool), or for a tool whose path-bearing content lives
+ * somewhere other than the allowlisted field (e.g. MultiEdit's
+ * `edits[].old_string` / `edits[].new_string`). This function is the floor
+ * under that allowlist: it recursively scans **every string-valued field**
+ * of a tool's input — including array elements and nested objects — against
+ * `SECRET_PATH_PATTERNS`, regardless of tool name or field name. A hit here
+ * must hard-deny the call; it does not depend on `checkPathAllowed` ever
+ * running for that field.
+ *
+ * Unlike `checkPathAllowed`, this does not resolve relative paths against a
+ * working directory or follow symlinks — `SECRET_PATH_PATTERNS` are anchored
+ * (`^`/`$`, path separators) so they match a field whose value IS a secret
+ * path (or ends in one), which is the shape every known exploit path takes
+ * (a tool argument that names the secret file/directory directly).
+ */
+export function findSecretPathInInput(input: unknown): SecretPathHit | undefined {
+  return scan(input, "");
+}
+
+function scan(value: unknown, fieldPath: string): SecretPathHit | undefined {
+  if (typeof value === "string") {
+    const pattern = matchSecretPath(value);
+    return pattern ? { field: fieldPath || "(root)", pattern } : undefined;
+  }
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      const hit = scan(value[i], `${fieldPath}[${i}]`);
+      if (hit) return hit;
+    }
+    return undefined;
+  }
+  if (value && typeof value === "object") {
+    for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
+      const hit = scan(v, fieldPath ? `${fieldPath}.${key}` : key);
+      if (hit) return hit;
+    }
+    return undefined;
+  }
+  return undefined;
+}
+
 export type PathGuardResult =
   | { allowed: true; resolvedPath: string }
   | { allowed: false; reason: string };

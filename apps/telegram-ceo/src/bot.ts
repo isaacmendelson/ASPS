@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import TelegramBot from "node-telegram-bot-api";
 import { runAgent, reloadSystemPrompt } from "./agent.js";
 import { clearSession } from "./session.js";
@@ -58,45 +59,63 @@ function startTypingIndicator(chatId: number): () => void {
 
 /**
  * Deliver a pending approval request to the authorized user as an
- * inline-keyboard Telegram message (ASPS-743 security remediation). The bot
- * only ever talks to one user per turn in a private chat, so the Telegram
- * chat id is the same as the requesting user's id.
+ * inline-keyboard Telegram message (ASPS-743 security remediation, hardened
+ * per the ASPS-743 security re-review, Major M1).
+ *
+ * `request.summary` (from `agent.ts`'s `summarizeToolCall`) is now always
+ * the FULL, untruncated tool input — a Bash command or path can be
+ * arbitrarily long and is fully attacker-influenced. Two things follow:
+ *
+ *  - **Plain text, never `parse_mode: "Markdown"`.** The previous design
+ *    embedded the untrusted summary inside a raw ``` code fence with
+ *    `parse_mode: "Markdown"` — balanced backticks inside the command could
+ *    close the fence early and let the rest of the string re-render as
+ *    arbitrary Markdown (bold/links/etc.) in the approver's chat. Sending as
+ *    plain text means Telegram never parses the content as markup, so
+ *    nothing in the command can alter the message's structure.
+ *  - **Split, never truncate, when it exceeds Telegram's ~4096-char limit.**
+ *    A message is built as a header (tool name, full summary length, and a
+ *    short sha256 so a re-sent/edited approval can be told apart) followed
+ *    by the full summary, then split into as many plain-text messages as
+ *    needed (`splitMessage`, marked `[part i/N]` when there is more than
+ *    one). The Approve/Deny inline keyboard is attached only to the final
+ *    part, so there is exactly one place to tap and the full content still
+ *    arrives — nothing is ever silently cut off.
+ *
+ * The bot only ever talks to one user per turn in a private chat, so the
+ * Telegram chat id is the same as the requesting user's id.
  */
 function sendApprovalRequest(request: ApprovalRequest): void {
-  const text =
-    `Approval needed — ${request.toolName}\n\n` +
-    "```\n" +
-    request.summary +
-    "\n```";
+  const hash = createHash("sha256").update(request.summary).digest("hex").slice(0, 12);
+  const header = `Approval needed — ${request.toolName} (${request.summary.length} chars, sha256:${hash})`;
+  const fullText = `${header}\n\n${request.summary}`;
 
-  bot
-    .sendMessage(request.userId, text, {
-      parse_mode: "Markdown",
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: "✅ Approve", callback_data: `approve:${request.id}` },
-            { text: "❌ Deny", callback_data: `deny:${request.id}` },
-          ],
-        ],
-      },
-    })
-    .catch(async () => {
-      // Markdown parse failed (e.g. an unbalanced code fence in the summary)
-      // — fall back to plain text so the approval prompt still arrives.
-      await bot
-        .sendMessage(request.userId, `Approval needed — ${request.toolName}\n\n${request.summary}`, {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                { text: "✅ Approve", callback_data: `approve:${request.id}` },
-                { text: "❌ Deny", callback_data: `deny:${request.id}` },
-              ],
-            ],
-          },
-        })
-        .catch(() => {});
+  const rawChunks = splitMessage(fullText);
+  const chunks =
+    rawChunks.length > 1 ? rawChunks.map((chunk, i) => `[part ${i + 1}/${rawChunks.length}]\n${chunk}`) : rawChunks;
+
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: "✅ Approve", callback_data: `approve:${request.id}` },
+        { text: "❌ Deny", callback_data: `deny:${request.id}` },
+      ],
+    ],
+  };
+
+  // Fire all parts immediately (not serialized behind `await`) so the whole
+  // prompt is dispatched in one synchronous pass — the caller must not
+  // observe only the first part sent before later parts have gone out.
+  chunks.forEach((chunk, i) => {
+    const isLast = i === chunks.length - 1;
+    // Deliberately no `parse_mode` — see the fence-breakout note above.
+    bot.sendMessage(request.userId, chunk, isLast ? { reply_markup: keyboard } : {}).catch(() => {
+      // Best-effort delivery per part; a transport failure here should not
+      // throw out of the approval flow. If the approver never sees a usable
+      // prompt (e.g. every part fails), `approvals.ts`'s own timeout still
+      // fail-closes the pending request to "deny".
     });
+  });
 }
 
 /** Initialize and start the Telegram bot. */

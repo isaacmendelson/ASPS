@@ -2,7 +2,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync, realpathSync } from "nod
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { checkPathAllowed, matchDangerousBashCommand, matchSecretPath } from "../security.js";
+import { checkPathAllowed, findSecretPathInInput, matchDangerousBashCommand, matchSecretPath } from "../security.js";
 
 describe("matchDangerousBashCommand", () => {
   it.each([
@@ -119,5 +119,48 @@ describe("checkPathAllowed (path guard, ASPS-743 blocker B1)", () => {
   it("allows a path to a file that does not exist yet inside the tree (e.g. a new Write target)", () => {
     const result = checkPathAllowed(path.join(workingDir, "src", "new-file.ts"), workingDir);
     expect(result.allowed).toBe(true);
+  });
+});
+
+describe("findSecretPathInInput (ASPS-743 security re-review, Major M2)", () => {
+  it("finds a secret path in a top-level string field", () => {
+    const hit = findSecretPathInInput({ file_path: "ACCESS_KEYS.env" });
+    expect(hit).toBeDefined();
+    expect(hit?.field).toBe("file_path");
+  });
+
+  it("finds a secret path nested inside an array of objects (e.g. MultiEdit's edits[])", () => {
+    const hit = findSecretPathInInput({
+      file_path: "src/agent.ts",
+      edits: [
+        { old_string: "a", new_string: "b" },
+        { old_string: "x", new_string: "ACCESS_KEYS.env" },
+      ],
+    });
+    expect(hit).toBeDefined();
+    expect(hit?.field).toBe("edits[1].new_string");
+  });
+
+  it("finds a secret path on an unknown/future tool's arbitrary nested field", () => {
+    const hit = findSecretPathInInput({
+      nested: { arr: ["irrelevant", "/home/aspsbot/.ssh/id_rsa"] },
+    });
+    expect(hit).toBeDefined();
+    expect(hit?.field).toBe("nested.arr[1]");
+  });
+
+  it("returns undefined when no field matches a secret pattern", () => {
+    const hit = findSecretPathInInput({
+      file_path: "src/agent.ts",
+      edits: [{ old_string: "a", new_string: "b" }],
+    });
+    expect(hit).toBeUndefined();
+  });
+
+  it("handles non-object/array/string values (numbers, booleans, null, undefined) without throwing", () => {
+    expect(() =>
+      findSecretPathInInput({ count: 3, enabled: true, missing: null, notSet: undefined }),
+    ).not.toThrow();
+    expect(findSecretPathInInput({ count: 3, enabled: true, missing: null, notSet: undefined })).toBeUndefined();
   });
 });
