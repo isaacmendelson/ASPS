@@ -3,22 +3,22 @@
 **Task name:** VPS_TELEGRAM_MIGRATION
 **Owner hat:** CEO (orchestrator)
 **Created:** 2026-08-25
-**Status:** IN PROGRESS — user approved scope (D1–D4) on 2026-09-06. **Phase 4 (ASPS-743) DONE & MERGED to main (PR #39, merge commit `a6dc84f`) on 2026-09-06** — bot migrated to `@anthropic-ai/claude-agent-sdk` with a deny-by-default permission model + Telegram approval flow. Gates all PASS: QA (118/118 tests, independently verified), Security (PASS after 2 remediation rounds — 3 Blockers + 2 Majors found and closed), CEO code review. Code-level follow-up residuals (Minor/Nit) tracked on ASPS-745. **Phase 1 + 2 (ASPS-740/741) provisioning scripts authored on branch `asps-740-vps-provisioning-scripts` on 2026-09-06 — `bash -n` + shellcheck clean, NOT executed (no VPS yet). Security review round 1: FAIL (1 Blocker + 2 Majors, all sshd-hardening correctness on Ubuntu 24.04). Remediated same day — see "Phase 1/2 continuation point" below — ready for security re-review.** **Phases 0, 3, 5–7 gated on the user provisioning the Hostinger VPS (Phase 0, ASPS-739).**
+**Status:** IN PROGRESS — user approved scope (D1–D4) on 2026-09-06. **Phase 4 (ASPS-743) DONE & MERGED to main (PR #39, merge commit `a6dc84f`) on 2026-09-06** — bot migrated to `@anthropic-ai/claude-agent-sdk` with a deny-by-default permission model + Telegram approval flow. Gates all PASS: QA (118/118 tests, independently verified), Security (PASS after 2 remediation rounds — 3 Blockers + 2 Majors found and closed), CEO code review. Code-level follow-up residuals (Minor/Nit) tracked on ASPS-745. **Phase 1 + 2 (ASPS-740/741) provisioning scripts DONE (authoring) & MERGED to main (PR #40, `9dc2f11`) on 2026-09-06** — `deploy/vps/` (`01-harden.sh`, `02-toolchain.sh`, `lib.sh`, `config.env.example`, `README.md`). Security review PASS after 1 remediation round (Blocker: Ubuntu 24.04 ssh.socket ignoring drop-in Port; Majors: drop-in precedence fail-open + root-lockout — all closed), CEO code review PASS. Scripts are **authored-but-UNEXECUTED** — execution + on-box verification happen at the Phase 1 gate once the VPS exists; execution-gate checklist (incl. R1/R2 + mandatory second-login test) is on ASPS-740. **Phases 0, 3, 5–7 gated on the user provisioning the Hostinger VPS (Phase 0, ASPS-739).**
 
 ## JIRA
 | Item | Key | Status |
 |---|---|---|
 | Epic — VPS + Telegram CEO agent migration | ASPS-738 | In Progress |
 | Phase 0 — Provisioning & prerequisites | ASPS-739 | To Do (user action) |
-| Phase 1 — VPS baseline hardening | ASPS-740 | To Do (gated on VPS) |
-| Phase 2 — Runtime toolchain | ASPS-741 | To Do (gated on VPS) |
+| Phase 1 — VPS baseline hardening | ASPS-740 | In Progress — scripts merged (PR #40); **execution gated on VPS** |
+| Phase 2 — Runtime toolchain | ASPS-741 | In Progress — scripts merged (PR #40); **execution gated on VPS** |
 | Phase 3 — Clone repo & wire secrets | ASPS-742 | To Do (gated on VPS) |
 | Phase 4 — Migrate bot to Claude Agent SDK | ASPS-743 | ✅ **Done — merged to main (PR #39, `a6dc84f`)** |
 | Phase 5 — 24/7 systemd service | ASPS-744 | To Do (gated on VPS) |
 | Phase 6 — Security deepening & audit | ASPS-745 | To Do (gated on VPS) |
 | Phase 7 — Verification & docs | ASPS-746 | To Do |
 
-**Gate:** Phase 4 is the only unblocked phase (pure repo code). All others need the live VPS (Phase 0, user).
+**Gate:** All unblocked repo-only work is done — Phase 4 (bot) merged, Phase 1/2 provisioning scripts merged (authored, not executed). Everything remaining (executing Phases 1–3, 5–7 on the box) needs the live VPS → **user provisions it in Phase 0 (ASPS-739)**.
 
 ---
 
