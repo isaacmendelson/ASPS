@@ -8,6 +8,12 @@ What's actively in progress. Updated frequently — at session start, mid-sessio
 
 ## Currently active
 
+### VPS + Telegram CEO agent migration — Epic ASPS-738 (2026-09-06)
+- Goal: run the ASPS CEO Claude agent on a Hostinger VPS, driven from Telegram, 24/7. Scope (D1–D4): bot + repo clone on the VPS; **ASPS backend stays on Azure**; Claude Agent SDK + subscription (`CLAUDE_CODE_OAUTH_TOKEN`); Ubuntu 24.04.
+- **Done & merged:** Phase 4 bot→`@anthropic-ai/claude-agent-sdk` (PR #39) — deny-by-default permission model + Telegram approve/deny flow, secrets path-guarded, `settingSources:[]` isolation (settings.json `permissions.allow` bypasses `canUseTool`). Phase 1/2 VPS provisioning scripts `deploy/vps/` (PR #40) — authored, NOT executed.
+- **Blocked on user:** Phase 0 = buy the VPS + stage secrets. Then execute Phases 1–3, 5–7 on the box.
+- Canonical handoff: `docs/task-memory/VPS_TELEGRAM_MIGRATION_HANDOFF.md`. Follow-up security debt on ASPS-745 (docker-group≈root, secret relocation, egress, main branch protection).
+
 ### ASPS-607 Epic — Top-Level Code Review Remediation (2026-07-28/29)
 - 21 subtasks (ASPS-608 through ASPS-628) from top-level code review
 - **16/21 Done**, 2 in progress (623, 624), 3 queued (625-627), 1 last (628)
