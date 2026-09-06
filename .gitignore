@@ -139,6 +139,8 @@ cache/
 /ACCESS_KEYS.env
 appsettings.Docker.json
 deploy/vps/config.env
+deploy/vps/*.env
+deploy/vps/github-credentials
 
 # Database seed dumps (too large for GitHub's 100 MB limit)
 aspsbackend2db_*.sql

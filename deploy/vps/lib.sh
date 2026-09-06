@@ -20,6 +20,39 @@ require_root() {
     fi
 }
 
+# Ensures the script continues as $1 (e.g. "aspsbot"), transparently
+# re-executing itself via `runuser --login` if currently running as root.
+# Used by scripts that must own the files they create (git clone, secrets
+# templates) as the non-root service account rather than root — unlike
+# 01-harden.sh/02-toolchain.sh, which are root-only for the whole run.
+# Exits with an error if run as any OTHER non-root user (ambiguous — we
+# don't know whether that user's sudo can reach $1).
+require_user_or_reexec() {
+    local target_user="$1"
+    local script_path="$2"
+    local current_user
+    current_user="$(id -un)"
+    if [[ "$current_user" == "$target_user" ]]; then
+        return 0
+    fi
+    if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+        log_info "Running as root — re-executing as ${target_user} (runuser --login) so everything created (clone, git config, secrets templates) is owned by ${target_user}, not root."
+        exec runuser --login "$target_user" --command "bash '${script_path}'"
+    fi
+    log_error "This script must run as ${target_user} (or root, which re-execs as ${target_user} automatically). Current user: ${current_user}."
+    exit 1
+}
+
+# Returns 0 (true / "still a placeholder") if $1 is missing, OR contains any
+# of the known placeholder markers used across deploy/vps/*.env.example and
+# apps/telegram-ceo/.env.example. Used by 05-service.sh to refuse starting
+# the bot against a secrets file the operator forgot to fill in.
+file_has_placeholder_value() {
+    local file="$1"
+    [[ -f "$file" ]] || return 0
+    grep -qE 'your-bot-token-here|your-oauth-token-here|your-api-key-here|your-key-here|REPLACE_WITH_' "$file"
+}
+
 require_ubuntu_2404() {
     if [[ -r /etc/os-release ]]; then
         # shellcheck source=/dev/null

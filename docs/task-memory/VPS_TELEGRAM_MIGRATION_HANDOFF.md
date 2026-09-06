@@ -3,7 +3,7 @@
 **Task name:** VPS_TELEGRAM_MIGRATION
 **Owner hat:** CEO (orchestrator)
 **Created:** 2026-08-25
-**Status:** IN PROGRESS — user approved scope (D1–D4) on 2026-09-06. **Phase 4 (ASPS-743) DONE & MERGED to main (PR #39, merge commit `a6dc84f`) on 2026-09-06** — bot migrated to `@anthropic-ai/claude-agent-sdk` with a deny-by-default permission model + Telegram approval flow. Gates all PASS: QA (118/118 tests, independently verified), Security (PASS after 2 remediation rounds — 3 Blockers + 2 Majors found and closed), CEO code review. Code-level follow-up residuals (Minor/Nit) tracked on ASPS-745. **Phase 1 + 2 (ASPS-740/741) provisioning scripts DONE (authoring) & MERGED to main (PR #40, `9dc2f11`) on 2026-09-06** — `deploy/vps/` (`01-harden.sh`, `02-toolchain.sh`, `lib.sh`, `config.env.example`, `README.md`). Security review PASS after 1 remediation round (Blocker: Ubuntu 24.04 ssh.socket ignoring drop-in Port; Majors: drop-in precedence fail-open + root-lockout — all closed), CEO code review PASS. Scripts are **authored-but-UNEXECUTED** — execution + on-box verification happen at the Phase 1 gate once the VPS exists; execution-gate checklist (incl. R1/R2 + mandatory second-login test) is on ASPS-740. **Phases 0, 3, 5–7 gated on the user provisioning the Hostinger VPS (Phase 0, ASPS-739).**
+**Status:** IN PROGRESS — user approved scope (D1–D4) on 2026-09-06. **Phase 4 (ASPS-743) DONE & MERGED to main (PR #39, merge commit `a6dc84f`) on 2026-09-06** — bot migrated to `@anthropic-ai/claude-agent-sdk` with a deny-by-default permission model + Telegram approval flow. Gates all PASS: QA (118/118 tests, independently verified), Security (PASS after 2 remediation rounds — 3 Blockers + 2 Majors found and closed), CEO code review. Code-level follow-up residuals (Minor/Nit) tracked on ASPS-745. **Phase 1 + 2 (ASPS-740/741) provisioning scripts DONE (authoring) & MERGED to main (PR #40, `9dc2f11`) on 2026-09-06** — `deploy/vps/` (`01-harden.sh`, `02-toolchain.sh`, `lib.sh`, `config.env.example`, `README.md`). Security review PASS after 1 remediation round (Blocker: Ubuntu 24.04 ssh.socket ignoring drop-in Port; Majors: drop-in precedence fail-open + root-lockout — all closed), CEO code review PASS. Scripts are **authored-but-UNEXECUTED** — execution + on-box verification happen at the Phase 1 gate once the VPS exists; execution-gate checklist (incl. R1/R2 + mandatory second-login test) is on ASPS-740. **Phase 3 + Phase 5 (ASPS-742/ASPS-744) scripts DONE (authoring) on branch `asps-742-vps-clone-and-service-scripts` on 2026-09-07** — `deploy/vps/03-clone.sh`, `deploy/vps/telegram-ceo.service`, `deploy/vps/05-service.sh` (+ `lib.sh`/`config.env.example`/`README.md` extended). Not merged, no PR — awaiting CEO code review + security review of the credential-helper mechanism and the systemd hardening tradeoffs, per explicit instruction. **Phases 0, 6–7 gated on the user provisioning the Hostinger VPS (Phase 0, ASPS-739).**
 
 ## JIRA
 | Item | Key | Status |
@@ -12,13 +12,13 @@
 | Phase 0 — Provisioning & prerequisites | ASPS-739 | To Do (user action) |
 | Phase 1 — VPS baseline hardening | ASPS-740 | In Progress — scripts merged (PR #40); **execution gated on VPS** |
 | Phase 2 — Runtime toolchain | ASPS-741 | In Progress — scripts merged (PR #40); **execution gated on VPS** |
-| Phase 3 — Clone repo & wire secrets | ASPS-742 | To Do (gated on VPS) |
+| Phase 3 — Clone repo & wire secrets | ASPS-742 | In Progress — scripts authored on `asps-742-vps-clone-and-service-scripts`, not merged; **execution gated on VPS** |
 | Phase 4 — Migrate bot to Claude Agent SDK | ASPS-743 | ✅ **Done — merged to main (PR #39, `a6dc84f`)** |
-| Phase 5 — 24/7 systemd service | ASPS-744 | To Do (gated on VPS) |
+| Phase 5 — 24/7 systemd service | ASPS-744 | In Progress — scripts authored on `asps-742-vps-clone-and-service-scripts`, not merged; **execution gated on VPS** |
 | Phase 6 — Security deepening & audit | ASPS-745 | To Do (gated on VPS) |
 | Phase 7 — Verification & docs | ASPS-746 | To Do |
 
-**Gate:** All unblocked repo-only work is done — Phase 4 (bot) merged, Phase 1/2 provisioning scripts merged (authored, not executed). Everything remaining (executing Phases 1–3, 5–7 on the box) needs the live VPS → **user provisions it in Phase 0 (ASPS-739)**.
+**Gate:** All unblocked repo-only work is done — Phase 4 (bot) merged; Phase 1/2/3/5 provisioning scripts authored (Phase 1/2 merged, Phase 3/5 pending review/merge). Everything remaining (executing Phases 1–3, 5–7 on the box) needs the live VPS → **user provisions it in Phase 0 (ASPS-739)**.
 
 ---
 
@@ -489,6 +489,163 @@ the Azure backend per D1).
 6. Phase 3 (ASPS-742, clone repo & wire secrets) is the next script to author once Phase 1/2 are
    approved — it will populate `SECRETS_DIR` per the placement rule documented in
    `deploy/vps/README.md`.
+
+---
+
+### Phase 3 + Phase 5 (ASPS-742 / ASPS-744) — scripts authored, not executed (2026-09-07)
+
+**Trigger:** CEO delegated authoring of the ready-to-run (but not-yet-executed) Phase 3 and
+Phase 5 scripts ahead of the VPS existing, continuing the `deploy/vps/` set from Phase 1/2 —
+Phase 4 (bot) is merged, Phase 1/2 scripts are merged, so Phase 3/5 was the next unblocked
+repo-only work while Phase 0 (user buys the box) remains outstanding.
+
+**Branch:** `asps-742-vps-clone-and-service-scripts` (created and checked out before delegating).
+Not merged — no PR opened, per explicit instruction (CEO + security review the credential
+handling and the service definition first).
+
+**New files, all under `deploy/vps/`:**
+- `03-clone.sh` (ASPS-742) — idempotent Phase 3: clones `REPO_URL` into `CLONE_PATH` (or
+  `git fetch --prune` + `merge --ff-only` the detected default branch if a clone already
+  exists — never force-resets/rebases); must run as `aspsbot` (transparently re-execs via
+  `runuser --login` if invoked as root, new `require_user_or_reexec` helper in `lib.sh`); sets
+  `aspsbot`'s global `user.name`/`user.email`/`safe.directory`; wires a headless-push credential
+  mechanism (see decision below); writes two secrets **templates**
+  (`${SECRETS_DIR}/access_keys.env.example`, `${SECRETS_DIR}/telegram-ceo.env.example`, chmod
+  600, placeholders only — never real secrets) mirroring the repo-root `ACCESS_KEYS.env` and
+  `apps/telegram-ceo/.env.example` shapes; `npm ci && npm run build`s `apps/telegram-ceo` only
+  (not the ASPS .NET backend — that stays on Azure per D1 and is a Phase 1/2 execution-gate
+  concern, out of scope here); ends with a verify block (`git status`, build artifact exists,
+  both templates present at mode 600) and prints exact next steps.
+- `telegram-ceo.service` (ASPS-744) — systemd unit **template** with literal `@ASPSBOT_USER@` /
+  `@CLONE_PATH@` / `@SECRETS_DIR@` placeholder tokens (substituted by `05-service.sh`, never
+  installed as-is). `User=`/`Group=aspsbot`, `SupplementaryGroups=docker` (D4), two
+  `EnvironmentFile=` lines (`telegram-ceo.env` + `ACCESS_KEYS.env`, both outside the clone),
+  `ExecStart=/usr/bin/node dist/index.js`, `Restart=always`/`RestartSec=5`/`TimeoutStopSec=20`,
+  journald logging. Hardening: `NoNewPrivileges`, `ProtectSystem=strict` +
+  `ReadWritePaths=${CLONE_PATH} ${SECRETS_DIR}`, `ProtectControlGroups`, `RestrictSUIDSGID`,
+  `PrivateTmp`, kernel/clock/hostname protections, `LockPersonality`, `RestrictRealtime`,
+  `RestrictNamespaces`. `ProtectHome`, `PrivateDevices`, `SystemCallFilter`,
+  `MemoryDenyWriteExecute` deliberately NOT enabled — commented out with per-directive reasoning
+  in the file itself, expanded in `README.md`'s "Phase 5 — systemd hardening tradeoffs" table.
+- `05-service.sh` (ASPS-744) — root-only, idempotent: refuses to proceed if either secrets file
+  under `SECRETS_DIR` is missing or still contains a known placeholder marker (new
+  `file_has_placeholder_value` helper in `lib.sh`), or if the bot hasn't been built yet; renders
+  `telegram-ceo.service` via `sed` from `config.env`, aborts if any `@TOKEN@` is left
+  unsubstituted (template/script drift guard); installs with `write-if-changed`/`cmp -s`
+  semantics (only `daemon-reload`s on actual change); `systemctl enable --now`; verifies
+  `systemctl is-active`; prints a log-tail command and a no-secrets-in-journal sanity check.
+- `lib.sh` — added `require_user_or_reexec(target_user, script_path)` (re-execs as a target
+  non-root user via `runuser --login` if currently root; errors if run as any other user) and
+  `file_has_placeholder_value(file)` (missing file or known placeholder marker → true). Both
+  reused, not duplicated, between `03-clone.sh` and `05-service.sh`.
+- `config.env.example` — added `GIT_USER_NAME`/`GIT_USER_EMAIL` (required by `03-clone.sh` only
+  — validated locally in that script, not added to `lib.sh`'s shared `load_config` required-var
+  list, so existing/older `config.env` files don't suddenly fail `01-harden.sh`/`02-toolchain.sh`
+  over vars those scripts never use). Changed `REPO_URL`'s default scheme from SSH
+  (`git@github.com:...`) to HTTPS (`https://github.com/...`) — see decision below.
+- `README.md` — added "Phase 3" and "Phase 5" sections (run steps, the credential-helper
+  decision with full reasoning, the two secrets templates table, the systemd hardening
+  applied/not-applied table with per-directive reasoning, the `systemd-analyze verify` method),
+  updated the run-order table, the "Running" quick-start, "Secret placement rule", "Deferred to
+  later phases" item 4, "Files in this directory", and "Validation performed" sections.
+- Root `.gitattributes` — added `*.service text eol=lf` alongside the existing `*.sh text eol=lf`
+  rule, so `telegram-ceo.service` is forced to LF the same way the shell scripts are.
+- Root `.gitignore` — added `deploy/vps/*.env` and `deploy/vps/github-credentials` (defensive —
+  real secrets live in `SECRETS_DIR` on the box, never under the repo's `deploy/vps/`, but these
+  patterns guard against an operator accidentally creating a real secrets file inside the repo
+  checkout during local testing).
+
+**Decisions made while authoring (flag for CEO/security review, not yet confirmed):**
+1. **Credential-helper mechanism — git credential store scoped to `github.com`, reading from
+   `${SECRETS_DIR}/github-credentials`, driven by an HTTPS `REPO_URL`.** The task listed two
+   options (`credential.helper` pointing at a store file, or a `credential.https://github.com
+   .helper`); chose the latter (URL-scoped, not a global default) specifically so the store is
+   never consulted for any other remote. This only works for an HTTPS remote, so `REPO_URL`'s
+   default in `config.env.example` was changed from SSH to HTTPS. `03-clone.sh` still detects an
+   SSH-scheme `REPO_URL` and skips credential-helper setup gracefully (documented: a deploy key
+   must then be placed under `~aspsbot/.ssh` manually, out of scope for these scripts — a
+   private SSH key is treated as higher-sensitivity than a PAT-in-a-store-file). **Flag:** this
+   changes the Phase 1/2-era default away from what Phase 0/ASPS-739's "fine-grained PAT or
+   deploy key" language left open both ways — confirm HTTPS+PAT is actually the preferred route
+   before Phase 0 provisions credentials, or switch `REPO_URL` back to SSH (one-line
+   `config.env` change; the script degrades correctly either way).
+2. **`ACCESS_KEYS.env` loaded via a second `EnvironmentFile=`, not via the git credential-helper
+   file.** The credential-helper file only ever serves `git push`/`git pull`; it can't expose
+   `JIRA_API_TOKEN`/`JIRA_EMAIL`/a bare `GITHUB_TOKEN` env var to the agent's own `Bash`-tool
+   `curl` calls against the JIRA REST API. A second `EnvironmentFile=` puts both secrets files
+   into the actual process environment, inherited by `node` and anything it spawns (the Claude
+   Agent SDK's Claude Code subprocess, and any `Bash` tool call that subprocess makes) —
+   matching how a local Claude Code session already reads `ACCESS_KEYS.env`-sourced variables.
+3. **`ProtectHome`/`PrivateDevices`/`SystemCallFilter`/`MemoryDenyWriteExecute` deliberately NOT
+   enabled**, each with a specific technical reason (not just "left for later"): `ProtectHome`
+   would make `~/.gitconfig` (holding the Phase 3 credential config) inaccessible — not merely
+   read-only — since it lives outside both `ReadWritePaths` entries, while `ProtectSystem=strict`
+   alone already read-only-protects everything outside the two declared paths without that
+   side effect; `PrivateDevices` is reasoned to likely be safe (docker CLIENT only needs the
+   socket, not `/dev/*`) but is unverified against a live box; syscall/memory filtering risk a
+   fail-closed crash loop for an unattended 24/7 bot with no local operator to debug it. All four
+   are flagged in the unit file itself and in `README.md`'s tradeoff table for Security to
+   decide/test at the Phase 1 execution gate — not silently chosen either open or closed.
+4. **`GIT_USER_NAME`/`GIT_USER_EMAIL` placeholder defaults** (`"ASPS CEO Bot"` /
+   `"ceo-bot@asps.local"`) — cosmetic, just need to be real enough for `git log` attribution;
+   flagging in case the operator wants a different identity (e.g. tied to a real GitHub account
+   matching the PAT's owner) before Phase 3 actually runs.
+5. **Least-privilege GitHub token scope** (ASPS-745 box-level item 4) — decided here as a
+   fine-grained PAT scoped to `isaacmendelson/ASPS` only, contents read/write. Not created by any
+   script (operator fills the placeholder); flagged for final confirmation at the Phase 6
+   security audit (e.g. whether a GitHub App installation token would be preferable to a
+   long-lived PAT).
+
+**Validation performed (why this satisfies TDD rule item 9 — declarative infra config, no VPS to
+run against yet):**
+- `bash -n` — all five scripts (`lib.sh`, `01-harden.sh`, `02-toolchain.sh`, `03-clone.sh`,
+  `05-service.sh`) clean.
+- `shellcheck --shell=bash` via `docker run --rm koalaman/shellcheck:stable` — all five scripts,
+  **zero findings** at any severity.
+- `telegram-ceo.service`: rendered with sample values
+  (`aspsbot`/`/home/aspsbot/ASPS`/`/home/aspsbot/secrets`) and verified with `systemd-analyze
+  verify` inside a disposable `ubuntu:24.04` Docker container — installed the `systemd` package,
+  created a stub `/usr/bin/node` (executable) and the `aspsbot` user + `CLONE_PATH`/`SECRETS_DIR`
+  directories so directive *targets* exist, then ran `systemd-analyze verify /tmp/t.service` →
+  **exit 0, no errors**. A first attempt without the stubs correctly failed with `Command
+  /usr/bin/node is not executable`, confirming the check is real, not a no-op. This confirms
+  syntax/directive validity, not runtime behavior against the actual Node/git/Docker workload
+  (the unverified part is exactly the "NOT applied" hardening directives above).
+- Line endings: `git check-attr text eol -- deploy/vps/03-clone.sh deploy/vps/05-service.sh
+  deploy/vps/telegram-ceo.service` → `eol: lf` for all three; byte-level check confirms zero
+  `\r\n`/lone-`\r` occurrences in all three files.
+- Idempotency reasoned through line-by-line (not exercised by an actual second run — no box
+  exists): `git symbolic-ref`/`fetch`/`merge --ff-only` for the clone step, `write_if_changed`
+  for the two secrets templates, `[[ -f ... ]]` guards before creating `github-credentials`,
+  `cmp -s` before installing the rendered unit and before `daemon-reload`.
+- **Not exercised, explicitly not blocking:** actual execution against Ubuntu 24.04 — still
+  gated on Phase 0 (ASPS-739). DoD for ASPS-742/744 is NOT met until that run happens.
+
+**JIRA:** ASPS-742 and ASPS-744 already `In Progress` with `devops` label (unchanged — not
+transitioned to "In Review": no PR yet, only static validation, matching the ASPS-740/741
+pattern). Added a comment to both issues (2026-09-07) summarizing what was authored, the
+credential-helper/hardening decisions, and validation performed.
+
+**Specs affected:** none under `docs/system-specifications/` — VPS/ops infrastructure
+(devops-owned, `docs/cloud/`-adjacent), same assessment as Phase 1/2. `docs/cloud/` itself not
+touched (no Azure/Container Apps/CI-CD change — Hostinger VPS is fully separate from the Azure
+backend per D1).
+
+**Next steps for CEO/security:**
+1. **Security review** of `deploy/vps/03-clone.sh`, `telegram-ceo.service`, `05-service.sh`,
+   `lib.sh`'s new helpers, and `config.env.example`'s changes on branch
+   `asps-742-vps-clone-and-service-scripts` — in particular the credential-helper mechanism
+   (decision 1 above) and the systemd hardening tradeoffs (decision 3 above).
+2. CEO code review of the same files against `.claude/rules/review-standards.md`.
+3. **Do not open a PR or merge yet** — explicit instruction, same pattern as Phase 1/2.
+4. **Phase 0 (ASPS-739)** remains the hard gate for actually *running* Phases 1–3 and 5 — this
+   authoring was explicitly requested ahead of it so everything is ready to execute the moment
+   the VPS exists.
+5. Once Phase 0 completes and Phase 1/2/3/5 are executed and verified on the real box, Phase 6
+   (ASPS-745, security deepening) picks up the four box-level items — three of which
+   (egress restriction, branch protection, and re-confirming the token scope this task decided)
+   are still explicitly deferred there; the fourth (secret relocation) is now functionally
+   complete pending the operator's manual copy+fill step.
 
 ## 7. JIRA
 See the JIRA table at the top of this handoff (epic ASPS-738 + stories ASPS-739…746).

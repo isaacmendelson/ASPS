@@ -1,0 +1,124 @@
+# ASPS Telegram CEO bot — systemd unit (ASPS-744, Phase 5).
+#
+# TEMPLATE — placeholders @ASPSBOT_USER@ / @CLONE_PATH@ / @SECRETS_DIR@ are
+# substituted by deploy/vps/05-service.sh (sed, from deploy/vps/config.env)
+# before this file is installed to /etc/systemd/system/telegram-ceo.service.
+# Do not install this file as-is with literal @...@ tokens — run
+# 05-service.sh, which renders + installs + enables + starts it.
+#
+# NOT YET EXECUTED — authored ahead of the VPS existing (Phase 0, ASPS-739).
+# See deploy/vps/README.md "Phase 5" and
+# docs/task-memory/VPS_TELEGRAM_MIGRATION_HANDOFF.md.
+
+[Unit]
+Description=ASPS Telegram CEO bot (Claude Agent SDK)
+Documentation=https://github.com/isaacmendelson/ASPS/blob/main/apps/telegram-ceo/README.md
+After=network-online.target docker.service
+Wants=network-online.target
+# Deliberately NOT "Requires=docker.service" — most Telegram turns don't
+# touch Docker at all (Read/Grep/Glob/Bash/git); if dockerd is briefly down
+# the bot should keep polling Telegram and only fail the specific tool call
+# that needed Docker, not refuse to start entirely.
+
+[Service]
+Type=simple
+User=@ASPSBOT_USER@
+# Ubuntu's useradd (01-harden.sh) creates a private group matching the
+# username by default (USERGROUPS_ENAB=yes) — @ASPSBOT_USER@'s primary
+# group is assumed to be named the same as the user.
+Group=@ASPSBOT_USER@
+SupplementaryGroups=docker
+WorkingDirectory=@CLONE_PATH@/apps/telegram-ceo
+
+# Secrets live OUTSIDE the git clone (D2 / ASPS-745 item 1) — two separate
+# EnvironmentFile= directives:
+#   1. the bot's own runtime config (Telegram/Claude auth, working dir)
+#   2. the CEO agent's OWN GitHub/JIRA tokens, so the agent's Bash-tool
+#      calls (git push via the Phase 3 credential helper, curl against the
+#      JIRA REST API) see them as ordinary process environment variables —
+#      chosen over relying solely on the git credential-helper file because
+#      JIRA_API_TOKEN/JIRA_EMAIL/GITHUB_TOKEN-as-a-bare-env-var have no git
+#      equivalent; the credential-helper file only ever serves `git push`
+#      itself, not arbitrary curl calls the agent makes.
+# Both files: chmod 600, owned by @ASPSBOT_USER@, created from the
+# *.env.example templates by 03-clone.sh, filled in by the operator. Systemd
+# refuses a missing EnvironmentFile silently only if prefixed with "-"; we
+# deliberately do NOT use that prefix — a missing secrets file should fail
+# the service loudly, not start the bot half-configured.
+EnvironmentFile=@SECRETS_DIR@/telegram-ceo.env
+EnvironmentFile=@SECRETS_DIR@/ACCESS_KEYS.env
+
+ExecStart=/usr/bin/node dist/index.js
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+KillSignal=SIGTERM
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=telegram-ceo
+
+# --- Hardening -------------------------------------------------------------
+# See deploy/vps/README.md "Phase 5 — systemd hardening tradeoffs" for full
+# reasoning. Summary: everything below is compatible with node/git/npm/
+# dotnet and the docker CLIENT (talking to the already-running dockerd over
+# its unix socket), and with D4 (the agent reads/writes its own clone and
+# can run `docker compose`). ProtectHome, PrivateDevices, syscall/memory
+# filtering are DELIBERATELY NOT enabled — see the commented-out block below
+# and the README for why each is a real, reasoned tension (not an
+# oversight), flagged for Security to decide/test at the Phase 1 execution
+# gate rather than guessed here against a host that doesn't exist yet.
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=@CLONE_PATH@ @SECRETS_DIR@
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+PrivateTmp=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectKernelTunables=yes
+ProtectClock=yes
+ProtectHostname=yes
+LockPersonality=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+
+# NOT enabled — see README.md "Phase 5 — systemd hardening tradeoffs":
+#
+# ProtectHome=yes
+#   Would make ~/.gitconfig (holding the Phase 3 credential-helper config,
+#   git user.name/email, safe.directory) INACCESSIBLE (not merely
+#   read-only) — it lives directly under /home/@ASPSBOT_USER@, outside both
+#   ReadWritePaths entries above. ProtectSystem=strict already makes the
+#   ENTIRE filesystem read-only except the two declared paths, which
+#   already satisfies "the bot can only write to its clone + secrets"
+#   without also hiding ~/.gitconfig (and any node/npm/claude CLI
+#   state under $HOME) from reads. Read access to ~/.gitconfig under
+#   ProtectSystem=strict's read-only (not invisible) mode is unaffected.
+#
+# PrivateDevices=yes
+#   Probably safe: the docker CLIENT only needs the unix socket
+#   (/run/docker.sock, which stays reachable for connect() even on a
+#   read-only mount), not /dev/* — and /dev/null|zero|random|urandom|tty
+#   remain available under PrivateDevices regardless. But this has not been
+#   verified against a live box (no VPS exists yet) — flagged for
+#   Security/Phase-6 to confirm and enable, rather than silently assumed
+#   safe here.
+#
+# SystemCallFilter=@system-service (or similar)
+#   No safe filter set could be derived without live testing against node +
+#   git + npm + dotnet + the docker CLI + every Bash-tool command the agent
+#   might ever run on the CEO's behalf. Guessing wrong here fails CLOSED
+#   (crash-loop) rather than open — worse for an unattended 24/7 bot with
+#   nobody local to debug a broken syscall filter. Left to Phase 6 with
+#   iterative `systemd-analyze security telegram-ceo.service` feedback once
+#   the box exists.
+#
+# MemoryDenyWriteExecute=yes
+#   Node's V8 JIT can conflict with strict W^X memory enforcement on some
+#   builds/architectures (systemd's own docs flag JIT compilers as the
+#   known-incompatible case for this directive). Not verified here.
+
+[Install]
+WantedBy=multi-user.target
