@@ -3,7 +3,7 @@
 **Task name:** VPS_TELEGRAM_MIGRATION
 **Owner hat:** CEO (orchestrator)
 **Created:** 2026-08-25
-**Status:** IN PROGRESS — user approved scope (D1–D4) on 2026-09-06. JIRA epic + stories created. Phase 4 (bot→Agent SDK) code complete on branch, pushed, ready for QA. Phases 0–3,5–7 gated on user provisioning the VPS.
+**Status:** IN PROGRESS — user approved scope (D1–D4) on 2026-09-06. JIRA epic + stories created. Phase 4 (bot→Agent SDK) functional QA PASS, then security review FAIL (3 Blockers). Remediation (deny-by-default permission model, path guard, Telegram approval flow) implemented 2026-09-06 on the same branch, pushed, ready for security re-review + QA. Phases 0–3,5–7 gated on user provisioning the VPS.
 
 ## JIRA
 | Item | Key | Status |
@@ -13,7 +13,7 @@
 | Phase 1 — VPS baseline hardening | ASPS-740 | To Do (gated on VPS) |
 | Phase 2 — Runtime toolchain | ASPS-741 | To Do (gated on VPS) |
 | Phase 3 — Clone repo & wire secrets | ASPS-742 | To Do (gated on VPS) |
-| Phase 4 — Migrate bot to Claude Agent SDK | ASPS-743 | **In Progress — ready for QA** — branch `asps-743-migrate-telegram-bot-to-claude-agent-sdk`, pushed |
+| Phase 4 — Migrate bot to Claude Agent SDK | ASPS-743 | **In Progress — security remediation done, ready for security re-review + QA** — branch `asps-743-migrate-telegram-bot-to-claude-agent-sdk`, pushed |
 | Phase 5 — 24/7 systemd service | ASPS-744 | To Do (gated on VPS) |
 | Phase 6 — Security deepening & audit | ASPS-745 | To Do (gated on VPS) |
 | Phase 7 — Verification & docs | ASPS-746 | To Do |
@@ -197,12 +197,71 @@ Branch `asps-743-migrate-telegram-bot-to-claude-agent-sdk`, pushed to remote. No
 **Specs potentially affected (not edited — CEO/Architect/TechWriter own spec updates per task-workflow.md):**
 - None of `docs/system-specifications/` document the Telegram CEO bot today (it isn't part of the ASPS product surface — it's an internal ops tool for operating the project itself). No system-specification, ICD, or data-flow doc appears to need updating for this change. Flagging for TechWriter/Architect to confirm — if a "VPS / ops tooling" doc category doesn't exist yet, `docs/task-memory/VPS_TELEGRAM_MIGRATION_HANDOFF.md` (this file) is currently the only design record, and Phase 7 of this same task already plans a dedicated runbook (`docs/cloud/VPS_TELEGRAM_RUNBOOK.md`).
 
-**Next steps for CEO/QA:**
-1. QA review on branch `asps-743-migrate-telegram-bot-to-claude-agent-sdk` against this handoff's acceptance checklist.
-2. Code review (CEO or delegate) per `.claude/rules/review-standards.md`.
-3. On PASS: open PR, merge, JIRA ASPS-743 → Done.
-4. **Phases 0–3, 5–7** remain BLOCKED on the user provisioning the Hostinger VPS (Phase 0, ASPS-739). When the VPS + secrets exist, start Phase 1 (baseline hardening) via devops+security before any app work.
-5. Do **not** touch the running Azure backend as part of this task.
+**Next steps for CEO/QA (superseded by the remediation below — kept for history):**
+1. ~~QA review on branch...~~ QA PASSED functionally. Security review then returned **FAIL with 3 Blockers** (autonomous file-access confinement, Bash denylist as sole control, unbounded autonomous blast radius + dead `allowedTools` + settings precedence). See remediation section immediately below.
+
+---
+
+### Phase 4 (ASPS-743) — SECURITY REMEDIATION (2026-09-06)
+
+**Trigger:** Security review FAIL (3 Blockers) after functional QA PASS. User (CEO's boss) chose the permission model: **read-mostly + mandatory human (Telegram) approval for every state-changing action**, plus **path guard + secrets-outside-cwd** posture. This section documents the fix, implemented on the same branch (`asps-743-migrate-telegram-bot-to-claude-agent-sdk`).
+
+**Changed/added files:**
+- `apps/telegram-ceo/src/security.ts` — added a second SSOT export, `SECRET_PATH_PATTERNS` (`*.env`, `*.key`, `*.pem`, `*.pfx`, `id_rsa*`, `*.ppk`, `ACCESS_KEYS*`, `.ssh`/`.aws`/`.gnupg` segments) + `matchSecretPath()`, and the path guard itself, `checkPathAllowed(rawPath, workingDir)` — resolves symlinks/`..` (walking up to the nearest existing ancestor for not-yet-existing Write targets), denies secret patterns unconditionally, denies anything outside `workingDir`. `DANGEROUS_BASH_PATTERNS`/`matchDangerousBashCommand` unchanged (still the Bash hard-deny, now explicitly documented as defense-in-depth, not the primary control).
+- `apps/telegram-ceo/src/approvals.ts` — **new**. Decoupled Telegram-approval-flow module (no circular import between `agent.ts`/`bot.ts`): `requestApproval(userId, toolName, summary)` returns a `Promise<"allow"|"deny">`, resolved by `resolveApproval(id, fromUserId, decision)` (only the requesting user's id may resolve it) or by an `APPROVAL_TIMEOUT_MS`-driven timeout (default 60s) that fails closed to `"deny"`. `setApprovalRequestHandler()` lets `bot.ts` inject the actual Telegram transport without `approvals.ts` knowing anything about Telegram.
+- `apps/telegram-ceo/src/agent.ts` — rewritten permission model: `canUseTool` (now `createCanUseTool(userId, workingDir)`, built fresh per Telegram turn so approvals correlate to the right user) implements **deny-by-default**: (1) path guard for any tool carrying a path (`Read`/`Edit`/`Write`/`NotebookEdit`/`Grep`/`Glob`), (2) Bash hard-deny for `DANGEROUS_BASH_PATTERNS`, (3) auto-allow only `Read`/`Grep`/`Glob` + the 2 read-only knowledge-engine MCP tools, (4) everything else routed through `requestApproval`. `buildOptions()` now sets `settingSources: []` (was `["project"]`) — see the precedence finding below — and wires `.mcp.json` + `CLAUDE.md` by hand instead (via `context.ts`).
+- `apps/telegram-ceo/src/context.ts` — added `loadClaudeMd(workingDir)` (reads `CLAUDE.md` fresh every turn, replacing the SDK's auto-load) and `loadMcpServers(workingDir)` (reads `.mcp.json`'s `mcpServers` map, replacing SDK auto-discovery). `TELEGRAM_SYSTEM_PROMPT_APPEND` gained one line telling the model that state-changing calls will pause for Telegram approval — not an error.
+- `apps/telegram-ceo/src/bot.ts` — wires `setApprovalRequestHandler` at startup to `sendApprovalRequest()` (sends an inline-keyboard message — ✅ Approve / ❌ Deny — to the requesting user's chat, correlated by request id in `callback_data`). `callback_query` handler now parses `approve:<id>`/`deny:<id>` and calls `resolveApproval`, acking every query identically (no text) whether unauthorized, wrong-user, or unknown-id, to avoid enumeration. Message handler: restricted to `msg.chat.type === "private"`; unauthorized senders dropped silently (removed the "Unauthorized…" reply); agent errors now reply with a generic message while the real error (`err.stack`) is logged server-side only. Startup log now prints the authorized-user **count**, never the id list.
+- `apps/telegram-ceo/.env.example` — added `APPROVAL_TIMEOUT_MS` (default 60000) + a deployment note that `.env` should live outside `WORKING_DIR` in production (actual relocation on the VPS stays ASPS-745).
+- `apps/telegram-ceo/README.md` — rewritten permission-model section: truthful description of the path guard, the approval flow, the Bash denylist as defense-in-depth (not primary control), and a dedicated subsection on the SDK precedence finding (below). Removed the old "auto-allowed... execute automatically... nobody present to answer a prompt" framing that the security review correctly flagged as false/misleading.
+- `apps/telegram-ceo/src/__tests__/security.test.ts` — added `matchSecretPath` + `checkPathAllowed` tests (uses real temp dirs via `mkdtempSync`/`realpathSync`, no mocks).
+- `apps/telegram-ceo/src/__tests__/approvals.test.ts` — **new**. Correlation, wrong-user, timeout (via `vi.useFakeTimers()`), concurrent-requests, no-transport-wired-fails-closed.
+- `apps/telegram-ceo/src/__tests__/agent.test.ts` — rewritten around `createCanUseTool(userId, workingDir)` (was a bare `canUseTool` export): path-guard integration, Bash hard-deny still not routed through approval, deny-by-default for every non-auto-allow tool (`Write`/`Edit`/`NotebookEdit`/`Task`/`WebFetch`/an unclassified MCP tool/an arbitrary unclassified tool name), `settingSources` must be `[]`, `mcpServers`/`strictMcpConfig` wired by hand, system-prompt append contains both the (mocked) CLAUDE.md content and the Telegram addendum.
+- `apps/telegram-ceo/src/__tests__/bot.test.ts` — rewritten: private-chat-only trigger, silent drop of unauthorized messages, generic error message + server-side detail logging, authorized-user-count-only startup log, and a full approval-flow integration using the **real** `approvals.js` module (not mocked) — send inline keyboard → extract `callback_data` → simulate `callback_query` → assert resolution, including the wrong-user-does-not-resolve case (redesigned to use a *different* decision for the stranger's tap vs. the real user's tap, so the assertion actually discriminates a correct vs. broken correlation check — see Red evidence below, an earlier draft of this test could not tell the difference).
+
+**SDK permission-precedence finding (the core question the task required an answer to):**
+
+Investigated the installed `@anthropic-ai/claude-agent-sdk@0.3.x` types (`sdk.d.ts`) and empirically verified with the SDK's own `resolveSettings()` API (resolves the effective settings cascade **without spawning the Claude CLI** — safe to run standalone):
+
+```js
+import { resolveSettings } from "@anthropic-ai/claude-agent-sdk";
+await resolveSettings({ cwd: "C:\\Jobs\\ASPS\\GitHub\\Software", settingSources: ["project"] });
+// → effective.permissions.allow includes "Bash(*)", "Write", "Edit", "Read", "Glob", "Grep", "Agent", ...
+//   provenance.permissions = { source: "project", path: ".../.claude/settings.json" }
+await resolveSettings({ cwd: "C:\\Jobs\\ASPS\\GitHub\\Software", settingSources: [] });
+// → effective: {}, sources: [] — zero rules from any source
+```
+
+Findings:
+1. `settingSources: ["project"]` (the old design) loads `.claude/settings.json` from the repo root, which pre-authorizes `Bash(*)`, `Write`, `Edit`, `Read`, `Glob`, `Grep`, `Agent` via `permissions.allow` — confirmed present in the merged effective settings.
+2. The SDK's own docs for the **top-level `Options.allowedTools`** field (a mechanism our code already deliberately uses for the 2 knowledge-engine MCP tools) state matching tools "execute automatically without asking the user for approval" — i.e. bypass `canUseTool` outright. `settings.permissions.allow` is the settings-file equivalent of the same mechanism (standard, long-documented Claude Code semantics: allow/ask/deny rules, where a matching `allow` rule is resolved without an interactive/host prompt).
+3. Net effect: with `settingSources: ["project"]`, a `Write`/`Edit`/`Bash(*)` call matching the project's own `.claude/settings.json` would have been approved by the **settings engine**, never reaching `canUseTool` at all — silently re-opening every tool this remediation locks down, regardless of what `canUseTool` itself would have decided. This is exactly the Blocker the security review flagged.
+4. **Fix:** `settingSources: []` (SDK "isolation mode"), confirmed via `resolveSettings` to yield zero effective permission rules from any filesystem source. `canUseTool` is now the sole, unconditional authority for every tool call — no settings file, local or otherwise, can bypass it. `CLAUDE.md` and `.mcp.json` (previously auto-loaded by `"project"`) are now read and wired by hand (`context.ts`'s `loadClaudeMd`/`loadMcpServers`, `Options.mcpServers` + `strictMcpConfig: true`) so project context and MCP access are unaffected.
+5. Residual note for security/architect re-review: `resolveSettings()` is documented as an `@alpha` API in the installed SDK version. It was used only as a **read-only diagnostic** to confirm the settings cascade (no code path depends on it at runtime — `buildOptions()` just hardcodes `settingSources: []`), so its alpha status does not create a runtime dependency risk, but flagging in case a future SDK version changes its behavior or removes it — the actual fix (`settingSources: []`) does not rely on this API existing.
+6. This was resolved without needing to escalate the open question in the task — the empirical evidence was conclusive and the fix (isolation mode + manual CLAUDE.md/`.mcp.json` wiring) fully avoids the ambiguity rather than depending on cross-tier `ask`-beats-`allow` precedence assumptions that could not be verified without a live CLI run.
+
+**TDD evidence (Red → Green), exact commands: `cd apps/telegram-ceo && npx tsc --noEmit && npm run build && npx vitest run` (or `npm test`):**
+
+- **Red #1 — path guard disabled** (`checkPathAllowed` short-circuited to always return `{allowed:true}`): `npx vitest run src/__tests__/security.test.ts src/__tests__/agent.test.ts` → **7 failed / 66 passed** (the `.env` denial, `.ssh` denial, `..`-escape, absolute `/etc/passwd`, secret-path-outside-tree tests in `security.test.ts`, plus the two `agent.test.ts` path-guard-integration tests). Reverted; re-ran green.
+- **Red #2 — deny-by-default disabled** (`createCanUseTool`'s post-Bash-hard-deny branch short-circuited to `return {behavior:"allow"}` unconditionally, i.e. the pre-remediation behavior): `npx vitest run src/__tests__/agent.test.ts` → **12 failed / 20 passed** (every "requires Telegram approval for X" test, the approve/deny/timeout-routing tests, and the user-correlation test in the deny-by-default `describe` block). Reverted; re-ran green.
+- **Red #3 — approval user-correlation check removed** (`resolveApproval` stopped checking `entry.userId !== fromUserId`): `npx vitest run src/__tests__/approvals.test.ts src/__tests__/bot.test.ts` → **1 failed** initially (`approvals.test.ts`'s direct correlation test) but the corresponding `bot.test.ts` integration test did **not** fail on the first attempt — traced to a test-design flaw (both taps used the same decision, so a broken vs. correct correlation check produced the same final resolved value). Fixed the test to use a **different** decision for the stranger's tap vs. the real user's tap (deny vs. approve on the same request id) so the assertion actually discriminates; re-ran → **2 failed / 20 passed** as expected. Reverted; re-ran green.
+- **Green (full suite):** `npx vitest run` → `Test Files 5 passed (5)`, `Tests 98 passed (98)` (`security.test.ts` 41, `session.test.ts` 3, `approvals.test.ts` 7, `agent.test.ts` 32, `bot.test.ts` 15).
+- **Build:** `npx tsc --noEmit` clean (0 errors); `rm -rf dist && npm run build` clean; `dist/` contains only the 8 compiled source files (`agent`, `approvals`, `bot`, `context`, `index`, `security`, `session` + their `.d.ts`/`.map`), no test files, no stray `tools.js`.
+- **Tree clean:** `git status` shows only the intended source/test/doc files modified or added (`approvals.ts`, `approvals.test.ts` untracked pre-commit); no `dist/`, `node_modules/`, or `.env` staged.
+- **Branch freshness:** `origin/main` (`fb129bb`) confirmed a direct ancestor of the branch HEAD (`git merge-base --is-ancestor origin/main HEAD` succeeds) — branch already up to date with main, no merge needed before this remediation commit.
+
+**Not exercised (documented, not blocking, same as the original Phase 4 handoff):** `index.ts`'s env-validation branches and `startBot`'s live-polling path aren't unit tested — thin process-lifecycle wrappers around already-tested logic. No real Telegram/Anthropic network calls anywhere in the suite. The actual Telegram inline-keyboard rendering (vs. the mocked `sendMessage` call shape) and a live end-to-end approval tap have not been verified against the real Telegram Bot API — deferred to Phase 7 (end-to-end verification) once the VPS exists.
+
+**Specs affected:** none beyond what the original Phase 4 entry already flagged (this bot isn't part of the ASPS product surface documented under `docs/system-specifications/`). No change to that assessment.
+
+**Next steps for CEO/security/QA:**
+1. Security re-review on branch `asps-743-migrate-telegram-bot-to-claude-agent-sdk` against the 3 original Blockers + the Major (README) + Minor (bot.ts) findings — all addressed above.
+2. QA re-review (functional PASS already obtained pre-remediation; re-verify the remediation didn't regress the functional behavior, using this section's checklist + test evidence).
+3. Code review (CEO or delegate) per `.claude/rules/review-standards.md`.
+4. On both PASS: open PR, merge, JIRA ASPS-743 → Done. **Do not open the PR or merge before that** (explicit instruction from this remediation task).
+5. **Phases 0–3, 5–7** remain BLOCKED on the user provisioning the Hostinger VPS (Phase 0, ASPS-739) — unchanged.
+6. Box-level hardening items (secret relocation on the VPS, network-egress isolation, `main` branch protection, least-privilege GitHub token) remain explicitly out of scope for this remediation — tracked under ASPS-745 (Phase 6, Security deepening & audit).
+7. Do **not** touch the running Azure backend as part of this task — unchanged.
 
 ## 7. JIRA
 See the JIRA table at the top of this handoff (epic ASPS-738 + stories ASPS-739…746).

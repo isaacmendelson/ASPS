@@ -1,6 +1,7 @@
 import TelegramBot from "node-telegram-bot-api";
 import { runAgent, reloadSystemPrompt } from "./agent.js";
 import { clearSession } from "./session.js";
+import { resolveApproval, setApprovalRequestHandler, type ApprovalRequest } from "./approvals.js";
 
 let bot: TelegramBot;
 let authorizedUsers: Set<number>;
@@ -55,6 +56,49 @@ function startTypingIndicator(chatId: number): () => void {
   };
 }
 
+/**
+ * Deliver a pending approval request to the authorized user as an
+ * inline-keyboard Telegram message (ASPS-743 security remediation). The bot
+ * only ever talks to one user per turn in a private chat, so the Telegram
+ * chat id is the same as the requesting user's id.
+ */
+function sendApprovalRequest(request: ApprovalRequest): void {
+  const text =
+    `Approval needed — ${request.toolName}\n\n` +
+    "```\n" +
+    request.summary +
+    "\n```";
+
+  bot
+    .sendMessage(request.userId, text, {
+      parse_mode: "Markdown",
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: "✅ Approve", callback_data: `approve:${request.id}` },
+            { text: "❌ Deny", callback_data: `deny:${request.id}` },
+          ],
+        ],
+      },
+    })
+    .catch(async () => {
+      // Markdown parse failed (e.g. an unbalanced code fence in the summary)
+      // — fall back to plain text so the approval prompt still arrives.
+      await bot
+        .sendMessage(request.userId, `Approval needed — ${request.toolName}\n\n${request.summary}`, {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "✅ Approve", callback_data: `approve:${request.id}` },
+                { text: "❌ Deny", callback_data: `deny:${request.id}` },
+              ],
+            ],
+          },
+        })
+        .catch(() => {});
+    });
+}
+
 /** Initialize and start the Telegram bot. */
 export function startBot(): void {
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -80,16 +124,24 @@ export function startBot(): void {
   }
 
   bot = new TelegramBot(token, { polling: true });
+  setApprovalRequestHandler(sendApprovalRequest);
 
   console.log("Telegram CEO Bot started (polling mode)");
-  console.log(`Authorized users: ${[...authorizedUsers].join(", ")}`);
+  // Never log the full authorized-user-id list — only its size. The list
+  // itself is sensitive (it identifies exactly who can operate the agent)
+  // and startup logs routinely end up in less-guarded places (journald,
+  // log aggregators) than the .env file it was read from.
+  console.log(`Authorized users: ${authorizedUsers.size} configured`);
 
   // /start command
   bot.onText(/\/start/, async (msg) => {
     if (!msg.from || !isAuthorized(msg.from.id)) return;
     await bot.sendMessage(
       msg.chat.id,
-      "ASPS CEO Bot online. Send me a message and I'll process it with full project context and tool access.\n\nCommands:\n/reset — Clear conversation history\n/model — Show current model\n/reload — Reload system prompt",
+      "ASPS CEO Bot online. Send me a message and I'll process it with full project context and tool access.\n\n" +
+        "Reads (files, search, knowledge base) run freely. Any state-changing action " +
+        "(file write/edit, Bash, git push, etc.) will ask you to Approve/Deny first.\n\n" +
+        "Commands:\n/reset — Clear conversation history\n/model — Show current model\n/reload — Reload system prompt",
     );
   });
 
@@ -114,20 +166,21 @@ export function startBot(): void {
     await bot.sendMessage(msg.chat.id, "System prompt reloaded from disk.");
   });
 
-  // Handle all other text messages
+  // Handle all other text messages — the agent trigger.
   bot.on("message", async (msg) => {
     // Skip commands
     if (msg.text?.startsWith("/")) return;
     // Skip non-text messages
     if (!msg.text) return;
-    // Auth check
-    if (!msg.from || !isAuthorized(msg.from.id)) {
-      await bot.sendMessage(
-        msg.chat.id,
-        "Unauthorized. Your user ID is not in the allowed list.",
-      );
-      return;
-    }
+    // Only ever act on a 1:1 private chat with the bot. A group/supergroup/
+    // channel could contain an authorized user's messages too, but this bot
+    // is a single-operator tool, not a group assistant — never trigger the
+    // agent outside a private chat.
+    if (msg.chat.type !== "private") return;
+    // Auth check — drop silently. Replying "Unauthorized" to an
+    // unrecognized sender lets anyone enumerate which user ids are
+    // authorized by watching which ones get a distinct response.
+    if (!msg.from || !isAuthorized(msg.from.id)) return;
 
     let stopTyping = startTypingIndicator(msg.chat.id);
 
@@ -153,13 +206,12 @@ export function startBot(): void {
       }
     } catch (err) {
       stopTyping();
-      const errorMsg =
-        err instanceof Error ? err.message : "Unknown error occurred";
-      console.error("Agent error:", errorMsg);
-      await bot.sendMessage(
-        msg.chat.id,
-        `Error processing message: ${errorMsg}`,
-      );
+      // Log the real error server-side only; the Telegram-facing message
+      // stays generic so error text (which can include file paths, stack
+      // frames, or internal details) never leaks to the chat.
+      const detail = err instanceof Error ? err.stack || err.message : String(err);
+      console.error("Agent error:", detail);
+      await bot.sendMessage(msg.chat.id, "Sorry, something went wrong processing your message.");
     }
   });
 
@@ -170,15 +222,26 @@ export function startBot(): void {
     if (!msg.from || !isAuthorized(msg.from.id)) return;
   });
 
-  // Callback queries (inline-keyboard taps). No inline keyboards are sent
-  // today, but the handler enforces the allow-list on this update type too
-  // and acknowledges the query so the Telegram client clears its spinner.
+  // Callback queries (inline-keyboard taps) — the approval flow's
+  // transport. Acknowledges every query so the Telegram client clears its
+  // spinner, but never distinguishes "unauthorized" from "unknown/expired/
+  // wrong-user request" in the ack text — both cases enable enumeration
+  // otherwise (of authorized user ids, and of live pending-approval ids).
   bot.on("callback_query", async (cbQuery) => {
+    const ack = () => bot.answerCallbackQuery(cbQuery.id).catch(() => {});
+
     if (!cbQuery.from || !isAuthorized(cbQuery.from.id)) {
-      await bot.answerCallbackQuery(cbQuery.id, { text: "Unauthorized" }).catch(() => {});
+      await ack();
       return;
     }
-    await bot.answerCallbackQuery(cbQuery.id).catch(() => {});
+
+    const match = /^(approve|deny):(.+)$/.exec(cbQuery.data ?? "");
+    if (match) {
+      const [, action, id] = match;
+      resolveApproval(id, cbQuery.from.id, action === "approve" ? "allow" : "deny");
+    }
+
+    await ack();
   });
 
   // Handle polling errors

@@ -45,6 +45,9 @@ vi.mock("node-telegram-bot-api", () => ({
   default: MockTelegramBot,
 }));
 
+// Real module — exercises the actual wiring between bot.ts and the
+// approval-flow transport (ASPS-743 remediation), not a mock of it.
+const { requestApproval, clearPendingApprovals } = await import("../approvals.js");
 const { startBot } = await import("../bot.js");
 
 const AUTHORIZED_ID = 111;
@@ -54,10 +57,10 @@ function currentBot(): MockTelegramBot {
   return instances[instances.length - 1];
 }
 
-function msgFrom(userId: number, text: string) {
+function msgFrom(userId: number, text: string, chatType: "private" | "group" = "private") {
   return {
     from: { id: userId },
-    chat: { id: 555 },
+    chat: { id: userId, type: chatType },
     text,
   };
 }
@@ -68,12 +71,13 @@ describe("bot auth gate and command handling", () => {
     runAgentMock.mockReset();
     reloadSystemPromptMock.mockReset();
     clearSessionMock.mockReset();
+    clearPendingApprovals();
     process.env.TELEGRAM_BOT_TOKEN = "test-token";
     process.env.AUTHORIZED_USERS = String(AUTHORIZED_ID);
     startBot();
   });
 
-  it("responds to an authorized user's message via the agent", async () => {
+  it("responds to an authorized user's private message via the agent", async () => {
     runAgentMock.mockResolvedValue("agent reply");
     const bot = currentBot();
     const handler = bot.eventHandler("message");
@@ -81,20 +85,58 @@ describe("bot auth gate and command handling", () => {
     await handler(msgFrom(AUTHORIZED_ID, "hello"));
 
     expect(runAgentMock).toHaveBeenCalledWith(AUTHORIZED_ID, "hello", expect.any(Function));
-    expect(bot.sendMessage).toHaveBeenCalledWith(555, "agent reply", expect.anything());
+    expect(bot.sendMessage).toHaveBeenCalledWith(AUTHORIZED_ID, "agent reply", expect.anything());
   });
 
-  it("blocks an unauthorized user's message from reaching the agent", async () => {
+  it("drops an unauthorized user's message silently — no reply, agent not invoked", async () => {
     const bot = currentBot();
     const handler = bot.eventHandler("message");
 
     await handler(msgFrom(UNAUTHORIZED_ID, "hello"));
 
     expect(runAgentMock).not.toHaveBeenCalled();
+    expect(bot.sendMessage).not.toHaveBeenCalled();
+  });
+
+  it("does not trigger the agent for a message outside a private chat, even from an authorized user", async () => {
+    const bot = currentBot();
+    const handler = bot.eventHandler("message");
+
+    await handler(msgFrom(AUTHORIZED_ID, "hello", "group"));
+
+    expect(runAgentMock).not.toHaveBeenCalled();
+    expect(bot.sendMessage).not.toHaveBeenCalled();
+  });
+
+  it("replies with a generic error and logs the detail server-side when the agent throws", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    runAgentMock.mockRejectedValue(new Error("secret internal stack detail"));
+    const bot = currentBot();
+    const handler = bot.eventHandler("message");
+
+    await handler(msgFrom(AUTHORIZED_ID, "hello"));
+
     expect(bot.sendMessage).toHaveBeenCalledWith(
-      555,
-      expect.stringMatching(/unauthorized/i),
+      AUTHORIZED_ID,
+      "Sorry, something went wrong processing your message.",
     );
+    expect(bot.sendMessage).not.toHaveBeenCalledWith(
+      AUTHORIZED_ID,
+      expect.stringContaining("secret internal stack detail"),
+    );
+    expect(consoleErrorSpy).toHaveBeenCalledWith("Agent error:", expect.stringContaining("secret internal stack detail"));
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("logs the authorized-user count at startup, never the raw id list", () => {
+    const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    instances.length = 0;
+    startBot();
+
+    const authLine = consoleLogSpy.mock.calls.map((args) => args.join(" ")).find((line) => line.includes("Authorized users"));
+    expect(authLine).toBe("Authorized users: 1 configured");
+    expect(authLine).not.toContain(String(AUTHORIZED_ID));
+    consoleLogSpy.mockRestore();
   });
 
   it("clears the session for an authorized /reset", async () => {
@@ -104,7 +146,7 @@ describe("bot auth gate and command handling", () => {
     await handler(msgFrom(AUTHORIZED_ID, "/reset"));
 
     expect(clearSessionMock).toHaveBeenCalledWith(AUTHORIZED_ID);
-    expect(bot.sendMessage).toHaveBeenCalledWith(555, "Session cleared.");
+    expect(bot.sendMessage).toHaveBeenCalledWith(AUTHORIZED_ID, "Session cleared.");
   });
 
   it("ignores /reset from an unauthorized user", async () => {
@@ -124,18 +166,7 @@ describe("bot auth gate and command handling", () => {
     await handler(msgFrom(AUTHORIZED_ID, "/reload"));
 
     expect(reloadSystemPromptMock).toHaveBeenCalled();
-    expect(bot.sendMessage).toHaveBeenCalledWith(555, "System prompt reloaded from disk.");
-  });
-
-  it("denies an unauthorized callback_query and acknowledges authorized ones", async () => {
-    const bot = currentBot();
-    const handler = bot.eventHandler("callback_query");
-
-    await handler({ id: "cb1", from: { id: UNAUTHORIZED_ID } });
-    expect(bot.answerCallbackQuery).toHaveBeenCalledWith("cb1", { text: "Unauthorized" });
-
-    await handler({ id: "cb2", from: { id: AUTHORIZED_ID } });
-    expect(bot.answerCallbackQuery).toHaveBeenCalledWith("cb2");
+    expect(bot.sendMessage).toHaveBeenCalledWith(AUTHORIZED_ID, "System prompt reloaded from disk.");
   });
 
   it("does not throw when handling an edited_message from an unauthorized user", () => {
@@ -143,5 +174,104 @@ describe("bot auth gate and command handling", () => {
     const handler = bot.eventHandler("edited_message");
 
     expect(() => handler(msgFrom(UNAUTHORIZED_ID, "edited text"))).not.toThrow();
+  });
+
+  describe("Telegram approval flow (ASPS-743 blocker B3)", () => {
+    it("sends an inline-keyboard approval prompt when a tool call requests approval", async () => {
+      const bot = currentBot();
+
+      void requestApproval(AUTHORIZED_ID, "Write", "src/agent.ts");
+
+      expect(bot.sendMessage).toHaveBeenCalledWith(
+        AUTHORIZED_ID,
+        expect.stringContaining("Write"),
+        expect.objectContaining({
+          reply_markup: expect.objectContaining({
+            inline_keyboard: [
+              [
+                expect.objectContaining({ text: expect.stringContaining("Approve") }),
+                expect.objectContaining({ text: expect.stringContaining("Deny") }),
+              ],
+            ],
+          }),
+        }),
+      );
+    });
+
+    function extractCallbackIds(bot: MockTelegramBot): { approve: string; deny: string } {
+      const call = bot.sendMessage.mock.calls.find(([, , opts]) => opts?.reply_markup);
+      const buttons = call![2].reply_markup.inline_keyboard[0];
+      const approve = /approve:(.+)/.exec(buttons[0].callback_data)![1];
+      const deny = /deny:(.+)/.exec(buttons[1].callback_data)![1];
+      return { approve, deny };
+    }
+
+    it("resolves the pending request when the same authorized user taps Approve", async () => {
+      const bot = currentBot();
+      const decisionPromise = requestApproval(AUTHORIZED_ID, "Write", "src/agent.ts");
+      const { approve } = extractCallbackIds(bot);
+
+      const callbackHandler = bot.eventHandler("callback_query");
+      await callbackHandler({ id: "cb1", from: { id: AUTHORIZED_ID }, data: `approve:${approve}` });
+
+      await expect(decisionPromise).resolves.toBe("allow");
+      expect(bot.answerCallbackQuery).toHaveBeenCalledWith("cb1");
+    });
+
+    it("resolves the pending request as denied when the same authorized user taps Deny", async () => {
+      const bot = currentBot();
+      const decisionPromise = requestApproval(AUTHORIZED_ID, "Bash", "git push origin main");
+      const { deny } = extractCallbackIds(bot);
+
+      const callbackHandler = bot.eventHandler("callback_query");
+      await callbackHandler({ id: "cb2", from: { id: AUTHORIZED_ID }, data: `deny:${deny}` });
+
+      await expect(decisionPromise).resolves.toBe("deny");
+    });
+
+    it("does not resolve the request when the callback comes from a different (even authorized-looking) user id", async () => {
+      // A second authorized user would need to be in AUTHORIZED_USERS to pass
+      // the outer auth gate; simulate the id-mismatch check that still
+      // applies even to a legitimately authorized different user.
+      process.env.AUTHORIZED_USERS = `${AUTHORIZED_ID},222`;
+      instances.length = 0;
+      startBot();
+      const bot = currentBot();
+
+      const decisionPromise = requestApproval(AUTHORIZED_ID, "Write", "src/agent.ts");
+      const { approve } = extractCallbackIds(bot);
+
+      const callbackHandler = bot.eventHandler("callback_query");
+      // The stranger taps Deny; the real requesting user later taps Approve.
+      // If a broken implementation let the stranger's tap resolve the
+      // request, the final decision would be "deny" — asserting "allow"
+      // below only passes when the stranger's tap was truly ignored.
+      await callbackHandler({ id: "cb3", from: { id: 222 }, data: `deny:${approve}` });
+
+      // The mismatched-user tap is acknowledged but does not resolve.
+      expect(bot.answerCallbackQuery).toHaveBeenCalledWith("cb3");
+
+      // Now the correct user resolves it — with the opposite decision.
+      await callbackHandler({ id: "cb4", from: { id: AUTHORIZED_ID }, data: `approve:${approve}` });
+      await expect(decisionPromise).resolves.toBe("allow");
+    });
+
+    it("acknowledges an unauthorized callback_query without leaking any distinguishing text", async () => {
+      const bot = currentBot();
+      const handler = bot.eventHandler("callback_query");
+
+      await handler({ id: "cb5", from: { id: UNAUTHORIZED_ID }, data: "approve:whatever" });
+
+      expect(bot.answerCallbackQuery).toHaveBeenCalledWith("cb5");
+      expect(bot.answerCallbackQuery).not.toHaveBeenCalledWith("cb5", expect.anything());
+    });
+
+    it("acknowledges an authorized callback_query for an unknown/expired id without throwing", async () => {
+      const bot = currentBot();
+      const handler = bot.eventHandler("callback_query");
+
+      await handler({ id: "cb6", from: { id: AUTHORIZED_ID }, data: "approve:not-a-real-id" });
+      expect(bot.answerCallbackQuery).toHaveBeenCalledWith("cb6");
+    });
   });
 });
