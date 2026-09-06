@@ -138,6 +138,7 @@ cache/
 .env.*.local
 /ACCESS_KEYS.env
 appsettings.Docker.json
+deploy/vps/config.env
 
 # Database seed dumps (too large for GitHub's 100 MB limit)
 aspsbackend2db_*.sql
