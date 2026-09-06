@@ -3,7 +3,7 @@
 **Task name:** VPS_TELEGRAM_MIGRATION
 **Owner hat:** CEO (orchestrator)
 **Created:** 2026-08-25
-**Status:** IN PROGRESS — user approved scope (D1–D4) on 2026-09-06. JIRA epic + stories created. Phase 4 (bot→Agent SDK) functional QA PASS, then security review FAIL (3 Blockers). First remediation (deny-by-default permission model, path guard, Telegram approval flow) implemented 2026-09-06; security **re-review closed all 3 Blockers** but found **2 Major gaps (M1, M2) + 2 Minors (m1, m2)** that both defeated the human-in-the-loop the model rests on. Second remediation (approval-summary fidelity + fail-closed secret-path scan across all tool inputs) implemented 2026-09-06 on the same branch, pushed, ready for security re-review + QA. Phases 0–3,5–7 gated on user provisioning the VPS.
+**Status:** IN PROGRESS — user approved scope (D1–D4) on 2026-09-06. **Phase 4 (ASPS-743) DONE & MERGED to main (PR #39, merge commit `a6dc84f`) on 2026-09-06** — bot migrated to `@anthropic-ai/claude-agent-sdk` with a deny-by-default permission model + Telegram approval flow. Gates all PASS: QA (118/118 tests, independently verified), Security (PASS after 2 remediation rounds — 3 Blockers + 2 Majors found and closed), CEO code review. Code-level follow-up residuals (Minor/Nit) tracked on ASPS-745. **Phases 0–3, 5–7 gated on the user provisioning the Hostinger VPS (Phase 0, ASPS-739).**
 
 ## JIRA
 | Item | Key | Status |
@@ -13,7 +13,7 @@
 | Phase 1 — VPS baseline hardening | ASPS-740 | To Do (gated on VPS) |
 | Phase 2 — Runtime toolchain | ASPS-741 | To Do (gated on VPS) |
 | Phase 3 — Clone repo & wire secrets | ASPS-742 | To Do (gated on VPS) |
-| Phase 4 — Migrate bot to Claude Agent SDK | ASPS-743 | **In Progress — 2nd security remediation done (M1/M2/m1/m2), ready for security re-review + QA** — branch `asps-743-migrate-telegram-bot-to-claude-agent-sdk`, pushed |
+| Phase 4 — Migrate bot to Claude Agent SDK | ASPS-743 | ✅ **Done — merged to main (PR #39, `a6dc84f`)** |
 | Phase 5 — 24/7 systemd service | ASPS-744 | To Do (gated on VPS) |
 | Phase 6 — Security deepening & audit | ASPS-745 | To Do (gated on VPS) |
 | Phase 7 — Verification & docs | ASPS-746 | To Do |
