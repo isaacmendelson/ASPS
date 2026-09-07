@@ -34,8 +34,9 @@ log_step "2/7 — Node.js 20 LTS (NodeSource, keyring method)"
 # NodeSource's documented keyring method instead — fetch the GPG key to
 # /etc/apt/keyrings, reference it via signed-by= in a .list, same pattern
 # as the Docker block below (DRY: one trusted-repo pattern for both).
-if command -v node >/dev/null 2>&1 && node -v | grep -qE '^v20\.'; then
-    log_info "Node 20 already installed ($(node -v)) — skipped."
+node_installed_major="$(node -v 2>/dev/null | sed 's/^v//; s/\..*//')"
+if command -v node >/dev/null 2>&1 && [ "${node_installed_major:-0}" -ge 20 ]; then
+    log_info "Node ${node_installed_major}.x already installed ($(node -v)) — meets the >=20 requirement, skipped (never downgrade a newer Node other services on this box may depend on)."
 else
     install -d -m 0755 /etc/apt/keyrings
     if [[ ! -f /etc/apt/keyrings/nodesource.gpg ]]; then
