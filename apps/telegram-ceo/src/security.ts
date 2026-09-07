@@ -29,7 +29,8 @@ export function matchDangerousBashCommand(command: string): RegExp | undefined {
 }
 
 /**
- * Strict read-only `git` allowlist (ASPS-749).
+ * Strict read-only `git` allowlist (ASPS-749, redesigned after PoC-confirmed
+ * bypasses in the original subcommand-allowlist + flag-DENYlist design).
  *
  * `createCanUseTool` (agent.ts) auto-allows a Bash call ONLY when
  * `isSafeReadOnlyGitCommand` returns true, to cut Telegram approval friction
@@ -41,8 +42,43 @@ export function matchDangerousBashCommand(command: string): RegExp | undefined {
  * flow, and `matchDangerousBashCommand` above still hard-denies destructive
  * patterns regardless of this allowlist (evaluated first in `agent.ts`).
  *
- * An allowlist over a shell is dangerous for two reasons this function must
- * defend against:
+ * DESIGN: PER-SUBCOMMAND POSITIVE FLAG ALLOWLIST, NOT A FLAG DENYLIST.
+ *
+ * A subcommand-allowlist + flag-DENYlist is inverted for safety: `git`'s
+ * read subcommands expose a large, growing surface of flags that read
+ * arbitrary files, hit the network, or exec an external program, and a
+ * denylist can never enumerate all of them. The original design was broken
+ * by (all closed by this rewrite):
+ *
+ *  - `git diff --no-index <anyfile> /dev/null` — reads any file, bypassing
+ *    the flag denylist entirely (not a denied flag) and the trailing-
+ *    anchored secret-path scan (an arbitrary *argument*, not a tool path
+ *    field). Closed: `diff`'s safe-flag set has no `--no-index`, and no
+ *    non-ref, non-flag token is accepted at all (see `isSafeDiffArgs`).
+ *  - `git blame --contents <anyfile> -- <tracked>` — reads any file.
+ *    Closed: `blame` is dropped from the allowlist entirely.
+ *  - `git config --list --file <anyfile>` / `-f <anyfile>` — reads any
+ *    file. Closed: `config` is dropped from the allowlist entirely.
+ *  - `git ls-remote <url>` / `git remote show <url|origin>` — network I/O
+ *    (SSRF/exfil); `git ls-remote ext::<cmd>` is conditional RCE. Closed:
+ *    `ls-remote` and `remote show` are dropped; `remote` only allows bare,
+ *    `-v`, or `get-url <name>` with a safe name pattern.
+ *  - `git -C <other-dir> ...` — operates outside the working directory.
+ *    Closed: `-C` support is dropped entirely; the command must start with
+ *    exactly `git ` (the bot always runs in its own `cwd`).
+ *  - Attached short-flag forms like `-O<path>` evaded exact-match flag
+ *    denies. Closed: flags are matched by an exact positive allowlist per
+ *    subcommand, not a denylist, so an unrecognized attached form is
+ *    rejected by omission rather than needing its own deny pattern.
+ *  - Glob/tilde (`*`, `?`, `[]`, `~`) are shell-expanded and were not
+ *    rejected. Closed: rejected on every token (see `hasUnsafeToken`).
+ *
+ * Prefer DROPPING a risky subcommand over trying to make it safe — minimal
+ * surface is the goal. Dropped in this redesign: `config`, `blame`,
+ * `ls-remote`, `shortlog` (reads stdin), `remote show`.
+ *
+ * Two more classes this function must still defend against (unchanged from
+ * the original design, kept as defense-in-depth):
  *
  *  (a) Shell metacharacters let one command chain into another (`;`, `&&`,
  *      `|`, backticks/`$(...)` substitution, `(...)`/`{...}` subshells,
@@ -51,7 +87,10 @@ export function matchDangerousBashCommand(command: string): RegExp | undefined {
  *      trusted config via certain flags (`-c`/`--config`, `-o`/`--output`/
  *      `-O`/`--pager`/`--open-files-in-pager`, `--ext-diff`,
  *      `--upload-pack`/`--receive-pack`/`--exec`/`--exec-path`, interactive
- *      flags).
+ *      flags) — now redundant with the positive per-subcommand allowlist
+ *      below (none of these flags appear on any safe-flag set) but kept as
+ *      a second, independent layer so a bug in one subcommand's safe-flag
+ *      set does not silently reopen one of these.
  *
  * Any doubt resolves to `false` (stays approval-gated) — this function must
  * be fail-safe, not merely fail-closed on the common case.
@@ -68,8 +107,73 @@ export function matchDangerousBashCommand(command: string): RegExp | undefined {
 const SHELL_METACHARACTER_PATTERN = /[;&|`$(){}<>\\]|[\x00-\x1f]/;
 
 /**
+ * Rule 1b (ASPS-749 remediation): glob metacharacters are shell-expanded by
+ * the caller's shell before `git` ever sees them, so a value that looks
+ * innocuous here (`git log v1.*`) can expand to something else entirely at
+ * execution time. Reject `*`, `?`, `[`, `]` anywhere in any token.
+ */
+const GLOB_CHARACTER_PATTERN = /[*?[\]]/;
+
+/**
+ * Rule 1c: a token containing `::` (git's "remote helper" transport syntax,
+ * e.g. `ext::sh -c ...`) or a URL/transport scheme is never a safe ref/name
+ * value — reject outright rather than trying to allowlist safe schemes.
+ */
+const SCHEME_TOKEN_PATTERN = /^[a-z][a-z0-9+.-]*:\/\//i;
+const TRANSPORT_PREFIX_PATTERN = /^(ext|file|ssh|git):/i;
+
+/**
+ * Returns true if `token` contains a glob/tilde/scheme/`::` construct that
+ * must reject the whole command regardless of which subcommand it is an
+ * argument to (rule 1b/1c). Applied to every token, including `git` and the
+ * subcommand itself (harmless there, but keeps this a single blanket pass).
+ */
+function hasUnsafeToken(tokens: readonly string[]): boolean {
+  return tokens.some((token) => {
+    if (GLOB_CHARACTER_PATTERN.test(token)) return true;
+    if (token.startsWith("~")) return true; // leading tilde — home-dir expansion
+    if (token.includes("::")) return true; // remote-helper transport syntax
+    if (SCHEME_TOKEN_PATTERN.test(token)) return true; // https://, ssh://, ...
+    if (TRANSPORT_PREFIX_PATTERN.test(token)) return true; // ext:, file:, ssh:, git:
+    return false;
+  });
+}
+
+/**
+ * Safe value-token pattern for a ref/branch/tag/remote-name argument (e.g.
+ * `HEAD`, `main`, `origin/main`, `v1.0.0`, `HEAD^`, `abc1234`). Deliberately
+ * excludes:
+ *  - a leading `/` or `-` (first character must be alphanumeric) — rules
+ *    out an absolute path and rules out any flag-shaped value being
+ *    smuggled in as a "ref".
+ *  - `:` — rules out `<ref>:<path>` show/log forms entirely (loses
+ *    `git show HEAD:file`, which is an intentional, accepted trade-off —
+ *    simplest safe answer per the ASPS-749 remediation).
+ *  - `~` — rules out `HEAD~1`-style relative refs (an intentional, accepted
+ *    trade-off — simplest safe answer per the ASPS-749 remediation).
+ *  - `..` anywhere in the token — rules out path-traversal segments (e.g.
+ *    `../../etc/passwd`) even though the leading-`/`/first-char rule above
+ *    already blocks a rooted absolute path.
+ */
+const SAFE_REF_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._/@^-]{0,100}$/;
+
+function isSafeRefToken(token: string): boolean {
+  if (!SAFE_REF_PATTERN.test(token)) return false;
+  if (token.includes("..")) return false;
+  return true;
+}
+
+/** `-n`/`--max-count` numeric value, and the `-<digits>` short form. */
+const DIGITS_PATTERN = /^\d{1,6}$/;
+const SHORT_COUNT_FLAG_PATTERN = /^-\d{1,6}$/;
+const MAX_COUNT_EQUALS_PATTERN = /^--max-count=\d{1,6}$/;
+
+/**
  * Rule 3: strict READ-ONLY git subcommand allowlist. Single source of
- * truth — do not duplicate elsewhere.
+ * truth — do not duplicate elsewhere. `blame`, `config`, `ls-remote`, and
+ * `shortlog` are deliberately NOT on this list (see the block comment
+ * above) — every read-form of those either reads an arbitrary file or does
+ * network I/O, and there is no safe subset worth carving out.
  */
 export const READ_ONLY_GIT_SUBCOMMANDS: ReadonlySet<string> = new Set([
   "status",
@@ -80,46 +184,181 @@ export const READ_ONLY_GIT_SUBCOMMANDS: ReadonlySet<string> = new Set([
   "remote",
   "rev-parse",
   "describe",
-  "blame",
-  "shortlog",
   "ls-files",
-  "ls-remote",
   "tag",
-  "config",
+]);
+
+/** `status` — no path arguments accepted, only these report-shape flags. */
+const GIT_STATUS_SAFE_FLAGS: ReadonlySet<string> = new Set([
+  "-s",
+  "--short",
+  "-b",
+  "--branch",
+  "--porcelain",
 ]);
 
 /**
+ * `log` — report-shape flags, an optional bounded count (`-n <N>` /
+ * `--max-count=<N>` / `-<N>`), and at most one trailing safe ref token.
+ * Deliberately excludes `-L`, `-O`, `--output`, `--format`, `--pretty`,
+ * `-G`/`-S` — any of these can read/execute arbitrary content or are
+ * rejected simply by not being on this list.
+ */
+const GIT_LOG_SAFE_FLAGS: ReadonlySet<string> = new Set([
+  "--oneline",
+  "--stat",
+  "--graph",
+  "--decorate",
+]);
+
+/**
+ * `diff` — deliberately the narrowest of all: report-shape flags plus at
+ * most one trailing safe ref token, and NOTHING else. No `--no-index`
+ * (arbitrary two-file comparison — the confirmed PoC bypass), no pathspec
+ * of any kind (a pathspec is how `git diff <ref> -- <path>` or a bare
+ * `git diff <path>` reads a specific file's content; simplest safe answer
+ * is to allow zero path arguments).
+ */
+const GIT_DIFF_SAFE_FLAGS: ReadonlySet<string> = new Set([
+  "--stat",
+  "--cached",
+  "--staged",
+  "--name-only",
+]);
+
+/** `show` — report-shape flags plus at most one trailing safe ref token. */
+const GIT_SHOW_SAFE_FLAGS: ReadonlySet<string> = new Set(["--stat", "--name-only"]);
+
+/**
  * `branch` / `tag` have a write-capable form (create/delete/move/force, or a
- * bare name argument creates a branch/tag). Only these list-shaped tokens
- * are allowed as arguments — anything else (a name, `-d`/`-D`, `-m`/`-M`,
- * `-f`/`--force`, `--delete`, `--move`, ...) rejects the whole command.
+ * bare name argument creates a branch/tag). Only these list-shaped flags
+ * are allowed as arguments, and NO name/ref argument at all — anything else
+ * (a name, `-d`/`-D`, `-m`/`-M`, `-f`/`--force`, `--delete`, `--move`, ...)
+ * rejects the whole command.
  */
-const GIT_LIST_ONLY_FLAGS: ReadonlySet<string> = new Set(["-l", "--list", "-a", "-v"]);
+const GIT_BRANCH_SAFE_FLAGS: ReadonlySet<string> = new Set(["-a", "-v", "-l", "--list"]);
+const GIT_TAG_SAFE_FLAGS: ReadonlySet<string> = new Set(["-l", "--list", "-n"]);
+
+/** `ls-files` — in-repo listing only, no path arguments. */
+const GIT_LS_FILES_SAFE_FLAGS: ReadonlySet<string> = new Set([
+  "--cached",
+  "--others",
+  "--modified",
+]);
+
+/** `describe` — no file-reading flags; a safe ref is still allowed. */
+const GIT_DESCRIBE_SAFE_FLAGS: ReadonlySet<string> = new Set(["--tags", "--always"]);
+
+/** `rev-parse` — a fixed, closed set of safe forms; no `--git-dir` etc. */
+const GIT_REV_PARSE_SAFE_FLAGS: ReadonlySet<string> = new Set(["--abbrev-ref", "--short"]);
 
 /**
- * `remote` has a write-capable form (add/remove/rename/set-url/prune/...).
- * Only these read forms are allowed as the first remaining token: bare
- * (empty — lists remotes), `-v`, `get-url`, `show`.
+ * `remote` has a write-capable form (add/remove/rename/set-url/prune/...)
+ * and a network-capable read form (`ls-remote`/`show <url>`, dropped
+ * entirely — see block comment above). The only read forms allowed here:
+ * bare (lists remotes), `-v`, or `get-url <name>` where `<name>` matches
+ * `SAFE_REF_PATTERN` (a configured remote's name, never a URL — a URL
+ * token is rejected by `SAFE_REF_PATTERN` disallowing `:`).
  */
-const GIT_REMOTE_READ_MODES: ReadonlySet<string> = new Set(["-v", "get-url", "show"]);
+function isSafeRemoteArgs(rest: readonly string[]): boolean {
+  if (rest.length === 0) return true;
+  if (rest.length === 1 && rest[0] === "-v") return true;
+  if (rest.length === 2 && rest[0] === "get-url" && isSafeRefToken(rest[1])) return true;
+  return false;
+}
 
-/**
- * `config` has a write-capable form (`git config key value` sets it). Only
- * these read forms are allowed as the first remaining token.
- */
-const GIT_CONFIG_READ_FLAGS: ReadonlySet<string> = new Set(["--get", "--get-all", "--list"]);
+/** `rev-parse HEAD` / `--abbrev-ref HEAD` / `--short HEAD` / `--verify <ref>`. */
+function isSafeRevParseArgs(rest: readonly string[]): boolean {
+  if (rest.length === 0) return false;
+  if (rest.length === 1) {
+    return rest[0] === "HEAD" || isSafeRefToken(rest[0]);
+  }
+  if (rest.length === 2 && rest[0] === "--verify") {
+    return isSafeRefToken(rest[1]);
+  }
+  if (rest.length === 2 && GIT_REV_PARSE_SAFE_FLAGS.has(rest[0])) {
+    return isSafeRefToken(rest[1]);
+  }
+  return false;
+}
+
+/** Generic "report flags + at most one trailing ref token" validator. */
+function isSafeFlagsAndOptionalRef(
+  rest: readonly string[],
+  safeFlags: ReadonlySet<string>,
+): boolean {
+  let refSeen = false;
+  for (const token of rest) {
+    if (safeFlags.has(token)) continue;
+    if (!refSeen && isSafeRefToken(token)) {
+      refSeen = true;
+      continue;
+    }
+    return false;
+  }
+  return true;
+}
+
+function isSafeStatusArgs(rest: readonly string[]): boolean {
+  return rest.every((token) => GIT_STATUS_SAFE_FLAGS.has(token));
+}
+
+function isSafeLogArgs(rest: readonly string[]): boolean {
+  let refSeen = false;
+  for (let i = 0; i < rest.length; i++) {
+    const token = rest[i];
+    if (GIT_LOG_SAFE_FLAGS.has(token)) continue;
+    if (token === "-n" || token === "--max-count") {
+      const value = rest[i + 1];
+      if (!value || !DIGITS_PATTERN.test(value)) return false;
+      i += 1;
+      continue;
+    }
+    if (MAX_COUNT_EQUALS_PATTERN.test(token)) continue;
+    if (SHORT_COUNT_FLAG_PATTERN.test(token)) continue;
+    if (!refSeen && isSafeRefToken(token)) {
+      refSeen = true;
+      continue;
+    }
+    return false;
+  }
+  return true;
+}
+
+function isSafeDiffArgs(rest: readonly string[]): boolean {
+  return isSafeFlagsAndOptionalRef(rest, GIT_DIFF_SAFE_FLAGS);
+}
+
+function isSafeShowArgs(rest: readonly string[]): boolean {
+  return isSafeFlagsAndOptionalRef(rest, GIT_SHOW_SAFE_FLAGS);
+}
+
+function isSafeDescribeArgs(rest: readonly string[]): boolean {
+  return isSafeFlagsAndOptionalRef(rest, GIT_DESCRIBE_SAFE_FLAGS);
+}
+
+function isSafeListOnlyArgs(rest: readonly string[], safeFlags: ReadonlySet<string>): boolean {
+  return rest.every((token) => safeFlags.has(token));
+}
+
+function isSafeLsFilesArgs(rest: readonly string[]): boolean {
+  return rest.every((token) => GIT_LS_FILES_SAFE_FLAGS.has(token));
+}
 
 /**
  * Rule 4: git flags that can run an external program or override trusted
  * config, denied ANYWHERE in the token stream regardless of subcommand.
- * Single source of truth — do not duplicate elsewhere.
+ * Redundant with the positive per-subcommand safe-flag allowlists above
+ * (none of these ever appear on a safe-flag set), kept as an independent
+ * second layer of defense-in-depth. Single source of truth — do not
+ * duplicate elsewhere.
  */
 export const DENIED_GIT_FLAGS: RegExp[] = [
   /^-c$/, // config-override
   /^--config(=.*)?$/, // config-override
   /^-o$/, // output flag can point at an arbitrary program/target via some subcommands' plumbing
   /^--output(=.*)?$/,
-  /^-O$/, // orderfile for diff — arbitrary file read, treat as untrusted-input risk
+  /^-O/, // orderfile for diff/log (also covers attached forms like -O/etc/passwd) — arbitrary file read
   /^--pager(=.*)?$/, // overrides the pager program to run
   /^--open-files-in-pager(=.*)?$/, // runs the given program with matched files
   /^--ext-diff$/, // allows a configured external diff program to run
@@ -127,6 +366,10 @@ export const DENIED_GIT_FLAGS: RegExp[] = [
   /^--receive-pack(=.*)?$/, // transport program override
   /^--exec(=.*)?$/, // transport/exec program override
   /^--exec-path(=.*)?$/, // exec-path override (bare or with a value — reject either)
+  /^--no-index$/, // git diff --no-index — arbitrary two-file comparison (confirmed PoC bypass)
+  /^--file$/, // git config --file — arbitrary file read
+  /^-f/, // git config -f <path> (also covers attached form -f<path>) — arbitrary file read
+  /^--contents(=.*)?$/, // git blame --contents — arbitrary file read
   /^-i$/, // interactive
   /^--interactive$/, // interactive
 ];
@@ -150,58 +393,62 @@ export function isSafeReadOnlyGitCommand(command: string): boolean {
 
   // Rule 2 — must begin with `git ` (case-sensitive, exact prefix — rejects
   // leading text, different case, and lookalike prefixes like `github` or
-  // `git-lfs` since the character after `git` must be a space).
+  // `git-lfs` since the character after `git` must be a space). `-C` is NOT
+  // supported — the command must be `git <subcommand> ...` exactly, so the
+  // bot's own `cwd` is always the repo operated on.
   if (!trimmed.startsWith("git ")) return false;
 
   const tokens = trimmed.split(/\s+/).filter((token) => token.length > 0);
   if (tokens[0] !== "git") return false;
+  if (tokens.length < 2) return false;
 
-  let i = 1;
+  // Rule 1b/1c — glob/tilde/scheme/`::` rejected on every token.
+  if (hasUnsafeToken(tokens)) return false;
 
-  // Optional `git -C <path>` — the path is already metacharacter-free (rule
-  // 1); additionally reject if it looks like a flag (e.g. an attempt to
-  // smuggle `-c`/`--config` in as the "path" argument).
-  if (tokens[i] === "-C") {
-    const value = tokens[i + 1];
-    if (!value || value.startsWith("-")) return false;
-    i += 2;
-  }
-
-  // Rule 3 — the subcommand is the first non-flag token after `git`/`-C
-  // <path>`. Any other leading flag before the subcommand (e.g.
-  // `--no-pager`) is not on any allowlist here, so it is rejected — strict
-  // by design, not merely by omission.
-  const subcommand = tokens[i];
-  if (!subcommand || subcommand.startsWith("-") || !READ_ONLY_GIT_SUBCOMMANDS.has(subcommand)) {
+  // Rule 3 — the subcommand must be the token immediately after `git` (no
+  // `-C <path>`, no other leading flag). Any leading flag before the
+  // subcommand (e.g. `--no-pager`, `-C`) is rejected — strict by design.
+  const subcommand = tokens[1];
+  if (subcommand.startsWith("-") || !READ_ONLY_GIT_SUBCOMMANDS.has(subcommand)) {
     return false;
   }
 
-  const rest = tokens.slice(i + 1);
+  const rest = tokens.slice(2);
 
-  // Rule 4 — scan every token (including `git`, the optional `-C <path>`,
-  // the subcommand, and every remaining argument) for a denied flag.
+  // Rule 4 — independent second layer: scan every token for a denied flag,
+  // regardless of what the per-subcommand safe-flag allowlist below decides.
   for (const token of tokens) {
     if (DENIED_GIT_FLAGS.some((pattern) => pattern.test(token))) return false;
   }
 
-  // Rule 3 (continued) — subcommand-specific safe-form restriction for the
-  // three subcommands that have a write-capable form.
+  // Rule 3 (continued) — per-subcommand positive safe-flag/safe-arg check.
+  // Fail-safe default: an unrecognized subcommand never reaches here
+  // because of the READ_ONLY_GIT_SUBCOMMANDS check above; every subcommand
+  // reachable here has an explicit validator — there is no fallthrough.
   switch (subcommand) {
-    case "remote":
-      if (rest.length > 0 && !GIT_REMOTE_READ_MODES.has(rest[0])) return false;
-      break;
+    case "status":
+      return isSafeStatusArgs(rest);
+    case "log":
+      return isSafeLogArgs(rest);
+    case "diff":
+      return isSafeDiffArgs(rest);
+    case "show":
+      return isSafeShowArgs(rest);
     case "branch":
+      return isSafeListOnlyArgs(rest, GIT_BRANCH_SAFE_FLAGS);
     case "tag":
-      if (!rest.every((token) => GIT_LIST_ONLY_FLAGS.has(token))) return false;
-      break;
-    case "config":
-      if (rest.length === 0 || !GIT_CONFIG_READ_FLAGS.has(rest[0])) return false;
-      break;
+      return isSafeListOnlyArgs(rest, GIT_TAG_SAFE_FLAGS);
+    case "remote":
+      return isSafeRemoteArgs(rest);
+    case "rev-parse":
+      return isSafeRevParseArgs(rest);
+    case "describe":
+      return isSafeDescribeArgs(rest);
+    case "ls-files":
+      return isSafeLsFilesArgs(rest);
     default:
-      break; // status/log/show/diff/rev-parse/describe/blame/shortlog/ls-files/ls-remote: no write-capable form.
+      return false; // unreachable — defense-in-depth against a future edit.
   }
-
-  return true;
 }
 
 /**

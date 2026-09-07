@@ -223,13 +223,18 @@ function summarizeToolCall(toolName: string, input: Record<string, unknown>): st
  *  4. **Read-only git auto-allow (ASPS-749)** — a `Bash` call whose command
  *     is a single, standalone, strictly read-only `git` invocation
  *     (`isSafeReadOnlyGitCommand`: status/log/show/diff/branch(list)/
- *     remote(read)/rev-parse/describe/blame/shortlog/ls-files/ls-remote/
- *     tag(list)/config(read)) proceeds without a human in the loop. This is
- *     evaluated AFTER #3 so a destructive pattern is never reachable via
- *     this path, and it is a narrow carve-out under `Bash` only — every git
- *     WRITE (commit/push/checkout/merge/rebase/reset/`branch -D`/
- *     `remote add`/`config user.name`, ...) and every other Bash command
- *     still falls through to #6.
+ *     remote(bare,-v,get-url)/rev-parse/describe/ls-files/tag(list), each
+ *     restricted to a per-subcommand positive safe-flag allowlist — see the
+ *     block comment above `isSafeReadOnlyGitCommand` in security.ts for the
+ *     full redesign rationale and the subcommands deliberately dropped
+ *     (`config`, `blame`, `ls-remote`, `shortlog`, `remote show` — every
+ *     read form of those either reads an arbitrary file or does network
+ *     I/O) proceeds without a human in the loop. This is evaluated AFTER #3
+ *     so a destructive pattern is never reachable via this path, and it is
+ *     a narrow carve-out under `Bash` only — every git WRITE
+ *     (commit/push/checkout/merge/rebase/reset/`branch -D`/`remote add`/
+ *     `config user.name`, ...) and every other Bash command still falls
+ *     through to #6.
  *  5. **Auto-allow (subject to #1–#2)** — `Read`/`Grep`/`Glob` and the two
  *     read-only knowledge-engine MCP tools proceed without a human in the
  *     loop, per decision #1 ("read-mostly").

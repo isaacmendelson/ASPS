@@ -128,32 +128,37 @@ describe("checkPathAllowed (path guard, ASPS-743 blocker B1)", () => {
   });
 });
 
-describe("isSafeReadOnlyGitCommand (ASPS-749 strict read-only git allowlist)", () => {
+describe("isSafeReadOnlyGitCommand (ASPS-749 strict per-subcommand positive allowlist)", () => {
   it.each([
     "git status",
-    "git -C /home/aspsbot/ASPS status",
+    "git status -s",
     "git log --oneline -5",
+    "git log --stat",
+    "git log --graph --decorate",
+    "git log main",
     "git diff",
+    "git diff --stat",
+    "git diff --cached",
+    "git diff --cached --stat",
     "git branch -a",
-    "git remote get-url origin",
-    "git rev-parse HEAD",
-    "git show HEAD --stat",
-    "git ls-remote",
-    "git ls-files",
-    "git shortlog -sn",
-    "git describe --tags",
-    "git blame src/agent.ts",
-    "git tag -l",
-    "git tag --list",
     "git branch --list",
     "git branch",
+    "git tag -l",
+    "git tag --list",
     "git tag",
     "git remote",
     "git remote -v",
-    "git remote show origin",
-    "git config --get user.name",
-    "git config --get-all user.name",
-    "git config --list",
+    "git remote get-url origin",
+    "git rev-parse HEAD",
+    "git rev-parse --abbrev-ref HEAD",
+    "git rev-parse --verify main",
+    "git show --stat",
+    "git show HEAD --stat",
+    "git show HEAD --name-only",
+    "git describe --tags",
+    "git describe --tags --always",
+    "git ls-files",
+    "git ls-files --cached",
   ])("auto-allows: %s", (command) => {
     expect(isSafeReadOnlyGitCommand(command)).toBe(true);
   });
@@ -182,17 +187,13 @@ describe("isSafeReadOnlyGitCommand (ASPS-749 strict read-only git allowlist)", (
     // config-override
     "git -c core.pager=evil status",
     "git status -c",
-    "git config --get user.name --config=/tmp/evil.gitconfig",
     // external-diff
     "git diff --ext-diff",
     // output/pager
     "git diff -o /tmp/out.patch",
     "git log --pager=evil",
-    "git log -O /etc/passwd",
     "git log --open-files-in-pager=evil",
     // transport/exec program override
-    "git ls-remote --upload-pack=/bin/sh origin",
-    "git ls-remote --receive-pack=/bin/sh origin",
     "git log --exec=evil",
     "git status --exec-path=/tmp/evil",
     // interactive
@@ -246,13 +247,69 @@ describe("isSafeReadOnlyGitCommand (ASPS-749 strict read-only git allowlist)", (
     expect(isSafeReadOnlyGitCommand("git submodule update")).toBe(false);
   });
 
-  it("rejects -C where the path argument looks like a flag", () => {
+  // ASPS-749 remediation — subcommands DROPPED entirely (every read form
+  // either reads an arbitrary file or does network I/O; no safe subset).
+  it.each([
+    ["config (arbitrary --file/-f read)", "git config --get user.name"],
+    ["config --get-all", "git config --get-all user.name"],
+    ["config --list", "git config --list"],
+    ["blame (reads a tracked file, but --contents/-L read arbitrary)", "git blame src/agent.ts"],
+    ["ls-remote (network I/O)", "git ls-remote"],
+    ["shortlog (reads stdin)", "git shortlog -sn"],
+  ])("rejects a dropped subcommand — %s: %s", (_label, command) => {
+    expect(isSafeReadOnlyGitCommand(command)).toBe(false);
+  });
+
+  it("rejects -C entirely (dropped — no out-of-repo access)", () => {
+    expect(isSafeReadOnlyGitCommand("git -C /home/aspsbot/ASPS status")).toBe(false);
     expect(isSafeReadOnlyGitCommand("git -C -c status")).toBe(false);
     expect(isSafeReadOnlyGitCommand("git -C status")).toBe(false); // missing path entirely
   });
 
-  it("rejects a leading global flag other than -C before the subcommand", () => {
+  it("rejects a leading global flag other than the subcommand", () => {
     expect(isSafeReadOnlyGitCommand("git --no-pager log")).toBe(false);
+  });
+
+  it("rejects git remote show entirely (network I/O — SSRF/exfil)", () => {
+    expect(isSafeReadOnlyGitCommand("git remote show origin")).toBe(false);
+    expect(isSafeReadOnlyGitCommand("git remote show https://evil.example/repo.git")).toBe(false);
+  });
+
+  // ASPS-749 security-gate PoC bypasses (confirmed exploitable against the
+  // prior subcommand-allowlist + flag-denylist design) — must all reject.
+  it.each([
+    ["diff --no-index reads any two files", "git diff --no-index a b"],
+    [
+      "diff --no-index reads an arbitrary secret file",
+      "git diff --no-index /etc/passwd /dev/null",
+    ],
+    ["blame --contents reads any file", "git blame --contents /etc/x -- f"],
+    ["config --list --file reads any file", "git config --list --file /x"],
+    ["config --list -f reads any file", "git config --list -f /x"],
+    ["ls-remote <url> does network I/O", "git ls-remote https://x"],
+    ["ls-remote ext:: is conditional RCE", "git ls-remote ext::sh -c id"],
+    ["remote show <url> does network I/O", "git remote show https://x"],
+    ["-C escapes the working directory", "git -C /other log"],
+    ["attached short-flag -O evades exact-match deny", "git log -O/etc/passwd"],
+    ["-L reads arbitrary line ranges from any path", "git log -L1,2:f"],
+    ["show <ref>:<path> reads an arbitrary absolute path", "git show HEAD:/etc/passwd"],
+    ["diff with an absolute pathspec reads an arbitrary file", "git diff /etc/passwd"],
+  ])("closes PoC bypass — %s: %s", (_label, command) => {
+    expect(isSafeReadOnlyGitCommand(command)).toBe(false);
+  });
+
+  // Glob/tilde/scheme/transport tokens — shell-expanded or network/exec
+  // vectors; rejected on every token regardless of subcommand.
+  it.each([
+    ["asterisk glob", "git log v1.*"],
+    ["question-mark glob", "git log file?"],
+    ["bracket glob", "git branch --list [abc]"],
+    ["leading tilde (home-dir expansion)", "git log ~/secrets"],
+    ["double-colon (remote-helper transport)", "git log ns::x"],
+    ["scheme token (URL)", "git log https://evil.example"],
+    ["ssh: transport prefix", "git log ssh:host/path"],
+  ])("rejects an unsafe token — %s: %s", (_label, command) => {
+    expect(isSafeReadOnlyGitCommand(command)).toBe(false);
   });
 });
 

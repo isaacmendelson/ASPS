@@ -227,6 +227,20 @@ hard-deny above, so a destructive command is never reachable through this
 path. Any doubt resolves to `false` (stays approval-gated) — this is a
 narrow carve-out under `Bash`, not a general shell allowlist.
 
+**Design: a per-subcommand positive allowlist, not a flag denylist.** An
+earlier version of this function was a subcommand-allowlist plus a
+flag-DENYlist, which security review found exploitable with PoC-confirmed
+bypasses (`git diff --no-index <file> /dev/null` and `git blame --contents
+<file> -- <tracked>` for arbitrary file read; `git config --list --file
+<file>` for arbitrary file read; `git ls-remote <url>` / `git remote show
+<url>` for network I/O/SSRF; `git ls-remote ext::<cmd>` for conditional RCE;
+`git -C <dir>` for out-of-repo access; attached short-flag forms like
+`-O<path>` evading exact-match flag denies; unrejected glob/tilde
+expansion). A denylist can never enumerate every risky git flag, so the
+function was redesigned around a positive, per-subcommand safe-flag
+allowlist instead — see the block comment above `isSafeReadOnlyGitCommand`
+in `src/security.ts` for the full rationale.
+
 Returns `true` ONLY if ALL of the following hold:
 
 1. **No shell metacharacters anywhere**: `;` `&` `|` `` ` `` `$` `(` `)` `{`
@@ -234,28 +248,63 @@ Returns `true` ONLY if ALL of the following hold:
    return) — this forbids chaining, redirection, command substitution,
    subshells/backgrounding, and multi-line payloads, so it must be a single
    standalone command.
-2. **Begins with `git `** (case-sensitive exact prefix) — optionally
-   `git -C <path>` where the path argument does not itself look like a flag.
-3. **Subcommand on a strict read-only allowlist**: `status`, `log`, `show`,
-   `diff`, `branch`, `remote`, `rev-parse`, `describe`, `blame`, `shortlog`,
-   `ls-files`, `ls-remote`, `tag`, `config`. The three with a write-capable
-   form are further restricted to their read-only shape: `remote` → bare /
-   `-v` / `get-url` / `show` only (never `add`/`remove`/`set-url`/`rename`/
-   `prune`); `branch` / `tag` → list forms only (bare / `-l` / `--list` /
-   `-a` / `-v`, never create/delete/move/force or a bare name argument);
-   `config` → `--get` / `--get-all` / `--list` only (never a set form).
-4. **No denied flag anywhere** in the token stream: config-override (`-c`,
-   `--config`), output/pager (`-o`, `--output`, `-O`, `--pager`,
+2. **No glob/tilde/transport tokens**: `*`, `?`, `[`, `]` anywhere, a
+   leading `~` on any token (home-dir expansion), `::` anywhere (git
+   remote-helper transport syntax, e.g. `ext::sh`), or a URL/transport
+   scheme (`https://`, `ssh:`, `file:`, `ext:`, `git:`) — all are
+   shell-expanded or network/exec vectors.
+3. **Begins with exactly `git `** (case-sensitive exact prefix, no `-C`
+   support at all — the bot always runs in its own `cwd`, so no command can
+   operate outside the working directory).
+4. **Subcommand on a strict, minimal read-only allowlist**: `status`,
+   `log`, `show`, `diff`, `branch`, `remote`, `rev-parse`, `describe`,
+   `ls-files`, `tag`. Each is further restricted to an explicit
+   per-subcommand safe-flag/safe-arg allowlist (not a denylist) — anything
+   not on that subcommand's own list is rejected by omission:
+   - `status` → `-s`/`--short`/`-b`/`--branch`/`--porcelain` only, no path
+     arguments.
+   - `log` → `--oneline`/`--stat`/`--graph`/`--decorate`, an optional
+     bounded count (`-n <N>`/`--max-count=<N>`/`-<N>`), and at most one
+     trailing safe ref token. No `-L`, `-O`, `--output`, `--format`,
+     `--pretty`, `-G`/`-S`.
+   - `diff` → `--stat`/`--cached`/`--staged`/`--name-only` and at most one
+     trailing safe ref token — **no path arguments of any kind** (closes
+     the `--no-index` PoC bypass; also rejects `--no-index` explicitly).
+   - `show` → `--stat`/`--name-only` and at most one trailing safe ref
+     token (no `<ref>:<path>` form — a ref token cannot contain `:`).
+   - `branch` → bare/`-a`/`-v`/`-l`/`--list` only — **no name argument**
+     (never create/delete/move/force).
+   - `tag` → bare/`-l`/`--list`/`-n` only — **no name argument** (never
+     create/delete/force/sign).
+   - `remote` → bare, `-v`, or `get-url <name>` only (`<name>` must be a
+     safe ref-pattern token, never a URL) — **`remote show` is dropped
+     entirely** (network I/O).
+   - `rev-parse` → `HEAD`, `--abbrev-ref`/`--short` with a ref, or
+     `--verify <ref>` only.
+   - `describe` → `--tags`/`--always` and at most one trailing safe ref
+     token only.
+   - `ls-files` → bare/`--cached`/`--others`/`--modified` only, no path
+     arguments.
+
+   **Dropped entirely** (every read form of these either reads an
+   arbitrary file or does network I/O, and there is no safe subset worth
+   carving out): `config` (`--file`/`-f` read arbitrary files), `blame`
+   (`--contents`/`-L` read arbitrary files), `ls-remote` (network I/O,
+   `ext::` is conditional RCE), `shortlog` (reads stdin).
+5. **No denied flag anywhere** in the token stream (independent second
+   layer, redundant with #4 by design): config-override (`-c`, `--config`),
+   output/pager (`-o`, `--output`, `-O*`, `--pager`,
    `--open-files-in-pager`), external-diff (`--ext-diff`), transport/exec
    program overrides (`--upload-pack`, `--receive-pack`, `--exec`,
-   `--exec-path`), and interactive flags (`-i`, `--interactive`) — these can
-   run an external program or override trusted config.
+   `--exec-path`), file-reading (`--no-index`, `--file`, `-f*`,
+   `--contents`), and interactive flags (`-i`, `--interactive`).
 
-`READ_ONLY_GIT_SUBCOMMANDS` and `DENIED_GIT_FLAGS` (`src/security.ts`) are
-the single source of truth for the allowlist/denylist. The system prompt
-(`context.ts`) tells the agent routine read-only git runs without a prompt,
-but any git write (commit/push/checkout/merge/rebase/reset, ...) still
-needs approval like any other state-changing action.
+`READ_ONLY_GIT_SUBCOMMANDS`, the per-subcommand `GIT_*_SAFE_FLAGS` sets, and
+`DENIED_GIT_FLAGS` (`src/security.ts`) are the single source of truth for
+the allowlist. The system prompt (`context.ts`) tells the agent routine
+read-only git runs without a prompt, but any git write
+(commit/push/checkout/merge/rebase/reset, ...) still needs approval like
+any other state-changing action.
 
 ### SDK permission precedence — why `settingSources` is `[]`, not `["project"]`
 
