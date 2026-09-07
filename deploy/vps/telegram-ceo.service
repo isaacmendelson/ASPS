@@ -71,7 +71,27 @@ SyslogIdentifier=telegram-ceo
 
 NoNewPrivileges=yes
 ProtectSystem=strict
-ReadWritePaths=@CLONE_PATH@ @SECRETS_DIR@
+# ReadWritePaths (ASPS-745 audit M5 + live override, folded 2026-09-07):
+#   - @SECRETS_DIR@ is deliberately NOT listed here (was, before this fix).
+#     Systemd injects EnvironmentFile= content as PID 1, BEFORE the sandbox
+#     is applied, so the process needs zero filesystem access to
+#     @SECRETS_DIR@ to see its own secrets as env vars — only
+#     git-credential-store needs to READ github-credentials for `git push`,
+#     which ProtectSystem=strict's default read-only already provides
+#     without a ReadWritePaths entry. Granting read+WRITE let an injected
+#     agent overwrite github-credentials with attacker creds or exfiltrate
+#     the raw token files at a known path; removing it closes that class
+#     (M3's docker-group escape remains the ceiling on all of this — see
+#     README.md).
+#   - The three /home/@ASPSBOT_USER@/.* paths were added live (not in the
+#     original template) because the Claude Code CLI + npm write state
+#     under $HOME (~/.claude, ~/.config, ~/.npm caches) even when cwd is
+#     @CLONE_PATH@ — under ProtectSystem=strict the whole FS is read-only
+#     except ReadWritePaths, so the service failed to start until these
+#     were added. 05-service.sh creates them (mkdir -p, owned
+#     @ASPSBOT_USER@) before start so ProtectSystem=strict has something to
+#     bind read-write.
+ReadWritePaths=@CLONE_PATH@ /home/@ASPSBOT_USER@/.claude /home/@ASPSBOT_USER@/.config /home/@ASPSBOT_USER@/.cache /home/@ASPSBOT_USER@/.npm
 ProtectControlGroups=yes
 RestrictSUIDSGID=yes
 PrivateTmp=yes
@@ -83,42 +103,73 @@ ProtectHostname=yes
 LockPersonality=yes
 RestrictRealtime=yes
 RestrictNamespaces=yes
+# UMask (ASPS-745 audit m3, applied+verified live 2026-09-07): systemd's
+# default UMask=0022 leaves service-created files world-readable. Any
+# secret-ish artifact the agent writes (logs, caches, tmp files under the
+# ReadWritePaths above) would otherwise be group/other-readable. Zero
+# functional cost — every writer here is this single service/user.
+UMask=0077
 
-# NOT enabled — see README.md "Phase 5 — systemd hardening tradeoffs":
+# NOT enabled — see README.md "Phase 5 — systemd hardening tradeoffs" and
+# "Phase 6 audit fixes". These four (plus the capability/address-family/
+# ProtectProc nits) are DEFERRED ASPS-745 follow-ups, not oversights — each
+# is reasoned below and needs an on-box `systemd-analyze security` pass +
+# a live tool-call smoke test (real `git push` + `docker compose` + `dotnet
+# build` + a representative Bash-tool turn) before enabling, because a
+# wrong guess here fails CLOSED (crash-loop, no one local to debug an
+# unattended 24/7 bot over Telegram) rather than open:
 #
 # ProtectHome=yes
 #   Would make ~/.gitconfig (holding the Phase 3 credential-helper config,
 #   git user.name/email, safe.directory) INACCESSIBLE (not merely
-#   read-only) — it lives directly under /home/@ASPSBOT_USER@, outside both
+#   read-only) — it lives directly under /home/@ASPSBOT_USER@, outside the
 #   ReadWritePaths entries above. ProtectSystem=strict already makes the
-#   ENTIRE filesystem read-only except the two declared paths, which
-#   already satisfies "the bot can only write to its clone + secrets"
-#   without also hiding ~/.gitconfig (and any node/npm/claude CLI
-#   state under $HOME) from reads. Read access to ~/.gitconfig under
-#   ProtectSystem=strict's read-only (not invisible) mode is unaffected.
+#   ENTIRE filesystem read-only except the declared paths, which already
+#   satisfies "the bot can only write to its clone + its own $HOME state"
+#   without also hiding ~/.gitconfig from reads. Read access to
+#   ~/.gitconfig under ProtectSystem=strict's read-only (not invisible)
+#   mode is unaffected. Correctly reasoned as OFF in the ASPS-745 audit —
+#   keep OFF.
 #
 # PrivateDevices=yes
 #   Probably safe: the docker CLIENT only needs the unix socket
 #   (/run/docker.sock, which stays reachable for connect() even on a
 #   read-only mount), not /dev/* — and /dev/null|zero|random|urandom|tty
-#   remain available under PrivateDevices regardless. But this has not been
-#   verified against a live box (no VPS exists yet) — flagged for
-#   Security/Phase-6 to confirm and enable, rather than silently assumed
-#   safe here.
+#   remain available under PrivateDevices regardless. Deferred: needs a
+#   live `docker compose` smoke test on the real box before enabling.
 #
-# SystemCallFilter=@system-service (or similar)
-#   No safe filter set could be derived without live testing against node +
-#   git + npm + dotnet + the docker CLI + every Bash-tool command the agent
-#   might ever run on the CEO's behalf. Guessing wrong here fails CLOSED
-#   (crash-loop) rather than open — worse for an unattended 24/7 bot with
-#   nobody local to debug a broken syscall filter. Left to Phase 6 with
-#   iterative `systemd-analyze security telegram-ceo.service` feedback once
-#   the box exists.
+# SystemCallFilter=@system-service SystemCallArchitectures=native
+# SystemCallErrorNumber=EPERM
+#   Reduces kernel attack surface materially from a network-facing,
+#   injection-reachable Node process. @system-service is Node-compatible
+#   by design, but no safe filter set could be derived without live
+#   testing against node + git + npm + dotnet + the docker CLI + every
+#   Bash-tool command the agent might ever run. Deferred: enable, run one
+#   real docker compose + git push + dotnet turn, watch for EPERM, iterate
+#   with `systemd-analyze security`.
+#
+# CapabilityBoundingSet= (empty) / AmbientCapabilities=
+#   Node/git/docker-client need no elevated capabilities under
+#   NoNewPrivileges=yes. Graceful no-op if wrong, but not yet smoke-tested
+#   live — deferred alongside the syscall filter pass so all sandbox
+#   changes get one combined verification pass rather than several
+#   separate service restarts.
+#
+# RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+#   The service only needs Telegram/Anthropic/GitHub/JIRA HTTPS (AF_INET/
+#   AF_INET6) and the Docker socket (AF_UNIX) — no other family should be
+#   reachable. Deferred alongside the syscall filter pass for the same
+#   reason (one combined smoke test).
+#
+# ProtectProc=invisible
+#   Hides other users' /proc entries — this is a single-user box so the
+#   confinement value is marginal, but it's a cheap addition. Deferred
+#   alongside the syscall filter pass rather than added in isolation.
 #
 # MemoryDenyWriteExecute=yes
-#   Node's V8 JIT can conflict with strict W^X memory enforcement on some
-#   builds/architectures (systemd's own docs flag JIT compilers as the
-#   known-incompatible case for this directive). Not verified here.
+#   Node's V8 JIT requires W+X pages; MDWE would crash-loop the bot —
+#   systemd's own docs list JIT compilers as the known-incompatible case.
+#   Correctly reasoned as OFF in the ASPS-745 audit — keep OFF.
 
 [Install]
 WantedBy=multi-user.target

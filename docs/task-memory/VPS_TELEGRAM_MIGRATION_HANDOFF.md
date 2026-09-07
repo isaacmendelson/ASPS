@@ -9,7 +9,7 @@
 - **Phase 4 (ASPS-743) DONE** — bot on `@anthropic-ai/claude-agent-sdk`, deny-by-default permission model + Telegram approve/deny flow. PR #39 (`a6dc84f`). QA 118/118 + Security (2 rounds, 3 Blockers+2 Majors closed) + code review all PASS.
 - **Phases 1/2/3/5 scripts** merged (PR #40, #41) then **EXECUTED on the live box** and verified. Live execution exposed two real script bugs — (1) `01-harden.sh` socket-switch SSH lockout on port 22 [recovered via Hostinger console], (2) `02-toolchain.sh` Node-24 downgrade + node-less abort — both fixed, reviewed (Security PASS, QA PASS), merged **PR #42 (`4cbf2b8`)**. The live box is in the correct hardened end-state and did not need re-running.
 - **Bot config on box:** hardened SSH (key-only, root blocked, UFW, fail2ban, 2G swap, reboot-safe via `RuntimeDirectory=sshd`), .NET 8 + ripgrep + Claude CLI 2.1.263 (Node 24 kept), repo cloned + bot built at `/home/aspsbot/ASPS`, secrets in `/home/aspsbot/secrets` (600, outside the clone): `telegram-ceo.env` (bot `@Zappa_desktop_bot`, `CLAUDE_CODE_OAUTH_TOKEN` verified auth, AUTHORIZED_USERS=5554420161), `ACCESS_KEYS.env` (GitHub agent PAT + JIRA), `github-credentials`. systemd override adds `~/.claude` etc. to `ReadWritePaths`.
-- **Open:** approval-posture decision (user was offered smart-reduction vs full-disable — **dismissed, pending**); Phase 6 box security audit (ASPS-745 follow-ups: `assert_sshd_listening` robustness, fold ReadWritePaths override into the service template, egress isolation, `main` branch protection, least-priv GitHub token); Phase 7 runbook. Reboot survival verified non-invasively (all services enabled, `RuntimeDirectory=sshd`) — a real reboot test was offered, not yet run.
+- **Open:** approval-posture decision (user was offered smart-reduction vs full-disable — **dismissed, pending**); Phase 6 box security audit **done** (`docs/security-audits/2026-09-07-vps-telegram.md`, FAIL verdict — 2 Majors need the USER, 3 further Majors fixed on-box + now folded into templates on branch `asps-745-fold-security-audit-fixes`, see "Phase 6" subsection below); Phase 7 runbook. Reboot survival verified non-invasively (all services enabled, `RuntimeDirectory=sshd`) — a real reboot test was offered, not yet run.
 
 ## JIRA
 | Item | Key | Status |
@@ -21,10 +21,10 @@
 | Phase 3 — Clone repo & wire secrets | ASPS-742 | ✅ **Done** — cloned + built + secrets on box |
 | Phase 4 — Migrate bot to Claude Agent SDK | ASPS-743 | ✅ **Done** — merged (PR #39, `a6dc84f`) |
 | Phase 5 — 24/7 systemd service | ASPS-744 | ✅ **Done** — `telegram-ceo.service` active, enabled, running |
-| Phase 6 — Security deepening & audit | ASPS-745 | To Do — box audit + follow-ups |
+| Phase 6 — Security deepening & audit | ASPS-745 | In Progress — audit done (2026-09-07), on-box fixes applied+verified live, folded into `deploy/vps/` templates (branch `asps-745-fold-security-audit-fixes`); 2 Majors (M1 token scope, M2 branch protection) + 1 Major decision (M3 docker-group) still need the USER |
 | Phase 7 — Verification & docs | ASPS-746 | To Do — runbook; E2E already observed working |
 
-**Continuation point:** the bot is LIVE and working. Remaining: (1) resolve the approval-posture decision (pending user); (2) Phase 6 — run a box security audit + the ASPS-745 follow-ups; (3) Phase 7 — write `docs/cloud/VPS_TELEGRAM_RUNBOOK.md` and optionally a real reboot test. Session-local access artifacts (aspsbot private key + sudo password) live in the scratchpad — hand to the user for durable access; they are NOT in the repo.
+**Continuation point:** the bot is LIVE and working. Remaining: (1) resolve the approval-posture decision (pending user); (2) Phase 6 — audit is done and on-box fixes are folded into templates (branch `asps-745-fold-security-audit-fixes`, pending QA + CEO code review + merge); the 2 USER-decision Majors (M1 GitHub PAT scope/rotation, M2 `main` branch protection) and the M3 docker-group decision remain open on ASPS-745 after that merges; (3) Phase 7 — write `docs/cloud/VPS_TELEGRAM_RUNBOOK.md` and optionally a real reboot test. Session-local access artifacts (aspsbot private key + sudo password) live in the scratchpad — hand to the user for durable access; they are NOT in the repo.
 
 ---
 
@@ -751,6 +751,81 @@ backend per D1).
    (egress restriction, branch protection, and re-confirming the token scope this task decided)
    are still explicitly deferred there; the fourth (secret relocation) is now functionally
    complete pending the operator's manual copy+fill step.
+
+### Phase 6 (ASPS-745) — audit run + on-box fixes folded into templates (2026-09-07)
+
+**Audit:** Security agent ran a read-only audit against the live box (`168.231.111.91`) — host
+snapshot + repo config review, scope: SSH/UFW/fail2ban posture, secrets placement, systemd
+sandbox, `docker` group, GitHub token blast radius. Filed as
+[`docs/security-audits/2026-09-07-vps-telegram.md`](../security-audits/2026-09-07-vps-telegram.md).
+**Verdict: FAIL** — no Blocker (nothing remotely exploitable in the current state: SSH fully
+hardened, only port 22 reachable, secrets `600`, clean intrusion check), but 5 Majors: 2 need the
+**USER** (M1 — verify/re-scope/rotate the GitHub PAT; M2 — enable `main` branch protection on
+GitHub), 1 is an accepted-debt **decision** the user must make (M3 — `docker` group ≈
+root-equivalent, caps the value of every other control; rootless Docker / socket-proxy / drop D4
+are the options), and 2 were fixable on-box with no user cost (M4 — fail2ban journalmatch;
+M5 — `SECRETS_DIR` should be read-only, not read-write, in the systemd sandbox).
+
+**Applied live on the box (2026-09-07), then folded into `deploy/vps/` templates on branch
+`asps-745-fold-security-audit-fixes` (this session) so a future re-provision inherits them
+automatically instead of depending on an untracked `systemctl edit` override:**
+
+| Finding | What changed | Where folded |
+|---|---|---|
+| M4 | `jail.local`'s `[sshd]` block gained `journalmatch = _COMM=sshd` — the default match never saw per-connection auth failures under Ubuntu 24.04's socket-activated sshd, so `Total failed: 0`/`Banned: 0` even with real brute-force noise in the journal. | `deploy/vps/01-harden.sh` step 7 |
+| M5 | `ReadWritePaths` no longer includes `@SECRETS_DIR@` — systemd injects `EnvironmentFile=` content as PID 1 before the sandbox, so the process needs no FS write access to its own secrets dir; only the git-credential-store's *read* of `github-credentials` needs to keep working, which `ProtectSystem=strict`'s default read-only already covers. | `deploy/vps/telegram-ceo.service` |
+| m3 | Added `UMask=0077` (was unset, defaulting to world-readable `0022`). | `deploy/vps/telegram-ceo.service` |
+| *(live-only fix, not a separately numbered audit item)* | `ReadWritePaths` gained `/home/@ASPSBOT_USER@/.claude /.config /.cache /.npm` — the Claude Code CLI + npm write state under `$HOME` even with `WorkingDirectory=@CLONE_PATH@`; the service wouldn't start under `ProtectSystem=strict` without this. `05-service.sh` now creates these dirs (owned `@ASPSBOT_USER@`) at step 2/6, before rendering/installing the unit. | `deploy/vps/telegram-ceo.service`, `deploy/vps/05-service.sh` |
+| m1 | Investigated: UFW's stray `80/tcp`/`443/tcp` `ALLOW` rules are pre-existing box drift, not introduced by `01-harden.sh` (which only ever opens `${SSH_PORT}/tcp`). No code change — documented in README as a re-provision check (`ufw status verbose` after `01-harden.sh`, confirm no stray rules). | `deploy/vps/README.md` only |
+
+**Deferred (documented in the unit's comment block + README, not enabled — needs an on-box
+`systemd-analyze security` pass + a live tool-call smoke test before enabling, since a wrong guess
+fails closed on an unattended 24/7 bot):** `PrivateDevices=yes`, `SystemCallFilter=@system-service`
+(+ `SystemCallArchitectures=native` + `SystemCallErrorNumber=EPERM`), `CapabilityBoundingSet=`/
+`AmbientCapabilities=`, `RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6`, `ProtectProc=invisible`
+(audit m4/m5/n1). `MemoryDenyWriteExecute=yes` and `ProtectHome=yes` remain confirmed-correct OFF
+per the audit's own reasoning (V8 JIT incompatibility; `~/.gitconfig` accessibility) — not deferred,
+final.
+
+**Needs the USER — not touched by this fold, tracked on ASPS-745 going forward:**
+1. **M1** — verify the live GitHub PAT is fine-grained, scoped to `isaacmendelson/ASPS` only,
+   `Contents: read/write` (no admin/workflow/org); re-scope + rotate if broader. Rotate regardless.
+2. **M2** — enable branch protection on `main` (GitHub repo setting — require PR+review, block
+   force-push/deletion, no bypass for the PAT identity).
+3. **M3** — decide: rootless Docker, a socket-proxy exposing only the verbs D4 needs, or accept
+   `docker` group membership as documented debt (current state) — this caps the value of every
+   other systemd sandbox control, since `docker run -v /:/host ...` bypasses `ProtectSystem=strict`
+   entirely.
+4. **Rotation** — all four on-box tokens (`GITHUB_TOKEN`, `JIRA_API_TOKEN`, `CLAUDE_CODE_OAUTH_TOKEN`,
+   `TELEGRAM_BOT_TOKEN`) should be rotated given the Internet-facing box + prior console-recovery
+   incident; agree a cadence.
+
+**Validation (this session):** `bash -n` clean on `01-harden.sh`/`05-service.sh`; `shellcheck
+--shell=bash -x` (via `koalaman/shellcheck:stable`, following the sourced `lib.sh`) — zero findings
+on both. `telegram-ceo.service` rendered with sample values (`aspsbot`/`/home/aspsbot/ASPS`/
+`/home/aspsbot/secrets`) and run through `systemd-analyze verify` inside a disposable `ubuntu:24.04`
+container (stubbed `/usr/bin/node` + `aspsbot` user/`$HOME` subdirs) — **exit 0, no errors** (the
+"marked executable" warning printed is an artifact of the `docker cp`-style verification harness
+preserving the mounted file's permission bits, not of `05-service.sh`'s actual `install -m 0644`).
+Line endings: LF confirmed via `git check-attr` + zero-CR byte check on all three changed scripts/
+unit. `git diff` scanned for secret-shaped content — clean (only pre-existing descriptive mentions
+of variable names like `SECRETS_DIR`/`GITHUB_TOKEN`, no values).
+
+**Changed files:** `deploy/vps/01-harden.sh` (fail2ban `journalmatch`), `deploy/vps/telegram-ceo.service`
+(`ReadWritePaths` drops `@SECRETS_DIR@`/gains `$HOME` state dirs, `UMask=0077`, expanded deferred-directives
+comment block), `deploy/vps/05-service.sh` (new step 2/6 creating the `$HOME` state dirs; renumbered
+subsequent steps to 3/6…6/6), `deploy/vps/README.md` (systemd hardening section updated to match; new
+"Phase 6 audit fixes" section), this handoff.
+
+**Branch:** `asps-745-fold-security-audit-fixes`, off `main`. **Not merged, no PR opened** — per
+instruction, CEO reviews + QA first. JIRA ASPS-745 left `In Progress` (was `To Do`); label `devops`
+added by this session's work.
+
+**Next steps for CEO/QA:** (1) QA review of the diff (validation evidence above — declarative infra
+config, no live box to re-run against from this session, matching the Phase 1–5 precedent in this
+same handoff); (2) CEO code review; (3) on both PASS, open PR, merge, re-apply nothing on the box
+(the live box already has these exact changes applied manually — this fold only affects future
+re-provisions); (4) separately, surface the 4 USER-decision items above to the user.
 
 ## 7. JIRA
 See the JIRA table at the top of this handoff (epic ASPS-738 + stories ASPS-739…746).
