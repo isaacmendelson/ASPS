@@ -122,6 +122,28 @@ const AUTO_ALLOW_MCP_TOOL_SET = new Set(AUTO_ALLOW_MCP_TOOLS);
 const AUTO_ALLOW_MCP_WILDCARDS = ["mcp__github__*", "mcp__mcp-atlassian__*"];
 
 /**
+ * Built-in tools removed from the model's context entirely (ASPS-754) —
+ * `Options.disallowedTools` per the SDK's own doc: "removed from the
+ * model's context and cannot be used, even if they would otherwise be
+ * allowed" (`node_modules/@anthropic-ai/claude-agent-sdk/sdk.d.ts`).
+ *
+ * `AskUserQuestion` is an INTERACTIVE tool: it expects the SDK to hand the
+ * user's structured multiple-choice answer back into the tool call. This
+ * bot's only human-in-the-loop channel is `canUseTool` → Telegram
+ * approve/deny (see `createCanUseTool` above), which can return allow/deny
+ * but has no path to deliver a chosen option back to the SDK. When the
+ * agent called `AskUserQuestion`, `canUseTool` routed it to a Telegram
+ * approve/deny prompt; approving it then let the SDK try to run an
+ * interactive prompt with no terminal/UI on the other end, and the query
+ * stream aborted with `AbortError: Stream closed`. Removing the tool from
+ * the model's context up front stops the agent from ever calling it,
+ * instead of failing after the fact — see `TELEGRAM_SYSTEM_PROMPT_APPEND`
+ * in context.ts for the accompanying guidance to ask decisions as plain
+ * Telegram text instead.
+ */
+const DISALLOWED_TOOLS = ["AskUserQuestion"];
+
+/**
  * Tool-input field name that carries a filesystem path, per tool.
  *
  * This is a best-effort allowlist, not the primary control — it tells the
@@ -323,6 +345,10 @@ function buildOptions(userId: number): Options {
     // Read/Grep/Glob are NOT listed here on purpose: they still go through
     // canUseTool so the path guard runs.
     allowedTools: [...AUTO_ALLOW_MCP_TOOLS, ...AUTO_ALLOW_MCP_WILDCARDS],
+    // ASPS-754: AskUserQuestion is interactive-only and has no delivery path
+    // back through the one-way Telegram approve/deny bridge — see
+    // DISALLOWED_TOOLS above for the full root-cause note.
+    disallowedTools: DISALLOWED_TOOLS,
     systemPrompt: {
       type: "preset",
       preset: "claude_code",
