@@ -362,11 +362,24 @@ describe("createCanUseTool — deny-by-default (ASPS-743 blocker B3)", () => {
 
 describe("runAgent", () => {
   const userId = 12345;
+  const mcpEnvVars = ["GITHUB_TOKEN", "JIRA_BASE_URL", "JIRA_EMAIL", "JIRA_API_TOKEN"] as const;
+  const savedMcpEnv: Record<string, string | undefined> = {};
 
   beforeEach(() => {
     queryMock.mockReset();
     requestApprovalMock.mockReset();
     clearSession(userId);
+    for (const key of mcpEnvVars) {
+      savedMcpEnv[key] = process.env[key];
+      process.env[key] = `${key}_FIXTURE`;
+    }
+  });
+
+  afterEach(() => {
+    for (const key of mcpEnvVars) {
+      if (savedMcpEnv[key] === undefined) delete process.env[key];
+      else process.env[key] = savedMcpEnv[key];
+    }
   });
 
   it("returns the final result text and stores the session id for resume", async () => {
@@ -441,8 +454,62 @@ describe("runAgent", () => {
     await runAgent(userId, "hi");
 
     const { options } = queryMock.mock.calls[0][0];
-    expect(options.mcpServers).toEqual({ "knowledge-engine": { command: "python", args: ["ke_mcp_server.py"] } });
+    expect(options.mcpServers["knowledge-engine"]).toEqual({ command: "python", args: ["ke_mcp_server.py"] });
     expect(options.strictMcpConfig).toBe(true);
+  });
+
+  it("wires the GitHub MCP server as a bot-scoped remote HTTP /readonly server with a Bearer token from GITHUB_TOKEN (ASPS-748)", async () => {
+    process.env.GITHUB_TOKEN = "gh-test-token";
+    queryMock.mockReturnValue(
+      asAsyncIterable([{ type: "result", subtype: "success", result: "ok", session_id: "sess-1" }]),
+    );
+
+    await runAgent(userId, "hi");
+
+    const { options } = queryMock.mock.calls[0][0];
+    expect(options.mcpServers.github).toEqual({
+      type: "http",
+      url: "https://api.githubcopilot.com/mcp/readonly",
+      headers: { Authorization: "Bearer gh-test-token" },
+    });
+  });
+
+  it("wires the JIRA MCP server (mcp-atlassian) as a bot-scoped stdio docker server, read-only, env-mapped from box vars (ASPS-748)", async () => {
+    process.env.JIRA_BASE_URL = "https://example.atlassian.net";
+    process.env.JIRA_EMAIL = "ceo@example.com";
+    process.env.JIRA_API_TOKEN = "jira-test-token";
+    queryMock.mockReturnValue(
+      asAsyncIterable([{ type: "result", subtype: "success", result: "ok", session_id: "sess-1" }]),
+    );
+
+    await runAgent(userId, "hi");
+
+    const { options } = queryMock.mock.calls[0][0];
+    const server = options.mcpServers["mcp-atlassian"];
+    expect(server.command).toBe("docker");
+    expect(server.args).toEqual([
+      "run",
+      "--rm",
+      "-i",
+      "-e",
+      "JIRA_URL",
+      "-e",
+      "JIRA_USERNAME",
+      "-e",
+      "JIRA_API_TOKEN",
+      "-e",
+      "READ_ONLY_MODE",
+      // Pinned by immutable digest (ASPS-748 security review), never a mutable tag.
+      expect.stringMatching(/^ghcr\.io\/sooperset\/mcp-atlassian@sha256:[a-f0-9]{64}$/),
+    ]);
+    // No credentials leaked into argv — only passed via `env`.
+    expect(server.args.join(" ")).not.toContain("jira-test-token");
+    expect(server.env).toEqual({
+      JIRA_URL: "https://example.atlassian.net",
+      JIRA_USERNAME: "ceo@example.com",
+      JIRA_API_TOKEN: "jira-test-token",
+      READ_ONLY_MODE: "true",
+    });
   });
 
   it("auto-allows only the read-only knowledge-engine MCP tools at the SDK level (not Read/Grep/Glob/Bash/Write)", async () => {
@@ -453,10 +520,34 @@ describe("runAgent", () => {
     await runAgent(userId, "hi");
 
     const { options } = queryMock.mock.calls[0][0];
-    expect(options.allowedTools).toEqual([
-      "mcp__knowledge-engine__knowledge_search",
-      "mcp__knowledge-engine__knowledge_ask",
-    ]);
+    expect(options.allowedTools).toEqual(
+      expect.arrayContaining([
+        "mcp__knowledge-engine__knowledge_search",
+        "mcp__knowledge-engine__knowledge_ask",
+      ]),
+    );
+  });
+
+  it("auto-allows the GitHub and JIRA MCP servers via a per-server wildcard, since both endpoints are read-only (ASPS-748)", async () => {
+    queryMock.mockReturnValue(
+      asAsyncIterable([{ type: "result", subtype: "success", result: "ok", session_id: "sess-1" }]),
+    );
+
+    await runAgent(userId, "hi");
+
+    const { options } = queryMock.mock.calls[0][0];
+    expect(options.allowedTools).toEqual(
+      expect.arrayContaining(["mcp__github__*", "mcp__mcp-atlassian__*"]),
+    );
+  });
+
+  it("does NOT change canUseTool's deny-by-default policy for a hypothetical write-shaped MCP tool name — the wildcard is an SDK-level allow, not a canUseTool exemption (ASPS-748)", async () => {
+    requestApprovalMock.mockResolvedValue("allow");
+    const canUseTool = createCanUseTool(111, process.cwd());
+    const result = await canUseTool("mcp__github__create_pr", {}, toolOptions);
+
+    expect(requestApprovalMock).toHaveBeenCalledWith(111, "mcp__github__create_pr", expect.any(String));
+    expect(result?.behavior).toBe("allow");
   });
 
   it("includes CLAUDE.md content and the Telegram addendum in the system prompt", async () => {

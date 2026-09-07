@@ -68,6 +68,38 @@ The bot runs the Claude Agent SDK with the native Claude Code toolset:
   (`mcp__knowledge-engine__knowledge_search` / `knowledge_ask`) — auto-allowed,
   same as Read/Grep/Glob, since they take no filesystem input and are
   genuinely read-only.
+- Two more read-only MCP servers (ASPS-748), wired in bot-side (`src/agent.ts`,
+  NOT the repo's `.mcp.json` — these are bot-process-scoped credentials, not
+  shared with interactive Claude Code sessions), so project questions are
+  answered natively instead of the agent shelling out to `curl`/`gh` via
+  Bash:
+  - **`github`** — GitHub's own remote MCP server, `/mcp/readonly` endpoint
+    (`https://api.githubcopilot.com/mcp/readonly`), authenticated with a
+    Bearer token from `GITHUB_TOKEN`. The `/readonly` endpoint only exposes
+    read tools (issues/PRs/commits/code search) — there is no write tool to
+    accidentally auto-allow.
+  - **`mcp-atlassian`** — the community
+    [`sooperset/mcp-atlassian`](https://github.com/sooperset/mcp-atlassian)
+    server, run as a throwaway `docker run --rm -i` container per session
+    with `READ_ONLY_MODE=true` (the server itself refuses to register any
+    write/mutate tool at startup, not just a documented convention), image
+    pinned by **immutable `@sha256:` digest** — **never `latest`** (supply-chain) —
+    in `src/agent.ts`'s `MCP_ATLASSIAN_IMAGE` (the digest of tag `0.23.1`,
+    verified on the VPS 2026-09-07). Credentials (`JIRA_URL`/`JIRA_USERNAME`/
+    `JIRA_API_TOKEN`, mapped from the box's existing `JIRA_BASE_URL`/
+    `JIRA_EMAIL`/`JIRA_API_TOKEN`) are passed via `docker run -e VAR`
+    pass-through so they never appear in `argv`. Requires Docker on `PATH`.
+
+  Both are auto-allowed at the SDK level via a per-server wildcard
+  (`mcp__github__*`, `mcp__mcp-atlassian__*`) — a deliberate, documented
+  exception to "no MCP wildcards" because both servers are read-only by
+  construction (the remote endpoint's own scope / `READ_ONLY_MODE`), not by
+  policy on our side; see the `AUTO_ALLOW_MCP_WILDCARDS` comment in
+  `src/agent.ts` for the full reasoning and its one assumption (it holds
+  only as long as neither upstream endpoint ever exposes a write tool under
+  the same server key). `canUseTool`'s deny-by-default policy is otherwise
+  unchanged — this bypasses it at the SDK level for these two servers only,
+  same mechanism as the knowledge-engine tools above.
 
 `CLAUDE.md` is read from `WORKING_DIR` and injected into the system prompt
 by hand (`src/context.ts`'s `loadClaudeMd`), **not** via the SDK's
@@ -148,8 +180,9 @@ approval like any other state-changing action.
 
 `canUseTool` classifies every tool call:
 
-- **Auto-allow** (subject to the path guard): `Read`, `Grep`, `Glob`, and
-  the two read-only knowledge-engine MCP tools.
+- **Auto-allow** (subject to the path guard): `Read`, `Grep`, `Glob`, the
+  two read-only knowledge-engine MCP tools, and the read-only `github` /
+  `mcp-atlassian` MCP servers (ASPS-748 — see [Agent tools](#agent-tools)).
 - **Hard-deny**: Bash matching `DANGEROUS_BASH_PATTERNS`.
 - **Everything else** (`Write`, `Edit`, `MultiEdit`, `NotebookEdit`,
   non-dangerous `Bash`, `Task`, `WebFetch`, any other MCP tool, etc.):
