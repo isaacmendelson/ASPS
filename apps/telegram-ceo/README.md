@@ -184,6 +184,12 @@ approval like any other state-changing action.
   two read-only knowledge-engine MCP tools, and the read-only `github` /
   `mcp-atlassian` MCP servers (ASPS-748 — see [Agent tools](#agent-tools)).
 - **Hard-deny**: Bash matching `DANGEROUS_BASH_PATTERNS`.
+- **Read-only git auto-allow (ASPS-749)**: a `Bash` call whose command
+  passes `isSafeReadOnlyGitCommand` (`src/security.ts`) auto-allows,
+  evaluated AFTER the hard-deny check above. This is a narrow carve-out
+  under `Bash`, not a general Bash allowlist — see
+  [Read-only git auto-allow](#4-read-only-git-auto-allow-asps-749) below for
+  the full rule set.
 - **Everything else** (`Write`, `Edit`, `MultiEdit`, `NotebookEdit`,
   non-dangerous `Bash`, `Task`, `WebFetch`, any other MCP tool, etc.):
   `canUseTool` calls `requestApproval()`, which sends the authorized user an
@@ -210,6 +216,46 @@ approval like any other state-changing action.
 accidental `null` leaves the permission request unanswered and the tool
 call blocked indefinitely; every branch above resolves to an explicit
 `allow` or `deny`.
+
+### 4. Read-only git auto-allow (ASPS-749)
+
+`Bash` calls that are a single, standalone, strictly read-only `git`
+invocation auto-allow without a Telegram approval, to cut approval friction
+for routine git plumbing — implemented by `isSafeReadOnlyGitCommand`
+(`src/security.ts`), evaluated in `canUseTool` AFTER the destructive-pattern
+hard-deny above, so a destructive command is never reachable through this
+path. Any doubt resolves to `false` (stays approval-gated) — this is a
+narrow carve-out under `Bash`, not a general shell allowlist.
+
+Returns `true` ONLY if ALL of the following hold:
+
+1. **No shell metacharacters anywhere**: `;` `&` `|` `` ` `` `$` `(` `)` `{`
+   `}` `<` `>` `\` or any control character (including newline/carriage
+   return) — this forbids chaining, redirection, command substitution,
+   subshells/backgrounding, and multi-line payloads, so it must be a single
+   standalone command.
+2. **Begins with `git `** (case-sensitive exact prefix) — optionally
+   `git -C <path>` where the path argument does not itself look like a flag.
+3. **Subcommand on a strict read-only allowlist**: `status`, `log`, `show`,
+   `diff`, `branch`, `remote`, `rev-parse`, `describe`, `blame`, `shortlog`,
+   `ls-files`, `ls-remote`, `tag`, `config`. The three with a write-capable
+   form are further restricted to their read-only shape: `remote` → bare /
+   `-v` / `get-url` / `show` only (never `add`/`remove`/`set-url`/`rename`/
+   `prune`); `branch` / `tag` → list forms only (bare / `-l` / `--list` /
+   `-a` / `-v`, never create/delete/move/force or a bare name argument);
+   `config` → `--get` / `--get-all` / `--list` only (never a set form).
+4. **No denied flag anywhere** in the token stream: config-override (`-c`,
+   `--config`), output/pager (`-o`, `--output`, `-O`, `--pager`,
+   `--open-files-in-pager`), external-diff (`--ext-diff`), transport/exec
+   program overrides (`--upload-pack`, `--receive-pack`, `--exec`,
+   `--exec-path`), and interactive flags (`-i`, `--interactive`) — these can
+   run an external program or override trusted config.
+
+`READ_ONLY_GIT_SUBCOMMANDS` and `DENIED_GIT_FLAGS` (`src/security.ts`) are
+the single source of truth for the allowlist/denylist. The system prompt
+(`context.ts`) tells the agent routine read-only git runs without a prompt,
+but any git write (commit/push/checkout/merge/rebase/reset, ...) still
+needs approval like any other state-changing action.
 
 ### SDK permission precedence — why `settingSources` is `[]`, not `["project"]`
 

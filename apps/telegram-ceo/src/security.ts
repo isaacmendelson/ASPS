@@ -29,6 +29,182 @@ export function matchDangerousBashCommand(command: string): RegExp | undefined {
 }
 
 /**
+ * Strict read-only `git` allowlist (ASPS-749).
+ *
+ * `createCanUseTool` (agent.ts) auto-allows a Bash call ONLY when
+ * `isSafeReadOnlyGitCommand` returns true, to cut Telegram approval friction
+ * for routine git plumbing (status/log/diff/...) without weakening the
+ * ASPS-743 deny-by-default model. This is a narrow carve-out under `Bash`,
+ * not a new tool — everything not on this allowlist (including every git
+ * WRITE: commit/push/checkout/merge/rebase/reset/`branch -D`/`remote add`/
+ * `config user.name`, ...) still falls through to the existing approval
+ * flow, and `matchDangerousBashCommand` above still hard-denies destructive
+ * patterns regardless of this allowlist (evaluated first in `agent.ts`).
+ *
+ * An allowlist over a shell is dangerous for two reasons this function must
+ * defend against:
+ *
+ *  (a) Shell metacharacters let one command chain into another (`;`, `&&`,
+ *      `|`, backticks/`$(...)` substitution, `(...)`/`{...}` subshells,
+ *      `<`/`>` redirection, `\` line continuation, embedded newlines).
+ *  (b) `git` itself can be made to execute an external program or override
+ *      trusted config via certain flags (`-c`/`--config`, `-o`/`--output`/
+ *      `-O`/`--pager`/`--open-files-in-pager`, `--ext-diff`,
+ *      `--upload-pack`/`--receive-pack`/`--exec`/`--exec-path`, interactive
+ *      flags).
+ *
+ * Any doubt resolves to `false` (stays approval-gated) — this function must
+ * be fail-safe, not merely fail-closed on the common case.
+ */
+
+/**
+ * Rule 1: reject if ANY of these appear anywhere in the raw command —
+ * semicolon, ampersand, pipe, backtick, dollar-sign, parentheses, braces,
+ * angle brackets, backslash, or any control character (including newline
+ * `\n` and carriage return `\r`). This forbids chaining, redirection,
+ * command substitution, subshells/backgrounding, and multi-line payloads,
+ * so a safe command must be a single standalone line.
+ */
+const SHELL_METACHARACTER_PATTERN = /[;&|`$(){}<>\\]|[\x00-\x1f]/;
+
+/**
+ * Rule 3: strict READ-ONLY git subcommand allowlist. Single source of
+ * truth — do not duplicate elsewhere.
+ */
+export const READ_ONLY_GIT_SUBCOMMANDS: ReadonlySet<string> = new Set([
+  "status",
+  "log",
+  "show",
+  "diff",
+  "branch",
+  "remote",
+  "rev-parse",
+  "describe",
+  "blame",
+  "shortlog",
+  "ls-files",
+  "ls-remote",
+  "tag",
+  "config",
+]);
+
+/**
+ * `branch` / `tag` have a write-capable form (create/delete/move/force, or a
+ * bare name argument creates a branch/tag). Only these list-shaped tokens
+ * are allowed as arguments — anything else (a name, `-d`/`-D`, `-m`/`-M`,
+ * `-f`/`--force`, `--delete`, `--move`, ...) rejects the whole command.
+ */
+const GIT_LIST_ONLY_FLAGS: ReadonlySet<string> = new Set(["-l", "--list", "-a", "-v"]);
+
+/**
+ * `remote` has a write-capable form (add/remove/rename/set-url/prune/...).
+ * Only these read forms are allowed as the first remaining token: bare
+ * (empty — lists remotes), `-v`, `get-url`, `show`.
+ */
+const GIT_REMOTE_READ_MODES: ReadonlySet<string> = new Set(["-v", "get-url", "show"]);
+
+/**
+ * `config` has a write-capable form (`git config key value` sets it). Only
+ * these read forms are allowed as the first remaining token.
+ */
+const GIT_CONFIG_READ_FLAGS: ReadonlySet<string> = new Set(["--get", "--get-all", "--list"]);
+
+/**
+ * Rule 4: git flags that can run an external program or override trusted
+ * config, denied ANYWHERE in the token stream regardless of subcommand.
+ * Single source of truth — do not duplicate elsewhere.
+ */
+export const DENIED_GIT_FLAGS: RegExp[] = [
+  /^-c$/, // config-override
+  /^--config(=.*)?$/, // config-override
+  /^-o$/, // output flag can point at an arbitrary program/target via some subcommands' plumbing
+  /^--output(=.*)?$/,
+  /^-O$/, // orderfile for diff — arbitrary file read, treat as untrusted-input risk
+  /^--pager(=.*)?$/, // overrides the pager program to run
+  /^--open-files-in-pager(=.*)?$/, // runs the given program with matched files
+  /^--ext-diff$/, // allows a configured external diff program to run
+  /^--upload-pack(=.*)?$/, // transport program override
+  /^--receive-pack(=.*)?$/, // transport program override
+  /^--exec(=.*)?$/, // transport/exec program override
+  /^--exec-path(=.*)?$/, // exec-path override (bare or with a value — reject either)
+  /^-i$/, // interactive
+  /^--interactive$/, // interactive
+];
+
+/**
+ * Returns true ONLY if `command` is a single, standalone, strictly
+ * READ-ONLY `git` invocation safe to auto-allow without a Telegram
+ * approval. See the block comment above for the full threat model. Any
+ * doubt returns false (stays approval-gated) — this is a pure function,
+ * easy to unit test exhaustively; keep it that way.
+ */
+export function isSafeReadOnlyGitCommand(command: string): boolean {
+  if (typeof command !== "string" || command.length === 0) return false;
+
+  // Rule 1 — no shell metacharacters anywhere in the raw (untrimmed)
+  // command; a leading/trailing newline is itself a rejection, not just an
+  // embedded one.
+  if (SHELL_METACHARACTER_PATTERN.test(command)) return false;
+
+  const trimmed = command.trim();
+
+  // Rule 2 — must begin with `git ` (case-sensitive, exact prefix — rejects
+  // leading text, different case, and lookalike prefixes like `github` or
+  // `git-lfs` since the character after `git` must be a space).
+  if (!trimmed.startsWith("git ")) return false;
+
+  const tokens = trimmed.split(/\s+/).filter((token) => token.length > 0);
+  if (tokens[0] !== "git") return false;
+
+  let i = 1;
+
+  // Optional `git -C <path>` — the path is already metacharacter-free (rule
+  // 1); additionally reject if it looks like a flag (e.g. an attempt to
+  // smuggle `-c`/`--config` in as the "path" argument).
+  if (tokens[i] === "-C") {
+    const value = tokens[i + 1];
+    if (!value || value.startsWith("-")) return false;
+    i += 2;
+  }
+
+  // Rule 3 — the subcommand is the first non-flag token after `git`/`-C
+  // <path>`. Any other leading flag before the subcommand (e.g.
+  // `--no-pager`) is not on any allowlist here, so it is rejected — strict
+  // by design, not merely by omission.
+  const subcommand = tokens[i];
+  if (!subcommand || subcommand.startsWith("-") || !READ_ONLY_GIT_SUBCOMMANDS.has(subcommand)) {
+    return false;
+  }
+
+  const rest = tokens.slice(i + 1);
+
+  // Rule 4 — scan every token (including `git`, the optional `-C <path>`,
+  // the subcommand, and every remaining argument) for a denied flag.
+  for (const token of tokens) {
+    if (DENIED_GIT_FLAGS.some((pattern) => pattern.test(token))) return false;
+  }
+
+  // Rule 3 (continued) — subcommand-specific safe-form restriction for the
+  // three subcommands that have a write-capable form.
+  switch (subcommand) {
+    case "remote":
+      if (rest.length > 0 && !GIT_REMOTE_READ_MODES.has(rest[0])) return false;
+      break;
+    case "branch":
+    case "tag":
+      if (!rest.every((token) => GIT_LIST_ONLY_FLAGS.has(token))) return false;
+      break;
+    case "config":
+      if (rest.length === 0 || !GIT_CONFIG_READ_FLAGS.has(rest[0])) return false;
+      break;
+    default:
+      break; // status/log/show/diff/rev-parse/describe/blame/shortlog/ls-files/ls-remote: no write-capable form.
+  }
+
+  return true;
+}
+
+/**
  * Single source of truth for the secret-path denylist (ASPS-743 security
  * remediation, blocker B1).
  *
