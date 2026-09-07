@@ -107,6 +107,8 @@ QA review verifies **functional correctness against the acceptance criteria**. I
 
 Security review checks for vulnerabilities and compliance. See [security-rules.md](security-rules.md) for binding rules.
 
+> **Mandatory merge gate.** A security review PASS is required before **every** merge to `main`, alongside QA and code review — see the "Security gate" section in [task-workflow.md](task-workflow.md) for the gate mechanics, the Blocker/Major-blocks-merge rule, and the "no security impact" determination allowed for security-inert (doc-only) changes.
+
 ### What to check
 
 1. **OWASP Top 10** — injection, broken auth, sensitive data exposure, XXE, broken access control, misconfiguration, XSS, insecure deserialization, known vulnerabilities, insufficient logging.

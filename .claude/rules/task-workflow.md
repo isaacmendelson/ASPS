@@ -31,8 +31,9 @@ When multiple agents work on the same feature or story:
 6. QA PASS + main unchanged → agent opens Merge Request (PR)
 7. Agent transitions JIRA to "In Review" (transition ID 31)
 8. Orchestrator does code review (or delegates — see below)
-   ├─ Approved → merge to main → JIRA to "Done" (transition ID 41)
-   └─ Not approved → return to agent → JIRA to "In Progress" (transition ID 21)
+9. Orchestrator runs the SECURITY GATE (see below) — mandatory before merge
+   ├─ Code review approved AND security PASS → merge to main → JIRA "Done" (41)
+   └─ Not approved / security FAIL → return to agent → JIRA "In Progress" (21)
 ```
 
 ## Pre-QA gate — mandatory before requesting QA
@@ -71,8 +72,18 @@ After QA returns **FAIL**:
 - The **orchestrator (CEO)** is the default reviewer.
 - The orchestrator may delegate review to another agent (e.g., architect, or a peer developer agent).
 - The reviewer must follow the code review guide in [review-standards.md](review-standards.md).
-- Approved → orchestrator merges to `main` and transitions JIRA to Done.
+- Approved → proceed to the **security gate** (below), then merge.
 - Not approved → orchestrator returns to agent with findings and transitions JIRA to In Progress.
+
+## Security gate — mandatory before every merge to `main`
+
+**No change reaches `main` without a security review PASS.** The orchestrator runs the **security** agent against the branch (using the security-review guide in [review-standards.md](review-standards.md) and [security-rules.md](security-rules.md)) after code review and before merge. This is a third required gate alongside QA and code review — it is not optional and not left to case-by-case judgment.
+
+- **Verdict rule:** any **Blocker or Major** security finding → the merge is **blocked**; return to the agent (JIRA → In Progress) to remediate, then re-run the full gate (security + QA re-check as needed). Minor/Nit → may merge with the findings tracked as follow-ups.
+- **Depth scales with the change, but the gate never does.** For changes touching code, configuration, infrastructure, dependencies, authentication/authorization, secrets, network exposure, data handling, or the permission model — a **full security review** is required. For genuinely security-inert changes (documentation-only, comments, non-executable content), the orchestrator (or security agent) records an explicit **"no security impact"** determination in the PR/handoff — that determination is itself the gate being satisfied, and must be a deliberate call, never a silent skip.
+- **Independence:** the security reviewer verifies independently against `security-rules.md`; a developer agent's self-assessment does not satisfy the gate.
+- **Evidence:** the security verdict (PASS / findings table with severity + exploit path + `file:line` + remediation, or the "no security impact" note) is recorded before the merge and mirrored into the task handoff. For infrastructure/box changes, capture the audit under `docs/security-audits/`.
+- **Applies to all mergers**, including the orchestrator's own changes and hotfixes. A time-critical hotfix may merge on an expedited security review, but never with no security review at all.
 
 ## Commit message format
 
@@ -86,9 +97,10 @@ After QA returns **FAIL**:
 
 | Role | Responsibility |
 |---|---|
-| **Orchestrator (CEO)** | Assigns tasks, decides branch names for multi-agent stories, does code review, approves/rejects merges, transitions JIRA to Done |
+| **Orchestrator (CEO)** | Assigns tasks, decides branch names for multi-agent stories, does code review, runs the security gate, approves/rejects merges, transitions JIRA to Done |
 | **Developer agent** | Creates branch, implements, runs tests, requests QA, opens PR after QA PASS, transitions JIRA to In Review |
 | **QA agent** | Reviews on the branch, returns PASS/FAIL with evidence |
+| **Security agent (CISO)** | Runs the mandatory pre-merge security gate; returns PASS or findings (severity + exploit path + file:line + remediation). Reviews, does not fix. |
 | **DevOps / CISO** | Same branching rules when changing code or infrastructure |
 
 ## JIRA transitions
@@ -165,5 +177,5 @@ Then: merge
 ## Rules
 
 - No commits directly to `main` — all work goes through branches + PR.
-- No merge without QA PASS and orchestrator code review.
+- No merge without QA PASS, orchestrator code review, **and a security gate PASS** (see "Security gate" above). All three gates are mandatory for every merge to `main`.
 - Branch is deleted after successful merge.
