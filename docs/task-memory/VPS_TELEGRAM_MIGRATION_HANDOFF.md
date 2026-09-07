@@ -3,22 +3,28 @@
 **Task name:** VPS_TELEGRAM_MIGRATION
 **Owner hat:** CEO (orchestrator)
 **Created:** 2026-08-25
-**Status:** IN PROGRESS — user approved scope (D1–D4) on 2026-09-06. **Phase 4 (ASPS-743) DONE & MERGED to main (PR #39, merge commit `a6dc84f`) on 2026-09-06** — bot migrated to `@anthropic-ai/claude-agent-sdk` with a deny-by-default permission model + Telegram approval flow. Gates all PASS: QA (118/118 tests, independently verified), Security (PASS after 2 remediation rounds — 3 Blockers + 2 Majors found and closed), CEO code review. Code-level follow-up residuals (Minor/Nit) tracked on ASPS-745. **Phase 1 + 2 (ASPS-740/741) provisioning scripts DONE (authoring) & MERGED to main (PR #40, `9dc2f11`) on 2026-09-06** — `deploy/vps/` (`01-harden.sh`, `02-toolchain.sh`, `lib.sh`, `config.env.example`, `README.md`). Security review PASS after 1 remediation round (Blocker: Ubuntu 24.04 ssh.socket ignoring drop-in Port; Majors: drop-in precedence fail-open + root-lockout — all closed), CEO code review PASS. Scripts are **authored-but-UNEXECUTED** — execution + on-box verification happen at the Phase 1 gate once the VPS exists; execution-gate checklist (incl. R1/R2 + mandatory second-login test) is on ASPS-740. **Phase 3 + Phase 5 (ASPS-742/ASPS-744) scripts DONE (authoring) on branch `asps-742-vps-clone-and-service-scripts` on 2026-09-07** — `deploy/vps/03-clone.sh`, `deploy/vps/telegram-ceo.service`, `deploy/vps/05-service.sh` (+ `lib.sh`/`config.env.example`/`README.md` extended). Not merged, no PR — awaiting CEO code review + security review of the credential-helper mechanism and the systemd hardening tradeoffs, per explicit instruction. **Phases 0, 6–7 gated on the user provisioning the Hostinger VPS (Phase 0, ASPS-739).** **Phase 0 is done — the VPS exists (168.231.111.91).** A live execution of `01-harden.sh` against it on 2026-09-07 hit an SSH lockout in step 5's socket-activation handling (root cause + recovery + fix documented under "Phase 1 (ASPS-740) — live execution found an SSH lockout bug" below); fixed on branch `asps-740-fix-socket-and-node-execution-bugs`, pushed, not merged, no PR — awaiting CEO/security review before re-attempting execution on the box.
+**Status:** 🟢 **BOT LIVE.** As of 2026-09-07 the Telegram CEO bot is running on the VPS as a 24/7 systemd service and responding end-to-end. Phases 0–5 DONE; Phases 6–7 remain (box security audit + runbook/E2E sign-off).
+
+- **Target box:** `168.231.111.91` (Hostinger "2nd VPS", srv1618511, **Ubuntu 24.04.4**, 2 vCPU / 8 GB). The other box `187.124.10.197` (Debian 13, heavy openclaw/nginx/Next.js production) is **not touched**. The target also runs a small `openclaw` (localhost:18789) + Docker — **preserved, untouched**. Access: `aspsbot` via ed25519 key (private key + sudo password held locally in the session scratchpad — NOT in repo; hand these to the user for durable access).
+- **Phase 4 (ASPS-743) DONE** — bot on `@anthropic-ai/claude-agent-sdk`, deny-by-default permission model + Telegram approve/deny flow. PR #39 (`a6dc84f`). QA 118/118 + Security (2 rounds, 3 Blockers+2 Majors closed) + code review all PASS.
+- **Phases 1/2/3/5 scripts** merged (PR #40, #41) then **EXECUTED on the live box** and verified. Live execution exposed two real script bugs — (1) `01-harden.sh` socket-switch SSH lockout on port 22 [recovered via Hostinger console], (2) `02-toolchain.sh` Node-24 downgrade + node-less abort — both fixed, reviewed (Security PASS, QA PASS), merged **PR #42 (`4cbf2b8`)**. The live box is in the correct hardened end-state and did not need re-running.
+- **Bot config on box:** hardened SSH (key-only, root blocked, UFW, fail2ban, 2G swap, reboot-safe via `RuntimeDirectory=sshd`), .NET 8 + ripgrep + Claude CLI 2.1.263 (Node 24 kept), repo cloned + bot built at `/home/aspsbot/ASPS`, secrets in `/home/aspsbot/secrets` (600, outside the clone): `telegram-ceo.env` (bot `@Zappa_desktop_bot`, `CLAUDE_CODE_OAUTH_TOKEN` verified auth, AUTHORIZED_USERS=5554420161), `ACCESS_KEYS.env` (GitHub agent PAT + JIRA), `github-credentials`. systemd override adds `~/.claude` etc. to `ReadWritePaths`.
+- **Open:** approval-posture decision (user was offered smart-reduction vs full-disable — **dismissed, pending**); Phase 6 box security audit (ASPS-745 follow-ups: `assert_sshd_listening` robustness, fold ReadWritePaths override into the service template, egress isolation, `main` branch protection, least-priv GitHub token); Phase 7 runbook. Reboot survival verified non-invasively (all services enabled, `RuntimeDirectory=sshd`) — a real reboot test was offered, not yet run.
 
 ## JIRA
 | Item | Key | Status |
 |---|---|---|
-| Epic — VPS + Telegram CEO agent migration | ASPS-738 | In Progress |
-| Phase 0 — Provisioning & prerequisites | ASPS-739 | To Do (user action) |
-| Phase 1 — VPS baseline hardening | ASPS-740 | In Progress — scripts merged (PR #40); **live execution on VPS hit an SSH lockout in step 5 (socket-switch), recovered via console, fix on branch `asps-740-fix-socket-and-node-execution-bugs` (pushed, not merged)** |
-| Phase 2 — Runtime toolchain | ASPS-741 | In Progress — scripts merged (PR #40); **execution gated on VPS** |
-| Phase 3 — Clone repo & wire secrets | ASPS-742 | In Progress — scripts merged (PR #41); **execution gated on VPS** |
-| Phase 4 — Migrate bot to Claude Agent SDK | ASPS-743 | ✅ **Done — merged to main (PR #39, `a6dc84f`)** |
-| Phase 5 — 24/7 systemd service | ASPS-744 | In Progress — scripts merged (PR #41); **execution gated on VPS** |
-| Phase 6 — Security deepening & audit | ASPS-745 | To Do (gated on VPS) |
-| Phase 7 — Verification & docs | ASPS-746 | To Do |
+| Epic — VPS + Telegram CEO agent migration | ASPS-738 | In Progress (Phases 0–5 done; 6–7 remain) |
+| Phase 0 — Provisioning & prerequisites | ASPS-739 | ✅ **Done** — VPS 168.231.111.91 live, secrets staged |
+| Phase 1 — VPS baseline hardening | ASPS-740 | ✅ **Done** — executed + verified on box; live-lockout bug fixed (PR #42) |
+| Phase 2 — Runtime toolchain | ASPS-741 | ✅ **Done** — executed on box; Node-downgrade bug fixed (PR #42) |
+| Phase 3 — Clone repo & wire secrets | ASPS-742 | ✅ **Done** — cloned + built + secrets on box |
+| Phase 4 — Migrate bot to Claude Agent SDK | ASPS-743 | ✅ **Done** — merged (PR #39, `a6dc84f`) |
+| Phase 5 — 24/7 systemd service | ASPS-744 | ✅ **Done** — `telegram-ceo.service` active, enabled, running |
+| Phase 6 — Security deepening & audit | ASPS-745 | To Do — box audit + follow-ups |
+| Phase 7 — Verification & docs | ASPS-746 | To Do — runbook; E2E already observed working |
 
-**Gate:** ALL unblocked repo-only work is done and merged — Phase 4 (bot, PR #39) + the full `deploy/vps/` provisioning chain 01→05 (Phases 1/2 PR #40, Phases 3/5 PR #41), all security + code reviewed, authored-but-unexecuted. Everything remaining (executing 01→05 on the box, then Phase 6 audit + Phase 7 E2E) needs the live VPS → **user provisions it in Phase 0 (ASPS-739)**. Execution-gate checklists live on ASPS-740 (SSH/root R1/R2) and ASPS-745 (Phase 3/5 residuals: SECRETS_DIR read-only, ~/.claude ReadWritePaths, PrivateDevices/syscall filter, GITHUB_TOKEN-in-env).
+**Continuation point:** the bot is LIVE and working. Remaining: (1) resolve the approval-posture decision (pending user); (2) Phase 6 — run a box security audit + the ASPS-745 follow-ups; (3) Phase 7 — write `docs/cloud/VPS_TELEGRAM_RUNBOOK.md` and optionally a real reboot test. Session-local access artifacts (aspsbot private key + sudo password) live in the scratchpad — hand to the user for durable access; they are NOT in the repo.
 
 ---
 
