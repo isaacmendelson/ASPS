@@ -1,11 +1,86 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import type { CanUseTool, Options, SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { CanUseTool, McpServerConfig, Options, SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import { checkPathAllowed, findSecretPathInInput, matchDangerousBashCommand } from "./security.js";
 import { requestApproval } from "./approvals.js";
 import { getSessionId, setSessionId } from "./session.js";
 import { TELEGRAM_SYSTEM_PROMPT_APPEND, loadClaudeMd, loadMcpServers } from "./context.js";
 
 const DEFAULT_MAX_TURNS = 20; // Safety limit, mirrors the previous hand-rolled agentic loop.
+
+/**
+ * `sooperset/mcp-atlassian` Docker image tag (ASPS-748).
+ *
+ * Deliberately NOT `latest` — pinning avoids a supply-chain surprise where a
+ * new image version silently changes behavior (or is compromised) between
+ * one `docker run --rm` and the next, since `--rm` means there is no local
+ * image-digest pin from a previous `docker pull` to fall back on.
+ *
+ * TODO(CEO, box testing): replace with the actual verified release tag from
+ * https://github.com/sooperset/mcp-atlassian/pkgs/container/mcp-atlassian
+ * before this reaches production. Left as an explicit placeholder rather
+ * than a guessed version number.
+ */
+const MCP_ATLASSIAN_IMAGE_TAG = "TODO_PIN_MCP_ATLASSIAN_VERSION";
+
+/**
+ * Bot-scoped MCP servers (ASPS-748) — deliberately NOT added to the repo's
+ * `.mcp.json` (that file is shared with interactive Claude Code sessions in
+ * this repo and is not the right place for bot-process-only credentials).
+ * Built fresh per call from the current environment so a token rotation
+ * takes effect on the next Telegram turn without a restart-required cache.
+ *
+ * Both are read-only by construction, not by policy alone — see the
+ * `allowedTools` wildcard comment in `buildOptions` for why that matters:
+ *
+ * - `github` — GitHub's own remote MCP server, `/readonly` endpoint
+ *   (https://api.githubcopilot.com/mcp/readonly): the endpoint itself only
+ *   exposes read tools (issues/PRs/commits/code search, etc.), there is no
+ *   write tool for `canUseTool` to ever see. Auth is a Bearer token from
+ *   `GITHUB_TOKEN`, already present in the bot process (see
+ *   `TELEGRAM_SYSTEM_PROMPT_APPEND` in context.ts).
+ * - `mcp-atlassian` — the community `sooperset/mcp-atlassian` server run as
+ *   a throwaway `docker run --rm -i` container per session, with
+ *   `READ_ONLY_MODE=true` so the server itself refuses to register any
+ *   write/mutate tool at startup (not just a documentation claim — see the
+ *   project's own README). Credentials are passed via `-e VAR` (pass-through
+ *   from the `env` map below) so they never appear in `argv`/process list,
+ *   never in shell history. `JIRA_URL`/`JIRA_USERNAME`/`JIRA_API_TOKEN` are
+ *   the box's existing `JIRA_BASE_URL`/`JIRA_EMAIL`/`JIRA_API_TOKEN` vars
+ *   (same ones `TELEGRAM_SYSTEM_PROMPT_APPEND` already tells the agent it
+ *   has), just remapped to the names `mcp-atlassian` expects.
+ */
+function buildBotScopedMcpServers(): Record<string, McpServerConfig> {
+  return {
+    github: {
+      type: "http",
+      url: "https://api.githubcopilot.com/mcp/readonly",
+      headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN ?? ""}` },
+    },
+    "mcp-atlassian": {
+      command: "docker",
+      args: [
+        "run",
+        "--rm",
+        "-i",
+        "-e",
+        "JIRA_URL",
+        "-e",
+        "JIRA_USERNAME",
+        "-e",
+        "JIRA_API_TOKEN",
+        "-e",
+        "READ_ONLY_MODE",
+        `ghcr.io/sooperset/mcp-atlassian:${MCP_ATLASSIAN_IMAGE_TAG}`,
+      ],
+      env: {
+        JIRA_URL: process.env.JIRA_BASE_URL ?? "",
+        JIRA_USERNAME: process.env.JIRA_EMAIL ?? "",
+        JIRA_API_TOKEN: process.env.JIRA_API_TOKEN ?? "",
+        READ_ONLY_MODE: "true",
+      },
+    },
+  };
+}
 
 /**
  * Tools that never touch the filesystem or mutate state — auto-allowed
@@ -17,6 +92,34 @@ const DEFAULT_MAX_TURNS = 20; // Safety limit, mirrors the previous hand-rolled 
 const AUTO_ALLOW_READ_TOOLS = new Set(["Read", "Grep", "Glob"]);
 const AUTO_ALLOW_MCP_TOOLS = ["mcp__knowledge-engine__knowledge_search", "mcp__knowledge-engine__knowledge_ask"];
 const AUTO_ALLOW_MCP_TOOL_SET = new Set(AUTO_ALLOW_MCP_TOOLS);
+
+/**
+ * Per-server wildcards (ASPS-748) for the two bot-scoped MCP servers built
+ * by `buildBotScopedMcpServers` above, passed to the SDK's `allowedTools`
+ * (same SDK-level auto-allow mechanism as `AUTO_ALLOW_MCP_TOOLS` — it
+ * bypasses `canUseTool` entirely; see the comment on `allowedTools` in
+ * `buildOptions`).
+ *
+ * A per-server wildcard is normally the exact pattern this codebase avoids
+ * ("no mcp wildcards" — a wildcard on a general-purpose MCP server could
+ * silently auto-allow a write/mutate tool added to that server later,
+ * without this code ever changing). It is safe here as a *documented
+ * exception* only because both servers are read-only by construction, not
+ * by convention:
+ *   - `github` talks to GitHub's own `/mcp/readonly` endpoint, which GitHub
+ *     documents as exposing read-only tools only — there is no write tool
+ *     registered on that endpoint for a wildcard to ever match.
+ *   - `mcp-atlassian` is started with `READ_ONLY_MODE=true`, which the
+ *     server enforces by refusing to register any write/mutate tool at
+ *     startup (not merely by convention on our side).
+ * This assumption rests entirely on those two upstream endpoints staying
+ * read-only — if either one ever exposes a write tool under an unchanged
+ * server key, this wildcard would auto-allow it without a Telegram
+ * approval. `canUseTool`'s own deny-by-default policy is NOT changed by
+ * this — it is bypassed at the SDK level for these two servers only, the
+ * same way it already is for the two knowledge-engine tools above.
+ */
+const AUTO_ALLOW_MCP_WILDCARDS = ["mcp__github__*", "mcp__mcp-atlassian__*"];
 
 /**
  * Tool-input field name that carries a filesystem path, per tool.
@@ -203,14 +306,23 @@ function buildOptions(userId: number): Options {
     // isolation mode. strictMcpConfig prevents any other on-disk source
     // (plugins, user settings, agent frontmatter) from smuggling in an
     // MCP server we didn't explicitly approve.
-    mcpServers: loadMcpServers(workingDir),
+    //
+    // The GitHub + JIRA servers (ASPS-748) are merged in here, NOT added to
+    // the repo's .mcp.json — they are bot-process-scoped (built from the
+    // bot's own env vars each call, see buildBotScopedMcpServers above),
+    // not something an interactive Claude Code session in this repo should
+    // pick up.
+    mcpServers: { ...loadMcpServers(workingDir), ...buildBotScopedMcpServers() },
     strictMcpConfig: true,
-    // Auto-allow ONLY the two read-only knowledge-engine MCP tools at the
-    // SDK level (this also bypasses canUseTool, same mechanism as settings
-    // permissions.allow — safe here because these tools take no filesystem
-    // path and are genuinely read-only). Read/Grep/Glob are NOT listed here
-    // on purpose: they still go through canUseTool so the path guard runs.
-    allowedTools: AUTO_ALLOW_MCP_TOOLS,
+    // Auto-allow the read-only knowledge-engine MCP tools, plus the two
+    // read-only GitHub/JIRA MCP servers via a per-server wildcard (ASPS-748
+    // — see AUTO_ALLOW_MCP_WILDCARDS above for why the wildcard is safe
+    // here), at the SDK level (this also bypasses canUseTool, same
+    // mechanism as settings permissions.allow — safe here because these
+    // tools take no filesystem path and are genuinely read-only).
+    // Read/Grep/Glob are NOT listed here on purpose: they still go through
+    // canUseTool so the path guard runs.
+    allowedTools: [...AUTO_ALLOW_MCP_TOOLS, ...AUTO_ALLOW_MCP_WILDCARDS],
     systemPrompt: {
       type: "preset",
       preset: "claude_code",
