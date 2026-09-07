@@ -401,37 +401,45 @@ half-configured bot.
 
 ### systemd hardening — what's applied and what's deliberately not
 
+**Updated 2026-09-07 (ASPS-745 Phase 6 audit fold)** — see "Phase 6 audit
+fixes" below for the full before/after. Summary of the current state:
+
 Applied (verified compatible with node/git/npm/dotnet and the docker
 **client** — the daemon itself, `dockerd`, runs as its own separate,
 unsandboxed systemd unit and is unaffected by anything below):
 
 `NoNewPrivileges`, `ProtectSystem=strict` + `ReadWritePaths=${CLONE_PATH}
-${SECRETS_DIR}`, `ProtectControlGroups`, `RestrictSUIDSGID`, `PrivateTmp`,
-`ProtectKernelModules`, `ProtectKernelLogs`, `ProtectKernelTunables`,
-`ProtectClock`, `ProtectHostname`, `LockPersonality`, `RestrictRealtime`,
-`RestrictNamespaces`, plus `SupplementaryGroups=docker` (required for D4 —
-see the docker-group warning below, unchanged from Phase 2).
+/home/${ASPSBOT_USER}/.claude /home/${ASPSBOT_USER}/.config
+/home/${ASPSBOT_USER}/.cache /home/${ASPSBOT_USER}/.npm` (note:
+`${SECRETS_DIR}` is **not** in `ReadWritePaths` — read-only is sufficient
+and correct, see M5 below), `ProtectControlGroups`, `RestrictSUIDSGID`,
+`PrivateTmp`, `ProtectKernelModules`, `ProtectKernelLogs`,
+`ProtectKernelTunables`, `ProtectClock`, `ProtectHostname`,
+`LockPersonality`, `RestrictRealtime`, `RestrictNamespaces`, `UMask=0077`
+(M3 in the audit — see below), plus `SupplementaryGroups=docker` (required
+for D4 — see the docker-group warning below, unchanged from Phase 2).
 
-**Deliberately NOT applied — flagged for Security to decide/test at the
-Phase 1 execution gate, not silently chosen either way:**
+**Deliberately NOT applied — DEFERRED ASPS-745 follow-ups, flagged for an
+on-box `systemd-analyze security` pass + live tool-call smoke test before
+enabling, not silently chosen either way:**
 
 | Directive | Why it's tempting | Why it's not enabled here |
 |---|---|---|
-| `ProtectHome=yes` | Extra isolation of `/home` beyond `ProtectSystem=strict` | Makes `~/.gitconfig` (the Phase 3 credential-helper config, git identity, `safe.directory`) **inaccessible**, not merely read-only — it lives directly under `/home/aspsbot`, outside both `ReadWritePaths` entries. `ProtectSystem=strict` already makes the *entire* filesystem read-only except the two declared paths, which already satisfies "the bot can only write to its clone + secrets" — read access to `~/.gitconfig` (and any `$HOME`-relative Claude Code CLI state) is unaffected by `strict` alone, since read-only ≠ invisible. Adding `ProtectHome=yes` on top would only add risk (breaking git push) for no meaningful extra confinement `strict` doesn't already provide. |
-| `PrivateDevices=yes` | Blocks access to physical devices under `/dev` | Probably safe — the docker *client* only needs the unix socket (`/run/docker.sock`, reachable via `connect()` even on a read-only mount), not `/dev/*`, and `/dev/null|zero|random|urandom|tty` remain available under `PrivateDevices` regardless. But this is **unverified against a live box** (none exists yet) — recommended for Security to confirm and enable at the Phase 1 execution gate rather than assumed safe here. |
-| `SystemCallFilter=...` | Reduces the kernel attack surface materially | No safe filter set could be derived without live testing against node + git + npm + dotnet + the docker CLI + every `Bash`-tool command the agent might ever run. A wrong filter fails **closed** (crash-loop) rather than open — worse for an unattended 24/7 bot with nobody local to debug a broken syscall filter over Telegram. Left to Phase 6 with iterative `systemd-analyze security telegram-ceo.service` feedback once the box exists. |
-| `MemoryDenyWriteExecute=yes` | Blocks W^X memory violations (a common RCE primitive) | Node's V8 JIT can conflict with strict W^X enforcement on some builds/architectures — systemd's own docs flag JIT compilers as the known-incompatible case. Not verified here. |
+| `ProtectHome=yes` | Extra isolation of `/home` beyond `ProtectSystem=strict` | Makes `~/.gitconfig` (the Phase 3 credential-helper config, git identity, `safe.directory`) **inaccessible**, not merely read-only — it lives directly under `/home/aspsbot`, outside the `ReadWritePaths` entries. `ProtectSystem=strict` already makes the *entire* filesystem read-only except the declared paths, which already satisfies "the bot can only write to its clone + its own `$HOME` state" — read access to `~/.gitconfig` is unaffected by `strict` alone, since read-only ≠ invisible. Adding `ProtectHome=yes` on top would only add risk (breaking git push) for no meaningful extra confinement `strict` doesn't already provide. **Confirmed correct as OFF by the Phase 6 audit — keep OFF, no further action.** |
+| `PrivateDevices=yes` | Blocks access to physical devices under `/dev` | Probably safe — the docker *client* only needs the unix socket (`/run/docker.sock`, reachable via `connect()` even on a read-only mount), not `/dev/*`, and `/dev/null|zero|random|urandom|tty` remain available under `PrivateDevices` regardless. **Deferred** — needs a live `docker compose` smoke test on the real box before enabling. |
+| `SystemCallFilter=@system-service` + `SystemCallArchitectures=native` + `SystemCallErrorNumber=EPERM` | Reduces the kernel attack surface materially | No safe filter set could be derived without live testing against node + git + npm + dotnet + the docker CLI + every `Bash`-tool command the agent might ever run. A wrong filter fails **closed** (crash-loop) rather than open — worse for an unattended 24/7 bot with nobody local to debug a broken syscall filter over Telegram. `@system-service` is Node-compatible by design. **Deferred** — enable, run one real `docker compose` + `git push` + `dotnet build` turn, watch for `EPERM`, iterate with `systemd-analyze security telegram-ceo.service`. |
+| `CapabilityBoundingSet=` (empty) / `AmbientCapabilities=` | Drops all Linux capabilities the process doesn't need | Node/git/docker-client need no elevated capabilities under `NoNewPrivileges=yes` — graceful no-op if wrong. **Deferred** alongside the syscall filter pass so all remaining sandbox changes get one combined on-box verification instead of several separate service restarts. |
+| `RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6` | Blocks any socket family the service doesn't need | The service only needs Telegram/Anthropic/GitHub/JIRA HTTPS (`AF_INET`/`AF_INET6`) and the Docker socket (`AF_UNIX`). **Deferred** alongside the syscall filter pass. |
+| `ProtectProc=invisible` | Hides other users' `/proc` entries | Single-user box, so confinement value is marginal, but cheap. **Deferred** alongside the syscall filter pass rather than added in isolation. |
+| `MemoryDenyWriteExecute=yes` | Blocks W^X memory violations (a common RCE primitive) | Node's V8 JIT can conflict with strict W^X enforcement on some builds/architectures — systemd's own docs flag JIT compilers as the known-incompatible case. **Confirmed correct as OFF by the Phase 6 audit — keep OFF, no further action.** |
 
 This is the explicit tension the task called out: D4 requires the agent to
-have broad host access (write its own clone, reach `SECRETS_DIR`, use the
-Docker socket) while the bot runs unattended 24/7 with no one locally
-available to fix a broken-closed crash loop — so every directive above the
-line is one where getting it wrong is either a no-op or a graceful
-degradation, and everything below the line is one where getting it wrong
-either silently reopens a control (`ProtectHome`'s read-vs-inaccessible
-subtlety) or hard-crashes the service (syscall/memory filtering), and
-neither failure mode is acceptable to guess against a host that doesn't
-exist yet.
+have broad host access (write its own clone, use the Docker socket) while
+the bot runs unattended 24/7 with no one locally available to fix a
+broken-closed crash loop — so every directive still deferred above is one
+where getting it wrong either silently reopens a control or hard-crashes
+the service, and neither failure mode is acceptable to guess without the
+live smoke test called out per-row.
 
 ### `systemd-analyze verify`
 
@@ -449,6 +457,45 @@ syntax and directive set are valid; it does **not** confirm the hardening
 directives behave correctly against the real Node/git/Docker workload —
 that's the unverified part called out in the table above, and the real
 verification happens at the Phase 1 execution gate.
+
+## Phase 6 audit fixes (ASPS-745, folded 2026-09-07)
+
+A Phase 6 security audit (`docs/security-audits/2026-09-07-vps-telegram.md`)
+ran against the **live** box after Phases 0–5 were executed. Several
+findings were fixed live on the box (to unblock/verify immediately) and are
+folded back into these templates here so a **future re-provision** (a
+rebuild, a second box, disaster recovery) gets them automatically instead of
+depending on a hand-applied `systemctl edit` override that isn't tracked in
+git. This section is the record of what changed and why; the audit report
+itself is the source of truth for severity/reasoning.
+
+| Audit finding | Fix folded here | File |
+|---|---|---|
+| **M4** — fail2ban `sshd` jail showed `Total failed: 0`/`Banned: 0` despite real auth failures. Root cause: Ubuntu 24.04 socket-activates sshd, so failures log under transient `ssh@<n>-...service` units, not `sshd.service` — fail2ban's default `journalmatch` (`_SYSTEMD_UNIT=sshd.service`) never saw them. | Added `journalmatch = _COMM=sshd` to the `[sshd]` block written to `/etc/fail2ban/jail.local` — matches on the process command name, constant across socket- and service-activated sshd. | `01-harden.sh` step 7 |
+| **M5** — `telegram-ceo.service` granted the process **read+write** on `${SECRETS_DIR}`, even though systemd injects `EnvironmentFile=` content as PID 1 before the sandbox applies — the process needs zero filesystem access to its own secrets directory to see them as env vars. Only git-credential-store needs to *read* `github-credentials`, which `ProtectSystem=strict`'s default read-only already covers. | Removed `@SECRETS_DIR@` from `ReadWritePaths` entirely (it stays present on disk, mode `700`, just read-only under the sandbox now — not literally `InaccessiblePaths`, since the credential-helper read still needs to succeed). | `telegram-ceo.service` |
+| **m3** — `systemd-analyze` flagged `UMask=` unset, defaulting to world-readable (`0022`) for service-created files. | Added `UMask=0077`. | `telegram-ceo.service` |
+| *(live-only, not a numbered audit finding but applied alongside M5)* — the service failed to start under `ProtectSystem=strict` because the Claude Code CLI + npm write state under `$HOME` (`~/.claude`, `~/.config`, `~/.npm` caches) even with `WorkingDirectory=${CLONE_PATH}`. | Added `/home/@ASPSBOT_USER@/.claude /home/@ASPSBOT_USER@/.config /home/@ASPSBOT_USER@/.cache /home/@ASPSBOT_USER@/.npm` to `ReadWritePaths`; `05-service.sh` now `mkdir -p`s each (owned `@ASPSBOT_USER@`) before rendering/installing the unit, step 2/6, so the directories exist for `ProtectSystem=strict` to bind read-write on a fresh box. | `telegram-ceo.service`, `05-service.sh` |
+| **m1** — UFW showed `80/tcp` + `443/tcp` `ALLOW IN Anywhere` (both families) with nothing listening on either port. Investigated: `01-harden.sh` only ever opens `${SSH_PORT}/tcp` — these two rules are **pre-existing box drift** (likely a leftover from a prior image/setup), not something our scripts introduced. | **No code change** — nothing in `01-harden.sh` opens 80/443. Documented here so a re-provision operator knows to run `sudo ufw status verbose` after `01-harden.sh` and confirm no stray `ALLOW` rules remain beyond the SSH one; if any are found on a fresh box, that's new drift to investigate, not an expected side effect of this script. | Documentation only |
+
+**Deferred (documented, not enabled) — the "Deliberately NOT applied" table
+above** covers `PrivateDevices=yes`, `SystemCallFilter=@system-service` (+
+`SystemCallArchitectures=native` + `SystemCallErrorNumber=EPERM`),
+`CapabilityBoundingSet=`/`AmbientCapabilities=`,
+`RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6`, and `ProtectProc=invisible`
+— each needs an on-box `systemd-analyze security telegram-ceo.service` pass
+plus a live tool-call smoke test (real `git push` + `docker compose` +
+`dotnet build` + a representative Bash-tool turn) before enabling, since a
+wrong guess fails **closed** (crash-loop, unattended 24/7 bot, nobody local
+to debug it over Telegram). `MemoryDenyWriteExecute=yes` and `ProtectHome=yes`
+remain correctly OFF per the audit's own reasoning (V8 JIT and
+`~/.gitconfig` accessibility respectively) — not deferred, confirmed-final.
+
+**Not folded here — tracked separately, need the USER or a server-side
+change, not a `deploy/vps/*` template edit:** M1 (verify/re-scope/rotate the
+GitHub PAT), M2 (enable `main` branch protection on GitHub), M3
+(rootless-Docker/socket-proxy decision for the `docker` group — see
+"Docker-group privilege warning" below), and token rotation generally. See
+the audit report's "Items requiring the USER" section.
 
 ## Deferred to later phases (ASPS-745 box-level items NOT done here)
 

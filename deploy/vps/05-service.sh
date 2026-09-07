@@ -5,6 +5,9 @@
 # Renders deploy/vps/telegram-ceo.service (an @TOKEN@ template) using
 # config.env, installs it to /etc/systemd/system/, enables it (survives
 # reboot), and starts it. Refuses to start against placeholder secrets.
+# Also creates the $HOME state directories (~/.claude ~/.config ~/.cache
+# ~/.npm) the unit's ReadWritePaths needs (ASPS-745 audit fold, step 2/6)
+# — see telegram-ceo.service's ReadWritePaths comment.
 #
 # Runs as ROOT (installing units + systemctl enable/daemon-reload require
 # it). Idempotent — safe to re-run: the unit is only rewritten and
@@ -36,7 +39,7 @@ unit_target="/etc/systemd/system/${unit_name}"
 bot_env_file="${SECRETS_DIR}/telegram-ceo.env"
 access_keys_file="${SECRETS_DIR}/ACCESS_KEYS.env"
 
-log_step "1/5 — pre-flight: secrets must be real, not placeholder templates"
+log_step "1/6 — pre-flight: secrets must be real, not placeholder templates"
 guard_failed=false
 if file_has_placeholder_value "$bot_env_file"; then
     log_error "${bot_env_file} is missing or still contains placeholder values (e.g. 'your-bot-token-here'). Copy ${SECRETS_DIR}/telegram-ceo.env.example to ${bot_env_file}, fill in real TELEGRAM_BOT_TOKEN / CLAUDE_CODE_OAUTH_TOKEN / AUTHORIZED_USERS, confirm chmod 600, then re-run."
@@ -64,7 +67,28 @@ if [[ ! -d "${CLONE_PATH}/apps/telegram-ceo/dist" ]]; then
     exit 1
 fi
 
-log_step "2/5 — render + install ${unit_name}"
+log_step "2/6 — \$HOME state directories for the unit's ReadWritePaths (ASPS-745 audit fold)"
+# The Claude Code CLI + npm write state under $HOME (~/.claude, ~/.config,
+# ~/.npm caches) even though the service's WorkingDirectory is
+# ${CLONE_PATH}. ProtectSystem=strict in telegram-ceo.service makes the
+# whole filesystem read-only except its ReadWritePaths entries, and a
+# ReadWritePaths target that doesn't exist on disk yet still needs to
+# exist for systemd to bind it read-write — create them here, idempotently,
+# owned by ${ASPSBOT_USER} (not root), before the unit is (re)installed and
+# started. Applied live on the box 2026-09-07; folded into the script here
+# so a fresh re-provision gets it automatically instead of needing a manual
+# systemctl edit override.
+for home_subdir in .claude .config .cache .npm; do
+    target_dir="/home/${ASPSBOT_USER}/${home_subdir}"
+    if [[ -d "$target_dir" ]]; then
+        log_info "${target_dir} already exists — skipped."
+    else
+        install -d -m 0755 -o "$ASPSBOT_USER" -g "$ASPSBOT_USER" "$target_dir"
+        log_info "Created ${target_dir} (owned ${ASPSBOT_USER})."
+    fi
+done
+
+log_step "3/6 — render + install ${unit_name}"
 if [[ ! -f "$unit_template" ]]; then
     log_error "Template ${unit_template} not found."
     exit 1
@@ -93,7 +117,7 @@ else
     unit_changed=true
 fi
 
-log_step "3/5 — daemon-reload (only if the unit changed)"
+log_step "4/6 — daemon-reload (only if the unit changed)"
 if [[ "$unit_changed" == true ]]; then
     systemctl daemon-reload
     log_info "systemd reloaded."
@@ -101,12 +125,12 @@ else
     log_info "No change — daemon-reload skipped."
 fi
 
-log_step "4/5 — enable + start"
+log_step "5/6 — enable + start"
 systemctl enable "$unit_name" >/dev/null
 systemctl restart "$unit_name"
 sleep 2
 
-log_step "5/5 — verify"
+log_step "6/6 — verify"
 if systemctl is-active --quiet "$unit_name"; then
     log_info "${unit_name} is active."
 else

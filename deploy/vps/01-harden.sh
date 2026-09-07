@@ -301,6 +301,16 @@ backend  = systemd
 [sshd]
 enabled = true
 port    = ${SSH_PORT}
+# journalmatch override (ASPS-745 audit M4, applied+verified live
+# 2026-09-07): fail2ban's built-in sshd filter default journalmatch is
+# "_SYSTEMD_UNIT=sshd.service" (+ our backend=systemd), but Ubuntu 24.04
+# socket-activates sshd — each connection runs as a transient
+# "ssh@<n>-...service" unit, never "sshd.service" itself, so the default
+# match saw zero auth failures ("Total failed: 0") despite real ones in the
+# journal and never banned anything. "_COMM=sshd" matches on the process
+# COMMAND name instead (constant across socket- and service-activated
+# sshd), which is what actually catches every per-connection failure.
+journalmatch = _COMM=sshd
 EOF
 then
     log_info "jail.local written"
