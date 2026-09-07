@@ -22,7 +22,9 @@ class ScanService {
   // Check if URL points to a local/loopback address — never send to backend
   isLocalUrl(url) {
     try {
-      const hostname = new URL(url).hostname.toLowerCase();
+      // URL.hostname returns IPv6 literals in bracketed form (e.g. "[::1]"),
+      // so strip the brackets before comparing against the loopback address.
+      const hostname = new URL(url).hostname.toLowerCase().replace(/^\[|\]$/g, '');
       return (
         hostname === 'localhost' ||
         hostname === '127.0.0.1' ||
