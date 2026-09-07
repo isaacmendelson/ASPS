@@ -134,8 +134,8 @@ All agents that change production code must use Test-Driven Development:
 - `docs/task-memory/` is used because the Knowledge Engine indexes `docs/`; hat memory under `.claude/` is also indexed.
 - An unexpected application or session failure can occur before the final update, so phase-end updates are mandatory.
 
-### QA gate before merge
-Non-trivial code changes require PASS from QA agent before merge. The full workflow — pre-QA gate, post-QA merge request, code review, commit message format, and JIRA transitions — is defined in [`.claude/rules/task-workflow.md`](.claude/rules/task-workflow.md). Review standards (QA, code review, security review) are in [`.claude/rules/review-standards.md`](.claude/rules/review-standards.md).
+### Gates before merge — QA + code review + security (all mandatory)
+**No change reaches `main` without three gates passing: QA, orchestrator code review, and a security review.** The **security gate is mandatory for every merge** (added 2026-09-07) — run the security agent after code review; a Blocker/Major security finding blocks the merge; depth scales with the change (full review for code/config/infra/auth/secrets/network/permission-model; an explicit "no security impact" determination is allowed only for security-inert doc-only changes, never a silent skip); it applies to the CEO's own changes and hotfixes too. When describing or executing the merge workflow, always include the security gate — not just QA. Non-trivial code changes require QA PASS as well. The full workflow — pre-QA gate, the security gate, post-QA merge request, code review, commit message format, and JIRA transitions — is defined in [`.claude/rules/task-workflow.md`](.claude/rules/task-workflow.md) ("Security gate" section). Review standards (QA, code review, security review) are in [`.claude/rules/review-standards.md`](.claude/rules/review-standards.md).
 
 ### Trust-but-verify
 When a sub-agent reports work done — open the actual files and confirm before relaying to user.
