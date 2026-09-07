@@ -72,28 +72,70 @@ Values with defaults you may want to review before running:
 
 | Variable | Default | Note |
 |---|---|---|
-| `SSH_PORT` | `22` | Standard port (changed from a non-default `2222` in the ASPS-740 security remediation). `01-harden.sh` handles Ubuntu 24.04's `ssh.socket` activation and asserts sshd is actually listening on `SSH_PORT` before opening UFW, so a custom port is safe with respect to *this script* — but the VPS also sits behind Hostinger's own cloud-level firewall/security group, separate from UFW and not managed by these scripts. **If you set a non-22 `SSH_PORT`, you must also open it in Hostinger's panel firewall yourself**, or you will be locked out even with UFW/sshd both correct. 22 is the default specifically to avoid that extra, easy-to-forget step. |
+| `SSH_PORT` | `22` | Standard port (changed from a non-default `2222` in the ASPS-740 security remediation). At `22`, `01-harden.sh` deliberately leaves Ubuntu 24.04's `ssh.socket` activation in place (no restart) — see "sshd hardening correctness" below for why this is both simpler and safer than switching to `ssh.service`. For any other value, it disables `ssh.socket` and switches to `ssh.service` so the custom `Port` actually takes effect, and asserts sshd is actually listening on `SSH_PORT` before opening UFW — but the VPS also sits behind Hostinger's own cloud-level firewall/security group, separate from UFW and not managed by these scripts. **If you set a non-22 `SSH_PORT`, you must also open it in Hostinger's panel firewall yourself**, or you will be locked out even with UFW/sshd both correct. 22 is the default specifically to avoid that extra, easy-to-forget step (and the socket-switch risk entirely). |
 | `LOCK_ROOT` | `false` | Whether `01-harden.sh` also runs `passwd -l root` on top of `PermitRootLogin no`. Off by default — see "Root lockout safety" below. |
 | `SWAP_SIZE_GB` | `2` | Floor for .NET/Docker builds on a 4 GB box per the task spec. Bump to 4 if the box has less RAM and D4 (agent builds ASPS locally) is in active use. |
 | `TIMEZONE` | `Asia/Jerusalem` | Change if you administer from elsewhere. |
 
-## sshd hardening correctness (ASPS-740 security remediation, 2026-09-06)
+## sshd hardening correctness (ASPS-740 security remediation, 2026-09-06; lockout fix, 2026-09-07)
 
 A security review of the original scripts found a Blocker and two Majors in
-the sshd-hardening logic, all fixed on this branch:
+the sshd-hardening logic; a subsequent **live execution on the real VPS**
+(168.231.111.91, 2026-09-07) then exposed a further, more subtle bug in the
+Blocker's own fix — all documented and fixed on this branch:
 
-- **Ubuntu 24.04 socket activation (Blocker).** Fresh Ubuntu 24.04 ships
-  `ssh.socket` (systemd socket activation) owning the SSH listening socket.
-  While `ssh.socket` is active, `sshd_config`'s `Port` directive is
-  **silently ignored** — sshd keeps listening on `:22` regardless of
-  `SSH_PORT` — even though `sshd -t` still reports success (it only checks
-  config syntax, not what actually ends up listening). Left unhandled, this
-  would open only `SSH_PORT/tcp` in UFW while sshd stayed on 22, leaving the
-  box unreachable on the port UFW allows. `01-harden.sh` now detects
-  `ssh.socket` activation, disables it, and switches to `ssh.service`
-  binding the port directly (idempotent — no-op on re-runs or non-default
-  images), and **restarts** (not reloads) `ssh.service` when this switch
-  happens, since a reload alone would not bind the new listener.
+- **Ubuntu 24.04 socket activation (Blocker, then a live-lockout follow-up
+  fix).** Fresh Ubuntu 24.04 ships `ssh.socket` (systemd socket activation)
+  owning the SSH listening socket. While `ssh.socket` is active,
+  `sshd_config`'s `Port` directive is **silently ignored** — sshd keeps
+  listening on `:22` regardless of `SSH_PORT` — even though `sshd -t` still
+  reports success (it only checks config syntax, not what actually ends up
+  listening). Left unhandled, this would open only `SSH_PORT/tcp` in UFW
+  while sshd stayed on 22, leaving the box unreachable on the port UFW
+  allows.
+  - The **first fix** (2026-09-06) had `01-harden.sh` unconditionally
+    disable `ssh.socket` and switch to `ssh.service` for **any** `SSH_PORT`,
+    including the default `22`. A live run against the real box then showed
+    this was itself broken: the switch's `systemctl restart ssh.service`
+    failed and left sshd outside its normal service-start path, which never
+    created `/run/sshd` (the privilege-separation runtime directory
+    `ssh.service` normally creates itself via its own `RuntimeDirectory=`
+    on a clean start) — every new SSH connection then reset at
+    `kex_exchange_identification`. UFW correctly stayed untouched (the
+    fail-safe worked — see "authoritative post-merge/post-listen gate"
+    below), but SSH itself was down and required the provider's console to
+    recover (`mkdir -p /run/sshd` + a clean `systemctl restart
+    ssh.service`).
+  - **Root cause, precisely:** under socket activation, only `Port` is
+    ignored — every OTHER directive in the `00-` drop-in
+    (`PasswordAuthentication no`, `PermitRootLogin no`, `AllowUsers`, ...)
+    **does** apply, because socket-activated sshd re-reads its config for
+    each new connection. So for the default `SSH_PORT=22` — exactly what
+    `ssh.socket` already listens on — the entire switch is unnecessary:
+    socket activation already serves 22 with our hardened auth, with zero
+    restart and zero lockout window.
+  - **Current fix (2026-09-07):** `01-harden.sh` now branches on
+    `SSH_PORT`:
+    - **`SSH_PORT == 22` (default):** `ssh.socket` is left in place. The
+      drop-in is written and validated with `sshd -t`; no restart or
+      socket-to-service switch happens at all — the hardened auth takes
+      effect on the next new connection automatically. This is the case
+      that caused the live lockout, and it's now the case with the
+      smallest — effectively zero — risk surface.
+    - **`SSH_PORT != 22` (custom port):** the switch is still necessary
+      (this is the one case where the ignored `Port` directive actually
+      matters), but is now robust: `mkdir -p /run/sshd` (mode `0755`) runs
+      **unconditionally, before** starting/restarting `ssh.service` — the
+      exact fix for what broke on the live box — followed by
+      `disable --now ssh.socket`, `reset-failed`, `unmask`, `enable`,
+      `restart ssh.service`, then an explicit `systemctl is-active`
+      check **and** `assert_sshd_listening "$SSH_PORT"`, both **before**
+      UFW is touched; the script aborts if either fails.
+  - Idempotent in all three shapes: fresh box with `ssh.socket` active
+    (either port), a box where the switch already happened on an earlier
+    run (non-22 case, re-run is a clean no-op through step 5), and the
+    port-22 case where `ssh.socket` stays untouched indefinitely across
+    re-runs.
 - **`sshd_config.d/*.conf` precedence (Major).** sshd is first-value-wins
   and reads `sshd_config.d/*.conf` in lexical order. Cloud images commonly
   ship `50-cloud-init.conf` with `PasswordAuthentication yes`, which used to

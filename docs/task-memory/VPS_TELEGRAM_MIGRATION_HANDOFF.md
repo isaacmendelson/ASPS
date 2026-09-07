@@ -3,14 +3,14 @@
 **Task name:** VPS_TELEGRAM_MIGRATION
 **Owner hat:** CEO (orchestrator)
 **Created:** 2026-08-25
-**Status:** IN PROGRESS — user approved scope (D1–D4) on 2026-09-06. **Phase 4 (ASPS-743) DONE & MERGED to main (PR #39, merge commit `a6dc84f`) on 2026-09-06** — bot migrated to `@anthropic-ai/claude-agent-sdk` with a deny-by-default permission model + Telegram approval flow. Gates all PASS: QA (118/118 tests, independently verified), Security (PASS after 2 remediation rounds — 3 Blockers + 2 Majors found and closed), CEO code review. Code-level follow-up residuals (Minor/Nit) tracked on ASPS-745. **Phase 1 + 2 (ASPS-740/741) provisioning scripts DONE (authoring) & MERGED to main (PR #40, `9dc2f11`) on 2026-09-06** — `deploy/vps/` (`01-harden.sh`, `02-toolchain.sh`, `lib.sh`, `config.env.example`, `README.md`). Security review PASS after 1 remediation round (Blocker: Ubuntu 24.04 ssh.socket ignoring drop-in Port; Majors: drop-in precedence fail-open + root-lockout — all closed), CEO code review PASS. Scripts are **authored-but-UNEXECUTED** — execution + on-box verification happen at the Phase 1 gate once the VPS exists; execution-gate checklist (incl. R1/R2 + mandatory second-login test) is on ASPS-740. **Phase 3 + Phase 5 (ASPS-742/ASPS-744) scripts DONE (authoring) on branch `asps-742-vps-clone-and-service-scripts` on 2026-09-07** — `deploy/vps/03-clone.sh`, `deploy/vps/telegram-ceo.service`, `deploy/vps/05-service.sh` (+ `lib.sh`/`config.env.example`/`README.md` extended). Not merged, no PR — awaiting CEO code review + security review of the credential-helper mechanism and the systemd hardening tradeoffs, per explicit instruction. **Phases 0, 6–7 gated on the user provisioning the Hostinger VPS (Phase 0, ASPS-739).**
+**Status:** IN PROGRESS — user approved scope (D1–D4) on 2026-09-06. **Phase 4 (ASPS-743) DONE & MERGED to main (PR #39, merge commit `a6dc84f`) on 2026-09-06** — bot migrated to `@anthropic-ai/claude-agent-sdk` with a deny-by-default permission model + Telegram approval flow. Gates all PASS: QA (118/118 tests, independently verified), Security (PASS after 2 remediation rounds — 3 Blockers + 2 Majors found and closed), CEO code review. Code-level follow-up residuals (Minor/Nit) tracked on ASPS-745. **Phase 1 + 2 (ASPS-740/741) provisioning scripts DONE (authoring) & MERGED to main (PR #40, `9dc2f11`) on 2026-09-06** — `deploy/vps/` (`01-harden.sh`, `02-toolchain.sh`, `lib.sh`, `config.env.example`, `README.md`). Security review PASS after 1 remediation round (Blocker: Ubuntu 24.04 ssh.socket ignoring drop-in Port; Majors: drop-in precedence fail-open + root-lockout — all closed), CEO code review PASS. Scripts are **authored-but-UNEXECUTED** — execution + on-box verification happen at the Phase 1 gate once the VPS exists; execution-gate checklist (incl. R1/R2 + mandatory second-login test) is on ASPS-740. **Phase 3 + Phase 5 (ASPS-742/ASPS-744) scripts DONE (authoring) on branch `asps-742-vps-clone-and-service-scripts` on 2026-09-07** — `deploy/vps/03-clone.sh`, `deploy/vps/telegram-ceo.service`, `deploy/vps/05-service.sh` (+ `lib.sh`/`config.env.example`/`README.md` extended). Not merged, no PR — awaiting CEO code review + security review of the credential-helper mechanism and the systemd hardening tradeoffs, per explicit instruction. **Phases 0, 6–7 gated on the user provisioning the Hostinger VPS (Phase 0, ASPS-739).** **Phase 0 is done — the VPS exists (168.231.111.91).** A live execution of `01-harden.sh` against it on 2026-09-07 hit an SSH lockout in step 5's socket-activation handling (root cause + recovery + fix documented under "Phase 1 (ASPS-740) — live execution found an SSH lockout bug" below); fixed on branch `asps-740-fix-socket-and-node-execution-bugs`, pushed, not merged, no PR — awaiting CEO/security review before re-attempting execution on the box.
 
 ## JIRA
 | Item | Key | Status |
 |---|---|---|
 | Epic — VPS + Telegram CEO agent migration | ASPS-738 | In Progress |
 | Phase 0 — Provisioning & prerequisites | ASPS-739 | To Do (user action) |
-| Phase 1 — VPS baseline hardening | ASPS-740 | In Progress — scripts merged (PR #40); **execution gated on VPS** |
+| Phase 1 — VPS baseline hardening | ASPS-740 | In Progress — scripts merged (PR #40); **live execution on VPS hit an SSH lockout in step 5 (socket-switch), recovered via console, fix on branch `asps-740-fix-socket-and-node-execution-bugs` (pushed, not merged)** |
 | Phase 2 — Runtime toolchain | ASPS-741 | In Progress — scripts merged (PR #40); **execution gated on VPS** |
 | Phase 3 — Clone repo & wire secrets | ASPS-742 | In Progress — scripts merged (PR #41); **execution gated on VPS** |
 | Phase 4 — Migrate bot to Claude Agent SDK | ASPS-743 | ✅ **Done — merged to main (PR #39, `a6dc84f`)** |
@@ -489,6 +489,105 @@ the Azure backend per D1).
 6. Phase 3 (ASPS-742, clone repo & wire secrets) is the next script to author once Phase 1/2 are
    approved — it will populate `SECRETS_DIR` per the placement rule documented in
    `deploy/vps/README.md`.
+
+---
+
+### Phase 1 (ASPS-740) — live execution found an SSH lockout bug in the socket-switch step; fixed (2026-09-07)
+
+**Trigger:** `01-harden.sh` was executed for real against the provisioned VPS
+(`168.231.111.91`, Ubuntu 24.04). Step 5 (sshd hardening) locked SSH out.
+
+**What happened, factually:**
+- `SSH_PORT` was left at its default, `22`. Step 5's Ubuntu-24.04
+  socket-activation handling (added in the 2026-09-06 security remediation)
+  disabled `ssh.socket` and switched to `ssh.service` **unconditionally**,
+  for any `SSH_PORT` including `22`, then ran `systemctl restart
+  ssh.service`.
+- The restart failed and left sshd outside its normal service-start path.
+  `/run/sshd` (the privilege-separation runtime directory `ssh.service`
+  normally creates itself via its own `RuntimeDirectory=` on a clean start)
+  was never created — every new SSH connection reset at
+  `kex_exchange_identification`.
+- UFW correctly stayed untouched (`assert_effective_sshd_config` /
+  `assert_sshd_listening` ran before step 6 and would have caught a bad
+  state — the fail-safe design worked), but SSH itself was down. Recovery
+  required the Hostinger browser console: `mkdir -p /run/sshd` + a clean
+  `systemctl restart ssh.service` restored SSH. Re-running `01-harden.sh`
+  afterward completed cleanly, since `ssh_socket_activation_active` then
+  correctly returned false (socket already disabled) and the switch step
+  was skipped on that second run.
+- **Root cause:** under socket activation, only the `Port` directive is
+  ignored — every other hardening directive in the `00-` drop-in
+  (`PasswordAuthentication no`, `PermitRootLogin no`, `AllowUsers`, ...)
+  **does** apply, because socket-activated sshd re-reads config per new
+  connection. For `SSH_PORT=22` — exactly what `ssh.socket` already listens
+  on — the socket-to-service switch was therefore never necessary, and it
+  was the switch itself, not the hardening it was meant to enable, that
+  broke SSH.
+
+**Fix, on branch `asps-740-fix-socket-and-node-execution-bugs`:**
+`deploy/vps/01-harden.sh` step 5 now branches on `SSH_PORT`:
+- `SSH_PORT == 22`: `ssh.socket` is left in place — no disable, no switch,
+  no restart. The drop-in is written and validated with `sshd -t`; the
+  hardened auth takes effect on the next new connection automatically. This
+  is the exact case that caused the lockout, and it now carries effectively
+  zero restart-failure risk.
+- `SSH_PORT != 22`: the switch is still performed (still the only way a
+  custom port actually takes effect), but `mkdir -p /run/sshd` (mode
+  `0755`) now runs unconditionally, **before** starting/restarting
+  `ssh.service` — the precise fix for what broke on the live box — followed
+  by `systemctl is-active` **and** `assert_sshd_listening "$SSH_PORT"`
+  checks before UFW is touched, aborting on failure.
+
+Full technical detail and the idempotency reasoning for both branches (plus
+the two intermediate re-run shapes) are in `deploy/vps/README.md`'s "sshd
+hardening correctness" section and in `01-harden.sh`'s own step-5 comments.
+
+**Validation performed (no second live run available from this session — see
+`deploy/vps/README.md`'s "Validation performed" for the general TDD-rule-item-9
+justification used throughout `deploy/vps/`):**
+- `bash -n deploy/vps/01-harden.sh deploy/vps/lib.sh` — clean.
+- `shellcheck --shell=bash` via `koalaman/shellcheck:stable` against all five
+  `deploy/vps/*.sh` scripts — zero findings at any severity.
+- Line endings: pure LF, confirmed via `git check-attr text eol` (`eol: lf`)
+  and a byte-level `\r\n`/lone-`\r` count of zero.
+- Idempotency walked through for three cases:
+  1. **Fresh box, `ssh.socket` active, `SSH_PORT=22` (the exact case that
+     lockout out the live box):** the new `if [[ "$SSH_PORT" == "22" ]]`
+     branch takes the `ssh_socket_activation_active` true sub-branch — logs
+     and does nothing else. No restart, no switch, no failure mode left to
+     trigger. Safe.
+  2. **Already-switched box (`SSH_PORT != 22`, ran once already):**
+     `ssh_socket_activation_active` now returns false, so `socket_switched`
+     stays `false`; `install -d -m 0755 /run/sshd` runs again (idempotent,
+     no-op if already present); since `dropin_changed` is also false on an
+     unmodified re-run, the restart block is skipped entirely and only the
+     `systemctl is-active` check runs, confirming the already-running
+     service — clean no-op through step 5.
+  3. **Port-22-keeps-socket, re-run after a prior successful run:** same as
+     case 1 — `ssh.socket` is still active (nothing in this script's `22`
+     branch ever disables it), so every re-run takes the same no-op path.
+     If the drop-in is unmodified, `dropin_changed` is false too, so
+     nothing at all executes in step 5 beyond the unconditional
+     `assert_effective_sshd_config`/`assert_sshd_listening` gate that was
+     already unconditional before this fix.
+
+**Changed files:** `deploy/vps/01-harden.sh`, `deploy/vps/README.md`, this
+handoff file. `deploy/vps/02-toolchain.sh`'s Node-execution fix (already
+committed on this branch, ASPS-741) is untouched by this change.
+
+**JIRA:** ASPS-740 — comment added noting the live lockout, the recovery
+steps taken on the box, and the fix; status not transitioned by this agent
+(CEO owns the JIRA/PR/merge flow per `task-workflow.md` — this fix is
+pushed to the branch, not merged, and no PR was opened per explicit
+instruction).
+
+**Next steps for CEO/security/QA:** review the diff on
+`asps-740-fix-socket-and-node-execution-bugs`, run security + code review,
+then (if PASS) re-attempt Step 5 specifically against the live box (or at
+minimum the full `01-harden.sh` re-run) before continuing to Phase 2+
+execution. No PR opened by this agent — CEO reviews and merges per the task
+instruction for this fix.
 
 ---
 
