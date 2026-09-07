@@ -34,7 +34,11 @@ log_step "2/7 — Node.js 20 LTS (NodeSource, keyring method)"
 # NodeSource's documented keyring method instead — fetch the GPG key to
 # /etc/apt/keyrings, reference it via signed-by= in a .list, same pattern
 # as the Docker block below (DRY: one trusted-repo pattern for both).
-node_installed_major="$(node -v 2>/dev/null | sed 's/^v//; s/\..*//')"
+# `|| true`: on a node-less box `node -v` exits 127; under `set -euo
+# pipefail` an unguarded command-substitution assignment would abort the
+# whole script here (before the install branch). Swallow it so an absent
+# Node parses to empty -> falls through to install via ${:-0}.
+node_installed_major="$(node -v 2>/dev/null | sed 's/^v//; s/\..*//' || true)"
 if command -v node >/dev/null 2>&1 && [ "${node_installed_major:-0}" -ge 20 ]; then
     log_info "Node ${node_installed_major}.x already installed ($(node -v)) — meets the >=20 requirement, skipped (never downgrade a newer Node other services on this box may depend on)."
 else

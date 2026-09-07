@@ -124,13 +124,14 @@ Blocker's own fix — all documented and fixed on this branch:
       smallest — effectively zero — risk surface.
     - **`SSH_PORT != 22` (custom port):** the switch is still necessary
       (this is the one case where the ignored `Port` directive actually
-      matters), but is now robust: `mkdir -p /run/sshd` (mode `0755`) runs
-      **unconditionally, before** starting/restarting `ssh.service` — the
-      exact fix for what broke on the live box — followed by
-      `disable --now ssh.socket`, `reset-failed`, `unmask`, `enable`,
-      `restart ssh.service`, then an explicit `systemctl is-active`
-      check **and** `assert_sshd_listening "$SSH_PORT"`, both **before**
-      UFW is touched; the script aborts if either fails.
+      matters), but is now robust. The sequence is `disable --now
+      ssh.socket`, `reset-failed`, `unmask`, `enable`, then
+      `install -d -m 0755 /run/sshd` runs **before** `restart ssh.service`
+      — creating the privilege-separation runtime dir ahead of the restart
+      is the exact fix for what broke on the live box — then an explicit
+      `systemctl is-active` check **and** `assert_sshd_listening
+      "$SSH_PORT"`, both **before** UFW is touched; the script aborts if
+      either fails.
   - Idempotent in all three shapes: fresh box with `ssh.socket` active
     (either port), a box where the switch already happened on an earlier
     run (non-22 case, re-run is a clean no-op through step 5), and the
