@@ -86,6 +86,25 @@ describe("approvals (Telegram human-approval flow, ASPS-743 blockers B2/B3)", ()
     await assertion;
   });
 
+  it("uses the 600000ms (10 min) DEFAULT_TIMEOUT_MS when APPROVAL_TIMEOUT_MS is unset — ASPS-752", async () => {
+    vi.useFakeTimers();
+    delete process.env.APPROVAL_TIMEOUT_MS;
+    setApprovalRequestHandler(() => {
+      // Never responds.
+    });
+
+    const decisionPromise = requestApproval(111, "Bash", "npm install left-pad");
+
+    // One tick short of the new 10-minute default — must still be pending
+    // (the old 60s default would have long since fired and removed the
+    // entry from `pending` by here; deterministic check, no promise race).
+    await vi.advanceTimersByTimeAsync(599_999);
+    expect(pendingApprovalCount()).toBe(1);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(decisionPromise).resolves.toBe("deny");
+  });
+
   it("correlates multiple concurrent requests independently", async () => {
     const requests: { id: string; userId: number }[] = [];
     setApprovalRequestHandler((req) => {

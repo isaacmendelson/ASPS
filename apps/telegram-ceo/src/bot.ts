@@ -246,8 +246,25 @@ export function startBot(): void {
   // spinner, but never distinguishes "unauthorized" from "unknown/expired/
   // wrong-user request" in the ack text — both cases enable enumeration
   // otherwise (of authorized user ids, and of live pending-approval ids).
+  //
+  // ASPS-752: an authorized tap that lands on an unknown/expired/
+  // already-settled/wrong-user request (i.e. `resolveApproval` returns
+  // `false`) now gets a visible toast instead of a silent no-op — the
+  // previous silent ack looked like "I approved but it was denied" to the
+  // user when their tap simply arrived too late. This reveals only that
+  // the tap didn't go through, never *why* (expired vs. wrong-user vs.
+  // already-answered are indistinguishable to the tapper), so it adds no
+  // enumeration surface beyond what the unauthorized-vs-authorized split
+  // above already avoids.
+  const EXPIRED_OR_HANDLED_TEXT = "This approval expired or was already handled — please re-send the request.";
+
   bot.on("callback_query", async (cbQuery) => {
-    const ack = () => bot.answerCallbackQuery(cbQuery.id).catch(() => {});
+    const ack = (text?: string) => {
+      const promise = text
+        ? bot.answerCallbackQuery(cbQuery.id, { text, show_alert: false })
+        : bot.answerCallbackQuery(cbQuery.id);
+      return promise.catch(() => {});
+    };
 
     if (!cbQuery.from || !isAuthorized(cbQuery.from.id)) {
       await ack();
@@ -257,7 +274,9 @@ export function startBot(): void {
     const match = /^(approve|deny):(.+)$/.exec(cbQuery.data ?? "");
     if (match) {
       const [, action, id] = match;
-      resolveApproval(id, cbQuery.from.id, action === "approve" ? "allow" : "deny");
+      const resolved = resolveApproval(id, cbQuery.from.id, action === "approve" ? "allow" : "deny");
+      await ack(resolved ? undefined : EXPIRED_OR_HANDLED_TEXT);
+      return;
     }
 
     await ack();
