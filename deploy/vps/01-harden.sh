@@ -12,15 +12,20 @@
 #   Keep your CURRENT root/console session open until you have confirmed, in
 #   a SEPARATE terminal, that you can log in as `${ASPSBOT_USER}` on the
 #   (possibly new) SSH port with your key. This script validates the new
-#   sshd config with `sshd -t`, disables Ubuntu 24.04's ssh.socket
-#   activation when needed (otherwise sshd_config's "Port" is silently
-#   ignored), and asserts sshd is ACTUALLY listening on SSH_PORT before it
-#   ever touches UFW — but a misconfigured cloud firewall/security group in
-#   front of the box (e.g. Hostinger's own panel firewall, if a non-22
-#   SSH_PORT is used) or a wrong/missing public key can still lock you out.
-#   Test before closing. Root's password is left untouched by default
-#   (LOCK_ROOT=false) specifically so a console/rescue path to root remains
-#   if aspsbot/sudo ever breaks — see step 4.
+#   sshd config with `sshd -t`, and — ONLY when SSH_PORT is non-default —
+#   disables Ubuntu 24.04's ssh.socket activation and switches to
+#   ssh.service (otherwise sshd_config's "Port" is silently ignored). For
+#   the default SSH_PORT=22, ssh.socket is deliberately LEFT IN PLACE (see
+#   step 5's comments — a live lockout on 2026-09-07 was caused by
+#   switching unconditionally, even for port 22, which isn't necessary and
+#   broke sshd via a missing /run/sshd). This script asserts sshd is
+#   ACTUALLY listening on SSH_PORT before it ever touches UFW — but a
+#   misconfigured cloud firewall/security group in front of the box (e.g.
+#   Hostinger's own panel firewall, if a non-22 SSH_PORT is used) or a
+#   wrong/missing public key can still lock you out. Test before closing.
+#   Root's password is left untouched by default (LOCK_ROOT=false)
+#   specifically so a console/rescue path to root remains if aspsbot/sudo
+#   ever breaks — see step 4.
 
 set -euo pipefail
 
@@ -117,29 +122,6 @@ fi
 
 log_step "5/9 — sshd hardening (drop-in, validated before reload)"
 
-# --- Ubuntu 24.04 socket activation (ASPS-740 security remediation, Blocker) ---
-# Fresh Ubuntu 24.04 ships ssh.socket (systemd socket activation) owning the
-# listening socket. While ssh.socket is active, sshd_config's "Port"
-# directive is IGNORED — sshd keeps listening wherever ssh.socket points it
-# (:22) — even though `sshd -t` still reports success (it only checks
-# syntax, not what ends up listening). Left unhandled, this silently
-# defeats a custom SSH_PORT: step 6 would open only SSH_PORT/tcp in UFW
-# while sshd stays on 22, i.e. reachable on a port UFW blocks == lockout.
-# Fix: disable socket activation and let ssh.service bind the port itself,
-# the traditional way, so "Port" below actually takes effect. Idempotent —
-# no-op if ssh.socket is already disabled (e.g. a non-default image, or a
-# second run of this script).
-socket_switched=false
-if ssh_socket_activation_active; then
-    log_warn "ssh.socket is active/enabled (Ubuntu 24.04 socket activation) — sshd_config's Port directive would be silently ignored. Disabling ssh.socket and switching to ssh.service so Port ${SSH_PORT} actually takes effect."
-    systemctl disable --now ssh.socket >/dev/null 2>&1 || true
-    systemctl unmask ssh.service >/dev/null 2>&1 || true
-    systemctl enable ssh.service >/dev/null 2>&1 || true
-    socket_switched=true
-else
-    log_info "ssh.socket not active — sshd already runs as a traditional service; Port directive applies normally."
-fi
-
 # --- drop-in precedence (ASPS-740 security remediation, Major #1) --------
 # sshd is first-value-wins and reads sshd_config.d/*.conf in LEXICAL ORDER.
 # Cloud images commonly ship 50-cloud-init.conf with
@@ -186,7 +168,7 @@ then
     log_info "Wrote ${sshd_dropin}."
 fi
 
-if [[ "$dropin_changed" == true || "$socket_switched" == true ]]; then
+if [[ "$dropin_changed" == true ]]; then
     log_info "Validating sshd config (sshd -t)..."
     if ! sshd -t; then
         log_error "sshd -t FAILED against the new config. Reverting drop-in and aborting."
@@ -194,23 +176,79 @@ if [[ "$dropin_changed" == true || "$socket_switched" == true ]]; then
         exit 1
     fi
     log_info "sshd -t OK (syntax only — does not prove what actually ends up listening; see the assertions below)."
-    log_warn "KEEP THIS SESSION OPEN. Test a new login now: ssh -p ${SSH_PORT} ${ASPSBOT_USER}@<vps-ip>"
+fi
 
-    if [[ "$socket_switched" == true ]]; then
-        log_info "Restarting ssh.service (switched off socket activation, a reload alone would not bind the new listener)..."
+# --- Ubuntu 24.04 socket activation (ASPS-740 lockout fix, 2026-09-07) ---
+#
+# ROOT CAUSE OF A LIVE LOCKOUT (168.231.111.91, 2026-09-07): the previous
+# version of this step unconditionally disabled ssh.socket and switched to
+# ssh.service for ANY SSH_PORT, including the default 22. On the real box
+# that `systemctl restart ssh.service` failed and left sshd outside its
+# normal service-start path, which never created /run/sshd (the privilege-
+# separation runtime directory ssh.service normally creates itself via its
+# own RuntimeDirectory= on a clean start) — every new SSH connection then
+# reset at kex_exchange_identification. UFW correctly stayed untouched
+# (the fail-safe worked), but SSH itself was down and required the
+# provider's console to recover (`mkdir -p /run/sshd` + a clean
+# `systemctl restart ssh.service`).
+#
+# Under socket activation, only sshd_config's "Port" directive is ignored
+# — every OTHER directive in our 00- drop-in (PasswordAuthentication no,
+# PermitRootLogin no, AllowUsers, ...) DOES apply, because socket-activated
+# sshd re-reads its config for each new connection. So when SSH_PORT is the
+# default 22 — i.e. exactly what ssh.socket already listens on — the whole
+# switch is unnecessary: socket activation already serves 22 with our
+# hardened auth, with no restart and no lockout window at all. The switch
+# is only actually needed when SSH_PORT is non-default, since that's the
+# one case where "Port" being ignored would matter (UFW would open a port
+# sshd isn't listening on).
+if [[ "$SSH_PORT" == "22" ]]; then
+    if ssh_socket_activation_active; then
+        log_info "SSH_PORT is 22 (the default) — leaving ssh.socket socket activation in place. Port 22 is exactly what ssh.socket already listens on, so the ignored-Port caveat doesn't apply here, and the hardened auth directives (PasswordAuthentication/PermitRootLogin/AllowUsers/...) take effect automatically on the NEXT new SSH connection without any restart. This avoids the socket-to-service switch entirely — the switch is what caused the live lockout above."
+    elif [[ "$dropin_changed" == true ]]; then
+        # Edge case: ssh.socket was already disabled on an earlier run (e.g.
+        # SSH_PORT used to be non-default and has since been changed back to
+        # 22 in config.env) — ssh.service already owns the port, so a
+        # config-only change needs an explicit reload to take effect now
+        # rather than waiting for some other trigger.
+        log_warn "KEEP THIS SESSION OPEN. Test a new login now: ssh -p ${SSH_PORT} ${ASPSBOT_USER}@<vps-ip>"
+        log_info "ssh.socket already disabled from a previous run — reloading ssh.service to apply the updated drop-in (SSH_PORT=22)."
+        systemctl reload ssh.service 2>/dev/null || systemctl reload sshd.service 2>/dev/null || {
+            log_error "Could not reload ssh.service/sshd.service via systemctl. Aborting before touching UFW."
+            exit 1
+        }
+    else
+        log_info "ssh.socket already disabled from a previous run and ${sshd_dropin} already correct — nothing to reload."
+    fi
+else
+    log_warn "SSH_PORT=${SSH_PORT} (non-default) — sshd_config's Port directive is silently ignored while ssh.socket owns the listener, so switching to ssh.service is required for the custom port to actually take effect. See config.env.example / README.md: a non-22 port must also be opened in Hostinger's own panel firewall, separate from UFW."
+    socket_switched=false
+    if ssh_socket_activation_active; then
+        systemctl disable --now ssh.socket >/dev/null 2>&1 || true
+        systemctl reset-failed ssh.service ssh.socket >/dev/null 2>&1 || true
+        systemctl unmask ssh.service >/dev/null 2>&1 || true
+        systemctl enable ssh.service >/dev/null 2>&1 || true
+        socket_switched=true
+    fi
+    # The missing /run/sshd directory was the ACTUAL cause of the live
+    # lockout above — recreate it explicitly and unconditionally, BEFORE
+    # starting/restarting ssh.service, every time this branch runs (cheap
+    # and idempotent even when ssh.service's own unit would normally have
+    # handled it).
+    install -d -m 0755 /run/sshd
+    if [[ "$dropin_changed" == true || "$socket_switched" == true ]]; then
+        log_warn "KEEP THIS SESSION OPEN. Test a new login now: ssh -p ${SSH_PORT} ${ASPSBOT_USER}@<vps-ip>"
+        log_info "Restarting ssh.service (switched off socket activation and/or drop-in changed; a reload alone would not bind a new listener)..."
         systemctl restart ssh.service 2>/dev/null || systemctl restart sshd.service 2>/dev/null || {
             log_error "Could not restart ssh.service/sshd.service via systemctl after disabling socket activation. Aborting before touching UFW."
             exit 1
         }
-    else
-        log_info "Reloading sshd (not restarting) to apply..."
-        systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || {
-            log_error "Could not reload ssh/sshd via systemctl. Aborting before touching UFW."
-            exit 1
-        }
     fi
-else
-    log_info "${sshd_dropin} already correct and ssh.socket already handled — skipped reload/restart."
+    if ! systemctl is-active --quiet ssh.service && ! systemctl is-active --quiet sshd.service; then
+        log_error "ssh.service/sshd.service is not active after the socket-to-service switch. Aborting before touching UFW."
+        exit 1
+    fi
+    log_info "ssh.service confirmed active on SSH_PORT=${SSH_PORT}."
 fi
 
 # --- authoritative post-merge/post-listen gate (ASPS-740 remediation) ----
