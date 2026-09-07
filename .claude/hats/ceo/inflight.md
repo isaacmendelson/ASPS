@@ -8,11 +8,11 @@ What's actively in progress. Updated frequently — at session start, mid-sessio
 
 ## Currently active
 
-### VPS + Telegram CEO agent migration — Epic ASPS-738 (2026-09-06)
-- Goal: run the ASPS CEO Claude agent on a Hostinger VPS, driven from Telegram, 24/7. Scope (D1–D4): bot + repo clone on the VPS; **ASPS backend stays on Azure**; Claude Agent SDK + subscription (`CLAUDE_CODE_OAUTH_TOKEN`); Ubuntu 24.04.
-- **Done & merged:** Phase 4 bot→`@anthropic-ai/claude-agent-sdk` (PR #39) — deny-by-default permission model + Telegram approve/deny flow, secrets path-guarded, `settingSources:[]` isolation (settings.json `permissions.allow` bypasses `canUseTool`). Phase 1/2 VPS provisioning scripts `deploy/vps/` (PR #40) — authored, NOT executed.
-- **Blocked on user:** Phase 0 = buy the VPS + stage secrets. Then execute Phases 1–3, 5–7 on the box.
-- Canonical handoff: `docs/task-memory/VPS_TELEGRAM_MIGRATION_HANDOFF.md`. Follow-up security debt on ASPS-745 (docker-group≈root, secret relocation, egress, main branch protection).
+### ✅ VPS + Telegram CEO agent migration — Epic ASPS-738 (COMPLETE 2026-09-07)
+- **Shipped:** the ASPS CEO agent runs 24/7 on Hostinger VPS `168.231.111.91` (Ubuntu 24.04) as hardened systemd `telegram-ceo.service`, driven from Telegram `@Zappa_desktop_bot`, verified E2E. ASPS backend stays on Azure (D1). Bot on `@anthropic-ai/claude-agent-sdk` + subscription auth; deny-by-default permission model (writes/Bash/push → Telegram approve/deny; reads auto-allowed + path-guarded).
+- All 8 phases Done. Live execution found + fixed 2 real script bugs (sshd socket-switch lockout — recovered via console; Node-24 downgrade) — PR #42. Phase 6 security audit: all Majors closed (scoped GitHub PAT, main branch protection, fail2ban/secrets-RO/UMask), docker-group≈root accepted as debt.
+- **Key learnings:** (1) Claude Agent SDK `settingSources:["project"]` loads `.claude/settings.json` `permissions.allow` which BYPASSES `canUseTool` — use `settingSources:[]` for isolation. (2) Ubuntu 24.04 `ssh.socket` activation + switching to ssh.service without `/run/sshd` = kex-reset lockout; for port 22 keep socket activation. (3) `deploy/vps/` is the reusable provision chain 01→05.
+- Docs: handoff `docs/task-memory/VPS_TELEGRAM_MIGRATION_HANDOFF.md`, runbook `docs/cloud/VPS_TELEGRAM_RUNBOOK.md`, hardening `docs/cloud/VPS_TELEGRAM_HARDENING.md`. Optional Minor follow-ups tracked (sandbox tightening, token rotation, retire old PAT). Operator access artifacts at `C:\Jobs\ASPS\` (not in repo).
 
 ### ASPS-607 Epic — Top-Level Code Review Remediation (2026-07-28/29)
 - 21 subtasks (ASPS-608 through ASPS-628) from top-level code review
