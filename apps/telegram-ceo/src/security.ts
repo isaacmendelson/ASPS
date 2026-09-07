@@ -375,6 +375,33 @@ export const DENIED_GIT_FLAGS: RegExp[] = [
 ];
 
 /**
+ * Rule 5 (ASPS-749 security re-review Minor, secret-guard invariant):
+ * a ref/pathspec value token that is otherwise `SAFE_REF_PATTERN`-shaped can
+ * still spell the name of a real secret file (`ACCESS_KEYS.env`, `id_rsa`,
+ * `.env`) — `git diff ACCESS_KEYS.env` is a perfectly legal read-only git
+ * invocation shape, so the per-subcommand allowlist above has no reason to
+ * reject it. This carve-out validates a raw Bash *command string*, not a
+ * tool `file_path`/`edits[]` field, so `findSecretPathInInput` (the
+ * ASPS-743 fail-closed floor under `PATH_INPUT_FIELD` in agent.ts) never
+ * sees it, and a naive scan of the whole command string against
+ * `SECRET_PATH_PATTERNS` would also miss it: those patterns anchor a secret
+ * name on `^` or a path separator, but inside `"git diff ACCESS_KEYS.env"`
+ * the name is preceded by a space, not `^`/`/`. Reusing `matchSecretPath`
+ * per-*token* (rather than against the raw command string) fixes that: each
+ * token is checked from its own start, so `matchSecretPath`'s `^` anchor
+ * lines up correctly. Applied centrally, after the per-subcommand allowlist
+ * passes, against every non-flag token in `rest` — this covers every
+ * subcommand that accepts a ref/pathspec-shaped value token (`log`/`diff`/
+ * `show`/`rev-parse`/`describe`/`remote get-url`), so a secret-named value
+ * falls through to Telegram approval instead of being auto-allowed. A flag
+ * token (leading `-`) is skipped — flags are already a closed positive
+ * allowlist per subcommand and never carry a secret name.
+ */
+function hasSecretNamedValueToken(tokens: readonly string[]): boolean {
+  return tokens.some((token) => !token.startsWith("-") && matchSecretPath(token) !== undefined);
+}
+
+/**
  * Returns true ONLY if `command` is a single, standalone, strictly
  * READ-ONLY `git` invocation safe to auto-allow without a Telegram
  * approval. See the block comment above for the full threat model. Any
@@ -420,6 +447,14 @@ export function isSafeReadOnlyGitCommand(command: string): boolean {
   for (const token of tokens) {
     if (DENIED_GIT_FLAGS.some((pattern) => pattern.test(token))) return false;
   }
+
+  // Rule 5 — secret-named value-token guard (ASPS-749 security re-review
+  // Minor). Evaluated centrally on `rest` so it covers every subcommand's
+  // ref/pathspec-shaped value token with one pass, ahead of the
+  // per-subcommand allowlist below (fail fast, and no subcommand branch can
+  // forget to call it). See `hasSecretNamedValueToken` above for the full
+  // rationale.
+  if (hasSecretNamedValueToken(rest)) return false;
 
   // Rule 3 (continued) — per-subcommand positive safe-flag/safe-arg check.
   // Fail-safe default: an unrecognized subcommand never reaches here

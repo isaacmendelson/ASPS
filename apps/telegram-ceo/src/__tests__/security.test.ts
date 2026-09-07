@@ -311,6 +311,30 @@ describe("isSafeReadOnlyGitCommand (ASPS-749 strict per-subcommand positive allo
   ])("rejects an unsafe token — %s: %s", (_label, command) => {
     expect(isSafeReadOnlyGitCommand(command)).toBe(false);
   });
+
+  // ASPS-749 security re-review Minor — a secret-NAMED ref/pathspec value
+  // token (SAFE_REF_PATTERN-shaped, so it clears the allowlist) must still
+  // be rejected: reused from `matchSecretPath` (SSOT, ASPS-743) per-token.
+  it.each([
+    ["diff against a secret-named token", "git diff ACCESS_KEYS.env"],
+    ["log of a secret-named token", "git log id_rsa"],
+    ["diff of a dotfile secret token", "git diff .env"],
+    ["show of a secret-named token", "git show ACCESS_KEYS.env"],
+    ["remote get-url of a secret-named token", "git remote get-url id_rsa"],
+    ["rev-parse --verify of a secret-named token", "git rev-parse --verify id_rsa"],
+    ["describe of a secret-named token", "git describe --tags id_rsa"],
+  ])("rejects a secret-named value token — %s: %s", (_label, command) => {
+    expect(isSafeReadOnlyGitCommand(command)).toBe(false);
+  });
+
+  // Benign near-names must still be auto-allowed — the guard must not
+  // over-reject ordinary refs/paths that merely resemble a secret name.
+  it.each(["git log readme", "git diff src", "git show main", "git log package.json"])(
+    "still auto-allows a benign near-name: %s",
+    (command) => {
+      expect(isSafeReadOnlyGitCommand(command)).toBe(true);
+    },
+  );
 });
 
 describe("findSecretPathInInput (ASPS-743 security re-review, Major M2)", () => {
