@@ -22,6 +22,7 @@ Decisions made in past sessions that remain in effect. Future-me must respect th
 |---|---|---|
 | Ongoing | **Mode B: stop after each phase, wait for explicit user approval before next.** | User's explicit preference. |
 | Ongoing | **QA gate before merge of non-trivial code.** | Catches drift between intent and implementation. |
+| 2026-09-07 | **Mandatory pre-merge SECURITY GATE — 3 gates guard `main`: QA + code review + security.** No merge without a security review PASS; Blocker/Major blocks the merge; depth scales with the change; security-inert (doc-only) changes take an explicit "no security impact" determination (never a silent skip); applies to CEO's own changes + hotfixes. | Isaac's directive after the VPS+Telegram migration (selective security reviews caught 4 Blockers + 9 Majors). Codified in `.claude/rules/task-workflow.md` "Security gate" + `review-standards.md`; CEO principle in `operating_principles.md`. |
 | Ongoing | **Task-specific handoffs under `docs/task-memory/` are canonical for active task state.** | Single source of truth for cross-session continuity. |
 | 2026-05-03 | **Daily 05:00 security audit cron** (set up 2026-05-03; session-only — does not survive Claude restart per current CronCreate behavior). | Continuous baseline awareness of regressions. |
 

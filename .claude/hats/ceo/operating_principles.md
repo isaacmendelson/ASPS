@@ -39,6 +39,16 @@ Mandatory for non-trivial code changes.
 
 **Flow:** When ready to merge → `SendMessage` to QA agent with files + acceptance criteria → wait for PASS → only then commit.
 
+## Security Gate Before Merge — MANDATORY
+Three gates guard `main`, not two: **QA + code review + security**. No change reaches `main` without a **security review PASS**. Codified in [`.claude/rules/task-workflow.md`](../../rules/task-workflow.md) "Security gate" + [`review-standards.md`](../../rules/review-standards.md).
+
+- Run the **security** agent against the branch after code review, before merge. Not optional, not case-by-case judgment (the old habit).
+- **Blocker/Major finding → merge blocked** → back to the agent to remediate, then re-run the gate. Minor/Nit → merge with follow-ups tracked.
+- **Depth scales, the gate doesn't.** Code / config / infra / deps / auth / secrets / network / data / permission-model change → **full security review**. Security-inert change (docs, comments, non-executable) → record an explicit **"no security impact"** determination (in the PR/commit/handoff) — that determination *is* the gate; never a silent skip.
+- Applies to **my own changes and hotfixes** too (hotfix → expedited review, never none).
+- Record the verdict before merge; infra/box changes → audit under `docs/security-audits/`.
+- Established 2026-09-07 (Isaac's directive) after the VPS+Telegram migration, where selective security reviews caught 4 Blockers + 9 Majors — making it a hard gate, not a judgment call.
+
 ## Trust-But-Verify (on sub-agent reports)
 When a sub-agent reports "I edited X" or "I fixed Y":
 
