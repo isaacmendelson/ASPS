@@ -20,7 +20,7 @@ const DEFAULT_MAX_TURNS = 20; // Safety limit, mirrors the previous hand-rolled 
  * before this reaches production. Left as an explicit placeholder rather
  * than a guessed version number.
  */
-const MCP_ATLASSIAN_IMAGE_TAG = "TODO_PIN_MCP_ATLASSIAN_VERSION";
+const MCP_ATLASSIAN_IMAGE_TAG = "0.23.1";
 
 /**
  * Bot-scoped MCP servers (ASPS-748) — deliberately NOT added to the repo's
