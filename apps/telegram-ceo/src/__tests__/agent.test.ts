@@ -499,7 +499,8 @@ describe("runAgent", () => {
       "JIRA_API_TOKEN",
       "-e",
       "READ_ONLY_MODE",
-      expect.stringMatching(/^ghcr\.io\/sooperset\/mcp-atlassian:(?!latest).+/),
+      // Pinned by immutable digest (ASPS-748 security review), never a mutable tag.
+      expect.stringMatching(/^ghcr\.io\/sooperset\/mcp-atlassian@sha256:[a-f0-9]{64}$/),
     ]);
     // No credentials leaked into argv — only passed via `env`.
     expect(server.args.join(" ")).not.toContain("jira-test-token");

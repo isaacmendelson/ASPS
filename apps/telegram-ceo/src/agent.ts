@@ -8,19 +8,19 @@ import { TELEGRAM_SYSTEM_PROMPT_APPEND, loadClaudeMd, loadMcpServers } from "./c
 const DEFAULT_MAX_TURNS = 20; // Safety limit, mirrors the previous hand-rolled agentic loop.
 
 /**
- * `sooperset/mcp-atlassian` Docker image tag (ASPS-748).
+ * `sooperset/mcp-atlassian` Docker image, pinned by IMMUTABLE DIGEST (ASPS-748).
  *
- * Deliberately NOT `latest` — pinning avoids a supply-chain surprise where a
- * new image version silently changes behavior (or is compromised) between
- * one `docker run --rm` and the next, since `--rm` means there is no local
- * image-digest pin from a previous `docker pull` to fall back on.
- *
- * TODO(CEO, box testing): replace with the actual verified release tag from
- * https://github.com/sooperset/mcp-atlassian/pkgs/container/mcp-atlassian
- * before this reaches production. Left as an explicit placeholder rather
- * than a guessed version number.
+ * Pinned by `@sha256:` (not a mutable tag) so a re-pushed tag or a registry
+ * compromise cannot silently swap the image between one `docker run --rm` and
+ * the next — it matters because this is a third-party community image that
+ * receives the JIRA API token and runs as root under dockerd. This digest is
+ * the manifest of tag 0.23.1, VERIFIED on the VPS 2026-09-07: the image pulls,
+ * JIRA Cloud API-token auth succeeds, and `READ_ONLY_MODE=true` registers only
+ * read tools. To bump: pull the new tag on the box, read its RepoDigest
+ * (`docker inspect --format '{{index .RepoDigests 0}}'`), verify it, replace here.
  */
-const MCP_ATLASSIAN_IMAGE_TAG = "0.23.1";
+const MCP_ATLASSIAN_IMAGE =
+  "ghcr.io/sooperset/mcp-atlassian@sha256:5b7c9b64d4eb3210cab74be8bf3e6aeea9ed14f3042dc59ba5c5287bd4dbe466";
 
 /**
  * Bot-scoped MCP servers (ASPS-748) — deliberately NOT added to the repo's
@@ -70,7 +70,7 @@ function buildBotScopedMcpServers(): Record<string, McpServerConfig> {
         "JIRA_API_TOKEN",
         "-e",
         "READ_ONLY_MODE",
-        `ghcr.io/sooperset/mcp-atlassian:${MCP_ATLASSIAN_IMAGE_TAG}`,
+        MCP_ATLASSIAN_IMAGE,
       ],
       env: {
         JIRA_URL: process.env.JIRA_BASE_URL ?? "",

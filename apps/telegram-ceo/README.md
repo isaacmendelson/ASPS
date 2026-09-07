@@ -83,9 +83,9 @@ The bot runs the Claude Agent SDK with the native Claude Code toolset:
     server, run as a throwaway `docker run --rm -i` container per session
     with `READ_ONLY_MODE=true` (the server itself refuses to register any
     write/mutate tool at startup, not just a documented convention), image
-    pinned to a specific tag — **never `latest`** (supply-chain) — currently
-    a `TODO` placeholder in `src/agent.ts`'s `MCP_ATLASSIAN_IMAGE_TAG`
-    pending a verified release tag. Credentials (`JIRA_URL`/`JIRA_USERNAME`/
+    pinned by **immutable `@sha256:` digest** — **never `latest`** (supply-chain) —
+    in `src/agent.ts`'s `MCP_ATLASSIAN_IMAGE` (the digest of tag `0.23.1`,
+    verified on the VPS 2026-09-07). Credentials (`JIRA_URL`/`JIRA_USERNAME`/
     `JIRA_API_TOKEN`, mapped from the box's existing `JIRA_BASE_URL`/
     `JIRA_EMAIL`/`JIRA_API_TOKEN`) are passed via `docker run -e VAR`
     pass-through so they never appear in `argv`. Requires Docker on `PATH`.
