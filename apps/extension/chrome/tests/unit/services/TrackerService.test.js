@@ -216,8 +216,16 @@ describe('TrackerService', () => {
     });
 
     test('should handle invalid iframe URLs', () => {
+      // ASPS-753: a bare relative fixture like "invalid-url" no longer
+      // exercises the catch(e) branch in findExternalIframes() — jsdom's
+      // HTMLIFrameElement.src getter resolves relative values against the
+      // document's base URL (e.g. "http://localhost/invalid-url"), which is
+      // a perfectly parseable absolute URL, so `new URL(src)` never throws
+      // for it. "http://" (scheme with no authority) is a src value the
+      // browser reflects verbatim without resolving into something parseable,
+      // so it still reaches and exercises the try/catch's invalid-URL path.
       document.body.innerHTML = `
-        <iframe src="invalid-url"></iframe>
+        <iframe src="http://"></iframe>
       `;
 
       const iframes = trackerService.findExternalIframes();
