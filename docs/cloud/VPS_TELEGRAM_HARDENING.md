@@ -62,9 +62,11 @@ The Phase-4 path guard hard-denies the agent reading any `*.env`/`ACCESS_KEYS*`/
 **Deferred systemd-sandbox tightening** (need an on-box smoke test — can break node's V8 JIT / git / the docker client; documented in `deploy/vps/telegram-ceo.service`):
 `PrivateDevices=yes`, `SystemCallFilter=@system-service` (+ native arch + `SystemCallErrorNumber=EPERM`), capability drops, `RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6`, `ProtectProc=invisible`. Kept OFF on purpose: `MemoryDenyWriteExecute` (V8 JIT needs W+X), `ProtectHome` (would hide `~/.gitconfig`, breaking push; `ProtectSystem=strict` already read-onlys the FS except the RW paths).
 
-**Needs the user / decisions:**
-- **M2 — `main` branch protection** (GitHub UI; requires repo Administration which the agent token deliberately lacks). Prevents the agent pushing to `main` without human review.
-- **M3 — `docker` group = root-equivalent.** `aspsbot` is in the `docker` group (needed so the agent can `docker compose` the ASPS stack per D4), which lets `docker run -v /:/host …` bypass the service sandbox. Accepted debt; revisit rootless Docker / a socket proxy if the exposure is unacceptable.
+**Resolved:**
+- **M2 — `main` branch protection** ✅ **DONE (2026-09-07)** — enabled in the GitHub UI: require a PR + 1 approval before merging, dismiss stale approvals, no force-push, no deletion, administrators can bypass (owner unblocked) but the agent's non-admin scoped token cannot merge to `main` without human review. Verified `main protected: true`.
+- **M3 — `docker` group = root-equivalent** ✅ **DECIDED: accept as documented debt (option A), 2026-09-07.** `aspsbot` stays in the `docker` group so the agent can `docker compose` the ASPS stack per D4. Mitigations relied on: every Bash/`docker` call is Telegram-approval-gated and shown in full to the operator; single-user box; backend is on Azure so local Docker use is occasional. Revisit rootless Docker / a socket proxy if the exposure becomes unacceptable.
+
+**Still pending (lower priority, tracked):**
 - **Egress** unrestricted (UFW allow-outgoing) — low ROI to restrict (CDN IP ranges); FQDN proxy if pursued.
 - **Token rotation cadence** — set a schedule for the 4 on-box tokens (GitHub scoped PAT, JIRA, `CLAUDE_CODE_OAUTH_TOKEN`, Telegram).
 - **Retire the old GitHub PAT** from the "Hostinger Logins" doc (the pre-swap one) in GitHub settings, once confirmed it isn't used elsewhere.
