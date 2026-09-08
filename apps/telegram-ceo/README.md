@@ -64,6 +64,11 @@ The bot runs the Claude Agent SDK with the native Claude Code toolset:
 - `Write` / `Edit` / `MultiEdit` / `NotebookEdit` / `NotebookRead` / `Bash` /
   `Task` / `WebFetch` / most MCP tools — gated behind a Telegram approval
   (see below).
+- `AskUserQuestion` — **disabled** via `disallowedTools` (`DISALLOWED_TOOLS`
+  in `src/agent.ts`): the interactive multiple-choice tool can't return a
+  structured choice over the one-way Telegram approve/deny bridge (it aborted
+  the agent with `AbortError: Stream closed`), so the bot instead asks any
+  follow-up question as **plain Telegram text**.
 - The two read-only knowledge-engine MCP tools
   (`mcp__knowledge-engine__knowledge_search` / `knowledge_ask`) — auto-allowed,
   same as Read/Grep/Glob, since they take no filesystem input and are

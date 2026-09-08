@@ -528,6 +528,17 @@ describe("runAgent", () => {
     );
   });
 
+  it("disallows the interactive AskUserQuestion tool — the Telegram approve/deny bridge is one-way and cannot deliver a chosen option back (ASPS-754, fixes AbortError: Stream closed)", async () => {
+    queryMock.mockReturnValue(
+      asAsyncIterable([{ type: "result", subtype: "success", result: "ok", session_id: "sess-1" }]),
+    );
+
+    await runAgent(userId, "hi");
+
+    const { options } = queryMock.mock.calls[0][0];
+    expect(options.disallowedTools).toEqual(expect.arrayContaining(["AskUserQuestion"]));
+  });
+
   it("auto-allows the GitHub and JIRA MCP servers via a per-server wildcard, since both endpoints are read-only (ASPS-748)", async () => {
     queryMock.mockReturnValue(
       asAsyncIterable([{ type: "result", subtype: "success", result: "ok", session_id: "sess-1" }]),

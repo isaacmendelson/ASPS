@@ -21,4 +21,9 @@ describe("TELEGRAM_SYSTEM_PROMPT_APPEND", () => {
     expect(TELEGRAM_SYSTEM_PROMPT_APPEND.toLowerCase()).toContain("approve");
     expect(TELEGRAM_SYSTEM_PROMPT_APPEND).toMatch(/Write|Edit/);
   });
+
+  it("tells the agent it has no AskUserQuestion / interactive menu UI and must ask decisions as plain Telegram text (ASPS-754)", () => {
+    expect(TELEGRAM_SYSTEM_PROMPT_APPEND).toContain("AskUserQuestion");
+    expect(TELEGRAM_SYSTEM_PROMPT_APPEND.toLowerCase()).toMatch(/plain telegram text message/);
+  });
 });
