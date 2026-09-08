@@ -1,3 +1,5 @@
+import { homedir } from "node:os";
+import path from "node:path";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { CanUseTool, McpServerConfig, Options, SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import {
@@ -9,6 +11,7 @@ import {
 import { requestApproval } from "./approvals.js";
 import { getSessionId, setSessionId } from "./session.js";
 import { TELEGRAM_SYSTEM_PROMPT_APPEND, loadClaudeMd, loadMcpServers } from "./context.js";
+import { buildPrivilegedMcpServer } from "./privileged.js";
 
 const DEFAULT_MAX_TURNS = 20; // Safety limit, mirrors the previous hand-rolled agentic loop.
 
@@ -127,6 +130,30 @@ const AUTO_ALLOW_MCP_TOOL_SET = new Set(AUTO_ALLOW_MCP_TOOLS);
 const AUTO_ALLOW_MCP_WILDCARDS = ["mcp__github__*", "mcp__mcp-atlassian__*"];
 
 /**
+ * ASPS-766 (ADR-005 part 2 / implementation-plan story ASPS-763-3):
+ * `ceo-privileged` — an in-process `createSdkMcpServer` (see
+ * `privileged.ts`) exposing JIRA/GitHub WRITE operations
+ * (`jira_transition`, `jira_comment`, `jira_update_issue`,
+ * `github_create_pr`, `github_comment`). Handlers run in the SDK host — this
+ * bot's own Node process (`aspsbot`, unsandboxed) — so they can read the
+ * bot-process credential env vars directly and call the JIRA/GitHub REST
+ * APIs with no shell involved.
+ *
+ * DELIBERATELY NOT added to `AUTO_ALLOW_MCP_WILDCARDS`/`AUTO_ALLOW_MCP_TOOLS`
+ * above — this is the opposite of the read-only `github`/`mcp-atlassian`
+ * wildcard exception. Every tool on this server mutates JIRA/GitHub state,
+ * so every call MUST fall through `createCanUseTool`'s classification to the
+ * deny-by-default branch → `requestApproval()` → a Telegram approval prompt,
+ * exactly like `Write`/`Edit`/non-git-read `Bash`. See `agent.test.ts`'s
+ * "ceo-privileged MCP (ASPS-766)" describe block for the routing proof, and
+ * `privileged.ts`'s top-of-file comment for the full rationale.
+ *
+ * `git_push` is a separate gated tool, ASPS-767 (story ASPS-763-4) — not on
+ * this server.
+ */
+
+
+/**
  * Every secret/token env var this process can hold, denied inside the
  * sandbox's `credentials.envVars` (ASPS-765, part 1 of ADR-005's two-part
  * privilege separation — see `buildSandboxSettings` below).
@@ -184,10 +211,23 @@ const SANDBOX_DENIED_ENV_VARS = [
  * installed, with defaults matching the VPS's own layout
  * (`deploy/vps/06-sandbox.sh` installs to `/usr/bin/bwrap`;
  * `deploy/vps/config.env.example`'s `SECRETS_DIR=/home/aspsbot/secrets`).
+ *
+ * ASPS-766 fold-in (ASPS-765 security review, Minor): `filesystem.denyRead`
+ * also denies `<HOME>/.claude` and `<HOME>/.npmrc` — the remaining home-dir
+ * credential-read channel the ASPS-765 review flagged. `~/.claude` can hold
+ * `.credentials.json` (the CLI's own OAuth token cache) and `~/.npmrc` can
+ * hold an npm registry auth token; neither is under `SECRETS_DIR`, so
+ * without this a sandboxed Bash command could still read them straight off
+ * disk even with the secrets dir denied. `HOME` is read from the
+ * environment with `os.homedir()` as a sane fallback (matches the rest of
+ * this function's env-configurable-with-a-default pattern).
  */
 function buildSandboxSettings(workingDir: string): NonNullable<Options["sandbox"]> {
   const bwrapPath = process.env.BWRAP_PATH || "/usr/bin/bwrap";
   const secretsDir = process.env.SECRETS_DIR || "/home/aspsbot/secrets";
+  const home = process.env.HOME || homedir();
+  const claudeHomeDir = path.join(home, ".claude");
+  const npmrcPath = path.join(home, ".npmrc");
 
   return {
     enabled: true,
@@ -197,9 +237,11 @@ function buildSandboxSettings(workingDir: string): NonNullable<Options["sandbox"
       // The secrets dir is denied wholesale — not merely the two files
       // referenced by name below — so a future file added under it
       // (rotated tokens, a new credential) is covered without a code
-      // change. Write access is scoped to the repo clone only; the rest of
-      // the filesystem stays read-only (bwrap default).
-      denyRead: [secretsDir],
+      // change. `~/.claude` and `~/.npmrc` (ASPS-766 fold-in, see above)
+      // close the remaining home-dir credential-read channel. Write access
+      // is scoped to the repo clone only; the rest of the filesystem stays
+      // read-only (bwrap default).
+      denyRead: [secretsDir, claudeHomeDir, npmrcPath],
       allowWrite: [workingDir],
     },
     credentials: {
@@ -453,12 +495,18 @@ function buildOptions(userId: number): Options {
     // (plugins, user settings, agent frontmatter) from smuggling in an
     // MCP server we didn't explicitly approve.
     //
-    // The GitHub + JIRA servers (ASPS-748) are merged in here, NOT added to
-    // the repo's .mcp.json — they are bot-process-scoped (built from the
-    // bot's own env vars each call, see buildBotScopedMcpServers above),
-    // not something an interactive Claude Code session in this repo should
-    // pick up.
-    mcpServers: { ...loadMcpServers(workingDir), ...buildBotScopedMcpServers() },
+    // The GitHub + JIRA read-only servers (ASPS-748) and the ceo-privileged
+    // write server (ASPS-766) are merged in here, NOT added to the repo's
+    // .mcp.json — they are bot-process-scoped (built from the bot's own env
+    // vars each call, see buildBotScopedMcpServers/buildPrivilegedMcpServer
+    // above), not something an interactive Claude Code session in this repo
+    // should pick up. ceo-privileged gets NO wildcard in allowedTools below
+    // — see the block comment above AUTO_ALLOW_MCP_WILDCARDS.
+    mcpServers: {
+      ...loadMcpServers(workingDir),
+      ...buildBotScopedMcpServers(),
+      "ceo-privileged": buildPrivilegedMcpServer(),
+    },
     strictMcpConfig: true,
     // Auto-allow the read-only knowledge-engine MCP tools, plus the two
     // read-only GitHub/JIRA MCP servers via a per-server wildcard (ASPS-748

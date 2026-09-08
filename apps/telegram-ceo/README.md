@@ -106,6 +106,23 @@ The bot runs the Claude Agent SDK with the native Claude Code toolset:
   unchanged — this bypasses it at the SDK level for these two servers only,
   same mechanism as the knowledge-engine tools above.
 
+- **`ceo-privileged`** (ASPS-766, ADR-005 part 2) — an in-process
+  `createSdkMcpServer` (`src/privileged.ts`) exposing the JIRA/GitHub
+  **WRITE** operations the bot needs now that ASPS-765's bubblewrap sandbox
+  denies sandboxed Bash the credential env vars it used to shell out with:
+  `jira_transition`, `jira_comment`, `jira_update_issue`, `github_create_pr`,
+  `github_comment`. Handlers run in the SDK host — this bot's own Node
+  process, unsandboxed — so they read `JIRA_BASE_URL`/`JIRA_EMAIL`/
+  `JIRA_API_TOKEN`/`GITHUB_TOKEN`/`GITHUB_REPO_URL` directly from the process
+  environment and call the JIRA/GitHub REST APIs with `fetch` — no shell, no
+  `curl`/`gh`, so there is no injection surface for a title/body/label value
+  to reach a command line. **Unlike `github`/`mcp-atlassian` above, this
+  server gets NO `allowedTools` wildcard and NO explicit entry** — every one
+  of its tools falls through `canUseTool`'s classification to the
+  deny-by-default branch, so every JIRA/GitHub write still requires the same
+  Telegram Approve/Deny tap as `Write`/`Edit`/`Bash`. `git_push` is a
+  separate gated tool, ASPS-767 — not on this server.
+
 `CLAUDE.md` is read from `WORKING_DIR` and injected into the system prompt
 by hand (`src/context.ts`'s `loadClaudeMd`), **not** via the SDK's
 `settingSources: ["project"]` option — see
@@ -196,7 +213,8 @@ approval like any other state-changing action.
   [Read-only git auto-allow](#4-read-only-git-auto-allow-asps-749) below for
   the full rule set.
 - **Everything else** (`Write`, `Edit`, `MultiEdit`, `NotebookEdit`,
-  non-dangerous `Bash`, `Task`, `WebFetch`, any other MCP tool, etc.):
+  non-dangerous `Bash`, `Task`, `WebFetch`, every `ceo-privileged`
+  JIRA/GitHub write tool (ASPS-766), any other MCP tool, etc.):
   `canUseTool` calls `requestApproval()`, which sends the authorized user an
   inline-keyboard Telegram message (✅ Approve / ❌ Deny) with the **full,
   untruncated** command or path (ASPS-743 security re-review, Major M1 — a
@@ -333,7 +351,13 @@ Bash is a later, separate story (ASPS-763-5 / ASPS-768).
 - `filesystem.denyRead` — the secrets dir (`SECRETS_DIR`, default
   `/home/aspsbot/secrets`) is denied wholesale, not just the individual
   credential files, so a future file added under it is covered without a code
-  change. `filesystem.allowWrite` is scoped to `WORKING_DIR` only.
+  change. **ASPS-766 fold-in** (ASPS-765 security review, Minor): also denies
+  `<HOME>/.claude` (can hold `.credentials.json`, the CLI's own OAuth token
+  cache) and `<HOME>/.npmrc` (can hold an npm registry auth token) — neither
+  lives under `SECRETS_DIR`, so this closes the remaining home-dir
+  credential-read channel a sandboxed Bash command could otherwise still read
+  straight off disk. `HOME` is read from the environment, `os.homedir()` as
+  fallback. `filesystem.allowWrite` is scoped to `WORKING_DIR` only.
 - `credentials.files` — denies `<SECRETS_DIR>/github-credentials`, the stored
   git-push credential (ASPS-745 Phase 3), so a sandboxed `git push` cannot use
   the ambient credential.
