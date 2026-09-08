@@ -22,6 +22,18 @@ vi.mock("../context.js", () => ({
   loadMcpServers: loadMcpServersMock,
 }));
 
+// agent.test.ts mocks the whole SDK module (see above), so privileged.ts's
+// real `createSdkMcpServer`/`tool()` calls (which need the real SDK
+// exports) cannot run here — mock the server builder itself instead. The
+// handler-level behavior (creds from env, REST call shape, validation) is
+// covered independently in privileged.test.ts; this file only needs to
+// prove the WIRING/GATING half (the server ends up in mcpServers, and no
+// ceo-privileged tool ever gets an allowedTools wildcard).
+const buildPrivilegedMcpServerMock = vi.fn(() => ({ type: "sdk" as const, name: "ceo-privileged" }));
+vi.mock("../privileged.js", () => ({
+  buildPrivilegedMcpServer: buildPrivilegedMcpServerMock,
+}));
+
 // Imported after the mocks so agent.ts picks up the mocked collaborators.
 const { runAgent, createCanUseTool } = await import("../agent.js");
 const { clearSession, getSessionId } = await import("../session.js");
@@ -362,6 +374,40 @@ describe("createCanUseTool — read-only git auto-allow (ASPS-749)", () => {
   });
 });
 
+describe("createCanUseTool — ceo-privileged MCP write tools (ASPS-766, ADR-005 part 2)", () => {
+  beforeEach(() => {
+    requestApprovalMock.mockReset();
+  });
+
+  it.each([
+    "mcp__ceo-privileged__jira_transition",
+    "mcp__ceo-privileged__jira_comment",
+    "mcp__ceo-privileged__jira_update_issue",
+    "mcp__ceo-privileged__github_create_pr",
+    "mcp__ceo-privileged__github_comment",
+  ])(
+    "routes %s through Telegram approval — NOT auto-allowed (the load-bearing gating requirement)",
+    async (toolName) => {
+      requestApprovalMock.mockResolvedValue("allow");
+      const canUseTool = createCanUseTool(111, process.cwd());
+
+      const result = await canUseTool(toolName, { issueKey: "ASPS-766" }, toolOptions);
+
+      expect(requestApprovalMock).toHaveBeenCalledWith(111, toolName, expect.any(String));
+      expect(result?.behavior).toBe("allow");
+    },
+  );
+
+  it("denies a ceo-privileged tool call when the Telegram approval is denied", async () => {
+    requestApprovalMock.mockResolvedValue("deny");
+    const canUseTool = createCanUseTool(111, process.cwd());
+
+    const result = await canUseTool("mcp__ceo-privileged__jira_transition", {}, toolOptions);
+
+    expect(result?.behavior).toBe("deny");
+  });
+});
+
 describe("createCanUseTool — deny-by-default (ASPS-743 blocker B3)", () => {
   beforeEach(() => {
     requestApprovalMock.mockReset();
@@ -596,6 +642,31 @@ describe("runAgent", () => {
     expect(options.disallowedTools).toEqual(expect.arrayContaining(["AskUserQuestion"]));
   });
 
+  it("wires the ceo-privileged MCP server into mcpServers (ASPS-766, ADR-005 part 2)", async () => {
+    queryMock.mockReturnValue(
+      asAsyncIterable([{ type: "result", subtype: "success", result: "ok", session_id: "sess-1" }]),
+    );
+
+    await runAgent(userId, "hi");
+
+    const { options } = queryMock.mock.calls[0][0];
+    expect(options.mcpServers["ceo-privileged"]).toBeDefined();
+    expect(options.mcpServers["ceo-privileged"].type).toBe("sdk");
+    expect(options.mcpServers["ceo-privileged"].name).toBe("ceo-privileged");
+  });
+
+  it("does NOT auto-allow any ceo-privileged tool — no wildcard, no explicit entry (ASPS-766 load-bearing gating requirement)", async () => {
+    queryMock.mockReturnValue(
+      asAsyncIterable([{ type: "result", subtype: "success", result: "ok", session_id: "sess-1" }]),
+    );
+
+    await runAgent(userId, "hi");
+
+    const { options } = queryMock.mock.calls[0][0];
+    const allowed: string[] = options.allowedTools;
+    expect(allowed.some((entry) => entry.includes("ceo-privileged"))).toBe(false);
+  });
+
   it("auto-allows the GitHub and JIRA MCP servers via a per-server wildcard, since both endpoints are read-only (ASPS-748)", async () => {
     queryMock.mockReturnValue(
       asAsyncIterable([{ type: "result", subtype: "success", result: "ok", session_id: "sess-1" }]),
@@ -701,6 +772,26 @@ describe("runAgent", () => {
       const { options } = queryMock.mock.calls[0][0];
       expect(options.sandbox.filesystem.denyRead).toContain("/home/aspsbot/secrets");
       expect(options.sandbox.filesystem.allowWrite).toContain("/home/aspsbot/ASPS");
+    });
+
+    it("denies reading ~/.claude and ~/.npmrc — ASPS-766 fold-in of the ASPS-765 security review Minor (home-dir credential-read channel)", async () => {
+      const savedHome = process.env.HOME;
+      process.env.HOME = "/home/aspsbot";
+      queryMock.mockReturnValue(
+        asAsyncIterable([{ type: "result", subtype: "success", result: "ok", session_id: "sess-1" }]),
+      );
+
+      await runAgent(userId, "hi");
+
+      const { options } = queryMock.mock.calls[0][0];
+      expect(options.sandbox.filesystem.denyRead).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining(".claude"),
+          expect.stringContaining(".npmrc"),
+        ]),
+      );
+      if (savedHome === undefined) delete process.env.HOME;
+      else process.env.HOME = savedHome;
     });
 
     it("honors a SECRETS_DIR override for both filesystem.denyRead and credentials.files", async () => {
