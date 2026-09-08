@@ -1,6 +1,16 @@
 // Jest setup for Chrome Extension testing
 Object.assign(global, require('jest-chrome'));
 
+// jest-environment-jsdom's window.crypto does not implement randomUUID()
+// (jsdom's WebCrypto surface is incomplete). Production code
+// (generated/messaging/v1/message-envelope.js, used by ScanService.scan())
+// calls crypto.randomUUID() directly, so polyfill it from Node's real
+// implementation rather than mocking/weakening the code under test.
+const nodeCrypto = require('crypto');
+if (global.crypto && typeof global.crypto.randomUUID !== 'function') {
+  global.crypto.randomUUID = () => nodeCrypto.randomUUID();
+}
+
 // jest-chrome does not include chrome.storage.session (MV3-only API).
 // Add a minimal jest.fn()-based mock so tests that exercise MessageQueueService
 // (which uses storage.session for queue persistence) can run.

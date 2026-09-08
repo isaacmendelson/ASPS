@@ -146,6 +146,15 @@ def _load_curve_public_key() -> str:
 # file — AFTER the config_override import — so that TRANSPORT_MODE reflects
 # any environment override (e.g. config_azure.py setting TRANSPORT_MODE="ws")
 # before the CURVE key lookup decides whether to run at all.
+#
+# ASPS-753: the SystemExit that _load_curve_public_key() raises on a
+# missing/empty key is caught and DEFERRED rather than left to propagate out
+# of module import — see the try/except around the call at the bottom of
+# this file for the rationale (importing `config` must never abort the
+# process, e.g. during pytest collection on a CI box that never ran a
+# backend). The fatal error still fires — just at point of first use
+# (AuthManager.__init__ / ZMQClient.connect()), which already refuse to
+# proceed without a real key.
 
 # Whitelist - IPs and ports to ignore in remote access detection
 WHITELIST_IPS = [
@@ -422,5 +431,26 @@ except ImportError:
 # TRANSPORT_MODE reflects any environment override (e.g. config_azure.py
 # setting TRANSPORT_MODE="ws") before deciding whether CURVE is required.
 # See _load_curve_public_key() docstring near the top of this file.
+#
+# ASPS-753: importing this module must NEVER abort the process (SystemExit)
+# just because the CURVE key isn't provisioned on this machine — e.g. a
+# fresh CI checkout that never ran the backend, or plain `import config`
+# during pytest collection (almost every desktop module imports config
+# transitively). A SystemExit here previously killed the entire desktop
+# pytest suite at collection time.
+#
+# The fatal error is instead DEFERRED: it is caught here, the key is left as
+# "" (the same "not configured" value used elsewhere in this file), and the
+# original exception is stashed in _CURVE_KEY_LOAD_ERROR so a point-of-use
+# caller can surface the full provisioning guidance. The production
+# guarantee is unchanged — AuthManager.__init__ and ZMQClient.connect()
+# already refuse to establish a connection (raise RuntimeError) when the key
+# is empty, so a real runtime connection attempt still fails safely and
+# loudly; there is still no silent plaintext fallback.
 # ─────────────────────────────────────────────────────────────────────────────
-BACKEND_SERVER_PUBLIC_KEY_Z85 = _load_curve_public_key()
+try:
+    BACKEND_SERVER_PUBLIC_KEY_Z85 = _load_curve_public_key()
+    _CURVE_KEY_LOAD_ERROR = None
+except SystemExit as _curve_key_load_exc:
+    BACKEND_SERVER_PUBLIC_KEY_Z85 = ""
+    _CURVE_KEY_LOAD_ERROR = _curve_key_load_exc

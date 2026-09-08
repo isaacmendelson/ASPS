@@ -22,6 +22,24 @@ matches the `net8.0` target framework. Docker build-stage images use
 `mcr.microsoft.com/dotnet/sdk:8.0.423` and do **not** inherit `global.json` from
 the host — global.json is intentionally not copied into Docker build contexts.
 
+`global.json` pins `rollForward: "disable"` — the SDK must match `9.0.308`
+**exactly**; no floating to a newer minor/patch preinstalled on the machine or
+runner. This is intentional (ASPS-753): GitHub's hosted-runner base image SDK
+drifts ahead over time, and a looser roll-forward policy (`latestMinor`) let
+`dotnet --version` silently resolve to whatever newer SDK the runner shipped,
+breaking the exact-version assertion in `scripts/verify.ps1` and defeating the
+point of a "reproducible" baseline. Tradeoff: any machine (CI or local) without
+exactly `9.0.308` installed gets a hard SDK-resolution error (`dotnet` itself
+fails before any version check runs) instead of a silent version drift. Every
+workflow that runs `dotnet` from the repo root must install `9.0.308` via
+`actions/setup-dotnet` (in addition to any other SDK version it needs for its
+own purposes) so the pin resolves. Local devs need .NET SDK `9.0.308` installed
+exactly (`dotnet --list-sdks` to check). `verify.ps1 -BypassDotnetSdkPin` runs
+`dotnet` from outside the repo tree (so `global.json` does not apply) for
+developers who only have a different SDK installed; `-AllowRuntimeMismatch`
+separately downgrades the Node/npm/Python exact-version asserts to warnings
+and does not affect SDK resolution.
+
 ## Clean-machine verification
 
 Install the supported toolchain, clone the repository, then run from the

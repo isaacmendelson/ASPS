@@ -69,7 +69,9 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: |
+            8.0.x
+            9.0.308
       - name: Build solution
         run: dotnet build ASPSBackend14_J/ASPSBackend.sln -c Release --nologo
       - name: Run tests

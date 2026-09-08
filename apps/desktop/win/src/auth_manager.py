@@ -83,18 +83,21 @@ class AuthManager:
             print("[AUTH] TRANSPORT_MODE=ws — CURVE not required, skipping CURVE key application")
         else:
             # Apply server key to zmq_client.
-            # config._load_curve_public_key() has already aborted startup (SystemExit)
-            # if the key is absent — so BACKEND_SERVER_PUBLIC_KEY_Z85 is guaranteed
-            # to be a non-empty Z85 string at this point.
+            # ASPS-753: config.py no longer aborts the process (SystemExit) at
+            # import time when the key is missing/empty — it defers the fatal
+            # error to this point of first use instead (see
+            # config._CURVE_KEY_LOAD_ERROR). So BACKEND_SERVER_PUBLIC_KEY_Z85
+            # may legitimately be "" here, and we raise explicitly rather than
+            # silently downgrading to plaintext.
             live_key = BACKEND_SERVER_PUBLIC_KEY_Z85  # resolved at import time
             if not live_key:
-                # Guard: should never reach here because config raises SystemExit
-                # when the key is missing.  Raise explicitly rather than silently
-                # downgrading to plaintext.
+                load_error = getattr(_config, '_CURVE_KEY_LOAD_ERROR', None)
+                detail = f"\n{load_error}" if load_error else ""
                 raise RuntimeError(
                     "[AUTH] CURVE server public key is empty at AuthManager init. "
                     "This is a configuration error — the agent cannot connect without "
-                    "CURVE encryption. Check ANTISCAM_CURVE_PUBLIC_KEY or the key file."
+                    "CURVE encryption. Check ANTISCAM_CURVE_PUBLIC_KEY or the key "
+                    f"file.{detail}"
                 )
             self.server_public_key = live_key.encode('utf-8')
             self.zmq_client.set_server_public_key(self.server_public_key)
