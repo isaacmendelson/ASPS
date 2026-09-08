@@ -7,6 +7,7 @@ import {
   findSecretPathInInput,
   isSafeReadOnlyGitCommand,
   matchDangerousBashCommand,
+  matchSelfModificationPath,
 } from "./security.js";
 import { requestApproval } from "./approvals.js";
 import { getSessionId, setSessionId } from "./session.js";
@@ -100,6 +101,17 @@ function buildBotScopedMcpServers(): Record<string, McpServerConfig> {
 const AUTO_ALLOW_READ_TOOLS = new Set(["Read", "Grep", "Glob"]);
 const AUTO_ALLOW_MCP_TOOLS = ["mcp__knowledge-engine__knowledge_search", "mcp__knowledge-engine__knowledge_ask"];
 const AUTO_ALLOW_MCP_TOOL_SET = new Set(AUTO_ALLOW_MCP_TOOLS);
+
+/**
+ * ASPS-768 (ADR-005 story ASPS-763-5) — the write-capable, path-bearing
+ * tools auto-allowed once `checkPathAllowed` passes (in `WORKING_DIR`, no
+ * secret pattern) AND the target is NOT a self-modification path
+ * (`matchSelfModificationPath` — see `security.ts`). `NotebookRead` is
+ * deliberately excluded (it is read-only and was never auto-allowed even
+ * pre-ASPS-768 — out of scope for this story, unchanged behavior). See
+ * `createCanUseTool` below for the full evaluation order.
+ */
+const AUTO_ALLOW_WRITE_TOOLS = new Set(["Edit", "Write", "MultiEdit", "NotebookEdit"]);
 
 /**
  * Per-server wildcards (ASPS-748) for the two bot-scoped MCP servers built
@@ -231,6 +243,21 @@ const SANDBOX_DENIED_ENV_VARS = [
  * disk even with the secrets dir denied. `HOME` is read from the
  * environment with `os.homedir()` as a sane fallback (matches the rest of
  * this function's env-configurable-with-a-default pattern).
+ *
+ * ASPS-768 fold-in (ADR-005 story ASPS-763-5): `filesystem.denyWrite` adds
+ * `CLAUDE.md` and `apps/telegram-ceo/` (this bot's own package) — the same
+ * two self-modification roots `security.ts`'s `matchSelfModificationPath`
+ * excludes from the `Edit`/`Write` tool-level auto-allow (see the block
+ * comment there for the full rationale: rewriting either lets an injected
+ * agent alter its own operating instructions or its own permission logic
+ * with no Telegram approval). That tool-level guard only sees `Edit`/
+ * `Write`/`MultiEdit`/`NotebookEdit` calls — it has no visibility into a
+ * sandboxed `Bash` command, which ASPS-768 also auto-allows (see
+ * `createCanUseTool` below) and which, absent this, could still
+ * self-modify via `echo x >> CLAUDE.md` or similar with no human in the
+ * loop. `denyWrite` closes that at the OS/mount level regardless of which
+ * tool the write comes through; `allowWrite` still covers the rest of the
+ * repo clone for ordinary dev writes.
  */
 function buildSandboxSettings(workingDir: string): NonNullable<Options["sandbox"]> {
   const bwrapPath = process.env.BWRAP_PATH || "/usr/bin/bwrap";
@@ -238,6 +265,8 @@ function buildSandboxSettings(workingDir: string): NonNullable<Options["sandbox"
   const home = process.env.HOME || homedir();
   const claudeHomeDir = path.join(home, ".claude");
   const npmrcPath = path.join(home, ".npmrc");
+  const claudeMdPath = path.join(workingDir, "CLAUDE.md");
+  const selfSourceDir = path.join(workingDir, "apps", "telegram-ceo");
 
   return {
     enabled: true,
@@ -253,6 +282,11 @@ function buildSandboxSettings(workingDir: string): NonNullable<Options["sandbox"
       // read-only (bwrap default).
       denyRead: [secretsDir, claudeHomeDir, npmrcPath],
       allowWrite: [workingDir],
+      // ASPS-768 fold-in (see block comment above): carve the two
+      // self-modification roots back OUT of allowWrite so a now-auto-allowed
+      // sandboxed Bash command cannot rewrite CLAUDE.md or this bot's own
+      // source, matching the tool-level exclusion in `createCanUseTool`.
+      denyWrite: [claudeMdPath, selfSourceDir],
     },
     credentials: {
       // The stored git-push credential (ASPS-745 Phase 3 `credential.helper
@@ -267,9 +301,18 @@ function buildSandboxSettings(workingDir: string): NonNullable<Options["sandbox"
       // bwrap otherwise inherits the full parent environment by default.
       envVars: SANDBOX_DENIED_ENV_VARS.map((name) => ({ name, mode: "deny" as const })),
     },
-    // autoAllowBashIfSandboxed: deliberately UNSET. canUseTool stays the
-    // sole authority for Bash — see createCanUseTool above. This story only
-    // turns on containment; ASPS-763-5/ASPS-768 relaxes the approval.
+    // autoAllowBashIfSandboxed: deliberately UNSET, even now that ASPS-768
+    // relaxes Bash to auto-allow. ADR-005's explicit choice (see the
+    // "Decision" section, part 1): canUseTool stays the SOLE authority for
+    // Bash, implementing the auto-allow itself (see createCanUseTool below)
+    // rather than delegating to this SDK-level flag — which would bypass
+    // canUseTool entirely (same mechanism as the AUTO_ALLOW_MCP_WILDCARDS
+    // bypass above) and could not express the two invariants this story
+    // still needs: (1) the auto-allow must stay COUPLED to this sandbox
+    // actually being enabled (see the sandboxEnabled parameter on
+    // createCanUseTool — a hypothetical disabled/degraded sandbox must fall
+    // back to the pre-768 gated behavior, not silently keep auto-allowing),
+    // and (2) DANGEROUS_BASH_PATTERNS must still hard-deny first regardless.
   };
 }
 
@@ -357,9 +400,22 @@ function summarizeToolCall(toolName: string, input: Record<string, unknown>): st
 
 /**
  * Deny-by-default permission policy (ASPS-743 security remediation,
- * blockers B1–B3; hardened per the ASPS-743 security re-review, Major M2).
- * Built per Telegram turn so the approval flow can correlate every request
- * with the user who owns it.
+ * blockers B1–B3; hardened per the ASPS-743 security re-review, Major M2;
+ * relaxed by ASPS-768, ADR-005 implementation-plan story ASPS-763-5 — the
+ * change that CLOSES ASPS-762). Built per Telegram turn so the approval flow
+ * can correlate every request with the user who owns it.
+ *
+ * **ASPS-768 thesis (why auto-allowing Bash + in-repo edits is now safe):**
+ * every Bash execution runs inside the ASPS-765 bwrap sandbox (secrets dir +
+ * git-push credential + every token env var denied — `buildSandboxSettings`
+ * above), and every JIRA/GitHub write + `git push` is routed off Bash onto
+ * the ASPS-766/767 gated `ceo-privileged` MCP server (still per-call
+ * Telegram-approved, unaffected by this story). So the blast radius of an
+ * auto-allowed Bash command or in-repo file edit is bounded to "a
+ * recoverable repo clone + public source" — it cannot read a secret, cannot
+ * complete an unapproved push (no credential), and — with the self-
+ * modification exclusion below — cannot rewrite its own operating
+ * instructions or its own permission logic either.
  *
  * Every branch below also implicitly covers a tool call made from *inside*
  * a subagent spawned by `Task`: `createCanUseTool` never reads the
@@ -369,6 +425,15 @@ function summarizeToolCall(toolName: string, input: Record<string, unknown>): st
  * "subagent (Task) tool calls re-enter canUseTool" tests in
  * `agent.test.ts`).
  *
+ * `sandboxEnabled` (third param, defaults `true` to match production, where
+ * `buildOptions` always passes the live `buildSandboxSettings(...).enabled`
+ * value): the ASPS-768 Bash auto-allow is deliberately COUPLED to this — if
+ * the sandbox is ever off, Bash falls back to the pre-768 gated behavior
+ * (plus the narrower ASPS-749 read-only-git carve-out) instead of silently
+ * auto-allowing an unsandboxed command with full access to secrets and the
+ * ambient git credential. See "Bash auto-allow is contingent on sandbox
+ * enabled" in `agent.test.ts`.
+ *
  * Evaluation order for each tool call:
  *  1. **Secret-path invariant scan (M2)** — `findSecretPathInInput` scans
  *     EVERY string field of the input, recursively (arrays/nested objects
@@ -377,48 +442,66 @@ function summarizeToolCall(toolName: string, input: Record<string, unknown>): st
  *     known or not, path-bearing-field-listed or not. This is the
  *     fail-closed floor under #2 below: it does not depend on a tool being
  *     listed in `PATH_INPUT_FIELD`, or on the secret path living in that
- *     tool's documented path field.
+ *     tool's documented path field. UNCHANGED by ASPS-768 — still evaluated
+ *     first, for every tool including Bash.
  *  2. **Path guard (B1)** — any tool whose input carries a filesystem path
  *     in its documented field (`PATH_INPUT_FIELD`) is checked with
  *     `checkPathAllowed`; a path outside `workingDir` is denied outright
  *     (the secret-pattern half of this check is now redundant with #1 but
  *     kept for a precise "outside working dir" vs. "secret pattern" error
  *     message).
- *  3. **Bash hard-deny (B2)** — a command matching
+ *  3. **ASPS-768 in-repo write auto-allow** — once #2 passes for `Edit`,
+ *     `Write`, `MultiEdit`, or `NotebookEdit` (`AUTO_ALLOW_WRITE_TOOLS`),
+ *     the call auto-allows UNLESS the resolved target is a self-
+ *     modification path (`matchSelfModificationPath` — `CLAUDE.md` or
+ *     `apps/telegram-ceo/**`, see the block comment on that function in
+ *     `security.ts`), which instead falls through to #7 (Telegram
+ *     approval), exactly as every write did before this story. A call with
+ *     no resolvable path (e.g. an empty/malformed input) also falls through
+ *     to #7 — there is nothing here to auto-allow.
+ *  4. **Bash hard-deny (B2)** — a command matching
  *     `DANGEROUS_BASH_PATTERNS` is denied unconditionally. This is
  *     defense-in-depth, not the primary control: irreversible ops are
  *     never one-tap-approvable from a phone, so they never even reach the
- *     approval step.
- *  4. **Read-only git auto-allow (ASPS-749)** — a `Bash` call whose command
- *     is a single, standalone, strictly read-only `git` invocation
+ *     approval step. UNCHANGED by ASPS-768 — still evaluated before any
+ *     Bash auto-allow, so a destructive pattern is never reachable through
+ *     #5/#6 below.
+ *  5. **ASPS-768 sandboxed Bash auto-allow** — any `Bash` call that reaches
+ *     here (i.e. survived #4) auto-allows, PROVIDED `sandboxEnabled` is
+ *     true (see above). No per-command allowlist is needed anymore: the
+ *     sandbox + the gated `ceo-privileged` server bound the blast radius of
+ *     an arbitrary command, per the thesis above. This supersedes the
+ *     narrower ASPS-749 read-only-git carve-out for the normal (sandboxed)
+ *     case — a git WRITE (`commit`/`push`/`checkout`/...) now also
+ *     auto-allows here (an ambient `git push` still cannot succeed — no
+ *     credential, see `buildSandboxSettings`'s `credentials.files`).
+ *  6. **Read-only git auto-allow fallback (ASPS-749)** — reached only when
+ *     `sandboxEnabled` is false (#5 did not fire): a `Bash` call whose
+ *     command is a single, standalone, strictly read-only `git` invocation
  *     (`isSafeReadOnlyGitCommand`: status/log/show/diff/branch(list)/
  *     remote(bare,-v,get-url)/rev-parse/describe/ls-files/tag(list), each
  *     restricted to a per-subcommand positive safe-flag allowlist — see the
- *     block comment above `isSafeReadOnlyGitCommand` in security.ts for the
- *     full redesign rationale and the subcommands deliberately dropped
- *     (`config`, `blame`, `ls-remote`, `shortlog`, `remote show` — every
- *     read form of those either reads an arbitrary file or does network
- *     I/O) proceeds without a human in the loop. This is evaluated AFTER #3
- *     so a destructive pattern is never reachable via this path, and it is
- *     a narrow carve-out under `Bash` only — every git WRITE
- *     (commit/push/checkout/merge/rebase/reset/`branch -D`/`remote add`/
- *     `config user.name`, ...) and every other Bash command still falls
- *     through to #6.
- *  5. **Auto-allow (subject to #1–#2)** — `Read`/`Grep`/`Glob` and the two
+ *     block comment above `isSafeReadOnlyGitCommand` in security.ts)
+ *     proceeds without a human in the loop even in that degraded mode;
+ *     every other Bash command still falls through to #7.
+ *  7. **Auto-allow (subject to #1–#2)** — `Read`/`Grep`/`Glob` and the two
  *     read-only knowledge-engine MCP tools proceed without a human in the
- *     loop, per decision #1 ("read-mostly").
- *  6. **Require Telegram approval** — everything else (`Write`, `Edit`,
- *     `MultiEdit`, `NotebookEdit`, non-allowlisted `Bash`, `Task`,
- *     `WebFetch`, any other MCP tool, etc.) is deny-by-default until the
- *     same authorized user who owns this turn approves it over Telegram
- *     (`requestApproval`), which now receives the FULL, untruncated
- *     `summarizeToolCall` output (see Major M1 above `summarizeToolCall`).
+ *     loop, per decision #1 ("read-mostly"). UNCHANGED by ASPS-768.
+ *  8. **Require Telegram approval** — everything else (self-modification
+ *     `Edit`/`Write`/`MultiEdit`/`NotebookEdit`, a path-less write call,
+ *     non-sandboxed non-read-only-git `Bash`, `Task`, `WebFetch`, every
+ *     `ceo-privileged` MCP tool (ASPS-766/767 — deliberately NEVER
+ *     auto-allowed by this story, see the "ceo-privileged MCP write tools"
+ *     tests), any other MCP tool, etc.) is deny-by-default until the same
+ *     authorized user who owns this turn approves it over Telegram
+ *     (`requestApproval`), which receives the FULL, untruncated
+ *     `summarizeToolCall` output (Major M1 above `summarizeToolCall`).
  *
  * Must never resolve to `null` — the SDK's own docs state an accidental
  * `null` leaves the permission request unanswered and the tool call
  * blocked indefinitely.
  */
-export function createCanUseTool(userId: number, workingDir: string): CanUseTool {
+export function createCanUseTool(userId: number, workingDir: string, sandboxEnabled = true): CanUseTool {
   return async (toolName, input) => {
     const secretHit = findSecretPathInInput(input);
     if (secretHit) {
@@ -434,6 +517,15 @@ export function createCanUseTool(userId: number, workingDir: string): CanUseTool
       if (!guard.allowed) {
         return { behavior: "deny", message: `Blocked by path guard: ${guard.reason}` };
       }
+
+      // ASPS-768: auto-allow an in-repo write UNLESS it targets a
+      // self-modification path (CLAUDE.md / apps/telegram-ceo/**), which
+      // stays gated behind Telegram approval like every write did before
+      // this story — see the block comment above and `matchSelfModificationPath`
+      // in security.ts.
+      if (AUTO_ALLOW_WRITE_TOOLS.has(toolName) && !matchSelfModificationPath(guard.resolvedPath)) {
+        return { behavior: "allow" };
+      }
     }
 
     if (toolName === "Bash" && typeof input.command === "string") {
@@ -446,10 +538,21 @@ export function createCanUseTool(userId: number, workingDir: string): CanUseTool
             "This is a hard deny — irreversible operations are never approved via Telegram.",
         };
       }
-    }
 
-    if (toolName === "Bash" && typeof input.command === "string" && isSafeReadOnlyGitCommand(input.command)) {
-      return { behavior: "allow" };
+      // ASPS-768: auto-allow every non-destructive Bash command, coupled to
+      // the bwrap sandbox actually being enabled — see the block comment
+      // above (`sandboxEnabled`) for why this must never fire unsandboxed.
+      if (sandboxEnabled) {
+        return { behavior: "allow" };
+      }
+
+      // Fallback when the sandbox is not enabled: keep the narrower
+      // ASPS-749 read-only-git carve-out so routine plumbing still doesn't
+      // need approval even in that degraded mode; everything else still
+      // requires Telegram approval below.
+      if (isSafeReadOnlyGitCommand(input.command)) {
+        return { behavior: "allow" };
+      }
     }
 
     if (AUTO_ALLOW_READ_TOOLS.has(toolName) || AUTO_ALLOW_MCP_TOOL_SET.has(toolName)) {
@@ -473,18 +576,27 @@ function buildOptions(userId: number): Options {
   const maxTurns = Number(process.env.MAX_TURNS) || DEFAULT_MAX_TURNS;
   const resume = getSessionId(userId);
   const claudeMd = loadClaudeMd(workingDir);
+  // Computed once and reused below (sandbox object passed to the SDK,
+  // sandbox.enabled threaded into createCanUseTool) so the ASPS-768 Bash
+  // auto-allow reads the SAME enabled flag the SDK is actually given this
+  // turn — never a second, independently-computed value that could drift.
+  const sandboxSettings = buildSandboxSettings(workingDir);
 
   return {
     cwd: workingDir,
     ...(model ? { model } : {}),
     maxTurns,
     permissionMode: "default",
-    canUseTool: createCanUseTool(userId, workingDir),
+    // ASPS-768: sandboxSettings.enabled couples the Bash auto-allow to the
+    // sandbox actually being on — see the sandboxEnabled param doc on
+    // createCanUseTool.
+    canUseTool: createCanUseTool(userId, workingDir, sandboxSettings.enabled === true),
     // ASPS-765 / ADR-005 part 1: contain every Bash execution in the SDK's
     // built-in bubblewrap sandbox (secrets dir + credentials denied — see
-    // buildSandboxSettings above). Bash itself stays gated behind
-    // canUseTool in this story; ASPS-763-5/ASPS-768 relaxes the approval.
-    sandbox: buildSandboxSettings(workingDir),
+    // buildSandboxSettings above). ASPS-768 (ADR-005 story ASPS-763-5) now
+    // auto-allows Bash itself in canUseTool, coupled to this sandbox being
+    // enabled — see the createCanUseTool doc comment for the full ordering.
+    sandbox: sandboxSettings,
     // Deliberately empty, NOT ["project"]. Loading the "project" settings
     // source also loads .claude/settings.json's `permissions.allow`
     // (Bash(*), Write, Edit, Read, ...) — confirmed empirically via the
