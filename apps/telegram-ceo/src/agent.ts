@@ -127,6 +127,101 @@ const AUTO_ALLOW_MCP_TOOL_SET = new Set(AUTO_ALLOW_MCP_TOOLS);
 const AUTO_ALLOW_MCP_WILDCARDS = ["mcp__github__*", "mcp__mcp-atlassian__*"];
 
 /**
+ * Every secret/token env var this process can hold, denied inside the
+ * sandbox's `credentials.envVars` (ASPS-765, part 1 of ADR-005's two-part
+ * privilege separation — see `buildSandboxSettings` below).
+ *
+ * Enumerated from `apps/telegram-ceo/.env.example` (`TELEGRAM_BOT_TOKEN`,
+ * `CLAUDE_CODE_OAUTH_TOKEN`, `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, `JIRA_EMAIL`,
+ * `JIRA_API_TOKEN`) and cross-checked against the VPS's two systemd
+ * `EnvironmentFile=` sources (`deploy/vps/telegram-ceo.service`,
+ * `docs/cloud/VPS_TELEGRAM_HARDENING.md` §5 "Secrets model"):
+ * `telegram-ceo.env` (`TELEGRAM_BOT_TOKEN`, `CLAUDE_CODE_OAUTH_TOKEN`) and
+ * `ACCESS_KEYS.env` (`GITHUB_TOKEN`, `JIRA_EMAIL`, `JIRA_API_TOKEN`) — same
+ * six names, no box-only extra secret var. Deliberately excludes
+ * non-credential config that happens to travel alongside them in the same
+ * files (`AUTHORIZED_USERS`, `WORKING_DIR`, `MODEL`, `MAX_TURNS`,
+ * `APPROVAL_TIMEOUT_MS`, `JIRA_BASE_URL`, `GITHUB_USERNAME`,
+ * `GITHUB_REPO_URL`) — none of those grant access to anything on their own.
+ *
+ * This is the load-bearing half of the ASPS-765 hard requirement: systemd's
+ * `EnvironmentFile=` injects these as ordinary process env vars (PID 1,
+ * before any sandbox applies — see HARDENING §5), and bubblewrap inherits
+ * the parent environment by default, so `sandbox.enabled:true` alone would
+ * do nothing to stop a sandboxed Bash command from reading them straight out
+ * of `process.env`/`environ`. `mode: "deny"` unsets each variable for
+ * sandboxed commands only (`sdk.d.ts`: "deny unsets the variable for
+ * sandboxed commands") — the bot's own Node process (SDK host, outside the
+ * per-exec sandbox) keeps every one of these, so `CLAUDE_CODE_OAUTH_TOKEN`
+ * being denied here does NOT break the SDK's own Anthropic auth.
+ */
+const SANDBOX_DENIED_ENV_VARS = [
+  "TELEGRAM_BOT_TOKEN",
+  "CLAUDE_CODE_OAUTH_TOKEN",
+  "ANTHROPIC_API_KEY",
+  "GITHUB_TOKEN",
+  "JIRA_EMAIL",
+  "JIRA_API_TOKEN",
+];
+
+/**
+ * Build the SDK's built-in bubblewrap sandbox config for every Bash
+ * execution (ASPS-765 / ADR-005 part 1 — "Contain every Bash execution in
+ * the SDK's built-in bubblewrap sandbox"). `Bash` itself STAYS gated behind
+ * `canUseTool`/Telegram approval in this story — `autoAllowBashIfSandboxed`
+ * is deliberately left unset (see the block comment on that field in
+ * `sdk.d.ts`); the approval relaxation is ASPS-763-5/ASPS-768, not this one.
+ *
+ * `failIfUnavailable: true` — the box already has `bubblewrap` installed and
+ * a scoped AppArmor profile loaded (ASPS-764, verified live on the VPS): if
+ * `bwrap` is ever missing or broken, fail the query loudly rather than
+ * silently running Bash unsandboxed with full access to the secrets dir and
+ * the ambient git-push credential (the SDK's own default for `enabled:true`
+ * — see the `sdk.d.ts` doc comment on `Options.sandbox`).
+ *
+ * `bwrapPath`/secrets dir are read from the environment (`BWRAP_PATH`,
+ * `SECRETS_DIR`) so this matches whatever the box's provisioning actually
+ * installed, with defaults matching the VPS's own layout
+ * (`deploy/vps/06-sandbox.sh` installs to `/usr/bin/bwrap`;
+ * `deploy/vps/config.env.example`'s `SECRETS_DIR=/home/aspsbot/secrets`).
+ */
+function buildSandboxSettings(workingDir: string): NonNullable<Options["sandbox"]> {
+  const bwrapPath = process.env.BWRAP_PATH || "/usr/bin/bwrap";
+  const secretsDir = process.env.SECRETS_DIR || "/home/aspsbot/secrets";
+
+  return {
+    enabled: true,
+    failIfUnavailable: true,
+    bwrapPath,
+    filesystem: {
+      // The secrets dir is denied wholesale — not merely the two files
+      // referenced by name below — so a future file added under it
+      // (rotated tokens, a new credential) is covered without a code
+      // change. Write access is scoped to the repo clone only; the rest of
+      // the filesystem stays read-only (bwrap default).
+      denyRead: [secretsDir],
+      allowWrite: [workingDir],
+    },
+    credentials: {
+      // The stored git-push credential (ASPS-745 Phase 3 `credential.helper
+      // = store --file=<SECRETS_DIR>/github-credentials`) — denying it here
+      // is what stops a sandboxed Bash `git push` from using the ambient
+      // credential (ADR-005 "Move privileged operations..." background);
+      // approved pushes route through the ASPS-763-4 in-process
+      // `git_push` tool instead, not through this sandboxed path.
+      files: [{ path: `${secretsDir}/github-credentials`, mode: "deny" }],
+      // Every token/secret this process holds (see SANDBOX_DENIED_ENV_VARS
+      // above) — belt-and-suspenders alongside filesystem.denyRead, since
+      // bwrap otherwise inherits the full parent environment by default.
+      envVars: SANDBOX_DENIED_ENV_VARS.map((name) => ({ name, mode: "deny" as const })),
+    },
+    // autoAllowBashIfSandboxed: deliberately UNSET. canUseTool stays the
+    // sole authority for Bash — see createCanUseTool above. This story only
+    // turns on containment; ASPS-763-5/ASPS-768 relaxes the approval.
+  };
+}
+
+/**
  * Built-in tools removed from the model's context entirely (ASPS-754) —
  * `Options.disallowedTools` per the SDK's own doc: "removed from the
  * model's context and cannot be used, even if they would otherwise be
@@ -333,6 +428,11 @@ function buildOptions(userId: number): Options {
     maxTurns,
     permissionMode: "default",
     canUseTool: createCanUseTool(userId, workingDir),
+    // ASPS-765 / ADR-005 part 1: contain every Bash execution in the SDK's
+    // built-in bubblewrap sandbox (secrets dir + credentials denied — see
+    // buildSandboxSettings above). Bash itself stays gated behind
+    // canUseTool in this story; ASPS-763-5/ASPS-768 relaxes the approval.
+    sandbox: buildSandboxSettings(workingDir),
     // Deliberately empty, NOT ["project"]. Loading the "project" settings
     // source also loads .claude/settings.json's `permissions.allow`
     // (Bash(*), Write, Edit, Read, ...) — confirmed empirically via the

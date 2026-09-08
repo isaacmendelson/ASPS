@@ -314,6 +314,49 @@ read-only git runs without a prompt, but any git write
 (commit/push/checkout/merge/rebase/reset, ...) still needs approval like
 any other state-changing action.
 
+### 5. Bubblewrap sandbox containment for every Bash execution (ASPS-765 / ADR-005 part 1)
+
+`buildOptions()` (`src/agent.ts`) passes the SDK's built-in `sandbox` config
+(bubblewrap on Linux) so **every** Bash execution runs inside a per-exec
+namespace jail, not just the approved-vs-denied decision `canUseTool` already
+makes. This is containment, not a relaxation: **Bash itself is still gated
+behind `canUseTool`/Telegram approval exactly as in section 3 above** —
+`autoAllowBashIfSandboxed` is deliberately left unset. Auto-allowing sandboxed
+Bash is a later, separate story (ASPS-763-5 / ASPS-768).
+
+- `enabled: true`, `failIfUnavailable: true` — if `bwrap` is ever missing or
+  broken on the box, the query fails loudly instead of silently falling back
+  to running Bash unsandboxed (the SDK's own default would otherwise degrade
+  gracefully — see the `sandbox` doc comment in `sdk.d.ts`).
+- `bwrapPath` — defaults to `/usr/bin/bwrap` (where `deploy/vps/06-sandbox.sh`
+  installs it, ASPS-764), overridable via `BWRAP_PATH`.
+- `filesystem.denyRead` — the secrets dir (`SECRETS_DIR`, default
+  `/home/aspsbot/secrets`) is denied wholesale, not just the individual
+  credential files, so a future file added under it is covered without a code
+  change. `filesystem.allowWrite` is scoped to `WORKING_DIR` only.
+- `credentials.files` — denies `<SECRETS_DIR>/github-credentials`, the stored
+  git-push credential (ASPS-745 Phase 3), so a sandboxed `git push` cannot use
+  the ambient credential.
+- `credentials.envVars` — denies (`mode: "deny"`) every secret/token env var
+  this process holds: `TELEGRAM_BOT_TOKEN`, `CLAUDE_CODE_OAUTH_TOKEN`,
+  `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, `JIRA_EMAIL`, `JIRA_API_TOKEN`. This is
+  the load-bearing half of the fix: systemd's `EnvironmentFile=` injects these
+  as ordinary process env vars (PID 1, before any sandbox applies — see
+  `docs/cloud/VPS_TELEGRAM_HARDENING.md` §5), and bubblewrap inherits the
+  parent environment by default, so `sandbox.enabled: true` alone would do
+  nothing to stop a sandboxed Bash command from reading them straight out of
+  `process.env`/`environ`.
+- `credentials.envVars`/`credentials.files` with `mode: "deny"` only affect
+  commands executed *inside* the per-exec sandbox — the bot's own Node
+  process (the SDK host, where `query()` runs) is never sandboxed and keeps
+  every one of these env vars, so denying `CLAUDE_CODE_OAUTH_TOKEN` here does
+  **not** break the SDK's own Anthropic auth.
+
+Requires ASPS-764 (bubblewrap installed + a scoped AppArmor profile + the
+systemd unit's `RestrictNamespaces=` relaxed to `user pid mnt`) already
+applied on the box — see `docs/cloud/VPS_TELEGRAM_HARDENING.md` and
+`docs/architecture/decisions/ADR-005-ASPS-763-AGENT-TOOL-EXECUTION-PRIVILEGE-SEPARATION.md`.
+
 ### SDK permission precedence — why `settingSources` is `[]`, not `["project"]`
 
 The bot's earlier design passed `settingSources: ["project"]` so the SDK
