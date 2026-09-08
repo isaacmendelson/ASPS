@@ -5,6 +5,7 @@ import {
   findSecretPathInInput,
   isSafeDevBashCommand,
   isSafeReadOnlyGitCommand,
+  isSelfModificationPath,
   matchDangerousBashCommand,
 } from "./security.js";
 import { requestApproval } from "./approvals.js";
@@ -265,7 +266,10 @@ function summarizeToolCall(toolName: string, input: Record<string, unknown>): st
  *     in the loop, per decision #1 ("read-mostly"); and (ASPS-762) the
  *     in-repo edit tools `Edit`/`Write`/`MultiEdit`/`NotebookEdit` proceed
  *     when their path field validated inside `WORKING_DIR` at #2 (a missing
- *     path field is not auto-allowed — it falls through to #7).
+ *     path field is not auto-allowed — it falls through to #7), EXCEPT an edit
+ *     resolving to the bot's own prompt (`CLAUDE.md`) or its own source
+ *     subtree (`apps/telegram-ceo/**`) — `isSelfModificationPath` — which
+ *     falls through to #7 so self-reprogramming / weakening this guard gates.
  *  7. **Require Telegram approval** — everything else (an edit tool whose
  *     path could not be validated, a non-allowlisted `Bash`, `Task`,
  *     `WebFetch`, any other MCP tool, etc.) is deny-by-default until the
@@ -288,11 +292,13 @@ export function createCanUseTool(userId: number, workingDir: string): CanUseTool
     }
 
     const targetPath = extractPath(toolName, input);
+    let resolvedTargetPath: string | undefined;
     if (targetPath !== undefined) {
       const guard = checkPathAllowed(targetPath, workingDir);
       if (!guard.allowed) {
         return { behavior: "deny", message: `Blocked by path guard: ${guard.reason}` };
       }
+      resolvedTargetPath = guard.resolvedPath;
     }
 
     if (toolName === "Bash" && typeof input.command === "string") {
@@ -323,11 +329,20 @@ export function createCanUseTool(userId: number, workingDir: string): CanUseTool
       return { behavior: "allow" };
     }
 
-    // ASPS-762 — in-repo edits auto-allow. `targetPath !== undefined` means a
-    // path field was present and (per #2 above, which ran without denying)
-    // resolved inside WORKING_DIR and is not a secret path. An edit tool with
-    // no usable path field is NOT auto-allowed — it falls through to approval.
-    if (AUTO_ALLOW_EDIT_TOOLS.has(toolName) && targetPath !== undefined) {
+    // ASPS-762 — in-repo edits auto-allow. `resolvedTargetPath !== undefined`
+    // means a path field was present and (per #2 above, which ran without
+    // denying) resolved inside WORKING_DIR and is not a secret path. An edit
+    // tool with no usable path field is NOT auto-allowed — it falls through to
+    // approval. ASPS-762 security gate Minor: an edit that resolves to the
+    // bot's own prompt (CLAUDE.md) or its own source subtree
+    // (apps/telegram-ceo/**) is excluded from auto-allow — self-reprogramming
+    // / weakening this guard must gate for a Telegram approval, not run
+    // silently — so it falls through to the approval flow below.
+    if (
+      AUTO_ALLOW_EDIT_TOOLS.has(toolName) &&
+      resolvedTargetPath !== undefined &&
+      !isSelfModificationPath(resolvedTargetPath, workingDir)
+    ) {
       return { behavior: "allow" };
     }
 
@@ -342,6 +357,71 @@ export function createCanUseTool(userId: number, workingDir: string): CanUseTool
   };
 }
 
+/**
+ * The bot's OWN-use secrets that must never be visible to the Bash tool's
+ * child process (ASPS-762 security gate BLOCKER).
+ *
+ * The Claude Agent SDK spawns the Claude Code subprocess — and the `Bash`
+ * tool it runs — with the environment given by `Options.env`, which REPLACES
+ * `process.env` for that subprocess (see `env` in the SDK's `Options`,
+ * sdk.d.ts). Before this fix `Options.env` was unset, so the subprocess (and
+ * every Bash child) inherited the full `process.env`, including these tokens.
+ * Now that ASPS-762 auto-allows BOTH an in-repo `Write` AND `npm test`-class
+ * Bash with no Telegram prompt, a prompt-injected agent could otherwise
+ * `Write` a script and run it to read `process.env.GITHUB_TOKEN` and push to
+ * `main` via the GitHub API — bypassing the git-push approval gate entirely.
+ *
+ * Each of these is consumed only IN-PROCESS by this bot: `GITHUB_TOKEN` and
+ * `JIRA_API_TOKEN` by `buildBotScopedMcpServers` above (the GitHub MCP header
+ * and the mcp-atlassian docker `env` map, agent.ts:63/81-86 — read from
+ * `process.env`, which is left intact), `TELEGRAM_BOT_TOKEN` by the Telegram
+ * client (bot.ts holds it in a local var), and `ANTHROPIC_API_KEY` is a bot
+ * own-use secret too (see `buildToolChildEnv` for the one auth exception).
+ * None is needed by the Claude Code subprocess, so scrubbing them from its
+ * env closes the exfil path without breaking a feature. Single source of
+ * truth — do not duplicate elsewhere.
+ */
+export const BOT_SECRET_ENV_VARS = [
+  "GITHUB_TOKEN",
+  "JIRA_API_TOKEN",
+  "TELEGRAM_BOT_TOKEN",
+  "ANTHROPIC_API_KEY",
+] as const;
+
+/**
+ * Build the environment handed to the SDK's Claude Code subprocess (and thus
+ * to the `Bash` tool it spawns): a copy of `baseEnv` (`process.env` by
+ * default) with every `BOT_SECRET_ENV_VARS` entry removed.
+ *
+ * `CLAUDE_CODE_OAUTH_TOKEN` is the SDK's own subscription auth and is left
+ * intact — the subprocess needs it to reach Anthropic. `ANTHROPIC_API_KEY` is
+ * scrubbed as a bot own-use secret EXCEPT when it is the only auth available
+ * (no OAuth token present), in which case the subprocess needs it and it is
+ * kept — matching index.ts's "provide ONE of the two" auth model. That is the
+ * single acknowledged residual: an auth credential the SDK subprocess must
+ * have is necessarily visible to its Bash child too. The git-push exfil path
+ * this BLOCKER closes uses `GITHUB_TOKEN`, which is ALWAYS removed regardless
+ * of auth mode.
+ *
+ * `process.env` itself is deliberately NOT mutated — the in-process consumers
+ * above (`buildBotScopedMcpServers`, the Telegram client, the index.ts auth
+ * check) still read their creds from it; only the SDK subprocess sees the
+ * scrubbed copy.
+ */
+export function buildToolChildEnv(
+  baseEnv: NodeJS.ProcessEnv = process.env,
+): Record<string, string | undefined> {
+  const scrubbed: Record<string, string | undefined> = { ...baseEnv };
+  for (const key of BOT_SECRET_ENV_VARS) {
+    delete scrubbed[key];
+  }
+  // Keep ANTHROPIC_API_KEY only when it is the SDK subprocess's sole auth.
+  if (!baseEnv.CLAUDE_CODE_OAUTH_TOKEN && baseEnv.ANTHROPIC_API_KEY) {
+    scrubbed.ANTHROPIC_API_KEY = baseEnv.ANTHROPIC_API_KEY;
+  }
+  return scrubbed;
+}
+
 function buildOptions(userId: number): Options {
   const workingDir = process.env.WORKING_DIR || process.cwd();
   const model = process.env.MODEL;
@@ -351,6 +431,13 @@ function buildOptions(userId: number): Options {
 
   return {
     cwd: workingDir,
+    // Scrub the bot's own-use secrets from the Claude Code subprocess env so
+    // the auto-allowed Bash/Write tier can never read them out of the
+    // environment and exfiltrate them (ASPS-762 security gate BLOCKER). This
+    // REPLACES process.env for the subprocess, so buildToolChildEnv spreads a
+    // copy of it (keeping PATH/HOME/CLAUDE_CODE_OAUTH_TOKEN, dropping the
+    // GITHUB/JIRA/TELEGRAM/ANTHROPIC secrets). See buildToolChildEnv above.
+    env: buildToolChildEnv(),
     ...(model ? { model } : {}),
     maxTurns,
     permissionMode: "default",

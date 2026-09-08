@@ -507,16 +507,24 @@ export function isSafeReadOnlyGitCommand(command: string): boolean {
  * These programs are auto-allowed with ANY (metacharacter-free) argument
  * list — dev/build/test tooling plus read utilities that neither mutate
  * state outside the repo nor exec an arbitrary caller-supplied program by
- * themselves. `node`, `python`, and `python3` are NOT here — they get
- * stricter, form-specific handling in `isSafeDevBashCommand` (no inline
- * `-e`/`-c` one-liner, no ad-hoc network script). Single source of truth —
- * do not duplicate elsewhere.
+ * themselves. Several programs are deliberately NOT here — they get
+ * stricter, form-specific handling in `isSafeDevBashCommand`:
+ *   - `npm`/`pnpm`/`yarn` — only their script-run / list verbs auto-allow
+ *     (see `PACKAGE_MANAGERS` / `PACKAGE_MANAGER_SAFE_VERBS`); every
+ *     `install`/`add`/`ci`/`exec`/`dlx`/`create`/`publish`/`update`/`audit`
+ *     verb (network fetch or lifecycle-script exec of freshly downloaded
+ *     code) gates (ASPS-762 security gate MAJOR).
+ *   - `npx` — absent entirely: it fetches and runs an arbitrary package
+ *     (a direct RCE vector); every `npx` invocation gates (MAJOR).
+ *   - `node` — absent entirely: `node <script.js>` is a write-then-run RCE
+ *     primitive (parity with the already-gated `python <script>` form), so
+ *     every `node` invocation gates (MAJOR). Use `tsc`/`jest`/`vitest`/
+ *     `npm run <script>` for builds and tests instead.
+ *   - `python`/`python3` — only `-m <safe module>` (see
+ *     `SAFE_PYTHON_MODULES`); inline `-c` and bare-script forms gate.
+ * Single source of truth — do not duplicate elsewhere.
  */
 export const SAFE_DEV_PROGRAMS: ReadonlySet<string> = new Set([
-  "npm",
-  "npx",
-  "pnpm",
-  "yarn",
   "tsc",
   "jest",
   "vitest",
@@ -532,6 +540,29 @@ export const SAFE_DEV_PROGRAMS: ReadonlySet<string> = new Set([
   "wc",
   "which",
 ]);
+
+/**
+ * Package managers whose script-runner / list verbs are safe to auto-allow
+ * (ASPS-762 security gate MAJOR). Only a verb in `PACKAGE_MANAGER_SAFE_VERBS`
+ * is auto-allowed; every other verb — `install`/`i`/`add`/`ci`/`exec`/`dlx`/
+ * `create`/`publish`/`update`/`up`/`audit`, and a bare `npm`/`yarn` with no
+ * verb (`yarn` alone installs) — falls through to Telegram approval because it
+ * fetches from the network or runs freshly downloaded lifecycle-script code.
+ * `npx` is NOT a member here (nor in `SAFE_DEV_PROGRAMS`): it fetches and runs
+ * an arbitrary package, so it always gates. Single source of truth.
+ */
+export const PACKAGE_MANAGERS: ReadonlySet<string> = new Set(["npm", "pnpm", "yarn"]);
+
+/**
+ * The ONLY package-manager verbs auto-allowed: run a package.json script
+ * (`run <script>`), the `test` script alias, and read-only dependency listing
+ * (`ls`/`list`). None of these fetch from the network or execute an arbitrary
+ * caller-named package. A bare-script form without `run` (e.g. `yarn build`)
+ * is intentionally NOT auto-allowed — it is indistinguishable here from an
+ * install/exec verb, so the fail-safe answer is to gate it (use
+ * `yarn run build`). Single source of truth.
+ */
+export const PACKAGE_MANAGER_SAFE_VERBS: ReadonlySet<string> = new Set(["run", "test", "ls", "list"]);
 
 /**
  * `python -m <module>` / `python3 -m <module>` modules considered safe: test
@@ -550,14 +581,6 @@ export const SAFE_PYTHON_MODULES: ReadonlySet<string> = new Set([
   "black",
   "isort",
 ]);
-
-/**
- * Inline-evaluation / preload flags for `node` — an inline one-liner's intent
- * (including network I/O) cannot be reliably parsed, so any of these forces
- * the command to gate. Covers `-e`/`--eval`, `-p`/`--print`, and
- * `-r`/`--require` (module preload), each with or without an `=value`.
- */
-const NODE_INLINE_FLAG_PATTERN = /^(-e|--eval|-p|--print|-r|--require)(=.*)?$/;
 
 /**
  * Argument tokens that turn an otherwise read-only utility into an
@@ -594,7 +617,11 @@ const UNSAFE_DEV_ARG_TOKENS: ReadonlySet<string> = new Set([
  *     than auto-allow.
  *  4. No arbitrary-exec/delete argument token (`UNSAFE_DEV_ARG_TOKENS`).
  *  5. The first token (program) must be allowlisted:
- *       - `node`  — a script file only; any inline `-e`/`-p`/`-r` gates.
+ *       - `npm`/`pnpm`/`yarn` — only a `PACKAGE_MANAGER_SAFE_VERBS` verb
+ *         (`run`/`test`/`ls`/`list`); every install/exec/publish/update verb
+ *         and a bare no-verb form gate (network fetch / arbitrary-code exec).
+ *       - `npx` and `node` — never allowlisted; both gate (arbitrary-package
+ *         or write-then-run RCE — see the `SAFE_DEV_PROGRAMS` block comment).
  *       - `python`/`python3` — only `-m <safe module>` (see
  *         `SAFE_PYTHON_MODULES`); inline `-c` and bare-script forms gate.
  *       - otherwise a member of `SAFE_DEV_PROGRAMS`.
@@ -625,12 +652,14 @@ export function isSafeDevBashCommand(command: string): boolean {
   const program = tokens[0];
   const rest = tokens.slice(1);
 
-  // `node <script.js>` — allowed to run a script, but never an inline
-  // one-liner or a preload flag whose intent (incl. network I/O) can't be
-  // parsed. A bare `node` REPL is meaningless over Telegram — require an arg.
-  if (program === "node") {
-    if (rest.length === 0) return false;
-    return !rest.some((token) => NODE_INLINE_FLAG_PATTERN.test(token));
+  // `npm`/`pnpm`/`yarn` — only a script-run / test / list verb auto-allows.
+  // Every install/add/ci/exec/dlx/create/publish/update/audit verb, a bare
+  // no-verb form, and any bare-script form (e.g. `yarn build`) gate: they
+  // fetch from the network or execute freshly downloaded lifecycle-script
+  // code (ASPS-762 security gate MAJOR). `npx` is not a member and falls
+  // through to the `SAFE_DEV_PROGRAMS` check below (absent → gates).
+  if (PACKAGE_MANAGERS.has(program)) {
+    return rest.length >= 1 && PACKAGE_MANAGER_SAFE_VERBS.has(rest[0]);
   }
 
   // `python -m <safe module>` / `python3 -m <safe module>` only.
@@ -638,6 +667,8 @@ export function isSafeDevBashCommand(command: string): boolean {
     return rest.length >= 2 && rest[0] === "-m" && SAFE_PYTHON_MODULES.has(rest[1]);
   }
 
+  // `node` and `npx` are absent from SAFE_DEV_PROGRAMS on purpose (write-then-
+  // run RCE / arbitrary-package exec), so both return false here and gate.
   return SAFE_DEV_PROGRAMS.has(program);
 }
 
@@ -768,6 +799,42 @@ export function checkPathAllowed(rawPath: string, workingDir: string): PathGuard
   }
 
   return { allowed: true, resolvedPath: target };
+}
+
+/**
+ * In-repo paths whose Edit/Write must GATE for a Telegram approval rather than
+ * auto-allow (ASPS-762 security gate Minor), even though they resolve inside
+ * `WORKING_DIR` and pass `checkPathAllowed`:
+ *   - `CLAUDE.md` — re-read into the agent's system prompt on every turn
+ *     (`loadClaudeMd` in context.ts), so a silent auto-allowed edit is a
+ *     prompt-persistence / self-reprogramming vector.
+ *   - `apps/telegram-ceo` — the bot's own source subtree, which contains this
+ *     very guard (`security.ts`) and the permission wiring (`agent.ts`); a
+ *     silent self-edit could weaken the live approval model.
+ * These are NOT hard denials — the operator may still approve a deliberate
+ * edit over Telegram. Paths are relative to `WORKING_DIR`. Single source of
+ * truth — do not duplicate elsewhere.
+ */
+export const SELF_MODIFY_REL_PATHS: readonly string[] = ["CLAUDE.md", "apps/telegram-ceo"];
+
+/**
+ * Returns true if `resolvedPath` — an absolute, symlink-free path already
+ * confined inside `workingDir` by `checkPathAllowed` — is one of the
+ * self-modification paths above (the bot's own prompt file, or a file inside
+ * its own source subtree). Matched on the resolved path so `./CLAUDE.md`,
+ * `CLAUDE.md`, and an absolute form all match; the directory case uses an
+ * exact path-segment prefix (`<dir><sep>`) so a sibling like
+ * `apps/telegram-ceo-notes` does NOT match, and the file case uses exact
+ * equality so `CLAUDE.md.bak` does NOT match.
+ */
+export function isSelfModificationPath(resolvedPath: string, workingDir: string): boolean {
+  const root = resolveRealPath(path.resolve(workingDir));
+  return SELF_MODIFY_REL_PATHS.some((rel) => {
+    const candidate = resolveRealPath(path.resolve(root, rel));
+    if (resolvedPath === candidate) return true;
+    const candidateWithSep = candidate.endsWith(path.sep) ? candidate : candidate + path.sep;
+    return resolvedPath.startsWith(candidateWithSep);
+  });
 }
 
 /**

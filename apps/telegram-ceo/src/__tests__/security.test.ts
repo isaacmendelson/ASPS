@@ -340,21 +340,26 @@ describe("isSafeReadOnlyGitCommand (ASPS-749 strict per-subcommand positive allo
 
 describe("isSafeDevBashCommand (ASPS-762 positive dev/read allowlist)", () => {
   it.each([
+    // Package managers — ONLY run/test/ls/list verbs auto-allow (ASPS-762
+    // security gate MAJOR).
     "npm test",
     "npm run build",
-    "npm install",
-    "npx tsc",
-    "pnpm install",
-    "yarn build",
+    "npm run",
+    "npm ls",
+    "pnpm run build",
+    "pnpm test",
+    "pnpm ls",
+    "yarn run build",
+    "yarn test",
+    "yarn list",
+    // Build/test tooling (not a package manager, not node/npx).
     "tsc -p tsconfig.json",
     "jest",
     "vitest run",
-    "node dist/index.js",
-    "node x.js",
-    "node --version",
     "python -m pytest",
     "python3 -m pytest -q",
     "python -m mypy src",
+    // Read utilities.
     "ls -la",
     "cat README.md",
     "grep -rn foo src",
@@ -386,6 +391,32 @@ describe("isSafeDevBashCommand (ASPS-762 positive dev/read allowlist)", () => {
     "make build",
     "dotnet build",
     "foobar --baz",
+    // Package-manager network/install/exec/publish verbs — GATE (ASPS-762
+    // security gate MAJOR). Only run/test/ls/list auto-allow.
+    "npm install",
+    "npm i",
+    "npm ci",
+    "npm add left-pad",
+    "npm exec cowsay",
+    "npm publish",
+    "npm update",
+    "npm audit",
+    "npm", // bare, no verb
+    "pnpm install",
+    "pnpm add left-pad",
+    "pnpm dlx cowsay",
+    "yarn install",
+    "yarn add left-pad",
+    "yarn", // bare `yarn` installs
+    "yarn build", // bare-script form without `run` — indistinguishable from a verb, gates
+    // npx — fetches and runs an arbitrary package, always GATES (MAJOR).
+    "npx tsc",
+    "npx create-react-app app",
+    // Bare `node <script>` — write-then-run RCE primitive, GATES (MAJOR),
+    // parity with the already-gated bare `python <script>`.
+    "node dist/index.js",
+    "node x.js",
+    "node --version",
     // Inline one-liners / network — deliberately excluded.
     'python -c "import os"',
     'node -e "1+1"',

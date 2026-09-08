@@ -23,7 +23,7 @@ vi.mock("../context.js", () => ({
 }));
 
 // Imported after the mocks so agent.ts picks up the mocked collaborators.
-const { runAgent, createCanUseTool } = await import("../agent.js");
+const { runAgent, createCanUseTool, buildToolChildEnv, BOT_SECRET_ENV_VARS } = await import("../agent.js");
 const { clearSession, getSessionId } = await import("../session.js");
 
 function asAsyncIterable<T>(items: T[]): AsyncIterable<T> {
@@ -374,15 +374,12 @@ describe("createCanUseTool — dev-Bash auto-allow (ASPS-762)", () => {
   it.each([
     "npm test",
     "npm run build",
-    "npm install",
-    "npx tsc",
-    "pnpm install",
-    "yarn build",
+    "npm ls",
+    "pnpm run build",
+    "yarn test",
     "tsc -p tsconfig.json",
     "jest",
     "vitest run",
-    "node dist/index.js",
-    "node x.js",
     "python -m pytest",
     "python3 -m pytest -q",
     "ls -la",
@@ -416,6 +413,14 @@ describe("createCanUseTool — dev-Bash auto-allow (ASPS-762)", () => {
     "make build",
     "dotnet build",
     "foobar --baz",
+    // ASPS-762 security gate MAJOR — install/network/npx/bare-node now GATE.
+    "npm install",
+    "npx tsc",
+    "pnpm install",
+    "yarn build", // bare-script form without `run`
+    "yarn", // bare `yarn` installs
+    "node dist/index.js",
+    "node x.js",
     'python -c "import os"',
     'node -e "require(\'http\')"',
     "python -m http.server",
@@ -559,6 +564,54 @@ describe("createCanUseTool — in-repo edit auto-allow (ASPS-762)", () => {
     expect(requestApprovalMock).toHaveBeenCalledWith(111, "Edit", expect.any(String));
     expect(result?.behavior).toBe("allow");
   });
+
+  // ASPS-762 security gate Minor — self-modification guard. Editing the bot's
+  // own prompt or its own source subtree must GATE (approval), never
+  // auto-allow, even though these resolve inside WORKING_DIR.
+  it("GATES an Edit to CLAUDE.md — self-reprogramming, never auto-allowed", async () => {
+    requestApprovalMock.mockResolvedValue("allow");
+    const canUseTool = createCanUseTool(111, workingDir);
+    const result = await canUseTool(
+      "Edit",
+      { file_path: path.join(workingDir, "CLAUDE.md"), old_string: "a", new_string: "b" },
+      toolOptions,
+    );
+
+    expect(requestApprovalMock).toHaveBeenCalledWith(111, "Edit", expect.any(String));
+    expect(result?.behavior).toBe("allow");
+  });
+
+  it("GATES a Write into the bot's own source dir apps/telegram-ceo/** — cannot silently weaken this guard", async () => {
+    requestApprovalMock.mockResolvedValue("allow");
+    const canUseTool = createCanUseTool(111, workingDir);
+    const result = await canUseTool(
+      "Write",
+      { file_path: path.join(workingDir, "apps", "telegram-ceo", "src", "security.ts"), content: "x" },
+      toolOptions,
+    );
+
+    expect(requestApprovalMock).toHaveBeenCalledWith(111, "Write", expect.any(String));
+    expect(result?.behavior).toBe("allow");
+  });
+
+  it("still auto-allows a sibling that only resembles a self-modification path (CLAUDE.md.bak, apps/telegram-ceo-notes)", async () => {
+    const canUseTool = createCanUseTool(111, workingDir);
+
+    const bak = await canUseTool(
+      "Write",
+      { file_path: path.join(workingDir, "CLAUDE.md.bak"), content: "x" },
+      toolOptions,
+    );
+    expect(bak?.behavior).toBe("allow");
+
+    const sibling = await canUseTool(
+      "Write",
+      { file_path: path.join(workingDir, "apps", "telegram-ceo-notes", "x.md"), content: "x" },
+      toolOptions,
+    );
+    expect(sibling?.behavior).toBe("allow");
+    expect(requestApprovalMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("createCanUseTool — deny-by-default (ASPS-743 blocker B3)", () => {
@@ -619,6 +672,54 @@ describe("createCanUseTool — deny-by-default (ASPS-743 blocker B3)", () => {
     const canUseTool = createCanUseTool(42, process.cwd());
     await canUseTool("Task", {}, toolOptions);
     expect(requestApprovalMock).toHaveBeenCalledWith(42, "Task", expect.any(String));
+  });
+});
+
+describe("buildToolChildEnv (ASPS-762 security gate BLOCKER — scrub bot secrets from the Bash tool child)", () => {
+  it("removes every bot own-use secret from the env handed to the SDK subprocess, keeping the SDK's own auth and inherited vars", () => {
+    const env = buildToolChildEnv({
+      PATH: "/usr/bin",
+      HOME: "/home/aspsbot",
+      CLAUDE_CODE_OAUTH_TOKEN: "oauth-xyz",
+      GITHUB_TOKEN: "gh-secret",
+      JIRA_API_TOKEN: "jira-secret",
+      TELEGRAM_BOT_TOKEN: "tg-secret",
+      ANTHROPIC_API_KEY: "sk-ant-secret",
+    } as NodeJS.ProcessEnv);
+
+    // The four exfiltratable bot secrets are gone from the tool child's env.
+    expect(env.GITHUB_TOKEN).toBeUndefined();
+    expect(env.JIRA_API_TOKEN).toBeUndefined();
+    expect(env.TELEGRAM_BOT_TOKEN).toBeUndefined();
+    expect(env.ANTHROPIC_API_KEY).toBeUndefined();
+
+    // The SDK's own subscription auth and ordinary inherited vars survive.
+    expect(env.CLAUDE_CODE_OAUTH_TOKEN).toBe("oauth-xyz");
+    expect(env.PATH).toBe("/usr/bin");
+    expect(env.HOME).toBe("/home/aspsbot");
+  });
+
+  it("keeps ANTHROPIC_API_KEY ONLY when it is the SDK's sole auth (no OAuth token present)", () => {
+    const apiKeyOnly = buildToolChildEnv({ ANTHROPIC_API_KEY: "sk-ant-secret" } as NodeJS.ProcessEnv);
+    expect(apiKeyOnly.ANTHROPIC_API_KEY).toBe("sk-ant-secret");
+
+    const withOauth = buildToolChildEnv({
+      CLAUDE_CODE_OAUTH_TOKEN: "oauth-xyz",
+      ANTHROPIC_API_KEY: "sk-ant-secret",
+    } as NodeJS.ProcessEnv);
+    expect(withOauth.ANTHROPIC_API_KEY).toBeUndefined();
+  });
+
+  it("does not mutate the source env object", () => {
+    const source = { GITHUB_TOKEN: "gh-secret", PATH: "/usr/bin" } as NodeJS.ProcessEnv;
+    buildToolChildEnv(source);
+    expect(source.GITHUB_TOKEN).toBe("gh-secret");
+  });
+
+  it("BOT_SECRET_ENV_VARS lists exactly the four exfiltratable bot secrets", () => {
+    expect(new Set(BOT_SECRET_ENV_VARS)).toEqual(
+      new Set(["GITHUB_TOKEN", "JIRA_API_TOKEN", "TELEGRAM_BOT_TOKEN", "ANTHROPIC_API_KEY"]),
+    );
   });
 });
 
@@ -706,6 +807,38 @@ describe("runAgent", () => {
 
     const { options } = queryMock.mock.calls[0][0];
     expect(options.settingSources).toEqual([]);
+  });
+
+  it("scrubs the bot's own-use secrets from the env passed to the SDK subprocess — the Bash tool child must not inherit them (BLOCKER)", async () => {
+    const savedOauth = process.env.CLAUDE_CODE_OAUTH_TOKEN;
+    const savedTelegram = process.env.TELEGRAM_BOT_TOKEN;
+    const savedApiKey = process.env.ANTHROPIC_API_KEY;
+    process.env.CLAUDE_CODE_OAUTH_TOKEN = "oauth-fixture";
+    process.env.TELEGRAM_BOT_TOKEN = "tg-fixture";
+    process.env.ANTHROPIC_API_KEY = "sk-ant-fixture";
+    // GITHUB_TOKEN and JIRA_API_TOKEN are already set to *_FIXTURE by beforeEach.
+    try {
+      queryMock.mockReturnValue(
+        asAsyncIterable([{ type: "result", subtype: "success", result: "ok", session_id: "sess-1" }]),
+      );
+
+      await runAgent(userId, "hi");
+
+      const { options } = queryMock.mock.calls[0][0];
+      expect(options.env.GITHUB_TOKEN).toBeUndefined();
+      expect(options.env.JIRA_API_TOKEN).toBeUndefined();
+      expect(options.env.TELEGRAM_BOT_TOKEN).toBeUndefined();
+      expect(options.env.ANTHROPIC_API_KEY).toBeUndefined();
+      // The SDK's own subscription auth stays available to the subprocess.
+      expect(options.env.CLAUDE_CODE_OAUTH_TOKEN).toBe("oauth-fixture");
+    } finally {
+      if (savedOauth === undefined) delete process.env.CLAUDE_CODE_OAUTH_TOKEN;
+      else process.env.CLAUDE_CODE_OAUTH_TOKEN = savedOauth;
+      if (savedTelegram === undefined) delete process.env.TELEGRAM_BOT_TOKEN;
+      else process.env.TELEGRAM_BOT_TOKEN = savedTelegram;
+      if (savedApiKey === undefined) delete process.env.ANTHROPIC_API_KEY;
+      else process.env.ANTHROPIC_API_KEY = savedApiKey;
+    }
   });
 
   it("wires MCP servers explicitly with strictMcpConfig, instead of relying on settingSources auto-discovery", async () => {

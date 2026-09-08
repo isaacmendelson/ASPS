@@ -65,14 +65,23 @@ The bot runs the Claude Agent SDK with the native Claude Code toolset:
   **when the target path is inside `WORKING_DIR`** and passes the path guard
   and secret-path scan; an edit to a path outside the repo or to a secret
   file is hard-denied, and an edit with no usable path field falls through
-  to Telegram approval.
+  to Telegram approval. **Exception (ASPS-762 security gate):** an edit that
+  resolves to the bot's own prompt (`CLAUDE.md`) or its own source subtree
+  (`apps/telegram-ceo/**`) gates behind a Telegram approval — self-reprogramming
+  or weakening the live guard is never auto-allowed.
 - `Bash` — a positive dev/read allowlist (ASPS-762) auto-allows a single,
-  standalone invocation of node/npm/npx/pnpm/yarn/tsc/jest/vitest,
+  standalone invocation of: `npm`/`pnpm`/`yarn` **only** with a script-run /
+  list verb (`run <script>`, `test`, `ls`/`list`), `tsc`/`jest`/`vitest`,
   `python`/`python3 -m <safe module>`, read-only `git` (ASPS-749), and read
   utilities (ls/cat/grep/rg/find/head/tail/echo/pwd/wc/which). Everything
   else — `sudo`/`docker`/`rm`/`mv`/`dd`/`chmod`/`chown`/`kill`/`systemctl`/
-  `curl`/`wget`, a `python -c`/`node -e` one-liner, any git write, or any
-  unknown command — gates behind a Telegram approval (see below).
+  `curl`/`wget`; **package installs / arbitrary-code runners**: `npm install`/
+  `add`/`ci`/`exec`/`publish`/`update`/`audit` (and pnpm/yarn equivalents),
+  `npx` entirely, a bare `node <script>`, and `python -c`/`node -e`
+  one-liners; any git write; or any unknown command — gates behind a Telegram
+  approval (see below). `node` and `npx` never auto-allow: `node <script.js>`
+  is a write-then-run RCE primitive and `npx` fetches and runs an arbitrary
+  package (ASPS-762 security gate MAJOR).
 - `NotebookRead` / `Task` / `WebFetch` / most MCP tools — gated behind a
   Telegram approval (see below).
 - The two read-only knowledge-engine MCP tools
@@ -203,18 +212,39 @@ approval like any other state-changing action.
   the full rule set.
 - **Dev-Bash auto-allow (ASPS-762)**: a `Bash` call whose whole command
   passes `isSafeDevBashCommand` (`src/security.ts`) — a *positive* allowlist
-  of node/npm/npx/pnpm/yarn/tsc/jest/vitest, `python`/`python3 -m <safe
-  module>`, and read utilities (ls/cat/grep/rg/find/head/tail/echo/pwd/wc/
-  which) — auto-allows, evaluated after the hard-deny and read-only-git
-  branches. It is an allowlist: an unknown program, `sudo`/`docker`/`rm`/
-  `mv`/`dd`/`chmod`/`chown`/`kill`/`systemctl`/`curl`/`wget`, a `python -c`/
+  of `npm`/`pnpm`/`yarn` limited to script-run / list verbs
+  (`run <script>`/`test`/`ls`/`list`), `tsc`/`jest`/`vitest`,
+  `python`/`python3 -m <safe module>`, and read utilities
+  (ls/cat/grep/rg/find/head/tail/echo/pwd/wc/which) — auto-allows, evaluated
+  after the hard-deny and read-only-git branches. It is an allowlist: an
+  unknown program, `sudo`/`docker`/`rm`/`mv`/`dd`/`chmod`/`chown`/`kill`/
+  `systemctl`/`curl`/`wget`, **`npm install`/`add`/`ci`/`exec`/`publish`/…
+  and pnpm/yarn equivalents, `npx`, a bare `node <script>`**, a `python -c`/
   `node -e` one-liner, or a command mixing a listed tool with an
-  unrecognized/chained token all fall through to approval.
+  unrecognized/chained token all fall through to approval. `node` and `npx`
+  are never auto-allowed — write-then-run RCE and arbitrary-package exec
+  respectively (ASPS-762 security gate MAJOR).
 - **In-repo edit auto-allow (ASPS-762)**: `Edit`/`Write`/`MultiEdit`/
   `NotebookEdit` auto-allow once the secret-path scan and path guard confirm
   the target path resolves inside `WORKING_DIR` and is not a secret file. An
   out-of-repo or secret target is hard-denied by the guard; an edit with no
-  usable path field falls through to approval (never auto-allowed).
+  usable path field falls through to approval (never auto-allowed). An edit
+  resolving to `CLAUDE.md` or the bot's own source subtree
+  (`apps/telegram-ceo/**`) is excluded from auto-allow and gates
+  (`isSelfModificationPath` — self-reprogramming / weakening the live guard;
+  ASPS-762 security gate).
+- **Tool-child env scrub (ASPS-762 security gate BLOCKER)**: the SDK is given
+  an `Options.env` (`buildToolChildEnv` in `src/agent.ts`) that is a copy of
+  `process.env` with the bot's own-use secrets removed — `GITHUB_TOKEN`,
+  `JIRA_API_TOKEN`, `TELEGRAM_BOT_TOKEN`, and `ANTHROPIC_API_KEY` (the last
+  kept only when it is the SDK's sole auth). Since the SDK's `env` REPLACES
+  the environment of the Claude Code subprocess — and the `Bash` tool runs as
+  a child of that subprocess — the auto-allowed Bash/Write tier can no longer
+  read those tokens out of the environment and exfiltrate them (e.g. `Write`
+  a script + run it to read `GITHUB_TOKEN` → push to `main` via the GitHub
+  API, bypassing the git-push gate). `CLAUDE_CODE_OAUTH_TOKEN` (the SDK's own
+  subscription auth) is kept. `process.env` itself is left intact so the
+  in-process MCP-server wiring and the Telegram client still read their creds.
 - **Everything else** (`NotebookRead`, an edit tool with no validated path,
   non-allowlisted `Bash`, `Task`, `WebFetch`, any other MCP tool, etc.):
   `canUseTool` calls `requestApproval()`, which sends the authorized user an
