@@ -214,8 +214,11 @@ approval like any other state-changing action.
   - the **same user who owns the turn** taps a button (`resolveApproval`
     checks the tapping user's id against the requesting user's id —
     approvals are never global or cross-user),
-  - or `APPROVAL_TIMEOUT_MS` (default 60s) elapses, which resolves to
-    **deny** so the agent never hangs waiting on a phone notification.
+  - or `APPROVAL_TIMEOUT_MS` (default 600000ms / 10 min — ASPS-752) elapses,
+    which resolves to **deny** so the agent never hangs waiting on a phone
+    notification. A tap that lands after the request has already expired
+    (or was already answered) gets a visible "expired or already handled"
+    toast instead of a silent no-op.
 
 `canUseTool` never resolves to `null` — the SDK's own docs note an
 accidental `null` leaves the permission request unanswered and the tool
