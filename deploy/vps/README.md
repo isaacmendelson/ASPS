@@ -24,20 +24,26 @@ moving on.
 | 2 | [`02-toolchain.sh`](02-toolchain.sh) | ASPS-741 | root | Node 20 (keyring method), git/ripgrep/build-essential, Claude Code CLI, .NET 8 SDK, system Python 3 (3.12), Docker |
 | 3 | [`03-clone.sh`](03-clone.sh) | ASPS-742 | aspsbot (root re-execs) | Clone/fast-forward the ASPS repo, git identity + credential helper, secrets templates in `SECRETS_DIR`, `npm ci && npm run build` the bot |
 | 5 | [`05-service.sh`](05-service.sh) + [`telegram-ceo.service`](telegram-ceo.service) | ASPS-744 | root | Render + install the systemd unit, refuse to start on placeholder secrets, `enable --now`, verify |
+| 6 | [`06-sandbox.sh`](06-sandbox.sh) | ASPS-764 (ASPS-763 sub-task) | root | Install `bubblewrap` + a scoped AppArmor profile for `/usr/bin/bwrap` (grants `userns`), so the Claude Agent SDK's per-exec sandbox can run as `aspsbot`. Does not start/restart `telegram-ceo.service`. |
 
 *(There is no "04" script in this directory — Phase 4, ASPS-743, was the bot's
 own code migration to the Claude Agent SDK, done in `apps/telegram-ceo/`, not
 `deploy/vps/`. Numbering here follows the phase numbers in the handoff, not a
-dense 1..N sequence.)*
+dense 1..N sequence. `06-sandbox.sh` belongs to a later epic, ASPS-763/764,
+not the original 01–05 VPS-migration phase set — it continues the numeric
+sequence rather than restarting it.)*
 
 `01-harden.sh` and `02-toolchain.sh` run as **root**. `03-clone.sh` must run
 as `aspsbot` — if invoked as root it transparently re-execs itself as
 `aspsbot` via `runuser --login` so the clone, git config, and secrets
-templates are owned by `aspsbot`, not root. `05-service.sh` must run as
-**root** (installing systemd units and `systemctl enable`/`daemon-reload`
-require it). All four are **idempotent** — safe to re-run if a step fails
-partway or you want to re-apply after a config change. All target **Ubuntu
-24.04 LTS**.
+templates are owned by `aspsbot`, not root. `05-service.sh` and
+`06-sandbox.sh` must run as **root** (installing systemd units/AppArmor
+profiles and `systemctl enable`/`daemon-reload`/`apparmor_parser -r` require
+it). All are **idempotent** — safe to re-run if a step fails partway or you
+want to re-apply after a config change. All target **Ubuntu 24.04 LTS**.
+`06-sandbox.sh` can run independently of 03/05 (it only needs `01-harden.sh`
+to have created the `aspsbot` user, for its smoke-test step) and does not
+depend on the bot's secrets or repo clone existing.
 
 ## Prerequisites
 
@@ -652,8 +658,9 @@ continuation point).
 | `01-harden.sh` | Phase 1 baseline hardening (ASPS-740). |
 | `02-toolchain.sh` | Phase 2 runtime toolchain (ASPS-741). |
 | `03-clone.sh` | Phase 3 clone repo & wire secrets (ASPS-742). |
-| `telegram-ceo.service` | Phase 5 systemd unit template (ASPS-744) — rendered by `05-service.sh`, do not install directly. |
+| `telegram-ceo.service` | Phase 5 systemd unit template (ASPS-744) — rendered by `05-service.sh`, do not install directly. Also carries the ASPS-764 `RestrictNamespaces=user pid mnt` scoping. |
 | `05-service.sh` | Phase 5 install/enable/start the systemd service (ASPS-744). |
+| `06-sandbox.sh` | Bubblewrap + scoped AppArmor userns profile for the SDK sandbox (ASPS-764). |
 | `README.md` | This file. |
 
 Line endings: all `.sh` files in this repo are forced to LF via the
@@ -661,4 +668,46 @@ repo-root [`.gitattributes`](../../.gitattributes) (`*.sh text eol=lf`), and
 `.service` files likewise (`*.service text eol=lf`, added alongside it for
 this task) — no separate `deploy/vps/.gitattributes` needed. Verified with
 `git check-attr text eol -- deploy/vps/*.sh deploy/vps/*.service` and a
-byte-level `\r\n`/lone-`\r` count (zero in all files).
+byte-level `\r\n`/lone-`\r` count (zero in all files). `06-sandbox.sh` and
+its bwrap AppArmor profile heredoc were verified the same way (LF-only, zero
+`\r\n`/lone-`\r`).
+
+## Bubblewrap sandbox enablement (ASPS-764, ADR-005)
+
+`06-sandbox.sh` installs `bubblewrap` and resolves Ubuntu 24.04's
+AppArmor unprivileged-userns restriction so the Telegram CEO bot's Claude
+Agent SDK sandbox (`sandbox.enabled`, Linux backend = bwrap — see ADR-005)
+can actually create the user+mount namespace it needs, as `aspsbot`
+(non-root). Two things had to change, and both were **validated live on the
+actual box**, not just authored — see
+[`docs/cloud/VPS_TELEGRAM_HARDENING.md`](../../docs/cloud/VPS_TELEGRAM_HARDENING.md)
+"bubblewrap sandbox enablement" for the full evidence (exact bwrap command
+line + all 4 acceptance outputs):
+
+1. **AppArmor userns restriction** — Ubuntu 24.04 ships
+   `kernel.apparmor_restrict_unprivileged_userns=1`, which blocks an
+   unconfined (no-AppArmor-profile) process from creating a user namespace
+   unless it's confined by a named profile that includes `userns,`. Chose
+   the **scoped fix**: a dedicated `/etc/apparmor.d/bwrap` profile
+   (`flags=(unconfined)` + `userns,`) that names only `/usr/bin/bwrap`,
+   following the exact pattern Ubuntu itself already ships on this box for
+   the same restriction (`/etc/apparmor.d/lxc-usernsexec`). Rejected the
+   **global fallback** (`kernel.apparmor_restrict_unprivileged_userns=0` via
+   a sysctl drop-in) because it would remove the restriction for *every*
+   unconfined process on the box, not just bwrap — a materially larger
+   blast radius for the same problem. The scoped profile was sufficient; the
+   sysctl was never applied. `kernel.apparmor_restrict_unprivileged_userns`
+   remains `1` (distro default) on the box.
+2. **systemd `RestrictNamespaces=`** — the unit denied all namespace types
+   (`RestrictNamespaces=yes`). Scoped to `user pid mnt` (not `no`) — bwrap
+   needs a user namespace (unprivileged uid map) and a mount namespace
+   (ro-bind + tmpfs-mask filesystem view); pid is included so the sandboxed
+   process tree is isolated. `net`/`uts`/`ipc`/`cgroup` namespaces stay
+   denied — the sandboxed command keeps network egress via the *inherited*
+   net namespace (the bwrap invocation does not pass `--unshare-net`), not
+   by the unit being allowed to create a new one.
+
+This is a **security-gate discussion point**, not a unilateral call: the
+scoped-profile-vs-global-sysctl tradeoff and the `RestrictNamespaces`
+widening are both flagged explicitly for the security review that gates
+this change's merge (see `.claude/rules/task-workflow.md` "Security gate").
