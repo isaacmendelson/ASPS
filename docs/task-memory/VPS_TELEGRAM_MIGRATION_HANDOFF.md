@@ -5,6 +5,16 @@
 **Created:** 2026-08-25
 **Status:** ✅ **COMPLETE (2026-09-07).** All 8 phases + the epic (ASPS-738) are Done. The Telegram CEO bot (`@Zappa_desktop_bot`) runs 24/7 on `168.231.111.91` as a hardened systemd service, verified working end-to-end (operator confirmed responses + approval flow + reduced friction after the ASPS-747 tuning). Phase 6 security audit done — all Majors resolved (M1 PAT re-scoped/rotated, M2 main branch protection, M3 docker-group accepted, M4/M5/m1/m3 applied + folded into `deploy/vps/`); no open Blocker/Major. Phase 7 runbook shipped: [`docs/cloud/VPS_TELEGRAM_RUNBOOK.md`](../../docs/cloud/VPS_TELEGRAM_RUNBOOK.md) + hardening log [`docs/cloud/VPS_TELEGRAM_HARDENING.md`](../../docs/cloud/VPS_TELEGRAM_HARDENING.md). **Optional tracked follow-ups (Minor, not blocking):** deferred systemd-sandbox tightening (SystemCallFilter/PrivateDevices/cap-drops — need on-box smoke test), `ubuntu` NOPASSWD, egress restriction, token-rotation cadence, retire the old GitHub PAT. Access artifacts (aspsbot key + sudo password) are at `C:\Jobs\ASPS\` on the operator's machine — NOT in the repo.
 
+> **▶ ACTIVE CONTINUATION (2026-09-08):** the migration is complete, but a follow-on
+> security-architecture effort is in progress under the same epic (ASPS-738) — **do not
+> treat the bot as steady-state.** The bot is currently **STOPPED** pending
+> **ASPS-763 — privilege-separate the agent's tool execution** (unblocks ASPS-762, the
+> approval relaxation). See the dedicated handoff:
+> [`ASPS-763_HANDOFF.md`](ASPS-763_HANDOFF.md) + [`ADR-005`](../architecture/decisions/ADR-005-ASPS-763-AGENT-TOOL-EXECUTION-PRIVILEGE-SEPARATION.md).
+> Also merged since this file's "COMPLETE" line: ASPS-753 (baseline CI green), ASPS-754
+> (AskUserQuestion disabled), ASPS-749/752 (read-only git allowlist + approval timeout),
+> ASPS-750 (extension stale-score bug). Follow-ups open: ASPS-755–759, 745, 761.
+
 **Post-migration enhancements (deployed + verified live, 2026-09-07):**
 - **ASPS-747** — bot system prompt tuned to prefer auto-allowed Read/Grep/Glob over Bash `cat`/`grep`, cutting approval friction ("smart reduction"; PR #43).
 - **ASPS-748** — read-only **JIRA + GitHub MCP servers** added to the bot so project questions (JIRA status/assignee, GitHub PRs/commits) answer with **no Telegram prompt** via native tools. JIRA = `sooperset/mcp-atlassian` Docker pinned by `@sha256` digest (tag 0.23.1) + `READ_ONLY_MODE`; GitHub = remote `https://api.githubcopilot.com/mcp/readonly` + Bearer PAT. Auto-allowed via `mcp__github__*` / `mcp__mcp-atlassian__*` wildcards (documented exception — read-only by construction). PR #45 (first merge under the mandatory security gate). Verified live. **Follow-up (Minor, on ASPS-745):** least-privilege read-only JIRA service account so the token itself — not just `READ_ONLY_MODE` — bounds writes.
