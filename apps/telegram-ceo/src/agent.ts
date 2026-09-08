@@ -1,6 +1,11 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { CanUseTool, McpServerConfig, Options, SDKMessage } from "@anthropic-ai/claude-agent-sdk";
-import { checkPathAllowed, findSecretPathInInput, matchDangerousBashCommand } from "./security.js";
+import {
+  checkPathAllowed,
+  findSecretPathInInput,
+  isSafeReadOnlyGitCommand,
+  matchDangerousBashCommand,
+} from "./security.js";
 import { requestApproval } from "./approvals.js";
 import { getSessionId, setSessionId } from "./session.js";
 import { TELEGRAM_SYSTEM_PROMPT_APPEND, loadClaudeMd, loadMcpServers } from "./context.js";
@@ -237,15 +242,30 @@ function summarizeToolCall(toolName: string, input: Record<string, unknown>): st
  *     defense-in-depth, not the primary control: irreversible ops are
  *     never one-tap-approvable from a phone, so they never even reach the
  *     approval step.
- *  4. **Auto-allow (subject to #1–#2)** — `Read`/`Grep`/`Glob` and the two
+ *  4. **Read-only git auto-allow (ASPS-749)** — a `Bash` call whose command
+ *     is a single, standalone, strictly read-only `git` invocation
+ *     (`isSafeReadOnlyGitCommand`: status/log/show/diff/branch(list)/
+ *     remote(bare,-v,get-url)/rev-parse/describe/ls-files/tag(list), each
+ *     restricted to a per-subcommand positive safe-flag allowlist — see the
+ *     block comment above `isSafeReadOnlyGitCommand` in security.ts for the
+ *     full redesign rationale and the subcommands deliberately dropped
+ *     (`config`, `blame`, `ls-remote`, `shortlog`, `remote show` — every
+ *     read form of those either reads an arbitrary file or does network
+ *     I/O) proceeds without a human in the loop. This is evaluated AFTER #3
+ *     so a destructive pattern is never reachable via this path, and it is
+ *     a narrow carve-out under `Bash` only — every git WRITE
+ *     (commit/push/checkout/merge/rebase/reset/`branch -D`/`remote add`/
+ *     `config user.name`, ...) and every other Bash command still falls
+ *     through to #6.
+ *  5. **Auto-allow (subject to #1–#2)** — `Read`/`Grep`/`Glob` and the two
  *     read-only knowledge-engine MCP tools proceed without a human in the
  *     loop, per decision #1 ("read-mostly").
- *  5. **Require Telegram approval** — everything else (`Write`, `Edit`,
- *     `MultiEdit`, `NotebookEdit`, non-dangerous `Bash`, `Task`, `WebFetch`,
- *     any other MCP tool, etc.) is deny-by-default until the same authorized
- *     user who owns this turn approves it over Telegram (`requestApproval`),
- *     which now receives the FULL, untruncated `summarizeToolCall` output
- *     (see Major M1 above `summarizeToolCall`).
+ *  6. **Require Telegram approval** — everything else (`Write`, `Edit`,
+ *     `MultiEdit`, `NotebookEdit`, non-allowlisted `Bash`, `Task`,
+ *     `WebFetch`, any other MCP tool, etc.) is deny-by-default until the
+ *     same authorized user who owns this turn approves it over Telegram
+ *     (`requestApproval`), which now receives the FULL, untruncated
+ *     `summarizeToolCall` output (see Major M1 above `summarizeToolCall`).
  *
  * Must never resolve to `null` — the SDK's own docs state an accidental
  * `null` leaves the permission request unanswered and the tool call
@@ -279,6 +299,10 @@ export function createCanUseTool(userId: number, workingDir: string): CanUseTool
             "This is a hard deny — irreversible operations are never approved via Telegram.",
         };
       }
+    }
+
+    if (toolName === "Bash" && typeof input.command === "string" && isSafeReadOnlyGitCommand(input.command)) {
+      return { behavior: "allow" };
     }
 
     if (AUTO_ALLOW_READ_TOOLS.has(toolName) || AUTO_ALLOW_MCP_TOOL_SET.has(toolName)) {

@@ -259,12 +259,12 @@ describe("createCanUseTool — Bash hard-deny (ASPS-743 blocker B2)", () => {
     expect(requestApprovalMock).not.toHaveBeenCalled();
   });
 
-  it("routes a benign Bash command through Telegram approval rather than auto-allowing", async () => {
+  it("routes a benign non-git Bash command through Telegram approval rather than auto-allowing", async () => {
     requestApprovalMock.mockResolvedValue("allow");
     const canUseTool = createCanUseTool(111, process.cwd());
-    const result = await canUseTool("Bash", { command: "git status" }, toolOptions);
+    const result = await canUseTool("Bash", { command: "npm run build" }, toolOptions);
 
-    expect(requestApprovalMock).toHaveBeenCalledWith(111, "Bash", "git status");
+    expect(requestApprovalMock).toHaveBeenCalledWith(111, "Bash", "npm run build");
     expect(result?.behavior).toBe("allow");
   });
 
@@ -302,6 +302,63 @@ describe("createCanUseTool — Bash hard-deny (ASPS-743 blocker B2)", () => {
     const canUseTool = createCanUseTool(111, process.cwd());
     const result = await canUseTool("Bash", { command: "DROP TABLE Users" }, toolOptions);
     expect(result).not.toBeNull();
+  });
+});
+
+describe("createCanUseTool — read-only git auto-allow (ASPS-749)", () => {
+  beforeEach(() => {
+    requestApprovalMock.mockReset();
+  });
+
+  it.each([
+    "git status",
+    "git log --oneline -5",
+    "git diff",
+    "git branch -a",
+    "git remote get-url origin",
+    "git rev-parse HEAD",
+    "git show HEAD --stat",
+  ])("auto-allows a safe read-only git command without calling requestApproval: %s", async (command) => {
+    const canUseTool = createCanUseTool(111, process.cwd());
+    const result = await canUseTool("Bash", { command }, toolOptions);
+
+    expect(result?.behavior).toBe("allow");
+    expect(requestApprovalMock).not.toHaveBeenCalled();
+  });
+
+  it("still routes a git write to Telegram approval, not auto-allow", async () => {
+    requestApprovalMock.mockResolvedValue("allow");
+    const canUseTool = createCanUseTool(111, process.cwd());
+    const result = await canUseTool("Bash", { command: "git commit -m x" }, toolOptions);
+
+    expect(requestApprovalMock).toHaveBeenCalledWith(111, "Bash", "git commit -m x");
+    expect(result?.behavior).toBe("allow");
+  });
+
+  it("still routes a git command with a shell metacharacter to Telegram approval (fails the allowlist, not on the hard-deny list)", async () => {
+    requestApprovalMock.mockResolvedValue("allow");
+    const canUseTool = createCanUseTool(111, process.cwd());
+    const command = "git status; echo pwned";
+    const result = await canUseTool("Bash", { command }, toolOptions);
+
+    expect(requestApprovalMock).toHaveBeenCalledWith(111, "Bash", command);
+    expect(result?.behavior).toBe("allow");
+  });
+
+  it("still hard-denies a destructive git pattern even though it superficially starts with 'git ' (DANGEROUS_BASH_PATTERNS evaluated first)", async () => {
+    const canUseTool = createCanUseTool(111, process.cwd());
+    const result = await canUseTool("Bash", { command: "git push --force origin main" }, toolOptions);
+
+    expect(result?.behavior).toBe("deny");
+    expect(requestApprovalMock).not.toHaveBeenCalled();
+  });
+
+  it("auto-allows a safe read-only git command issued from within a subagent (agentID present)", async () => {
+    const canUseTool = createCanUseTool(111, process.cwd());
+    const result = await canUseTool("Bash", { command: "git log -3" }, { ...toolOptions, agentID: "sub-1" } as never);
+
+    expect(result?.behavior).toBe("allow");
+    expect(requestApprovalMock).not.toHaveBeenCalled();
   });
 });
 
