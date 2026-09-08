@@ -10,7 +10,7 @@ import {
 } from "./security.js";
 import { requestApproval } from "./approvals.js";
 import { getSessionId, setSessionId } from "./session.js";
-import { TELEGRAM_SYSTEM_PROMPT_APPEND, loadClaudeMd, loadMcpServers } from "./context.js";
+import { TELEGRAM_SYSTEM_PROMPT_APPEND, loadClaudeMd, loadMcpServers, resolveWorkingDir } from "./context.js";
 import { buildPrivilegedMcpServer } from "./privileged.js";
 
 const DEFAULT_MAX_TURNS = 20; // Safety limit, mirrors the previous hand-rolled agentic loop.
@@ -130,26 +130,36 @@ const AUTO_ALLOW_MCP_TOOL_SET = new Set(AUTO_ALLOW_MCP_TOOLS);
 const AUTO_ALLOW_MCP_WILDCARDS = ["mcp__github__*", "mcp__mcp-atlassian__*"];
 
 /**
- * ASPS-766 (ADR-005 part 2 / implementation-plan story ASPS-763-3):
- * `ceo-privileged` — an in-process `createSdkMcpServer` (see
- * `privileged.ts`) exposing JIRA/GitHub WRITE operations
- * (`jira_transition`, `jira_comment`, `jira_update_issue`,
- * `github_create_pr`, `github_comment`). Handlers run in the SDK host — this
- * bot's own Node process (`aspsbot`, unsandboxed) — so they can read the
- * bot-process credential env vars directly and call the JIRA/GitHub REST
- * APIs with no shell involved.
+ * ASPS-766 (ADR-005 part 2 / implementation-plan story ASPS-763-3), extended
+ * by ASPS-767 (story ASPS-763-4): `ceo-privileged` — an in-process
+ * `createSdkMcpServer` (see `privileged.ts`) exposing JIRA/GitHub WRITE
+ * operations (`jira_transition`, `jira_comment`, `jira_update_issue`,
+ * `github_create_pr`, `github_comment`) PLUS the sanctioned `git_push` tool.
+ * Handlers run in the SDK host — this bot's own Node process (`aspsbot`,
+ * unsandboxed) — so they can read the bot-process credential env vars
+ * directly and call the JIRA/GitHub REST APIs with no shell involved;
+ * `git_push` specifically shells out to `git` via `execFile` (no shell,
+ * argv-only — see `privileged.ts`'s `runGitPush`), reusing git's own
+ * already-configured `credential.helper = store` rather than handling the
+ * credential value itself.
  *
  * DELIBERATELY NOT added to `AUTO_ALLOW_MCP_WILDCARDS`/`AUTO_ALLOW_MCP_TOOLS`
  * above — this is the opposite of the read-only `github`/`mcp-atlassian`
- * wildcard exception. Every tool on this server mutates JIRA/GitHub state,
- * so every call MUST fall through `createCanUseTool`'s classification to the
- * deny-by-default branch → `requestApproval()` → a Telegram approval prompt,
- * exactly like `Write`/`Edit`/non-git-read `Bash`. See `agent.test.ts`'s
- * "ceo-privileged MCP (ASPS-766)" describe block for the routing proof, and
- * `privileged.ts`'s top-of-file comment for the full rationale.
+ * wildcard exception. Every tool on this server mutates JIRA/GitHub state
+ * (or pushes to the remote), so every call MUST fall through
+ * `createCanUseTool`'s classification to the deny-by-default branch →
+ * `requestApproval()` → a Telegram approval prompt, exactly like
+ * `Write`/`Edit`/non-git-read `Bash`. See `agent.test.ts`'s "ceo-privileged
+ * MCP (ASPS-766)" describe block for the routing proof, and `privileged.ts`'s
+ * top-of-file comment for the full rationale.
  *
- * `git_push` is a separate gated tool, ASPS-767 (story ASPS-763-4) — not on
- * this server.
+ * ASPS-767 also confirms the AMBIENT push path is dead: ASPS-765's
+ * `buildSandboxSettings` below already denies sandboxed Bash both the stored
+ * git-push credential file (`credentials.files`) and every credential env
+ * var, so a sandboxed `Bash` `git push` has no usable credential — `git_push`
+ * on this server is now the only working push path. See
+ * `TELEGRAM_SYSTEM_PROMPT_APPEND` in `context.ts` for the agent-facing
+ * instruction to use it instead of `Bash git push`.
  */
 
 
@@ -458,7 +468,7 @@ export function createCanUseTool(userId: number, workingDir: string): CanUseTool
 }
 
 function buildOptions(userId: number): Options {
-  const workingDir = process.env.WORKING_DIR || process.cwd();
+  const workingDir = resolveWorkingDir();
   const model = process.env.MODEL;
   const maxTurns = Number(process.env.MAX_TURNS) || DEFAULT_MAX_TURNS;
   const resume = getSessionId(userId);

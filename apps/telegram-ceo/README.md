@@ -120,8 +120,35 @@ The bot runs the Claude Agent SDK with the native Claude Code toolset:
   server gets NO `allowedTools` wildcard and NO explicit entry** — every one
   of its tools falls through `canUseTool`'s classification to the
   deny-by-default branch, so every JIRA/GitHub write still requires the same
-  Telegram Approve/Deny tap as `Write`/`Edit`/`Bash`. `git_push` is a
-  separate gated tool, ASPS-767 — not on this server.
+  Telegram Approve/Deny tap as `Write`/`Edit`/`Bash`.
+
+  - **`git_push`** (ASPS-767, ADR-005 implementation-plan story ASPS-763-4) —
+    on the SAME server, same gating. The SANCTIONED push path that replaces
+    the now-dead ambient one: ASPS-765's sandbox denies sandboxed Bash both
+    the stored git-push credential file and every credential env var, so a
+    sandboxed `Bash` `git push` has no usable credential and fails; `git_push`
+    runs host-side (unsandboxed) where the stored credential IS reachable via
+    git's own already-configured `credential.helper = store` — this tool
+    never reads or handles the credential value itself. Takes `{ remote?,
+    branch }` (`remote` defaults to `"origin"`) and shells out with
+    `execFile("git", ["-C", WORKING_DIR, "push", remote, branch], {shell:
+    false})` — **no shell**, so `remote`/`branch` are passed as discrete argv
+    elements, never interpolated into a command string (no injection
+    surface). Validation, BEFORE `execFile` ever runs (`src/privileged.ts`'s
+    `validateRemote`/`validateBranch`): both values are checked against
+    `security.ts`'s `SHELL_METACHARACTER_PATTERN` (defense-in-depth — moot
+    once there's no shell, but a cheap independent second check), a safe
+    character-class allowlist (`^[A-Za-z0-9._-]+$` for `remote`,
+    `^[A-Za-z0-9._/-]+$` for `branch`), and — the load-bearing check — neither
+    value may start with `-` (rejects any flag-shaped value, including
+    `--force`/`--force-with-lease`/`-f` in the `branch` slot, since this tool
+    takes a single ref VALUE, never an argument list) or `+` (`branch`,
+    git's refspec force-push prefix). **Force-push stays hard-denied**,
+    matching the `DANGEROUS_BASH_PATTERNS` Bash-layer policy — there is no
+    way to spell a force-push through this tool. Like every other tool on
+    this server, `git_push` is NOT in `AUTO_ALLOW_MCP_WILDCARDS`/
+    `AUTO_ALLOW_MCP_TOOLS`, so every call still requires a Telegram
+    Approve/Deny tap showing the exact `remote`/`branch` before it runs.
 
 `CLAUDE.md` is read from `WORKING_DIR` and injected into the system prompt
 by hand (`src/context.ts`'s `loadClaudeMd`), **not** via the SDK's
@@ -359,8 +386,11 @@ Bash is a later, separate story (ASPS-763-5 / ASPS-768).
   straight off disk. `HOME` is read from the environment, `os.homedir()` as
   fallback. `filesystem.allowWrite` is scoped to `WORKING_DIR` only.
 - `credentials.files` — denies `<SECRETS_DIR>/github-credentials`, the stored
-  git-push credential (ASPS-745 Phase 3), so a sandboxed `git push` cannot use
-  the ambient credential.
+  git-push credential (ASPS-745 Phase 3), so a sandboxed `Bash` `git push` has
+  no usable credential and fails — confirming the ambient push path is dead
+  (ASPS-767). The sanctioned replacement is the `git_push` tool on the
+  `ceo-privileged` server (see the "Agent tools" section above), which runs
+  host-side, unsandboxed, where the same stored credential IS reachable.
 - `credentials.envVars` — denies (`mode: "deny"`) every secret/token env var
   this process holds: `TELEGRAM_BOT_TOKEN`, `CLAUDE_CODE_OAUTH_TOKEN`,
   `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, `JIRA_EMAIL`, `JIRA_API_TOKEN`. This is
