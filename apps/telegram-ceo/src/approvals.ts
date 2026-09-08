@@ -26,7 +26,11 @@ export interface ApprovalRequest {
 
 export type ApprovalRequestHandler = (request: ApprovalRequest) => void | Promise<void>;
 
-const DEFAULT_TIMEOUT_MS = 60_000;
+// 10 minutes (ASPS-752). The 60s original default resolved to "deny" before
+// a phone user could even see the notification, let alone tap it. Override
+// with APPROVAL_TIMEOUT_MS for a shorter window only if actively watching
+// the chat.
+const DEFAULT_TIMEOUT_MS = 600_000;
 
 interface PendingEntry {
   userId: number;
@@ -52,8 +56,9 @@ function getTimeoutMs(): number {
  *
  * Resolves `"allow"` only when the same Telegram user who owns this turn
  * taps Approve. Resolves `"deny"` on an explicit Deny tap, on timeout
- * (`APPROVAL_TIMEOUT_MS`, default 60s), or when no approval transport is
- * wired at all — fail-closed, never hangs forever, never silently allows.
+ * (`APPROVAL_TIMEOUT_MS`, default 600_000ms / 10min — ASPS-752), or when no
+ * approval transport is wired at all — fail-closed, never hangs forever,
+ * never silently allows.
  */
 export function requestApproval(
   userId: number,

@@ -248,12 +248,21 @@ describe("bot auth gate and command handling", () => {
       // below only passes when the stranger's tap was truly ignored.
       await callbackHandler({ id: "cb3", from: { id: 222 }, data: `deny:${approve}` });
 
-      // The mismatched-user tap is acknowledged but does not resolve.
-      expect(bot.answerCallbackQuery).toHaveBeenCalledWith("cb3");
+      // The mismatched-user tap is acknowledged but does not resolve — and,
+      // per ASPS-752, now surfaces the same "expired or already handled"
+      // toast as a genuinely expired/unknown id. This reveals nothing
+      // sensitive (not "wrong user" specifically), just that the tap did
+      // not go through.
+      expect(bot.answerCallbackQuery).toHaveBeenCalledWith("cb3", {
+        text: "This approval expired or was already handled — please re-send the request.",
+        show_alert: false,
+      });
 
       // Now the correct user resolves it — with the opposite decision.
       await callbackHandler({ id: "cb4", from: { id: AUTHORIZED_ID }, data: `approve:${approve}` });
       await expect(decisionPromise).resolves.toBe("allow");
+      // A successful resolution keeps the plain, textless ack.
+      expect(bot.answerCallbackQuery).toHaveBeenCalledWith("cb4");
     });
 
     it("acknowledges an unauthorized callback_query without leaking any distinguishing text", async () => {
@@ -266,12 +275,31 @@ describe("bot auth gate and command handling", () => {
       expect(bot.answerCallbackQuery).not.toHaveBeenCalledWith("cb5", expect.anything());
     });
 
-    it("acknowledges an authorized callback_query for an unknown/expired id without throwing", async () => {
+    it("acknowledges an authorized callback_query for an unknown/expired id without throwing, and shows a visible expired/handled toast — ASPS-752", async () => {
       const bot = currentBot();
       const handler = bot.eventHandler("callback_query");
 
       await handler({ id: "cb6", from: { id: AUTHORIZED_ID }, data: "approve:not-a-real-id" });
-      expect(bot.answerCallbackQuery).toHaveBeenCalledWith("cb6");
+      expect(bot.answerCallbackQuery).toHaveBeenCalledWith("cb6", {
+        text: "This approval expired or was already handled — please re-send the request.",
+        show_alert: false,
+      });
+    });
+
+    it("does NOT show the expired/handled toast when the tap successfully resolves a pending request — ASPS-752", async () => {
+      const bot = currentBot();
+      const decisionPromise = requestApproval(AUTHORIZED_ID, "Write", "src/agent.ts");
+      const { approve } = extractCallbackIds(bot);
+
+      const callbackHandler = bot.eventHandler("callback_query");
+      await callbackHandler({ id: "cb7", from: { id: AUTHORIZED_ID }, data: `approve:${approve}` });
+
+      await expect(decisionPromise).resolves.toBe("allow");
+      expect(bot.answerCallbackQuery).toHaveBeenCalledWith("cb7");
+      expect(bot.answerCallbackQuery).not.toHaveBeenCalledWith(
+        "cb7",
+        expect.objectContaining({ text: expect.stringContaining("expired") }),
+      );
     });
 
     describe("approval-summary fidelity and transport safety (ASPS-743 security re-review, Major M1)", () => {

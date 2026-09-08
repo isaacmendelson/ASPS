@@ -311,6 +311,113 @@ class TestConfigWSTransportCurveToleration(unittest.TestCase):
             _run_curve_loader(env={})
 
 
+class TestConfigImportDoesNotAbort(unittest.TestCase):
+    """
+    ASPS-753: merely IMPORTING `config` must never raise SystemExit because
+    the CURVE key is missing/empty on disk (e.g. a fresh CI checkout that
+    never ran the backend). This previously aborted the entire desktop
+    pytest collection, since almost every test module imports `config`
+    transitively.
+
+    The fatal error must be DEFERRED to the point of first use
+    (AuthManager.__init__ / ZMQClient.connect() — see
+    TestZMQClientCurveEnforcement and TestAuthManagerCurveEnforcement below),
+    not raised eagerly at import time.
+    """
+
+    def _import_config_with(self, env=None, local_file_content=None,
+                             backend_file_content=None, platform_system="Windows"):
+        """Same controlled-filesystem harness as _run_curve_loader, but only
+        performs the `import config` step (module-level execution) — it does
+        NOT call config._load_curve_public_key() again afterwards."""
+        sys.modules.pop("config", None)
+
+        def fake_exists(path):
+            path_str = str(path)
+            if ".antiscam" in path_str and "curve-public-key" in path_str:
+                return local_file_content is not None
+            if "ASPS" in path_str or ".asps" in path_str:
+                return backend_file_content is not None
+            return False
+
+        def fake_read_text(path_self):
+            path_str = str(path_self)
+            if ".antiscam" in path_str and "curve-public-key" in path_str:
+                return local_file_content or ""
+            if "ASPS" in path_str or ".asps" in path_str:
+                return backend_file_content or ""
+            return ""
+
+        import pathlib
+
+        with patch.dict(os.environ, env or {}, clear=True), \
+             patch("platform.system", return_value=platform_system), \
+             patch.object(pathlib.Path, "exists", fake_exists), \
+             patch.object(pathlib.Path, "read_text", fake_read_text):
+            if "version" not in sys.modules:
+                _install_stub("version", VERSION="0.0.0-test")
+            import config  # noqa: PLC0415
+            return config
+
+    def tearDown(self):
+        sys.modules.pop("config", None)
+
+    # --- The core regression: import must never abort the process ---
+
+    def test_import_does_not_raise_when_key_file_is_empty(self):
+        """CI scenario from the bug report: the backend key file exists but
+        is empty (CurveEnabled=false) -> importing config must NOT raise."""
+        try:
+            config_mod = self._import_config_with(backend_file_content="")
+        except SystemExit as exc:  # pragma: no cover - failure path
+            self.fail(f"Importing config raised SystemExit: {exc}")
+        self.assertEqual(config_mod.BACKEND_SERVER_PUBLIC_KEY_Z85, "")
+
+    def test_import_does_not_raise_when_no_key_source_present(self):
+        """CI scenario: fresh checkout, no key anywhere -> import must NOT raise."""
+        try:
+            config_mod = self._import_config_with()
+        except SystemExit as exc:  # pragma: no cover - failure path
+            self.fail(f"Importing config raised SystemExit: {exc}")
+        self.assertEqual(config_mod.BACKEND_SERVER_PUBLIC_KEY_Z85, "")
+
+    def test_import_captures_deferred_error_for_point_of_use(self):
+        """The original SystemExit must be captured on the module so a
+        point-of-use caller can surface the full provisioning guidance."""
+        config_mod = self._import_config_with()
+        deferred = getattr(config_mod, "_CURVE_KEY_LOAD_ERROR", None)
+        self.assertIsInstance(deferred, SystemExit)
+        self.assertIn("FATAL", str(deferred))
+
+    def test_import_succeeds_normally_when_key_is_present(self):
+        """Regression guard: a present key must still be loaded normally at
+        import time (no behavior change in the success path)."""
+        key = "k" * 40
+        config_mod = self._import_config_with(env={"ANTISCAM_CURVE_PUBLIC_KEY": key})
+        self.assertEqual(config_mod.BACKEND_SERVER_PUBLIC_KEY_Z85, key)
+        self.assertIsNone(getattr(config_mod, "_CURVE_KEY_LOAD_ERROR", None))
+
+    # --- The other half of the invariant: fail-safe is preserved at use ---
+
+    def test_authmanager_still_fails_fast_at_point_of_use(self):
+        """End-to-end: config imports safely with no key, but AuthManager
+        (the point of first use) must still refuse to proceed — no silent
+        fallback to an unencrypted connection."""
+        config_mod = self._import_config_with()
+        sys.modules["config"] = config_mod
+        sys.modules.pop("auth_manager", None)
+
+        keyring_stub = sys.modules.get("keyring") or _install_stub("keyring")
+        keyring_stub.get_password = lambda svc, uid: None
+
+        from auth_manager import AuthManager  # noqa: PLC0415
+
+        with patch("pathlib.Path.exists", return_value=False):
+            with self.assertRaises(RuntimeError) as ctx:
+                AuthManager(MagicMock(), {"id": "TEST-DEVICE-001"})
+        self.assertIn("CURVE", str(ctx.exception))
+
+
 class TestZMQClientCurveEnforcement(unittest.TestCase):
     """ZMQClient.connect() must refuse plaintext and enforce CURVE."""
 

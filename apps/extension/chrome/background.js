@@ -762,26 +762,49 @@ function setupTabListeners() {
 
       if (data[`tab_${tabId}_score`] != null) {
         stopLoadingState();
+        const score     = data[`tab_${tabId}_score`];
+        const riskType  = data[`tab_${tabId}_riskType`] || [];
+        const action    = data[`tab_${tabId}_action`]   || 0;
+        // ASPS-750: also sync stateManager, not just chrome.storage.local —
+        // buildStatusResponse() (read by the popup) pulls from stateManager,
+        // so leaving it stale here served the PREVIOUS tab's score/risk.
+        stateManager.update({
+          'scan.score':            score,
+          'scan.riskType':         riskType,
+          'scan.protectiveAction': action
+        });
         chrome.storage.local.set({
-          currentPageScore:      data[`tab_${tabId}_score`],
-          currentPageRiskType:   data[`tab_${tabId}_riskType`] || [],
-          currentPageAction:     data[`tab_${tabId}_action`]   || 0,
+          currentPageScore:      score,
+          currentPageRiskType:   riskType,
+          currentPageAction:     action,
           currentPageScanning:   false
         });
       } else if (tab.url?.startsWith('http')) {
         const cached = cacheService.get(tab.url);
         if (cached?.score != null) {
           stopLoadingState();
+          const riskType = cached.riskType || [];
+          const action   = cached.protectiveAction || 0;
+          stateManager.update({
+            'scan.score':            cached.score,
+            'scan.riskType':         riskType,
+            'scan.protectiveAction': action
+          });
           chrome.storage.local.set({
             [`tab_${tabId}_score`]:    cached.score,
-            [`tab_${tabId}_riskType`]: cached.riskType      || [],
-            [`tab_${tabId}_action`]:   cached.protectiveAction || 0,
+            [`tab_${tabId}_riskType`]: riskType,
+            [`tab_${tabId}_action`]:   action,
             currentPageScore:          cached.score,
-            currentPageRiskType:       cached.riskType      || [],
-            currentPageAction:         cached.protectiveAction || 0,
+            currentPageRiskType:       riskType,
+            currentPageAction:         action,
             currentPageScanning:       false
           });
         } else {
+          stateManager.update({
+            'scan.score':            null,
+            'scan.riskType':         [],
+            'scan.protectiveAction': 0
+          });
           chrome.storage.local.set({
             currentPageScore:    null,
             currentPageRiskType: [],
@@ -789,6 +812,24 @@ function setupTabListeners() {
             currentPageScanning: false
           });
         }
+      } else {
+        // ASPS-750: non-http tab (chrome://newtab/, chrome:// pages, etc.)
+        // with no stored per-tab score. Neither branch above matched, so
+        // without this clear stateManager would keep serving the
+        // PREVIOUSLY activated tab's score/riskType/protectiveAction —
+        // the same reverse split-brain this fix addresses, just for the
+        // non-http edge case.
+        stateManager.update({
+          'scan.score':            null,
+          'scan.riskType':         [],
+          'scan.protectiveAction': 0
+        });
+        chrome.storage.local.set({
+          currentPageScore:    null,
+          currentPageRiskType: [],
+          currentPageAction:   0,
+          currentPageScanning: false
+        });
       }
     } catch (e) {
       console.error('[Background] Tab activation error:', e);

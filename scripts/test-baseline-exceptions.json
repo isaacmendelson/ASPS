@@ -11,56 +11,32 @@
         "expectedFailureCount": 9,
         "failureIdSha256": "f26b595b316c75582cf9bea6bc264ae1fcf4da0fafee972a1adc9568ce7b410d",
         "owner": "browser-extension",
-        "reason": "Legacy integration harness no longer matches current service wiring.",
-        "expires": "2026-08-12"
-      },
-      {
-        "selector": "unit/services/AuthService.test.js",
-        "expectedFailureCount": 5,
-        "failureIdSha256": "b966bb8e1eb636c92bb30e297a4a4801a72fdcde11ba2d6dee2ddc10c9b09e24",
-        "owner": "browser-extension",
-        "reason": "Legacy callback-style Chrome storage mocks do not match current Promise-style service code.",
-        "expires": "2026-08-12"
+        "reason": "Legacy integration harness asserts on background.js wiring it never actually exercises (no import of background.js; assertions check chrome mock call counts registered by other unrelated tests). Needs a rewrite against the real background.js message/listener wiring, not a mock-signature fix. Renewed 2026-09-08 (ASPS-753 hybrid baseline fix); tracked for a follow-up rewrite.",
+        "expires": "2026-12-08"
       },
       {
         "selector": "unit/services/CacheService.test.js",
         "expectedFailureCount": 6,
         "failureIdSha256": "6bbb2f3350858ef5912c351de43c60242e142e67484020b182f40403a43ce813",
         "owner": "browser-extension",
-        "reason": "Legacy cache API and storage expectations are stale.",
-        "expires": "2026-08-12"
+        "reason": "Tests a removed CacheService data model end-to-end: legacy 'scanCache' storage key + fixed 24h timestamp expiry + callback-style chrome.storage.local.get + a remove() method, versus the current domain-keyed in-memory Map with per-entry TTL, 'urlCache' persist key, synchronous get()/set(), debounced persist, and delete() (see services/CacheService.js). Not a mock-signature tweak; needs a full rewrite against the current cache model. Renewed 2026-09-08 (ASPS-753 hybrid baseline fix); tracked for a follow-up rewrite.",
+        "expires": "2026-12-08"
       },
       {
         "selector": "unit/services/ConnectionService.test.js",
         "expectedFailureCount": 11,
         "failureIdSha256": "4b368ffe4456e0ab3c65a4ebd26847eecfe24a0f5a2acc630fe8be19f9ef44f4",
         "owner": "browser-extension",
-        "reason": "WebSocket mock never resolves the current multi-port connection flow and tests time out.",
-        "expires": "2026-08-12"
+        "reason": "WebSocket mock never resolves the current multi-port connection flow (ports [8080,8181,8282,8383,8484]) and tests time out. Renewed 2026-09-08 (ASPS-753 hybrid baseline fix); tracked for a follow-up rewrite.",
+        "expires": "2026-12-08"
       },
       {
         "selector": "unit/services/IconService.test.js",
         "expectedFailureCount": 29,
         "failureIdSha256": "8d5f1baa6923d1ca52aed577a36b6a049c36b3f25dbf4cfbe5f5cef3f3e12e6e",
         "owner": "browser-extension",
-        "reason": "jest-chrome harness lacks the current chrome.action surface and service state contract.",
-        "expires": "2026-08-12"
-      },
-      {
-        "selector": "unit/services/ScanService.test.js",
-        "expectedFailureCount": 13,
-        "failureIdSha256": "ef3d3c688b8d544432878d0ea0cc262940ded9bad29537efc01b640c683b69fe",
-        "owner": "browser-extension",
-        "reason": "Legacy ScanService module mocks expect a removed default CacheService export.",
-        "expires": "2026-08-12"
-      },
-      {
-        "selector": "unit/services/TrackerService.test.js",
-        "expectedFailureCount": 1,
-        "failureIdSha256": "5bc34f5247c6a8a75ca80e5d22cd04631139c4ad00c47ae92a69624463812c2f",
-        "owner": "browser-extension",
-        "reason": "Invalid-iframe fixture expectation differs from current URL normalization behavior.",
-        "expires": "2026-08-12"
+        "reason": "jest-chrome 0.8.0 harness lacks the current chrome.action surface and service state contract. Renewed 2026-09-08 (ASPS-753 hybrid baseline fix); tracked for a follow-up rewrite.",
+        "expires": "2026-12-08"
       }
     ]
   },
@@ -69,8 +45,8 @@
       "component": "analyzer",
       "selector": "tests/test_real_sites.py",
       "owner": "analyzer-ai",
-      "reason": "Live-site tests require uncontrolled external network/content and are not deterministic enough for the required gate.",
-      "expires": "2026-08-12"
+      "reason": "Live-site tests require uncontrolled external network/content and are not deterministic enough for the required gate. Renewed 2026-09-08 (ASPS-753 baseline fix); still a legitimate, unchanged external-network exclusion.",
+      "expires": "2026-12-08"
     }
   ]
 }

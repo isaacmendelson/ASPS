@@ -84,6 +84,11 @@ The bot runs the Claude Agent SDK with the native Claude Code toolset:
   package (ASPS-762 security gate MAJOR).
 - `NotebookRead` / `Task` / `WebFetch` / most MCP tools — gated behind a
   Telegram approval (see below).
+- `AskUserQuestion` — **disabled** via `disallowedTools` (`DISALLOWED_TOOLS`
+  in `src/agent.ts`): the interactive multiple-choice tool can't return a
+  structured choice over the one-way Telegram approve/deny bridge (it aborted
+  the agent with `AbortError: Stream closed`), so the bot instead asks any
+  follow-up question as **plain Telegram text**.
 - The two read-only knowledge-engine MCP tools
   (`mcp__knowledge-engine__knowledge_search` / `knowledge_ask`) — auto-allowed,
   same as Read/Grep/Glob, since they take no filesystem input and are
@@ -264,8 +269,11 @@ approval like any other state-changing action.
   - the **same user who owns the turn** taps a button (`resolveApproval`
     checks the tapping user's id against the requesting user's id —
     approvals are never global or cross-user),
-  - or `APPROVAL_TIMEOUT_MS` (default 60s) elapses, which resolves to
-    **deny** so the agent never hangs waiting on a phone notification.
+  - or `APPROVAL_TIMEOUT_MS` (default 600000ms / 10 min — ASPS-752) elapses,
+    which resolves to **deny** so the agent never hangs waiting on a phone
+    notification. A tap that lands after the request has already expired
+    (or was already answered) gets a visible "expired or already handled"
+    toast instead of a silent no-op.
 
 `canUseTool` never resolves to `null` — the SDK's own docs note an
 accidental `null` leaves the permission request unanswered and the tool
