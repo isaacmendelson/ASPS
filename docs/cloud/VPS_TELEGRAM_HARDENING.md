@@ -2,7 +2,7 @@
 
 **Box:** `168.231.111.91` (Hostinger "2nd VPS", `srv1618511`, Ubuntu 24.04.4 LTS, 2 vCPU / 8 GB)
 **Role:** hosts the ASPS Telegram CEO bot (`@Zappa_desktop_bot`) as a 24/7 systemd service + a clone of the ASPS repo for the agent to work on. ASPS backend stays on Azure (D1). A pre-existing `openclaw` (localhost:18789) + Docker run on the box — **preserved, untouched**.
-**Owner:** CEO orchestration. **Last updated:** 2026-09-07.
+**Owner:** CEO orchestration. **Last updated:** 2026-09-08.
 
 This log records every hardening applied to the live box, why, and what remains. It complements the security audit (`docs/security-audits/2026-09-07-vps-telegram.md`) and the migration handoff (`docs/task-memory/VPS_TELEGRAM_MIGRATION_HANDOFF.md`). The reusable pieces are codified in `deploy/vps/` (so a future provision inherits them); this doc is the record of what is true on THIS box.
 
@@ -71,3 +71,176 @@ The Phase-4 path guard hard-denies the agent reading any `*.env`/`ACCESS_KEYS*`/
 - **Egress** unrestricted (UFW allow-outgoing) — low ROI to restrict (CDN IP ranges); FQDN proxy if pursued.
 - **Token rotation cadence** — set a schedule for the 4 on-box tokens (GitHub scoped PAT, JIRA, `CLAUDE_CODE_OAUTH_TOKEN`, Telegram).
 - **Retire the old GitHub PAT** from the "Hostinger Logins" doc (the pre-swap one) in GitHub settings, once confirmed it isn't used elsewhere.
+
+## 7. Bubblewrap sandbox enablement (ASPS-764, sub-task of ASPS-763, ADR-005) — 2026-09-08
+
+**Goal:** make `/usr/bin/bwrap` (bubblewrap) reliably usable by `aspsbot`
+so the Claude Agent SDK's built-in Linux sandbox (`sandbox.enabled`) can
+contain every Bash execution the bot's agent makes, per ADR-005. This is
+Story 1 of ADR-005's implementation plan — OS/box enablement only. **No bot
+behavior changed**: the bot's own `sandbox.enabled` option is not yet turned
+on (that's ASPS-763-2), and `telegram-ceo.service` was left **stopped**
+throughout (it was already stopped before this work started, blocked on
+later ASPS-763 stories) — only a `systemctl daemon-reload` was run against
+it, never a start/restart.
+
+### What was applied to the live box (`168.231.111.91`)
+
+| # | Change | Where |
+|---|---|---|
+| 1 | Installed `bubblewrap` 0.9.0-1ubuntu0.1 (already present from a prior manual probe; script is idempotent regardless). | `dpkg` |
+| 2 | Installed `/etc/apparmor.d/bwrap` — a scoped AppArmor profile naming `/usr/bin/bwrap` (`flags=(unconfined)` + `userns,`), loaded with `apparmor_parser -r`. | `/etc/apparmor.d/bwrap` (root:root, 0644) |
+| 3 | Added `RestrictNamespaces=` (reset) + `RestrictNamespaces=user pid mnt` to the unit's drop-in override. | `/etc/systemd/system/telegram-ceo.service.d/override.conf` |
+| 4 | `systemctl daemon-reload` (no start/restart). | — |
+
+`kernel.apparmor_restrict_unprivileged_userns` was **left untouched at `1`**
+(the Ubuntu 24.04 distro default) — the sysctl fallback was never applied.
+`kernel.unprivileged_userns_clone` was already `1` (unchanged).
+
+### AppArmor resolution: scoped profile chosen over the global sysctl fallback
+
+**Problem:** Ubuntu 24.04 mediates unprivileged user-namespace creation
+with AppArmor. An unconfined process (the default — no profile attached)
+gets `setting up uid map: Permission denied` when calling
+`unshare(CLONE_NEWUSER)` unless `kernel.apparmor_restrict_unprivileged_userns=0`
+(global opt-out) **or** the process is confined by a named AppArmor profile
+that includes a `userns,` rule.
+
+**Chosen fix — scoped profile (preferred, per the task spec):** a dedicated
+`/etc/apparmor.d/bwrap` profile that names only `/usr/bin/bwrap`:
+
+```
+abi <abi/4.0>,
+include <tunables/global>
+
+profile bwrap /usr/bin/bwrap flags=(unconfined) {
+  userns,
+
+  include if exists <local/bwrap>
+}
+```
+
+This is **not a bespoke workaround** — it is the exact pattern Ubuntu itself
+already ships on this box for the identical restriction:
+`/etc/apparmor.d/lxc-usernsexec` (`profile lxc-usernsexec /usr/bin/lxc-usernsexec
+flags=(unconfined) { userns, ... }`), confirmed present and loaded
+(`aa-status` lists it) before this change. `bwrap` performs its own
+sandboxing via the namespaces/seccomp it sets up *inside* the userns it
+creates — this profile does not attempt to additionally mediate bwrap's
+filesystem/network access (that would be redundant and is not what the
+restriction is for); it only supplies the named label the kernel's
+userns-creation check requires, plus the one extra permission
+(`userns,`) an unconfined process would already have had implicitly before
+Ubuntu 24.04 introduced this restriction.
+
+**Why not the global sysctl fallback
+(`kernel.apparmor_restrict_unprivileged_userns=0`):** it would remove the
+restriction for **every** unconfined process on the box, not just bwrap —
+any other unprivileged process (now or added later) could then also create
+user namespaces freely. The scoped profile achieves the same outcome for
+the one binary that actually needs it, with a materially smaller blast
+radius. The scoped fix worked and was fully sufficient — **the sysctl
+fallback was never applied.**
+
+**Security-gate flag:** this AppArmor decision (profile vs. sysctl) is
+explicitly the security-gate discussion point called out in the task spec.
+Verdict applied: **scoped profile, not the global sysctl.** Residual risk:
+`flags=(unconfined)` on the `bwrap` profile means AppArmor does not mediate
+what bwrap itself does with the `userns,` grant beyond gating its creation
+— containment for what runs *inside* the sandbox is bwrap's own
+namespace/mount/seccomp configuration (the SDK's `sandbox.filesystem.
+denyRead`/`credentials.*` options, validated below), not AppArmor. This
+mirrors exactly how `lxc-usernsexec` is already trusted on this box.
+
+### systemd `RestrictNamespaces=` scoping
+
+`telegram-ceo.service` denied all namespace types (`RestrictNamespaces=yes`).
+Relaxed to an explicit allow-list, **not** `no`:
+
+```
+RestrictNamespaces=user pid mnt
+```
+
+- `user` — bwrap's unprivileged uid/gid map.
+- `mnt` — the ro-bind + tmpfs-mask filesystem view bwrap constructs.
+- `pid` — isolates the sandboxed process tree from the rest of the host,
+  which the SDK's sandbox also expects.
+- `net`, `uts`, `ipc`, `cgroup` remain **denied**. Network egress for the
+  sandboxed command is kept via the **inherited** net namespace (no
+  `--unshare-net` in the bwrap invocation) — the unit does not need
+  permission to *create* a new net namespace for that.
+
+Applied on the box via the existing `override.conf` drop-in pattern
+(`/etc/systemd/system/telegram-ceo.service.d/override.conf`, same file that
+already carries the `ReadWritePaths`/`UMask` fixes from the Phase 6 audit)
+rather than rewriting the live base unit file, since the base unit on this
+box already has other, unrelated drift from the repo template (see the
+Phase 6 section above) that is out of scope for this task. The **repo
+template** (`deploy/vps/telegram-ceo.service`) has the scoped value baked
+directly into its `[Service]` section (no drop-in needed there — a fresh
+re-provision gets it from `05-service.sh` directly).
+
+`systemctl show telegram-ceo -p RestrictNamespaces` confirms
+`RestrictNamespaces=mnt pid user` is the effective value after
+`daemon-reload`. `systemd-analyze security telegram-ceo.service` shows the
+expected single line item flip (`RestrictNamespaces=~mnt` now scored,
++0.1 exposure) with `net`/`uts`/`ipc`/`cgroup` still scored `✓` (denied) —
+overall exposure **6.6 MEDIUM**, consistent with the pre-existing baseline
+plus this one documented, reasoned relaxation (no other hardening
+directives were touched).
+
+### Acceptance evidence — validated as `aspsbot` on the live box
+
+Exact command (unshares user+mount+pid, ro-binds `/`, binds the repo clone
+read-write, tmpfs-masks the secrets directory, keeps network — no
+`--unshare-net`):
+
+```bash
+bwrap \
+  --ro-bind / / \
+  --bind /home/aspsbot/ASPS /home/aspsbot/ASPS \
+  --tmpfs /home/aspsbot/secrets \
+  --proc /proc --dev /dev \
+  --unshare-user --unshare-pid --unshare-uts --unshare-ipc \
+  --die-with-parent --chdir /home/aspsbot/ASPS \
+  bash -c '<checks below>'
+```
+
+| # | Check | Command | Result |
+|---|---|---|---|
+| 1 | Secret unreachable | `cat /home/aspsbot/secrets/ACCESS_KEYS.env` | **FAILS** — `No such file or directory` (tmpfs mask hides the real directory contents entirely; exit 1). |
+| 2 | Ambient push credential unreachable | `git credential fill` for `host=github.com` (also direct `cat` of `github-credentials`) | **FAILS inside the sandbox** — `fatal: could not read Username for 'https://github.com': No such device or address`; direct `cat` → `No such file or directory`. Confirmed as a real mask, not a coincidence: the **same commands run outside the sandbox** on the same box succeed (`git credential fill` returns a real `username=isaacmendelson` + password). Note: plain `git -C /home/aspsbot/ASPS ls-remote origin` still succeeds inside the sandbox — expected and benign, since `ASPS` is a **public** GitHub repo and anonymous read access needs no credential at all; the credential itself (the thing that matters — the push capability) is what's verified unreachable above. |
+| 3 | Network egress kept | `getent hosts github.com` | **WORKS** — resolves `140.82.121.3 github.com`. |
+| 4 | Dev command in writable repo bind | `node -e "console.log(1)"`, `npm --version` | **WORKS** — prints `1`, `npm --version` → `11.19.0`. |
+
+### Files changed (this task)
+
+| File | Change |
+|---|---|
+| `deploy/vps/06-sandbox.sh` | New — installs bubblewrap + the AppArmor profile, idempotent, includes an on-box smoke test as `aspsbot`. |
+| `deploy/vps/telegram-ceo.service` | `RestrictNamespaces=yes` → `RestrictNamespaces=user pid mnt`, with rationale comment. |
+| `deploy/vps/README.md` | New run-order row, files table row, and "Bubblewrap sandbox enablement" section. |
+| `docs/cloud/VPS_TELEGRAM_HARDENING.md` | This section. |
+| Live box | `/etc/apparmor.d/bwrap` (new file); `/etc/systemd/system/telegram-ceo.service.d/override.conf` (appended `RestrictNamespaces=` reset + scoped value); `systemctl daemon-reload` run. `telegram-ceo.service` remains **stopped**, **enabled** (unchanged from before this task). |
+
+### Residual risk / follow-ups
+
+- Sandboxed Bash (once ASPS-763-2 turns `sandbox.enabled` on) retains
+  network egress by design — an injected agent could exfiltrate repo
+  *source* (already public on GitHub); secrets/creds are unreachable. This
+  matches ADR-005's accepted residual; ASPS-763-6 (optional egress
+  allowlist) narrows it further if pursued.
+- The `bwrap` AppArmor profile uses `flags=(unconfined)` — AppArmor does not
+  additionally mediate bwrap's own behavior beyond gating userns creation.
+  This is the same trust level already extended to `lxc-usernsexec` on this
+  box; flagged for the security gate rather than silently accepted.
+- `RestrictNamespaces=user pid mnt` is a real (small, documented) widening
+  of the unit's sandbox versus the previous deny-all — the containment
+  intent shifts to bwrap's own per-exec namespace/filesystem/credential
+  controls (ASPS-763-2), which is the design ADR-005 already commits to.
+- This story only proves the OS-level capability. The **service's own** use
+  of bwrap (via the SDK's `sandbox` option, under the unit's full sandbox —
+  `ProtectSystem=strict`, `NoNewPrivileges=yes`, etc., together) is not yet
+  live-tested end-to-end because the bot is intentionally not started; that
+  end-to-end verification is part of ASPS-763-2's acceptance, not this
+  task's.

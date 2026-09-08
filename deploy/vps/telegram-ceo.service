@@ -102,7 +102,18 @@ ProtectClock=yes
 ProtectHostname=yes
 LockPersonality=yes
 RestrictRealtime=yes
-RestrictNamespaces=yes
+# RestrictNamespaces (ASPS-764, ADR-005 -- scoped down from the blanket
+# `yes` deny-all): the SDK's built-in Linux sandbox (bwrap) needs to create
+# a user namespace (for the unprivileged uid map) and a mount namespace (for
+# the ro-bind / tmpfs-mask filesystem view); a pid namespace is included too
+# so the sandboxed process tree is isolated from the rest of the host, which
+# the SDK's sandbox also expects. net/uts/ipc/cgroup namespaces stay denied
+# -- the sandboxed command keeps network access via the INHERITED net
+# namespace (no `unshare-net` in the bwrap invocation), not by this unit
+# being allowed to create a *new* one. Validated on the live box: `bwrap
+# --unshare-user --unshare-pid ...` succeeds under this scoping (see
+# docs/cloud/VPS_TELEGRAM_HARDENING.md "bubblewrap sandbox enablement").
+RestrictNamespaces=user pid mnt
 # UMask (ASPS-745 audit m3, applied+verified live 2026-09-07): systemd's
 # default UMask=0022 leaves service-created files world-readable. Any
 # secret-ish artifact the agent writes (logs, caches, tmp files under the
