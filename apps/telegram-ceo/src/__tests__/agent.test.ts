@@ -644,6 +644,146 @@ describe("runAgent", () => {
     expect(onEvent).toHaveBeenCalledTimes(messages.length);
   });
 
+  describe("sandbox (ASPS-765 / ADR-005 part 1 — bubblewrap containment, Bash stays gated)", () => {
+    const sandboxEnvVars = ["BWRAP_PATH", "SECRETS_DIR", "WORKING_DIR"] as const;
+    const savedSandboxEnv: Record<string, string | undefined> = {};
+
+    beforeEach(() => {
+      for (const key of sandboxEnvVars) {
+        savedSandboxEnv[key] = process.env[key];
+        delete process.env[key];
+      }
+    });
+
+    afterEach(() => {
+      for (const key of sandboxEnvVars) {
+        if (savedSandboxEnv[key] === undefined) delete process.env[key];
+        else process.env[key] = savedSandboxEnv[key];
+      }
+    });
+
+    it("enables the sandbox with failIfUnavailable:true (fail loudly, never silently run Bash unsandboxed)", async () => {
+      queryMock.mockReturnValue(
+        asAsyncIterable([{ type: "result", subtype: "success", result: "ok", session_id: "sess-1" }]),
+      );
+
+      await runAgent(userId, "hi");
+
+      const { options } = queryMock.mock.calls[0][0];
+      expect(options.sandbox).toBeDefined();
+      expect(options.sandbox.enabled).toBe(true);
+      expect(options.sandbox.failIfUnavailable).toBe(true);
+    });
+
+    it("defaults bwrapPath to /usr/bin/bwrap (matching deploy/vps/06-sandbox.sh) and honors BWRAP_PATH when set", async () => {
+      queryMock.mockReturnValue(
+        asAsyncIterable([{ type: "result", subtype: "success", result: "ok", session_id: "sess-1" }]),
+      );
+      await runAgent(userId, "hi");
+      expect(queryMock.mock.calls[0][0].options.sandbox.bwrapPath).toBe("/usr/bin/bwrap");
+
+      process.env.BWRAP_PATH = "/opt/custom/bwrap";
+      queryMock.mockReturnValue(
+        asAsyncIterable([{ type: "result", subtype: "success", result: "ok", session_id: "sess-2" }]),
+      );
+      await runAgent(userId, "hi again");
+      expect(queryMock.mock.calls[1][0].options.sandbox.bwrapPath).toBe("/opt/custom/bwrap");
+    });
+
+    it("denies reading the secrets dir (default /home/aspsbot/secrets, or SECRETS_DIR override) and allows writing WORKING_DIR", async () => {
+      process.env.WORKING_DIR = "/home/aspsbot/ASPS";
+      queryMock.mockReturnValue(
+        asAsyncIterable([{ type: "result", subtype: "success", result: "ok", session_id: "sess-1" }]),
+      );
+
+      await runAgent(userId, "hi");
+
+      const { options } = queryMock.mock.calls[0][0];
+      expect(options.sandbox.filesystem.denyRead).toContain("/home/aspsbot/secrets");
+      expect(options.sandbox.filesystem.allowWrite).toContain("/home/aspsbot/ASPS");
+    });
+
+    it("honors a SECRETS_DIR override for both filesystem.denyRead and credentials.files", async () => {
+      process.env.SECRETS_DIR = "/custom/secrets";
+      queryMock.mockReturnValue(
+        asAsyncIterable([{ type: "result", subtype: "success", result: "ok", session_id: "sess-1" }]),
+      );
+
+      await runAgent(userId, "hi");
+
+      const { options } = queryMock.mock.calls[0][0];
+      expect(options.sandbox.filesystem.denyRead).toContain("/custom/secrets");
+      expect(options.sandbox.credentials.files).toEqual(
+        expect.arrayContaining([{ path: "/custom/secrets/github-credentials", mode: "deny" }]),
+      );
+    });
+
+    it("denies the stored git-push credential file so a sandboxed `git push` cannot use the ambient credential", async () => {
+      queryMock.mockReturnValue(
+        asAsyncIterable([{ type: "result", subtype: "success", result: "ok", session_id: "sess-1" }]),
+      );
+
+      await runAgent(userId, "hi");
+
+      const { options } = queryMock.mock.calls[0][0];
+      expect(options.sandbox.credentials.files).toEqual([
+        { path: "/home/aspsbot/secrets/github-credentials", mode: "deny" },
+      ]);
+    });
+
+    it("denies EVERY secret/token env var this process holds — the full enumerated set, not a subset", async () => {
+      queryMock.mockReturnValue(
+        asAsyncIterable([{ type: "result", subtype: "success", result: "ok", session_id: "sess-1" }]),
+      );
+
+      await runAgent(userId, "hi");
+
+      const { options } = queryMock.mock.calls[0][0];
+      const deniedNames = options.sandbox.credentials.envVars.map((entry: { name: string }) => entry.name);
+      expect(deniedNames.sort()).toEqual(
+        [
+          "ANTHROPIC_API_KEY",
+          "CLAUDE_CODE_OAUTH_TOKEN",
+          "GITHUB_TOKEN",
+          "JIRA_API_TOKEN",
+          "JIRA_EMAIL",
+          "TELEGRAM_BOT_TOKEN",
+        ].sort(),
+      );
+      for (const entry of options.sandbox.credentials.envVars) {
+        expect(entry.mode).toBe("deny");
+      }
+    });
+
+    it("does NOT set autoAllowBashIfSandboxed — canUseTool stays the sole authority over Bash (ASPS-768 territory, not this story)", async () => {
+      queryMock.mockReturnValue(
+        asAsyncIterable([{ type: "result", subtype: "success", result: "ok", session_id: "sess-1" }]),
+      );
+
+      await runAgent(userId, "hi");
+
+      const { options } = queryMock.mock.calls[0][0];
+      expect(options.sandbox.autoAllowBashIfSandboxed).toBeUndefined();
+    });
+
+    it("still routes a non-git Bash command through Telegram approval with the sandbox enabled — Bash is contained, not auto-allowed", async () => {
+      requestApprovalMock.mockResolvedValue("allow");
+      queryMock.mockReturnValue(
+        asAsyncIterable([{ type: "result", subtype: "success", result: "ok", session_id: "sess-1" }]),
+      );
+
+      await runAgent(userId, "hi");
+      const { options } = queryMock.mock.calls[0][0];
+
+      // Sandbox being enabled does not change canUseTool's own decision —
+      // exercise the SAME canUseTool the SDK was actually given this turn.
+      const result = await options.canUseTool("Bash", { command: "npm test" }, toolOptions);
+
+      expect(requestApprovalMock).toHaveBeenCalledWith(userId, "Bash", "npm test");
+      expect(result?.behavior).toBe("allow");
+    });
+  });
+
   it("surfaces a non-success result subtype as a readable message", async () => {
     queryMock.mockReturnValue(
       asAsyncIterable([
