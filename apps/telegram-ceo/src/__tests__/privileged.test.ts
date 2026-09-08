@@ -1,12 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// ASPS-767: mock node:child_process so `git_push` never spawns a real `git`
+// process. `vi.mock` itself is hoisted by vitest above every import in this
+// file (same mechanism as jest's inline-mock hoisting) — `vi.hoisted` is
+// required so `execFileMock` is initialized before that hoisted factory runs
+// (a plain top-level `const` would still be hoisted-but-uninitialized at
+// that point, throwing a TDZ ReferenceError).
+const { execFileMock } = vi.hoisted(() => ({ execFileMock: vi.fn() }));
+vi.mock("node:child_process", () => ({
+  execFile: execFileMock,
+}));
+
 import {
   JIRA_ISSUE_KEY_PATTERN,
   buildPrivilegedMcpServer,
   githubCommentTool,
   githubCreatePrTool,
+  gitPushTool,
   jiraCommentTool,
   jiraTransitionTool,
   jiraUpdateIssueTool,
+  validateBranch,
+  validateRemote,
 } from "../privileged.js";
 
 /**
@@ -50,7 +65,21 @@ afterEach(() => {
     else process.env[key] = savedEnv[key];
   }
   vi.unstubAllGlobals();
+  execFileMock.mockReset();
 });
+
+/** Resolves the mocked `execFile`'s Node-style `(error, stdout, stderr)` callback (last arg). */
+function resolveExecFile(stdout = "", stderr = ""): void {
+  execFileMock.mockImplementationOnce((_cmd, _args, _opts, callback) => {
+    callback(null, stdout, stderr);
+  });
+}
+
+function rejectExecFile(error: Error): void {
+  execFileMock.mockImplementationOnce((_cmd, _args, _opts, callback) => {
+    callback(error, "", "");
+  });
+}
 
 describe("JIRA_ISSUE_KEY_PATTERN", () => {
   it.each(["ASPS-766", "A-1", "ABCDE-12345"])("matches a valid issue key: %s", (key) => {
@@ -200,8 +229,95 @@ describe("github_comment — validates the issue/PR number", () => {
   });
 });
 
+describe("git_push (ASPS-767, ADR-005 implementation-plan story ASPS-763-4) — the sanctioned push path", () => {
+  it("pushes via execFile with no shell, using the exact argv shape ['-C', workingDir, 'push', remote, branch]", async () => {
+    resolveExecFile("stdout-fixture", "");
+
+    const result = await gitPushTool.handler({ remote: "origin", branch: "asps-767-git-push-tool" }, {});
+
+    expect(execFileMock).toHaveBeenCalledTimes(1);
+    const [command, args, options] = execFileMock.mock.calls[0];
+    expect(command).toBe("git");
+    expect(args).toEqual(["-C", process.cwd(), "push", "origin", "asps-767-git-push-tool"]);
+    expect(options).toEqual({ shell: false });
+    expect(result.isError).toBeFalsy();
+  });
+
+  it("defaults remote to 'origin' when omitted", async () => {
+    resolveExecFile();
+
+    await gitPushTool.handler({ branch: "main" }, {});
+
+    const [, args] = execFileMock.mock.calls[0];
+    expect(args).toEqual(["-C", process.cwd(), "push", "origin", "main"]);
+  });
+
+  it("honors an explicit non-default remote", async () => {
+    resolveExecFile();
+
+    await gitPushTool.handler({ remote: "upstream", branch: "main" }, {});
+
+    const [, args] = execFileMock.mock.calls[0];
+    expect(args).toEqual(["-C", process.cwd(), "push", "upstream", "main"]);
+  });
+
+  it.each([
+    ["--force"],
+    ["--force-with-lease"],
+    ["-f"],
+    ["+branch"],
+    ["branch --force"],
+    ["branch; rm -rf /"],
+    ["branch`whoami`"],
+    ["branch$(whoami)"],
+    ["branch|cat"],
+    ["branch\nrm -rf /"],
+  ])("rejects a force-push / injection form as branch (%s) — error, no execFile call", async (branch) => {
+    const result = await gitPushTool.handler({ remote: "origin", branch }, {});
+
+    expect(result.isError).toBe(true);
+    expect(execFileMock).not.toHaveBeenCalled();
+  });
+
+  it.each([["origin; rm -rf /"], ["-x"], ["http://evil.example/x"], ["origin`whoami`"]])(
+    "rejects an unsafe remote (%s) — error, no execFile call",
+    async (remote) => {
+      const result = await gitPushTool.handler({ remote, branch: "main" }, {});
+
+      expect(result.isError).toBe(true);
+      expect(execFileMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects a force-push branch via validateBranch directly (unit-level, defense-in-depth)", () => {
+    expect(() => validateBranch("--force")).toThrow(/hard-denied/);
+    expect(() => validateBranch("+main")).toThrow(/hard-denied/);
+    expect(() => validateBranch("main; rm -rf /")).toThrow(/shell metacharacter/);
+  });
+
+  it("rejects an unsafe remote via validateRemote directly (unit-level, defense-in-depth)", () => {
+    expect(() => validateRemote("origin; rm -rf /")).toThrow(/shell metacharacter/);
+    expect(() => validateRemote("-x")).toThrow();
+  });
+
+  it("surfaces an execFile error as an error result without leaking any credential value", async () => {
+    process.env.GITHUB_TOKEN = "super-secret-token-value";
+    rejectExecFile(new Error("fatal: Authentication failed for 'https://github.com/x/y.git/'"));
+
+    const result = await gitPushTool.handler({ remote: "origin", branch: "main" }, {});
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).not.toContain("super-secret-token-value");
+    expect(result.content[0].text).toContain("Authentication failed");
+  });
+
+  it("is included in PRIVILEGED_TOOLS / buildPrivilegedMcpServer with the name 'git_push'", () => {
+    expect(gitPushTool.name).toBe("git_push");
+  });
+});
+
 describe("buildPrivilegedMcpServer", () => {
-  it("returns an SDK MCP server named ceo-privileged with all five write tools registered", () => {
+  it("returns an SDK MCP server named ceo-privileged with all six write tools registered, including git_push", () => {
     const server = buildPrivilegedMcpServer();
 
     expect(server.type).toBe("sdk");

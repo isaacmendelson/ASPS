@@ -1,7 +1,10 @@
+import { execFile } from "node:child_process";
 import { z } from "zod";
 import { createSdkMcpServer, tool } from "@anthropic-ai/claude-agent-sdk";
 import type { McpServerConfig, SdkMcpToolDefinition } from "@anthropic-ai/claude-agent-sdk";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { SHELL_METACHARACTER_PATTERN } from "./security.js";
+import { resolveWorkingDir } from "./context.js";
 
 /**
  * In-process gated MCP server for privileged JIRA/GitHub WRITE operations
@@ -32,8 +35,11 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
  * BY CONSTRUCTION and therefore get a documented wildcard exception, every
  * tool here mutates JIRA/GitHub state and must never get that exception.
  *
- * `git_push` is intentionally NOT in this file — a separate gated tool,
- * ASPS-767 (ADR-005 implementation-plan story ASPS-763-4).
+ * `git_push` (ASPS-767, ADR-005 implementation-plan story ASPS-763-4) is the
+ * SANCTIONED push path — see the block comment above `gitPushTool` below for
+ * why it runs via `execFile` (no shell) and what it validates before ever
+ * spawning `git`. It is on this same server, subject to the identical
+ * gating requirement above: no wildcard, no `AUTO_ALLOW_MCP_TOOLS` entry.
  */
 
 /** JIRA Cloud issue key, e.g. `ASPS-766`. Single source of truth — do not duplicate. */
@@ -280,6 +286,160 @@ const githubCommentTool = tool(
 );
 
 /**
+ * Safe remote-name value: `origin`, `upstream`, etc. — never a URL (a URL
+ * contains `:`/`/` beyond what this allows, and `://` fails outright).
+ */
+const SAFE_REMOTE_PATTERN = /^[A-Za-z0-9._-]+$/;
+
+/**
+ * Safe branch/refspec value: a plain ref/branch name (e.g. `main`,
+ * `asps-767-git-push-tool`, `feature/x`). Deliberately the SAME shape as
+ * `security.ts`'s `SAFE_REF_PATTERN` carve-out philosophy: no `:` (rules out
+ * `<src>:<dst>` refspec forms — this tool only ever pushes a branch to the
+ * identically-named remote ref, the simplest safe answer), no `~`/`^`
+ * (relative-ref forms), no space (rules out a multi-token value smuggling in
+ * a second arg like `branch --force`, which would otherwise still individually
+ * match this char class since `-` is in it).
+ */
+const SAFE_BRANCH_PATTERN = /^[A-Za-z0-9._/-]+$/;
+
+/**
+ * `remote` is just as flag-injectable as `branch` (e.g. a remote value of
+ * `-f`/`--force`/`--upload-pack=...` sitting in `git push <remote> <branch>`'s
+ * positional remote slot would still be parsed by `git` as a flag, not a
+ * remote name) — so it gets the identical leading-`-` rejection as
+ * `validateBranch` below, not just the character-class allowlist (which
+ * alone would let `-f` or `-x` through, since `-` is a legal character in a
+ * remote name like `my-remote`).
+ */
+function validateRemote(remote: string): void {
+  if (SHELL_METACHARACTER_PATTERN.test(remote)) {
+    throw new Error(`Invalid git remote '${remote}' — contains a shell metacharacter`);
+  }
+  if (remote.startsWith("-")) {
+    throw new Error(`Invalid git remote '${remote}' — must be a remote name, not a flag/option`);
+  }
+  if (!SAFE_REMOTE_PATTERN.test(remote)) {
+    throw new Error(`Invalid git remote '${remote}' — expected ${SAFE_REMOTE_PATTERN}`);
+  }
+}
+
+/**
+ * Rejects any force-push form BEFORE the value ever reaches `execFile`'s
+ * argv (ADR-005: "Force-push still hard-denied", matching the
+ * `DANGEROUS_BASH_PATTERNS` policy in `security.ts` that hard-denies
+ * `git push --force` at the Bash layer). A leading `-` catches `--force`,
+ * `--force-with-lease`, `-f`, and every other flag-shaped value in one
+ * check — deliberately broader than just the two named force flags, because
+ * this tool takes a single ref VALUE, never an argument list: nothing
+ * flag-shaped is ever a legitimate `branch` value. A leading `+` (git's
+ * refspec force-push prefix, e.g. `+main`) is also rejected explicitly, and
+ * is additionally outside `SAFE_BRANCH_PATTERN`'s character class. Embedded
+ * whitespace is already outside `SAFE_BRANCH_PATTERN` (no space in the
+ * allowed set), which is what stops a single-string smuggling attempt like
+ * `"branch --force"`.
+ */
+function validateBranch(branch: string): void {
+  if (SHELL_METACHARACTER_PATTERN.test(branch)) {
+    throw new Error(`Invalid git branch/ref '${branch}' — contains a shell metacharacter`);
+  }
+  if (branch.startsWith("-")) {
+    throw new Error(
+      `Invalid git branch/ref '${branch}' — must be a ref value, not a flag/option (force-push is hard-denied)`,
+    );
+  }
+  if (branch.startsWith("+")) {
+    throw new Error(`Invalid git branch/ref '${branch}' — leading '+' forces the push, which is hard-denied`);
+  }
+  if (!SAFE_BRANCH_PATTERN.test(branch)) {
+    throw new Error(`Invalid git branch/ref '${branch}' — expected ${SAFE_BRANCH_PATTERN}`);
+  }
+}
+
+/**
+ * `git_push` (ASPS-767, ADR-005 implementation-plan story ASPS-763-4) — the
+ * SANCTIONED push path that replaces the now-dead ambient one: ASPS-765's
+ * bubblewrap sandbox denies sandboxed Bash both the stored git-push
+ * credential file (`credentials.files` in `agent.ts`'s
+ * `buildSandboxSettings`) and every credential env var, so a sandboxed
+ * `Bash` `git push` has no usable credential and fails. This handler runs in
+ * the SDK host (unsandboxed `aspsbot` process, same as every other tool in
+ * this file) where the stored credential IS reachable via git's own
+ * `credential.helper = store` — this tool never reads or handles the
+ * credential value itself, it just lets `git` invoke its already-configured
+ * helper.
+ *
+ * Runs via `execFile` — NOT `exec`/`spawn` with `shell: true`, and NEVER
+ * string-interpolates `remote`/`branch` into a shell command line. `execFile`
+ * passes `command` + `args` straight to the OS's process-exec syscall; there
+ * is no shell in between to reinterpret `;`, `&&`, backticks, `$()`, etc. —
+ * this closes the injection vector even before `validateRemote`/
+ * `validateBranch` run (defense-in-depth, not the only control).
+ *
+ * Gating: this tool is exported into `PRIVILEGED_TOOLS` like every other
+ * tool in this file, so it inherits the SAME per-call Telegram-approval
+ * requirement (see the block comment at the top of this file) — it is
+ * deliberately NOT added to `agent.ts`'s `AUTO_ALLOW_MCP_WILDCARDS`/
+ * `AUTO_ALLOW_MCP_TOOLS`. The operator sees the exact `remote`/`branch`
+ * before approving (see `summarizeToolCall` in `agent.ts`, which
+ * JSON-stringifies the full tool input for any tool not on its short-circuit
+ * list).
+ */
+const gitPushTool = tool(
+  "git_push",
+  "Push a local branch to a remote (default 'origin'). SANCTIONED push path — runs host-side via execFile (no shell) using the stored git credential. WRITE operation — requires Telegram approval. Force-push is hard-denied; use only a plain branch/ref name, never flags.",
+  {
+    // `.optional()`, not `.default()`: the JS default parameter on the
+    // handler below (`remote = "origin"`) is what actually applies the
+    // default — `tool()`'s `handler` is also exported and invoked directly
+    // in tests (see privileged.test.ts), bypassing the zod parse step that
+    // `.default()` relies on, so the default must live where every caller
+    // (real MCP dispatch AND a direct `.handler(...)` call) goes through it.
+    remote: z.string().min(1).optional(),
+    branch: z.string().min(1),
+  },
+  async ({ remote = "origin", branch }): Promise<CallToolResult> => {
+    try {
+      validateRemote(remote);
+      validateBranch(branch);
+      const workingDir = resolveWorkingDir();
+      const { stdout, stderr } = await runGitPush(workingDir, remote, branch);
+      const output = `${stdout}${stderr}`.trim();
+      return textResult(`Pushed '${branch}' to '${remote}'.${output ? `\n${output}` : ""}`);
+    } catch (err) {
+      return errorResult(err);
+    }
+  },
+);
+
+/**
+ * Thin Promise wrapper around `child_process.execFile` (not `util.promisify`
+ * — kept as an explicit, easily-mockable function so tests can stub
+ * `node:child_process`'s `execFile` directly and assert the exact
+ * `command`/`args`/`options` vector passed, without fighting
+ * `promisify`'s custom-symbol resolution). `shell: false` is `execFile`'s
+ * own default (unlike `exec`, which always shells out) — set explicitly
+ * here so the no-shell guarantee is visible at the call site, not just
+ * implied by which function was chosen.
+ */
+function runGitPush(workingDir: string, remote: string, branch: string): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    execFile(
+      "git",
+      ["-C", workingDir, "push", remote, branch],
+      { shell: false },
+      (error, stdout, stderr) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve({ stdout: stdout.toString(), stderr: stderr.toString() });
+      },
+    );
+  });
+}
+
+/**
  * Exported individually (not just bundled in the server) so tests can invoke
  * each handler directly — verifying it reads creds from env and shapes the
  * REST call correctly — without going through the full MCP protocol
@@ -292,9 +452,19 @@ export const PRIVILEGED_TOOLS: Array<SdkMcpToolDefinition<any>> = [
   jiraUpdateIssueTool,
   githubCreatePrTool,
   githubCommentTool,
+  gitPushTool,
 ];
 
-export { jiraTransitionTool, jiraCommentTool, jiraUpdateIssueTool, githubCreatePrTool, githubCommentTool };
+export {
+  jiraTransitionTool,
+  jiraCommentTool,
+  jiraUpdateIssueTool,
+  githubCreatePrTool,
+  githubCommentTool,
+  gitPushTool,
+  validateRemote,
+  validateBranch,
+};
 
 /**
  * Built fresh per call (mirrors `buildBotScopedMcpServers` in `agent.ts`) so

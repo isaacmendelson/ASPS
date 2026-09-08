@@ -22,6 +22,7 @@ export const TELEGRAM_SYSTEM_PROMPT_APPEND = [
   "Always prefer the native `Read`, `Grep`, and `Glob` tools for reading files, searching file contents, and finding files by name — they run without a human approval prompt. Do NOT use `Bash` with `cat`/`less`/`head`/`tail`/`ls`/`grep`/`rg`/`find` for reads or searches: routing a routine read through Bash forces an approval prompt the operator must tap for something that isn't actually state-changing. Reserve `Bash` for what the native tools genuinely can't do — builds, git, package managers, running programs.",
   "Your own GitHub and JIRA credentials are already present as environment variables in your process: GITHUB_TOKEN/GITHUB_USERNAME (GitHub, including the `gh` CLI) and JIRA_EMAIL/JIRA_API_TOKEN/JIRA_BASE_URL (JIRA REST). Use them directly. Do not search the filesystem for ACCESS_KEYS.env or other .env files — they are deliberately kept outside the working tree and the path guard denies reading them anyway.",
   "For JIRA issue status/assignee/details and GitHub PR/commit/issue questions, use your native `mcp__github__*` and `mcp__mcp-atlassian__*` MCP tools (both read-only, auto-approved like the knowledge-engine tools) instead of shelling out to `curl` or `gh` via Bash — it is faster and does not need a Telegram approval tap.",
+  "To push a branch, ALWAYS use the `mcp__ceo-privileged__git_push` tool — never `Bash git push`. A sandboxed `Bash git push` no longer has a usable credential (ASPS-765's bubblewrap sandbox denies it the stored git credential file and every token env var) and will fail; `git_push` runs host-side with the real credential and still requires the same Telegram approval as any other write. Give it a plain branch name (e.g. `git_push({branch: \"asps-767-git-push-tool\"})`, `remote` defaults to `origin`) — it rejects any force-push form outright, force-push is never approvable.",
 ].join("\n");
 
 /**
@@ -48,6 +49,18 @@ export function loadClaudeMd(workingDir: string): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Single source of truth for resolving `WORKING_DIR` (ASPS-767) — the repo
+ * clone the bot operates on, per `.env.example`. Used by `agent.ts`'s
+ * `buildOptions` (the SDK's `cwd`/path-guard root) and by `privileged.ts`'s
+ * `git_push` tool (the directory `git -C <dir> push` runs against) so both
+ * agree on exactly the same directory without either hardcoding the
+ * `process.env.WORKING_DIR || process.cwd()` fallback twice.
+ */
+export function resolveWorkingDir(): string {
+  return process.env.WORKING_DIR || process.cwd();
 }
 
 export interface McpServerFileConfig {

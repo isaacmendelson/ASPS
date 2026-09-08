@@ -20,6 +20,11 @@ vi.mock("../context.js", () => ({
   TELEGRAM_SYSTEM_PROMPT_APPEND: "TELEGRAM_APPEND_FIXTURE",
   loadClaudeMd: loadClaudeMdMock,
   loadMcpServers: loadMcpServersMock,
+  // ASPS-767: real pass-through (not a stub) so the existing WORKING_DIR
+  // env-var tests below (sandbox describe block) keep exercising the same
+  // resolution behavior now that agent.ts imports it from context.js
+  // instead of inlining `process.env.WORKING_DIR || process.cwd()`.
+  resolveWorkingDir: () => process.env.WORKING_DIR || process.cwd(),
 }));
 
 // agent.test.ts mocks the whole SDK module (see above), so privileged.ts's
@@ -374,7 +379,7 @@ describe("createCanUseTool — read-only git auto-allow (ASPS-749)", () => {
   });
 });
 
-describe("createCanUseTool — ceo-privileged MCP write tools (ASPS-766, ADR-005 part 2)", () => {
+describe("createCanUseTool — ceo-privileged MCP write tools (ASPS-766/ASPS-767, ADR-005 part 2)", () => {
   beforeEach(() => {
     requestApprovalMock.mockReset();
   });
@@ -385,6 +390,7 @@ describe("createCanUseTool — ceo-privileged MCP write tools (ASPS-766, ADR-005
     "mcp__ceo-privileged__jira_update_issue",
     "mcp__ceo-privileged__github_create_pr",
     "mcp__ceo-privileged__github_comment",
+    "mcp__ceo-privileged__git_push",
   ])(
     "routes %s through Telegram approval — NOT auto-allowed (the load-bearing gating requirement)",
     async (toolName) => {
@@ -397,6 +403,37 @@ describe("createCanUseTool — ceo-privileged MCP write tools (ASPS-766, ADR-005
       expect(result?.behavior).toBe("allow");
     },
   );
+
+  it("routes mcp__ceo-privileged__git_push through Telegram approval showing the exact remote/branch (operator sees the push before approving, ASPS-767)", async () => {
+    requestApprovalMock.mockResolvedValue("allow");
+    const canUseTool = createCanUseTool(111, process.cwd());
+
+    const result = await canUseTool(
+      "mcp__ceo-privileged__git_push",
+      { remote: "origin", branch: "asps-767-git-push-tool" },
+      toolOptions,
+    );
+
+    expect(requestApprovalMock).toHaveBeenCalledWith(
+      111,
+      "mcp__ceo-privileged__git_push",
+      expect.stringContaining("asps-767-git-push-tool"),
+    );
+    expect(result?.behavior).toBe("allow");
+  });
+
+  it("denies mcp__ceo-privileged__git_push when the Telegram approval is denied", async () => {
+    requestApprovalMock.mockResolvedValue("deny");
+    const canUseTool = createCanUseTool(111, process.cwd());
+
+    const result = await canUseTool(
+      "mcp__ceo-privileged__git_push",
+      { remote: "origin", branch: "main" },
+      toolOptions,
+    );
+
+    expect(result?.behavior).toBe("deny");
+  });
 
   it("denies a ceo-privileged tool call when the Telegram approval is denied", async () => {
     requestApprovalMock.mockResolvedValue("deny");

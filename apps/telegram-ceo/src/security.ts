@@ -104,7 +104,12 @@ export function matchDangerousBashCommand(command: string): RegExp | undefined {
  * command substitution, subshells/backgrounding, and multi-line payloads,
  * so a safe command must be a single standalone line.
  */
-const SHELL_METACHARACTER_PATTERN = /[;&|`$(){}<>\\]|[\x00-\x1f]/;
+/**
+ * Exported (ASPS-767) so `privileged.ts`'s `git_push` tool can reuse the same
+ * shell-metacharacter check on its `branch`/refspec input — single source of
+ * truth, do not duplicate this pattern elsewhere.
+ */
+export const SHELL_METACHARACTER_PATTERN = /[;&|`$(){}<>\\]|[\x00-\x1f]/;
 
 /**
  * Rule 1b (ASPS-749 remediation): glob metacharacters are shell-expanded by
