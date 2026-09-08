@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   checkPathAllowed,
   findSecretPathInInput,
+  isSafeDevBashCommand,
   isSafeReadOnlyGitCommand,
   matchDangerousBashCommand,
   matchSecretPath,
@@ -335,6 +336,91 @@ describe("isSafeReadOnlyGitCommand (ASPS-749 strict per-subcommand positive allo
       expect(isSafeReadOnlyGitCommand(command)).toBe(true);
     },
   );
+});
+
+describe("isSafeDevBashCommand (ASPS-762 positive dev/read allowlist)", () => {
+  it.each([
+    "npm test",
+    "npm run build",
+    "npm install",
+    "npx tsc",
+    "pnpm install",
+    "yarn build",
+    "tsc -p tsconfig.json",
+    "jest",
+    "vitest run",
+    "node dist/index.js",
+    "node x.js",
+    "node --version",
+    "python -m pytest",
+    "python3 -m pytest -q",
+    "python -m mypy src",
+    "ls -la",
+    "cat README.md",
+    "grep -rn foo src",
+    "rg foo",
+    "find . -name file.ts -type f", // no glob token, no -exec/-delete
+    "head -n 5 file.txt",
+    "tail file.log",
+    "echo hello world",
+    "pwd",
+    "wc -l file.txt",
+    "which node",
+  ])("auto-allows a safe dev/read command: %s", (command) => {
+    expect(isSafeDevBashCommand(command)).toBe(true);
+  });
+
+  it.each([
+    // Not on the allowlist at all.
+    "docker ps",
+    "sudo systemctl restart asps",
+    "systemctl status asps",
+    "rm file.txt",
+    "mv a b",
+    "dd if=/dev/zero of=x",
+    "chmod 777 file",
+    "chown root file",
+    "kill 1234",
+    "curl https://example.com",
+    "wget https://example.com/x",
+    "make build",
+    "dotnet build",
+    "foobar --baz",
+    // Inline one-liners / network — deliberately excluded.
+    'python -c "import os"',
+    'node -e "1+1"',
+    'node -p "process.env"',
+    "node -r ./preload.js x.js",
+    "python -m http.server",
+    "python -m pip install requests",
+    "python script.py", // bare python script form is not allowlisted
+    "node", // bare REPL, no script
+    // Shell metacharacters / chaining / redirect / substitution / glob.
+    "npm test && curl https://evil.example",
+    "npm test; echo pwned",
+    "cat file | sh",
+    "echo hi > /etc/x",
+    "echo $(whoami)",
+    "ls *.ts",
+    "cat ~/secrets",
+    // Secret-named tokens.
+    "cat ACCESS_KEYS.env",
+    "cat .env",
+    "head server.key",
+    // Arbitrary-exec/delete argument forms.
+    "find . -name x -exec rm {} +",
+    "find . -delete",
+    // git is NOT decided here (handled by isSafeReadOnlyGitCommand).
+    "git status",
+    "git push origin main",
+  ])("does NOT auto-allow (gates or is handled elsewhere): %s", (command) => {
+    expect(isSafeDevBashCommand(command)).toBe(false);
+  });
+
+  it("returns false for a non-string / empty command", () => {
+    expect(isSafeDevBashCommand("")).toBe(false);
+    expect(isSafeDevBashCommand(undefined as unknown as string)).toBe(false);
+  });
 });
 
 describe("findSecretPathInInput (ASPS-743 security re-review, Major M2)", () => {

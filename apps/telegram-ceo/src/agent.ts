@@ -3,6 +3,7 @@ import type { CanUseTool, McpServerConfig, Options, SDKMessage } from "@anthropi
 import {
   checkPathAllowed,
   findSecretPathInInput,
+  isSafeDevBashCommand,
   isSafeReadOnlyGitCommand,
   matchDangerousBashCommand,
 } from "./security.js";
@@ -95,6 +96,18 @@ function buildBotScopedMcpServers(): Record<string, McpServerConfig> {
  * the knowledge-engine MCP tools take no filesystem input so they skip it.
  */
 const AUTO_ALLOW_READ_TOOLS = new Set(["Read", "Grep", "Glob"]);
+
+/**
+ * Filesystem-mutating edit tools auto-allowed IN-REPO (ASPS-762). Reaching
+ * the auto-allow tier for one of these means the secret-path scan found
+ * nothing AND — because every one of these declares its path field in
+ * `PATH_INPUT_FIELD` — the path guard (`checkPathAllowed`) already ran and
+ * confirmed the target resolves inside `WORKING_DIR` and is not a secret
+ * path. See the `AUTO_ALLOW_EDIT_TOOLS` check in `createCanUseTool` for why
+ * a validated in-repo path is required before auto-allowing (a missing path
+ * field falls through to Telegram approval, never auto-allow).
+ */
+const AUTO_ALLOW_EDIT_TOOLS = new Set(["Edit", "Write", "MultiEdit", "NotebookEdit"]);
 const AUTO_ALLOW_MCP_TOOLS = ["mcp__knowledge-engine__knowledge_search", "mcp__knowledge-engine__knowledge_ask"];
 const AUTO_ALLOW_MCP_TOOL_SET = new Set(AUTO_ALLOW_MCP_TOOLS);
 
@@ -235,11 +248,26 @@ function summarizeToolCall(toolName: string, input: Record<string, unknown>): st
  *     (commit/push/checkout/merge/rebase/reset/`branch -D`/`remote add`/
  *     `config user.name`, ...) and every other Bash command still falls
  *     through to #6.
- *  5. **Auto-allow (subject to #1–#2)** — `Read`/`Grep`/`Glob` and the two
- *     read-only knowledge-engine MCP tools proceed without a human in the
- *     loop, per decision #1 ("read-mostly").
- *  6. **Require Telegram approval** — everything else (`Write`, `Edit`,
- *     `MultiEdit`, `NotebookEdit`, non-allowlisted `Bash`, `Task`,
+ *  5. **Dev-Bash auto-allow (ASPS-762)** — a `Bash` call whose whole command
+ *     is a single, standalone invocation of an allowlisted dev/read program
+ *     (`isSafeDevBashCommand`: node/npm/npx/pnpm/yarn/tsc/jest/vitest,
+ *     `python`/`python3 -m <safe module>`, and read utilities
+ *     ls/cat/grep/rg/find/head/tail/echo/pwd/wc/which) proceeds without a
+ *     human in the loop. It is an ALLOWLIST: an unknown program, `sudo`/
+ *     `docker`/`rm`/`mv`/`dd`/`chmod`/`chown`/`kill`/`systemctl`/`curl`/
+ *     `wget`, a `python -c`/`node -e` one-liner, or any command mixing a
+ *     listed tool with an unrecognized token falls through to #7. Evaluated
+ *     AFTER #3 (destructive hard-deny) and #4 (git — the single source of
+ *     truth for read-only `git`, so `git push`/`reset`/`rebase` are never
+ *     reachable here).
+ *  6. **Read/edit auto-allow (subject to #1–#2)** — `Read`/`Grep`/`Glob` and
+ *     the two read-only knowledge-engine MCP tools proceed without a human
+ *     in the loop, per decision #1 ("read-mostly"); and (ASPS-762) the
+ *     in-repo edit tools `Edit`/`Write`/`MultiEdit`/`NotebookEdit` proceed
+ *     when their path field validated inside `WORKING_DIR` at #2 (a missing
+ *     path field is not auto-allowed — it falls through to #7).
+ *  7. **Require Telegram approval** — everything else (an edit tool whose
+ *     path could not be validated, a non-allowlisted `Bash`, `Task`,
  *     `WebFetch`, any other MCP tool, etc.) is deny-by-default until the
  *     same authorized user who owns this turn approves it over Telegram
  *     (`requestApproval`), which now receives the FULL, untruncated
@@ -283,7 +311,23 @@ export function createCanUseTool(userId: number, workingDir: string): CanUseTool
       return { behavior: "allow" };
     }
 
+    // ASPS-762 — positive Bash allowlist for routine dev/read commands.
+    // Evaluated after the destructive hard-deny (#3) and the read-only git
+    // branch (#4); `isSafeDevBashCommand` is an allowlist, so any unknown or
+    // dangerous command returns false and falls through to approval below.
+    if (toolName === "Bash" && typeof input.command === "string" && isSafeDevBashCommand(input.command)) {
+      return { behavior: "allow" };
+    }
+
     if (AUTO_ALLOW_READ_TOOLS.has(toolName) || AUTO_ALLOW_MCP_TOOL_SET.has(toolName)) {
+      return { behavior: "allow" };
+    }
+
+    // ASPS-762 — in-repo edits auto-allow. `targetPath !== undefined` means a
+    // path field was present and (per #2 above, which ran without denying)
+    // resolved inside WORKING_DIR and is not a secret path. An edit tool with
+    // no usable path field is NOT auto-allowed — it falls through to approval.
+    if (AUTO_ALLOW_EDIT_TOOLS.has(toolName) && targetPath !== undefined) {
       return { behavior: "allow" };
     }
 

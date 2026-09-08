@@ -487,6 +487,161 @@ export function isSafeReadOnlyGitCommand(command: string): boolean {
 }
 
 /**
+ * Positive Bash allowlist for routine dev/read work (ASPS-762).
+ *
+ * `createCanUseTool` (agent.ts) auto-allows a `Bash` call ONLY when the WHOLE
+ * command is a single, standalone invocation of an allowlisted program, so
+ * routine builds/tests/reads stop flooding the operator with Telegram
+ * approvals — WITHOUT weakening the ASPS-743 deny-by-default floor. This is
+ * an ALLOWLIST, not a denylist: anything not explicitly matched here (an
+ * unknown program, `sudo`/`docker`/`rm`/`mv`/`dd`/`chmod`/`chown`/`kill`/
+ * `systemctl`/`curl`/`wget`, a git WRITE, a `python -c`/`node -e` one-liner,
+ * ...) returns `false` and falls through to the existing Telegram approval
+ * flow. `matchDangerousBashCommand` (agent.ts step 3) still hard-denies the
+ * destructive patterns FIRST, and `isSafeReadOnlyGitCommand` (step 4) is the
+ * single source of truth for read-only `git` — this function deliberately
+ * does NOT re-implement git parsing (DRY; every `git` command is decided by
+ * that adjacent branch, so `git push`/`reset`/`rebase`/`commit` are never
+ * reachable here).
+ *
+ * These programs are auto-allowed with ANY (metacharacter-free) argument
+ * list — dev/build/test tooling plus read utilities that neither mutate
+ * state outside the repo nor exec an arbitrary caller-supplied program by
+ * themselves. `node`, `python`, and `python3` are NOT here — they get
+ * stricter, form-specific handling in `isSafeDevBashCommand` (no inline
+ * `-e`/`-c` one-liner, no ad-hoc network script). Single source of truth —
+ * do not duplicate elsewhere.
+ */
+export const SAFE_DEV_PROGRAMS: ReadonlySet<string> = new Set([
+  "npm",
+  "npx",
+  "pnpm",
+  "yarn",
+  "tsc",
+  "jest",
+  "vitest",
+  "ls",
+  "cat",
+  "grep",
+  "rg",
+  "find",
+  "head",
+  "tail",
+  "echo",
+  "pwd",
+  "wc",
+  "which",
+]);
+
+/**
+ * `python -m <module>` / `python3 -m <module>` modules considered safe: test
+ * and static-analysis runners only. Deliberately excludes anything that does
+ * network I/O or opens a server/installer (`pip`, `http.server`, `venv`,
+ * `ensurepip`, ...) — those stay approval-gated. Single source of truth.
+ */
+export const SAFE_PYTHON_MODULES: ReadonlySet<string> = new Set([
+  "pytest",
+  "unittest",
+  "mypy",
+  "ruff",
+  "flake8",
+  "pylint",
+  "pyflakes",
+  "black",
+  "isort",
+]);
+
+/**
+ * Inline-evaluation / preload flags for `node` — an inline one-liner's intent
+ * (including network I/O) cannot be reliably parsed, so any of these forces
+ * the command to gate. Covers `-e`/`--eval`, `-p`/`--print`, and
+ * `-r`/`--require` (module preload), each with or without an `=value`.
+ */
+const NODE_INLINE_FLAG_PATTERN = /^(-e|--eval|-p|--print|-r|--require)(=.*)?$/;
+
+/**
+ * Argument tokens that turn an otherwise read-only utility into an
+ * arbitrary-exec or delete vector (e.g. `find . -exec <cmd> {} \;`,
+ * `find . -delete`) — denied anywhere in the command so a listed program
+ * cannot smuggle execution/deletion past the allowlist.
+ */
+const UNSAFE_DEV_ARG_TOKENS: ReadonlySet<string> = new Set([
+  "-exec",
+  "-execdir",
+  "-ok",
+  "-okdir",
+  "-delete",
+  "-fprint",
+  "-fprint0",
+  "-fprintf",
+]);
+
+/**
+ * Returns true ONLY if `command` is a single, standalone invocation of an
+ * allowlisted dev/read program safe to auto-allow without a Telegram
+ * approval (ASPS-762). Any doubt returns false (stays approval-gated) — a
+ * pure function, kept easy to unit-test exhaustively.
+ *
+ * Evaluation:
+ *  1. No shell metacharacters anywhere (reuses `SHELL_METACHARACTER_PATTERN`)
+ *     — rejects chaining (`;`/`&&`/`|`), redirection (`<`/`>`), command
+ *     substitution (`` ` ``/`$(...)`), subshells, and multi-line payloads,
+ *     so the command is one standalone segment with no redirect to a path
+ *     outside the repo.
+ *  2. No glob/tilde/scheme/`::` token (reuses `hasUnsafeToken`).
+ *  3. No secret-named token (reuses `hasSecretNamedValueToken`) — so
+ *     `cat ACCESS_KEYS.env`, `cat .env`, `head server.key`, ... gate rather
+ *     than auto-allow.
+ *  4. No arbitrary-exec/delete argument token (`UNSAFE_DEV_ARG_TOKENS`).
+ *  5. The first token (program) must be allowlisted:
+ *       - `node`  — a script file only; any inline `-e`/`-p`/`-r` gates.
+ *       - `python`/`python3` — only `-m <safe module>` (see
+ *         `SAFE_PYTHON_MODULES`); inline `-c` and bare-script forms gate.
+ *       - otherwise a member of `SAFE_DEV_PROGRAMS`.
+ * `git` is intentionally NOT handled here — `isSafeReadOnlyGitCommand`
+ * decides every git command in the adjacent agent.ts branch.
+ */
+export function isSafeDevBashCommand(command: string): boolean {
+  if (typeof command !== "string" || command.length === 0) return false;
+
+  // 1 — no shell metacharacters anywhere in the raw (untrimmed) command.
+  if (SHELL_METACHARACTER_PATTERN.test(command)) return false;
+
+  const tokens = command
+    .trim()
+    .split(/\s+/)
+    .filter((token) => token.length > 0);
+  if (tokens.length === 0) return false;
+
+  // 2 — glob/tilde/scheme/`::` rejected on every token.
+  if (hasUnsafeToken(tokens)) return false;
+
+  // 3 — no secret-named value token (e.g. `cat ACCESS_KEYS.env`).
+  if (hasSecretNamedValueToken(tokens)) return false;
+
+  // 4 — no arbitrary-exec/delete argument token.
+  if (tokens.some((token) => UNSAFE_DEV_ARG_TOKENS.has(token))) return false;
+
+  const program = tokens[0];
+  const rest = tokens.slice(1);
+
+  // `node <script.js>` — allowed to run a script, but never an inline
+  // one-liner or a preload flag whose intent (incl. network I/O) can't be
+  // parsed. A bare `node` REPL is meaningless over Telegram — require an arg.
+  if (program === "node") {
+    if (rest.length === 0) return false;
+    return !rest.some((token) => NODE_INLINE_FLAG_PATTERN.test(token));
+  }
+
+  // `python -m <safe module>` / `python3 -m <safe module>` only.
+  if (program === "python" || program === "python3") {
+    return rest.length >= 2 && rest[0] === "-m" && SAFE_PYTHON_MODULES.has(rest[1]);
+  }
+
+  return SAFE_DEV_PROGRAMS.has(program);
+}
+
+/**
  * Single source of truth for the secret-path denylist (ASPS-743 security
  * remediation, blocker B1).
  *

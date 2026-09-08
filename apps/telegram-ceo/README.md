@@ -61,9 +61,20 @@ The bot runs the Claude Agent SDK with the native Claude Code toolset:
 
 - `Read` / `Grep` / `Glob` — free to use, but every call still passes through
   the path guard (see below).
-- `Write` / `Edit` / `MultiEdit` / `NotebookEdit` / `NotebookRead` / `Bash` /
-  `Task` / `WebFetch` / most MCP tools — gated behind a Telegram approval
-  (see below).
+- `Edit` / `Write` / `MultiEdit` / `NotebookEdit` — auto-allowed (ASPS-762)
+  **when the target path is inside `WORKING_DIR`** and passes the path guard
+  and secret-path scan; an edit to a path outside the repo or to a secret
+  file is hard-denied, and an edit with no usable path field falls through
+  to Telegram approval.
+- `Bash` — a positive dev/read allowlist (ASPS-762) auto-allows a single,
+  standalone invocation of node/npm/npx/pnpm/yarn/tsc/jest/vitest,
+  `python`/`python3 -m <safe module>`, read-only `git` (ASPS-749), and read
+  utilities (ls/cat/grep/rg/find/head/tail/echo/pwd/wc/which). Everything
+  else — `sudo`/`docker`/`rm`/`mv`/`dd`/`chmod`/`chown`/`kill`/`systemctl`/
+  `curl`/`wget`, a `python -c`/`node -e` one-liner, any git write, or any
+  unknown command — gates behind a Telegram approval (see below).
+- `NotebookRead` / `Task` / `WebFetch` / most MCP tools — gated behind a
+  Telegram approval (see below).
 - The two read-only knowledge-engine MCP tools
   (`mcp__knowledge-engine__knowledge_search` / `knowledge_ask`) — auto-allowed,
   same as Read/Grep/Glob, since they take no filesystem input and are
@@ -190,8 +201,22 @@ approval like any other state-changing action.
   under `Bash`, not a general Bash allowlist — see
   [Read-only git auto-allow](#4-read-only-git-auto-allow-asps-749) below for
   the full rule set.
-- **Everything else** (`Write`, `Edit`, `MultiEdit`, `NotebookEdit`,
-  non-dangerous `Bash`, `Task`, `WebFetch`, any other MCP tool, etc.):
+- **Dev-Bash auto-allow (ASPS-762)**: a `Bash` call whose whole command
+  passes `isSafeDevBashCommand` (`src/security.ts`) — a *positive* allowlist
+  of node/npm/npx/pnpm/yarn/tsc/jest/vitest, `python`/`python3 -m <safe
+  module>`, and read utilities (ls/cat/grep/rg/find/head/tail/echo/pwd/wc/
+  which) — auto-allows, evaluated after the hard-deny and read-only-git
+  branches. It is an allowlist: an unknown program, `sudo`/`docker`/`rm`/
+  `mv`/`dd`/`chmod`/`chown`/`kill`/`systemctl`/`curl`/`wget`, a `python -c`/
+  `node -e` one-liner, or a command mixing a listed tool with an
+  unrecognized/chained token all fall through to approval.
+- **In-repo edit auto-allow (ASPS-762)**: `Edit`/`Write`/`MultiEdit`/
+  `NotebookEdit` auto-allow once the secret-path scan and path guard confirm
+  the target path resolves inside `WORKING_DIR` and is not a secret file. An
+  out-of-repo or secret target is hard-denied by the guard; an edit with no
+  usable path field falls through to approval (never auto-allowed).
+- **Everything else** (`NotebookRead`, an edit tool with no validated path,
+  non-allowlisted `Bash`, `Task`, `WebFetch`, any other MCP tool, etc.):
   `canUseTool` calls `requestApproval()`, which sends the authorized user an
   inline-keyboard Telegram message (✅ Approve / ❌ Deny) with the **full,
   untruncated** command or path (ASPS-743 security re-review, Major M1 — a

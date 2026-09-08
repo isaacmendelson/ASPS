@@ -80,8 +80,7 @@ describe("createCanUseTool — path guard (ASPS-743 blocker B1)", () => {
     expect(requestApprovalMock).not.toHaveBeenCalled();
   });
 
-  it("still requires approval for an in-tree Write (path guard passing does not itself grant approval)", async () => {
-    requestApprovalMock.mockResolvedValue("allow");
+  it("auto-allows an in-tree Write once the path guard passes (ASPS-762 — in-repo edits no longer prompt)", async () => {
     const canUseTool = createCanUseTool(111, workingDir);
     const result = await canUseTool(
       "Write",
@@ -89,8 +88,8 @@ describe("createCanUseTool — path guard (ASPS-743 blocker B1)", () => {
       toolOptions,
     );
 
-    expect(requestApprovalMock).toHaveBeenCalledWith(111, "Write", expect.stringContaining("new.ts"));
     expect(result?.behavior).toBe("allow");
+    expect(requestApprovalMock).not.toHaveBeenCalled();
   });
 
   it("denies a MultiEdit outside the working directory via the path guard (ASPS-743 re-review M2: PATH_INPUT_FIELD now covers MultiEdit)", async () => {
@@ -114,8 +113,7 @@ describe("createCanUseTool — path guard (ASPS-743 blocker B1)", () => {
     expect(requestApprovalMock).not.toHaveBeenCalled();
   });
 
-  it("routes an ordinary in-tree MultiEdit to Telegram approval like other write tools (no secret pattern present)", async () => {
-    requestApprovalMock.mockResolvedValue("allow");
+  it("auto-allows an ordinary in-tree MultiEdit with no secret pattern present (ASPS-762)", async () => {
     const canUseTool = createCanUseTool(111, workingDir);
     const result = await canUseTool(
       "MultiEdit",
@@ -126,8 +124,8 @@ describe("createCanUseTool — path guard (ASPS-743 blocker B1)", () => {
       toolOptions,
     );
 
-    expect(requestApprovalMock).toHaveBeenCalledWith(111, "MultiEdit", expect.any(String));
     expect(result?.behavior).toBe("allow");
+    expect(requestApprovalMock).not.toHaveBeenCalled();
   });
 });
 
@@ -179,8 +177,7 @@ describe("createCanUseTool — secret-path invariant scan (ASPS-743 re-review, M
     expect(requestApprovalMock).not.toHaveBeenCalled();
   });
 
-  it("still routes an ordinary in-tree MultiEdit with no secret-pattern content to Telegram approval", async () => {
-    requestApprovalMock.mockResolvedValue("allow");
+  it("auto-allows an ordinary in-tree MultiEdit with no secret-pattern content (ASPS-762 — the secret scan did not over-block a benign in-repo edit)", async () => {
     const canUseTool = createCanUseTool(111, process.cwd());
     const result = await canUseTool(
       "MultiEdit",
@@ -188,8 +185,8 @@ describe("createCanUseTool — secret-path invariant scan (ASPS-743 re-review, M
       toolOptions,
     );
 
-    expect(requestApprovalMock).toHaveBeenCalledWith(111, "MultiEdit", expect.any(String));
     expect(result?.behavior).toBe("allow");
+    expect(requestApprovalMock).not.toHaveBeenCalled();
   });
 });
 
@@ -219,16 +216,18 @@ describe("createCanUseTool — subagent (Task) tool calls re-enter canUseTool (A
     expect(requestApprovalMock).not.toHaveBeenCalled();
   });
 
-  it("still requires Telegram approval for a Write issued from within a subagent (agentID present)", async () => {
+  it("still requires Telegram approval for a gated tool call issued from within a subagent (agentID present)", async () => {
     requestApprovalMock.mockResolvedValue("allow");
     const canUseTool = createCanUseTool(111, process.cwd());
+    // `docker` is not on any auto-allow tier — a subagent cannot escape the
+    // approval gate via agentID (createCanUseTool never reads it).
     const result = await canUseTool(
-      "Write",
-      { file_path: "x.ts", content: "y" },
+      "Bash",
+      { command: "docker restart asps-backend" },
       { ...toolOptions, agentID: "sub-1" } as never,
     );
 
-    expect(requestApprovalMock).toHaveBeenCalledWith(111, "Write", expect.any(String));
+    expect(requestApprovalMock).toHaveBeenCalledWith(111, "Bash", "docker restart asps-backend");
     expect(result?.behavior).toBe("allow");
   });
 
@@ -259,12 +258,13 @@ describe("createCanUseTool — Bash hard-deny (ASPS-743 blocker B2)", () => {
     expect(requestApprovalMock).not.toHaveBeenCalled();
   });
 
-  it("routes a benign non-git Bash command through Telegram approval rather than auto-allowing", async () => {
+  it("routes a non-allowlisted Bash command through Telegram approval rather than auto-allowing", async () => {
     requestApprovalMock.mockResolvedValue("allow");
     const canUseTool = createCanUseTool(111, process.cwd());
-    const result = await canUseTool("Bash", { command: "npm run build" }, toolOptions);
+    // `dotnet` is not on the ASPS-762 dev allowlist, so it still gates.
+    const result = await canUseTool("Bash", { command: "dotnet build ASPSBackend.sln" }, toolOptions);
 
-    expect(requestApprovalMock).toHaveBeenCalledWith(111, "Bash", "npm run build");
+    expect(requestApprovalMock).toHaveBeenCalledWith(111, "Bash", "dotnet build ASPSBackend.sln");
     expect(result?.behavior).toBe("allow");
   });
 
@@ -292,9 +292,13 @@ describe("createCanUseTool — Bash hard-deny (ASPS-743 blocker B2)", () => {
     const canUseTool = createCanUseTool(111, process.cwd());
     const longPath = `src/${"a".repeat(320)}.ts`;
 
-    await canUseTool("Write", { file_path: longPath, content: "x" }, toolOptions);
+    // NotebookRead is path-bearing (notebook_path) but NOT auto-allowed
+    // (it is neither a read tool nor an ASPS-762 in-repo edit tool), so it
+    // still routes to approval — a stable case for asserting the summary is
+    // the full, untruncated path.
+    await canUseTool("NotebookRead", { notebook_path: longPath }, toolOptions);
 
-    expect(requestApprovalMock).toHaveBeenCalledWith(111, "Write", longPath);
+    expect(requestApprovalMock).toHaveBeenCalledWith(111, "NotebookRead", longPath);
   });
 
   it("never resolves to null (fail-closed would hang the tool call forever)", async () => {
@@ -362,6 +366,201 @@ describe("createCanUseTool — read-only git auto-allow (ASPS-749)", () => {
   });
 });
 
+describe("createCanUseTool — dev-Bash auto-allow (ASPS-762)", () => {
+  beforeEach(() => {
+    requestApprovalMock.mockReset();
+  });
+
+  it.each([
+    "npm test",
+    "npm run build",
+    "npm install",
+    "npx tsc",
+    "pnpm install",
+    "yarn build",
+    "tsc -p tsconfig.json",
+    "jest",
+    "vitest run",
+    "node dist/index.js",
+    "node x.js",
+    "python -m pytest",
+    "python3 -m pytest -q",
+    "ls -la",
+    "cat README.md",
+    "grep -r foo src",
+    "rg foo",
+    "head -n 5 file.txt",
+    "tail file.log",
+    "echo hello",
+    "pwd",
+    "wc -l file.txt",
+    "which node",
+  ])("auto-allows a safe dev/read command without calling requestApproval: %s", async (command) => {
+    const canUseTool = createCanUseTool(111, process.cwd());
+    const result = await canUseTool("Bash", { command }, toolOptions);
+
+    expect(result?.behavior).toBe("allow");
+    expect(requestApprovalMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "docker ps",
+    "sudo systemctl restart asps",
+    "systemctl status asps",
+    "mv a.txt b.txt",
+    "chmod 777 file",
+    "chown root file",
+    "kill 1234",
+    "curl https://example.com",
+    "wget https://example.com/x",
+    "make build",
+    "dotnet build",
+    "foobar --baz",
+    'python -c "import os"',
+    'node -e "require(\'http\')"',
+    "python -m http.server",
+    "python -m pip install requests",
+    "cat ACCESS_KEYS.env",
+    "cat .env",
+  ])("gates (requires Telegram approval), never auto-allows: %s", async (command) => {
+    requestApprovalMock.mockResolvedValue("allow");
+    const canUseTool = createCanUseTool(111, process.cwd());
+    const result = await canUseTool("Bash", { command }, toolOptions);
+
+    expect(requestApprovalMock).toHaveBeenCalledWith(111, "Bash", command);
+    expect(result?.behavior).toBe("allow");
+  });
+
+  it("plain `git push` (no force flag) GATES — invariant: git push is never auto-allowed", async () => {
+    requestApprovalMock.mockResolvedValue("allow");
+    const canUseTool = createCanUseTool(111, process.cwd());
+    const result = await canUseTool("Bash", { command: "git push origin main" }, toolOptions);
+
+    expect(requestApprovalMock).toHaveBeenCalledWith(111, "Bash", "git push origin main");
+    expect(result?.behavior).toBe("allow");
+  });
+
+  it("mixing an allowlisted tool with an unknown/chained token GATES (allowlist, not allow-by-default)", async () => {
+    requestApprovalMock.mockResolvedValue("allow");
+    const canUseTool = createCanUseTool(111, process.cwd());
+    // `&&` is a shell metacharacter — the whole command fails the allowlist
+    // and gates (no destructive pattern here, so it is not a hard-deny).
+    const command = "npm test && curl https://evil.example";
+    const result = await canUseTool("Bash", { command }, toolOptions);
+
+    expect(requestApprovalMock).toHaveBeenCalledWith(111, "Bash", command);
+    expect(result?.behavior).toBe("allow");
+  });
+
+  it("a `find ... -exec` arbitrary-exec form GATES even though `find` is allowlisted", async () => {
+    requestApprovalMock.mockResolvedValue("allow");
+    const canUseTool = createCanUseTool(111, process.cwd());
+    const command = "find . -name x -exec rm {} +";
+    const result = await canUseTool("Bash", { command }, toolOptions);
+
+    expect(requestApprovalMock).toHaveBeenCalledWith(111, "Bash", command);
+    expect(result?.behavior).toBe("allow");
+  });
+});
+
+describe("createCanUseTool — in-repo edit auto-allow (ASPS-762)", () => {
+  let workingDir: string;
+
+  beforeEach(() => {
+    workingDir = realpathSync(mkdtempSync(path.join(tmpdir(), "asps-agent-edit-allow-")));
+    mkdirSync(path.join(workingDir, "src"), { recursive: true });
+    writeFileSync(path.join(workingDir, "src", "agent.ts"), "// fixture\n");
+    writeFileSync(path.join(workingDir, ".env"), "SECRET=1\n");
+    requestApprovalMock.mockReset();
+  });
+
+  afterEach(() => {
+    rmSync(workingDir, { recursive: true, force: true });
+  });
+
+  it("auto-allows an in-repo Edit without asking for approval", async () => {
+    const canUseTool = createCanUseTool(111, workingDir);
+    const result = await canUseTool(
+      "Edit",
+      { file_path: path.join(workingDir, "src", "agent.ts"), old_string: "a", new_string: "b" },
+      toolOptions,
+    );
+
+    expect(result?.behavior).toBe("allow");
+    expect(requestApprovalMock).not.toHaveBeenCalled();
+  });
+
+  it("auto-allows an in-repo Write to a new file without asking for approval", async () => {
+    const canUseTool = createCanUseTool(111, workingDir);
+    const result = await canUseTool(
+      "Write",
+      { file_path: path.join(workingDir, "src", "new.ts"), content: "x" },
+      toolOptions,
+    );
+
+    expect(result?.behavior).toBe("allow");
+    expect(requestApprovalMock).not.toHaveBeenCalled();
+  });
+
+  it("auto-allows an in-repo MultiEdit without asking for approval", async () => {
+    const canUseTool = createCanUseTool(111, workingDir);
+    const result = await canUseTool(
+      "MultiEdit",
+      { file_path: path.join(workingDir, "src", "agent.ts"), edits: [{ old_string: "a", new_string: "b" }] },
+      toolOptions,
+    );
+
+    expect(result?.behavior).toBe("allow");
+    expect(requestApprovalMock).not.toHaveBeenCalled();
+  });
+
+  it("auto-allows an in-repo NotebookEdit without asking for approval", async () => {
+    const canUseTool = createCanUseTool(111, workingDir);
+    const result = await canUseTool(
+      "NotebookEdit",
+      { notebook_path: path.join(workingDir, "src", "nb.ipynb"), new_source: "print(1)" },
+      toolOptions,
+    );
+
+    expect(result?.behavior).toBe("allow");
+    expect(requestApprovalMock).not.toHaveBeenCalled();
+  });
+
+  it("INVARIANT: an Edit to a path OUTSIDE the repo is hard-denied — never auto-allowed, never approval", async () => {
+    const canUseTool = createCanUseTool(111, workingDir);
+    const result = await canUseTool(
+      "Edit",
+      { file_path: "/etc/passwd", old_string: "a", new_string: "b" },
+      toolOptions,
+    );
+
+    expect(result?.behavior).toBe("deny");
+    expect(requestApprovalMock).not.toHaveBeenCalled();
+  });
+
+  it("INVARIANT: a Write to a secret file inside the repo is hard-denied — never auto-allowed", async () => {
+    const canUseTool = createCanUseTool(111, workingDir);
+    const result = await canUseTool(
+      "Write",
+      { file_path: path.join(workingDir, ".env"), content: "x" },
+      toolOptions,
+    );
+
+    expect(result?.behavior).toBe("deny");
+    if (result?.behavior === "deny") expect(result.message).toMatch(/path guard/i);
+    expect(requestApprovalMock).not.toHaveBeenCalled();
+  });
+
+  it("does NOT auto-allow an Edit with no usable path field — falls through to Telegram approval", async () => {
+    requestApprovalMock.mockResolvedValue("allow");
+    const canUseTool = createCanUseTool(111, workingDir);
+    const result = await canUseTool("Edit", { old_string: "a", new_string: "b" }, toolOptions);
+
+    expect(requestApprovalMock).toHaveBeenCalledWith(111, "Edit", expect.any(String));
+    expect(result?.behavior).toBe("allow");
+  });
+});
+
 describe("createCanUseTool — deny-by-default (ASPS-743 blocker B3)", () => {
   beforeEach(() => {
     requestApprovalMock.mockReset();
@@ -384,7 +583,11 @@ describe("createCanUseTool — deny-by-default (ASPS-743 blocker B3)", () => {
     },
   );
 
-  it.each(["Write", "Edit", "NotebookEdit", "Task", "WebFetch", "mcp__github__create_pr", "SomeUnclassifiedTool"])(
+  // ASPS-762: Edit/Write/MultiEdit/NotebookEdit now auto-allow when their
+  // path validates inside WORKING_DIR — they are covered by their own
+  // describe block below. The tools here have no in-repo auto-allow path and
+  // stay deny-by-default.
+  it.each(["Task", "WebFetch", "mcp__github__create_pr", "SomeUnclassifiedTool"])(
     "requires Telegram approval for %s — deny-by-default, not auto-allow",
     async (toolName) => {
       requestApprovalMock.mockResolvedValue("allow");
@@ -398,22 +601,24 @@ describe("createCanUseTool — deny-by-default (ASPS-743 blocker B3)", () => {
   it("denies the tool call when the Telegram approval is denied", async () => {
     requestApprovalMock.mockResolvedValue("deny");
     const canUseTool = createCanUseTool(111, process.cwd());
-    const result = await canUseTool("Write", { file_path: "x.ts", content: "y" }, toolOptions);
+    // Task has no auto-allow path — it reaches the approval flow.
+    const result = await canUseTool("Task", {}, toolOptions);
     expect(result?.behavior).toBe("deny");
   });
 
   it("denies the tool call when the Telegram approval times out", async () => {
     requestApprovalMock.mockResolvedValue("deny"); // requestApproval itself resolves "deny" on timeout
     const canUseTool = createCanUseTool(111, process.cwd());
-    const result = await canUseTool("Bash", { command: "npm install" }, toolOptions);
+    // `docker` is not on the ASPS-762 dev allowlist, so it gates then denies.
+    const result = await canUseTool("Bash", { command: "docker restart asps-backend" }, toolOptions);
     expect(result?.behavior).toBe("deny");
   });
 
   it("correlates the approval request with the user who owns the turn", async () => {
     requestApprovalMock.mockResolvedValue("allow");
     const canUseTool = createCanUseTool(42, process.cwd());
-    await canUseTool("Write", { file_path: "x.ts", content: "y" }, toolOptions);
-    expect(requestApprovalMock).toHaveBeenCalledWith(42, "Write", expect.any(String));
+    await canUseTool("Task", {}, toolOptions);
+    expect(requestApprovalMock).toHaveBeenCalledWith(42, "Task", expect.any(String));
   });
 });
 
