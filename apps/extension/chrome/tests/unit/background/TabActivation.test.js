@@ -78,6 +78,21 @@ async function handleTabActivated(activeInfo, cacheService, stateManager, stopLo
           currentPageScanning: false
         });
       }
+    } else {
+      // ASPS-750 code-review fix: non-http tab with no stored per-tab
+      // score (e.g. chrome://newtab/) — clear stateManager + currentPage*
+      // instead of leaving the previously activated tab's stale value.
+      stateManager.update({
+        'scan.score':            null,
+        'scan.riskType':         [],
+        'scan.protectiveAction': 0
+      });
+      chrome.storage.local.set({
+        currentPageScore:    null,
+        currentPageRiskType: [],
+        currentPageAction:   0,
+        currentPageScanning: false
+      });
     }
   } catch (e) {
     console.error('[Background] Tab activation error:', e);
@@ -152,5 +167,47 @@ describe('chrome.tabs.onActivated — ASPS-750 stale score on tab switch', () =>
       currentPageScanning: false
     }));
     expect(mockStopLoadingState).toHaveBeenCalledTimes(1);
+  });
+
+  // ── ASPS-750 code-review Major: missing final `else` for non-http tabs ──
+  //
+  // Activating a tab with no `tab_<id>_score` entry AND a non-http URL
+  // (chrome://newtab/, chrome://settings, the New Tab Page, etc.) fell
+  // through both branches — neither the per-tab-score branch nor the
+  // `tab.url?.startsWith('http')` branch matched — so nothing ran and
+  // stateManager kept whatever the PREVIOUSLY activated tab had left in
+  // scan.score/riskType/protectiveAction. That's the exact reverse
+  // split-brain ASPS-750 exists to fix, just in the non-http edge case.
+  test('non-http tab with no stored score → clears stateManager and currentPage* instead of leaving the previous tab\'s stale score', async () => {
+    // Previous tab (id 7) had a real score synced into stateManager.
+    chrome.storage.local.get.mockImplementation(() => Promise.resolve({
+      tab_7_score: 42,
+      tab_7_riskType: ['phishing'],
+      tab_7_action: 1
+    }));
+    await handleTabActivated({ tabId: 7 }, mockCacheService, mockStateManager, mockStopLoadingState);
+    expect(mockStateManager.update).toHaveBeenLastCalledWith(expect.objectContaining({
+      'scan.score': 42
+    }));
+
+    // Now activate a non-http tab (e.g. chrome://newtab/) with no stored score.
+    mockStateManager.update.mockClear();
+    chrome.storage.local.set.mockClear();
+    chrome.storage.local.get.mockImplementation(() => Promise.resolve({}));
+    chrome.tabs.get.mockImplementation(() => Promise.resolve({ url: 'chrome://newtab/' }));
+
+    await handleTabActivated({ tabId: 12 }, mockCacheService, mockStateManager, mockStopLoadingState);
+
+    expect(mockStateManager.update).toHaveBeenCalledWith({
+      'scan.score':            null,
+      'scan.riskType':         [],
+      'scan.protectiveAction': 0
+    });
+    expect(chrome.storage.local.set).toHaveBeenCalledWith({
+      currentPageScore:    null,
+      currentPageRiskType: [],
+      currentPageAction:   0,
+      currentPageScanning: false
+    });
   });
 });

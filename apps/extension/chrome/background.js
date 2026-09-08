@@ -812,6 +812,24 @@ function setupTabListeners() {
             currentPageScanning: false
           });
         }
+      } else {
+        // ASPS-750: non-http tab (chrome://newtab/, chrome:// pages, etc.)
+        // with no stored per-tab score. Neither branch above matched, so
+        // without this clear stateManager would keep serving the
+        // PREVIOUSLY activated tab's score/riskType/protectiveAction —
+        // the same reverse split-brain this fix addresses, just for the
+        // non-http edge case.
+        stateManager.update({
+          'scan.score':            null,
+          'scan.riskType':         [],
+          'scan.protectiveAction': 0
+        });
+        chrome.storage.local.set({
+          currentPageScore:    null,
+          currentPageRiskType: [],
+          currentPageAction:   0,
+          currentPageScanning: false
+        });
       }
     } catch (e) {
       console.error('[Background] Tab activation error:', e);
