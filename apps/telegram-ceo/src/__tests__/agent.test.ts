@@ -461,6 +461,50 @@ describe("createCanUseTool — ASPS-780 tokenized Bash secret-path scan (chained
   );
 });
 
+describe("createCanUseTool — ASPS-782 quote/backslash-normalized Bash secret-path scan (inner-quote splitting & escape evasions)", () => {
+  beforeEach(() => {
+    requestApprovalMock.mockReset();
+  });
+
+  // These evade the ASPS-780 tokenizer: the SHELL reads a secret path, but the
+  // token as split does not spell it — inner quotes stay embedded (`x.p"e"m`),
+  // or a backslash separator splits the suffix (`x.pe\m`). The normalized
+  // second pass must hard-deny them, sandboxed, WITHOUT Telegram approval.
+  // NB: JS-string escaping — "x.pe\\m" is the shell command `x.pe\m`.
+  it.each([
+    'cat /tmp/x.p"e"m',
+    "cat /tmp/x.p''em",
+    "cat /tmp/x.pe\\m",
+    'cat /tmp/id_rsa.p"e"m; ls',
+    "cat ACCESS_KEYS.en\\v",
+  ])("hard-denies a quote/backslash-obfuscated secret read even when sandboxed: %s", async (command) => {
+    const canUseTool = createCanUseTool(111, process.cwd());
+    const result = await canUseTool("Bash", { command }, toolOptions);
+
+    expect(result?.behavior).toBe("deny");
+    if (result?.behavior === "deny") expect(result.message).toMatch(/secret pattern/i);
+    expect(requestApprovalMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "npm run build",
+    "git status",
+    "cat package.json",
+    "pytest -q",
+    "echo hi | grep h",
+    "dotnet build ASPSBackend.sln -c Debug",
+    "node -e \"1+1\"",
+    "ls -la",
+    'echo "hello.world"',
+  ])("does not falsely deny a legit command after normalization (still auto-allows): %s", async (command) => {
+    const canUseTool = createCanUseTool(111, process.cwd());
+    const result = await canUseTool("Bash", { command }, toolOptions);
+
+    expect(result?.behavior).toBe("allow");
+    expect(requestApprovalMock).not.toHaveBeenCalled();
+  });
+});
+
 describe("createCanUseTool — read-only git auto-allow (ASPS-749, now subsumed by the ASPS-768 general Bash auto-allow when sandboxed; kept as the fallback allowlist when the sandbox is off)", () => {
   beforeEach(() => {
     requestApprovalMock.mockReset();
