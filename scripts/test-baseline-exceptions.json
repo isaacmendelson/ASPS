@@ -7,14 +7,6 @@
     "desktop": [],
     "extension": [
       {
-        "selector": "unit/services/ConnectionService.test.js",
-        "expectedFailureCount": 11,
-        "failureIdSha256": "4b368ffe4456e0ab3c65a4ebd26847eecfe24a0f5a2acc630fe8be19f9ef44f4",
-        "owner": "browser-extension",
-        "reason": "WebSocket mock never resolves the current multi-port connection flow (ports [8080,8181,8282,8383,8484]) and tests time out. Renewed 2026-09-08 (ASPS-753 hybrid baseline fix); tracked for a follow-up rewrite.",
-        "expires": "2026-12-08"
-      },
-      {
         "selector": "unit/services/IconService.test.js",
         "expectedFailureCount": 29,
         "failureIdSha256": "8d5f1baa6923d1ca52aed577a36b6a049c36b3f25dbf4cfbe5f5cef3f3e12e6e",
