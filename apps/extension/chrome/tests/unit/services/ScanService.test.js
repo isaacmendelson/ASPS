@@ -63,12 +63,28 @@ describe('ScanService', () => {
 
   describe('isLocalUrl', () => {
     test.each([
+      // Existing true cases
       ['http://localhost/path', true],
       ['http://127.0.0.1:8080/', true],
       ['http://127.5.6.7/', true],
       ['http://[::1]/', true],
       ['http://0.0.0.0/', true],
-      ['https://example.com', false]
+
+      // ASPS-759: loopback forms that previously bypassed the string-literal guard
+      ['http://[::ffff:127.0.0.1]/', true], // IPv4-mapped IPv6, dotted-quad tail
+      ['http://[::ffff:7f00:1]/', true], // IPv4-mapped IPv6, hex-group tail
+      ['http://[0:0:0:0:0:0:0:1]/', true], // fully-expanded ::1
+      ['http://2130706433/', true], // decimal encoding of 127.0.0.1
+      ['http://0x7f.0.0.1/', true], // hex first octet
+      ['http://0x7f000001/', true], // full hex encoding of 127.0.0.1
+      ['http://0177.0.0.1/', true], // octal first octet
+      ['http://localhost./', true], // trailing-dot localhost
+
+      // Legit external cases must remain false (no false positives)
+      ['https://example.com', false],
+      ['https://93.184.216.34', false],
+      ['http://google.com', false],
+      ['http://12.7.0.1/', false] // must NOT be treated as loopback merely because it starts with "12.7"
     ])('%s -> %s', (url, expected) => {
       expect(scanService.isLocalUrl(url)).toBe(expected);
     });

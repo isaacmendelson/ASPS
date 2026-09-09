@@ -168,6 +168,11 @@ curve-server-keys.json
 curve-server-public-key.txt
 *.curve-keys.json
 
+# Private keys / certs — never commit (ASPS-759)
+*.key
+*.pem
+*.pfx
+
 # Local-only inbox for imported memory/insights from other projects
 _inbox/
 /Website/NIU

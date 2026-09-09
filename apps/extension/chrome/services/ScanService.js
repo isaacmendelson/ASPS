@@ -11,6 +11,206 @@ import '../generated/messaging/v1/message-envelope.js';
 
 const messagingV1 = globalThis.AspsMessagingV1;
 
+// ============================================
+// ASPS-759: loopback canonicalization helpers
+// ============================================
+// isLocalUrl() below is a security guard — it decides whether a URL is
+// EVER allowed to leave the machine (see scan() which skips local URLs).
+// String-literal matching (e.g. hostname.startsWith('127.')) is bypassable
+// by alternate encodings of the same loopback address (decimal/hex/octal
+// IPv4, IPv4-mapped IPv6, fully-expanded IPv6, trailing-dot hostnames).
+// These helpers canonicalize the host to a numeric form and test it
+// against the actual loopback ranges instead of trusting string shape.
+//
+// Boundary drawn (intentional, do not silently widen):
+//   - IPv4 127.0.0.0/8 (any decimal/hex/octal/dotted encoding) -> local.
+//   - IPv4 0.0.0.0 (any encoding) -> local (existing behavior, kept).
+//   - IPv6 ::1 (any equivalent expansion) -> local.
+//   - IPv6 IPv4-mapped ::ffff:0:0/96 whose embedded IPv4 is in 127.0.0.0/8
+//     -> local. (::ffff:0.0.0.0 itself is NOT special-cased to local; only
+//     the 127.0.0.0/8 embedded range is treated as loopback there, matching
+//     the IPv4 rule above.)
+//   - 'localhost' and 'localhost.' (single trailing dot) -> local. Other
+//     *.localhost subdomains are deliberately NOT covered — Chrome does not
+//     route those to loopback the way it does the bare name, and treating
+//     arbitrary attacker-chosen subdomains as "local" would itself be a
+//     footgun. Flagged here rather than silently added.
+//   - Any host that cannot be parsed as a valid IPv4/IPv6 literal is NOT
+//     treated as local (falls through to false). This guard exists to stop
+//     internal URLs leaking to the backend, but the failure mode for an
+//     ambiguous host must not be "treat it as local" (that would silently
+//     stop real external sites from ever being scanned) — it must be
+//     "treat it as external" so isLocalUrl() stays conservative in the
+//     direction of "when unsure, still scan it, don't skip the guard".
+//   - IPv6 '::' (all-zero/unspecified) is intentionally NOT treated as
+//     local — it was not in the enumerated bypass list and is not a
+//     loopback address per RFC 4291 (it is the unspecified address).
+
+// Parse one dot-separated IPv4 component per the WHATWG URL "IPv4 number
+// parser": a leading "0x"/"0X" means hex, a leading "0" (with more digits
+// following) means octal, otherwise decimal. Returns null when the part is
+// not a valid number in its radix.
+function parseIPv4Part(part) {
+  if (part === '') {
+    return null;
+  }
+  let radix = 10;
+  let digits = part;
+  if (digits.length >= 2 && digits[0] === '0' && (digits[1] === 'x' || digits[1] === 'X')) {
+    radix = 16;
+    digits = digits.slice(2);
+  } else if (digits.length >= 2 && digits[0] === '0') {
+    radix = 8;
+    digits = digits.slice(1);
+  }
+  if (digits === '') {
+    return 0;
+  }
+  const validPattern = radix === 16 ? /^[0-9a-f]+$/i : radix === 8 ? /^[0-7]+$/ : /^[0-9]+$/;
+  if (!validPattern.test(digits)) {
+    return null;
+  }
+  const value = parseInt(digits, radix);
+  return Number.isNaN(value) ? null : value;
+}
+
+// Canonicalize an IPv4 host (1-4 dot-separated parts, each decimal/hex/octal,
+// per the WHATWG URL IPv4 parser) to its 32-bit unsigned integer value.
+// Returns null when the host is not a valid IPv4 literal (e.g. a domain
+// name) — that is not an error, just "not an IPv4 address".
+function parseIPv4ToInt(hostname) {
+  if (typeof hostname !== 'string' || hostname === '') {
+    return null;
+  }
+  let parts = hostname.split('.');
+  // A single trailing dot is allowed (e.g. "127.0.0.1.").
+  if (parts.length > 1 && parts[parts.length - 1] === '') {
+    parts = parts.slice(0, -1);
+  }
+  if (parts.length === 0 || parts.length > 4) {
+    return null;
+  }
+
+  const numbers = [];
+  for (const part of parts) {
+    const n = parseIPv4Part(part);
+    if (n === null) {
+      return null;
+    }
+    numbers.push(n);
+  }
+
+  for (let i = 0; i < numbers.length - 1; i++) {
+    if (numbers[i] > 255) {
+      return null;
+    }
+  }
+  const last = numbers[numbers.length - 1];
+  const maxLast = 256 ** (5 - numbers.length);
+  if (last >= maxLast) {
+    return null;
+  }
+
+  let ipv4 = last;
+  for (let i = 0; i < numbers.length - 1; i++) {
+    ipv4 += numbers[i] * 256 ** (3 - i);
+  }
+  return ipv4 >>> 0;
+}
+
+// True for 127.0.0.0/8 (any decimal/hex/octal/dotted encoding) or 0.0.0.0
+// (any encoding).
+function isLoopbackIPv4(hostname) {
+  const ipv4 = parseIPv4ToInt(hostname);
+  if (ipv4 === null) {
+    return false;
+  }
+  const highByte = (ipv4 >>> 24) & 0xff;
+  return highByte === 127 || ipv4 === 0;
+}
+
+// Expand a (bracket-stripped) IPv6 literal to its 8 16-bit groups, handling
+// "::" compression and an optional embedded IPv4 dotted-quad in the final
+// group (e.g. "::ffff:127.0.0.1"). Returns null when the literal is not a
+// valid IPv6 address.
+function parseIPv6Groups(hostname) {
+  let host = hostname;
+
+  // An embedded IPv4 dotted-quad can only appear as the last group.
+  const lastColon = host.lastIndexOf(':');
+  const tail = lastColon === -1 ? host : host.slice(lastColon + 1);
+  if (tail.includes('.')) {
+    const v4 = parseIPv4ToInt(tail);
+    if (v4 === null) {
+      return null;
+    }
+    const highHex = ((v4 >>> 16) & 0xffff).toString(16);
+    const lowHex = (v4 & 0xffff).toString(16);
+    host = host.slice(0, lastColon + 1) + highHex + ':' + lowHex;
+  }
+
+  const doubleColonIndex = host.indexOf('::');
+  let headPart;
+  let tailPart;
+  if (doubleColonIndex !== -1) {
+    if (host.indexOf('::', doubleColonIndex + 1) !== -1) {
+      return null; // more than one "::" is invalid
+    }
+    headPart = host.slice(0, doubleColonIndex);
+    tailPart = host.slice(doubleColonIndex + 2);
+  } else {
+    headPart = host;
+    tailPart = '';
+  }
+
+  const headGroups = headPart === '' ? [] : headPart.split(':');
+  const tailGroups = tailPart === '' ? [] : tailPart.split(':');
+
+  if (doubleColonIndex === -1 && headGroups.length !== 8) {
+    return null;
+  }
+  if (doubleColonIndex !== -1 && headGroups.length + tailGroups.length >= 8) {
+    return null;
+  }
+
+  const missing = 8 - headGroups.length - tailGroups.length;
+  const fillZeros = doubleColonIndex !== -1 ? new Array(missing).fill('0') : [];
+  const allGroups = [...headGroups, ...fillZeros, ...tailGroups];
+
+  if (allGroups.length !== 8) {
+    return null;
+  }
+
+  const numbers = [];
+  for (const g of allGroups) {
+    if (!/^[0-9a-f]{1,4}$/i.test(g)) {
+      return null;
+    }
+    numbers.push(parseInt(g, 16));
+  }
+  return numbers;
+}
+
+// True for ::1 (any valid expansion) and for the IPv4-mapped range
+// ::ffff:0:0/96 whose embedded IPv4 falls in 127.0.0.0/8.
+function isLoopbackIPv6(hostname) {
+  const groups = parseIPv6Groups(hostname);
+  if (!groups) {
+    return false;
+  }
+
+  if (groups.slice(0, 7).every((g) => g === 0) && groups[7] === 1) {
+    return true; // ::1
+  }
+
+  if (groups.slice(0, 5).every((g) => g === 0) && groups[5] === 0xffff) {
+    const highByte = (groups[6] >> 8) & 0xff;
+    return highByte === 127;
+  }
+
+  return false;
+}
+
 class ScanService {
   constructor() {
     this.pendingScans = new Map();
@@ -19,19 +219,25 @@ class ScanService {
     this.scanTimeout = 30000; // 30 seconds - increased for slower analysis
   }
 
-  // Check if URL points to a local/loopback address — never send to backend
+  // Check if URL points to a local/loopback address — never send to backend.
+  // See the ASPS-759 helpers above the class for the canonicalization
+  // approach and the exact boundary drawn (what counts as "local" and what
+  // deliberately does not).
   isLocalUrl(url) {
     try {
       // URL.hostname returns IPv6 literals in bracketed form (e.g. "[::1]"),
       // so strip the brackets before comparing against the loopback address.
       const hostname = new URL(url).hostname.toLowerCase().replace(/^\[|\]$/g, '');
-      return (
-        hostname === 'localhost' ||
-        hostname === '127.0.0.1' ||
-        hostname.startsWith('127.') ||
-        hostname === '::1' ||
-        hostname === '0.0.0.0'
-      );
+
+      if (hostname === 'localhost' || hostname === 'localhost.') {
+        return true;
+      }
+
+      if (hostname.includes(':')) {
+        return isLoopbackIPv6(hostname);
+      }
+
+      return isLoopbackIPv4(hostname);
     } catch {
       return false;
     }
