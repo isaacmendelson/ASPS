@@ -109,7 +109,30 @@ export function matchDangerousBashCommand(command: string): RegExp | undefined {
  * shell-metacharacter check on its `branch`/refspec input — single source of
  * truth, do not duplicate this pattern elsewhere.
  */
-export const SHELL_METACHARACTER_PATTERN = /[;&|`$(){}<>\\]|[\x00-\x1f]/;
+/**
+ * Single source of truth for the shell-metacharacter character-class body
+ * (the text that goes *inside* a `[...]`), shared by both
+ * `SHELL_METACHARACTER_PATTERN` (a boolean "does this contain a metachar"
+ * test) and `BASH_TOKEN_SEPARATOR` (the ASPS-780 tokenizer split), so the two
+ * can never drift apart again (ASPS-780 QA Major fix — the tokenizer
+ * previously hand-maintained a SUBSET that omitted backtick / `{` / `}` / `$` /
+ * `\`, which let those metachars bypass the secret-path scan). Members: the
+ * shell word-boundary / control operators `;`, `&`, `|`, backtick, `$`, `(`,
+ * `)`, `{`, `}`, `<`, `>`, backslash (`\\` — escaped for the class), and every
+ * C0 control char (`\x00-\x1f`, which includes NUL, newline, and CR). Edit
+ * this ONE constant to change what counts as a shell metacharacter everywhere.
+ */
+const SHELL_METACHARACTER_CLASS_BODY = ";&|`$(){}<>\\\\\\x00-\\x1f";
+
+/**
+ * Rule 1 metacharacter test — a single character class equivalent to the
+ * original `/[;&|`$(){}<>\\]|[\x00-\x1f]/` alternation (identical `.test()`
+ * behavior — every member above matched as one character, control chars
+ * included); rebuilt from the shared class body so it stays in lockstep with
+ * `BASH_TOKEN_SEPARATOR`. Used elsewhere as a boolean test (privileged.ts's
+ * `git_push` refspec check, ASPS-767) — its matching behavior is unchanged.
+ */
+export const SHELL_METACHARACTER_PATTERN = new RegExp(`[${SHELL_METACHARACTER_CLASS_BODY}]`);
 
 /**
  * Rule 1b (ASPS-749 remediation): glob metacharacters are shell-expanded by
@@ -557,14 +580,24 @@ export function findSecretPathInInput(input: unknown): SecretPathHit | undefined
 
 /**
  * Shell token separators for the ASPS-780 Bash secret-path scan: whitespace
- * (spaces, tabs, and — via `\s` — newlines/CR) PLUS the shell separators that
- * end one word and begin the next without a surrounding space (`;`, `|`, `&`,
- * `(`, `)`, `<`, `>`). Splitting on this class means `cat x.pem;true` (no
- * space before `true`) still yields `x.pem` as its own token. This is a
- * deliberately coarse split for the sole purpose of isolating path-shaped
- * tokens to hand to `matchSecretPath` — it is NOT a shell parser.
+ * (spaces, tabs, and — via `\s` — newlines/CR) PLUS *every* shell
+ * metacharacter that `SHELL_METACHARACTER_PATTERN` recognizes (`;`, `|`, `&`,
+ * backtick, `$`, `(`, `)`, `{`, `}`, `<`, `>`, `\`, and control chars).
+ * Built from the SAME `SHELL_METACHARACTER_CLASS_BODY` as that pattern (single
+ * source of truth) so the separator set can never again drift into a hand-
+ * maintained subset — the ASPS-780 QA Major finding was exactly that drift:
+ * backtick / `{` / `}` / `$` were metachars the pattern knew about but the old
+ * separator (`/[\s;|&()<>]+/`) omitted, so `x=`cat a.pem``, `cat {a.pem}`, and
+ * `cat ${x:-a.pem}` were never split into their secret token and bypassed the
+ * scan (secret read + open sandbox egress = exfiltration). Splitting on this
+ * class means a secret path adjacent to ANY shell metacharacter (`cat x.pem;true`,
+ * `` `cat a.pem` ``, `{a.pem}`, `${x:-a.pem}`) is still isolated as its own
+ * token. This is a deliberately coarse split for the sole purpose of isolating
+ * path-shaped tokens to hand to `matchSecretPath` — it is NOT a shell parser.
+ * (Inner-quote `a.p"e"m` and backslash-escape `a.pe\m` obfuscation of the
+ * suffix itself are out of scope here — tracked separately as ASPS-782.)
  */
-const BASH_TOKEN_SEPARATOR = /[\s;|&()<>]+/;
+const BASH_TOKEN_SEPARATOR = new RegExp(`[\\s${SHELL_METACHARACTER_CLASS_BODY}]+`);
 
 /**
  * Tokenized secret-path scan for a raw `Bash` command string (ASPS-780 —
