@@ -335,17 +335,22 @@ export function assertSandboxEnvDenylistComplete(env: NodeJS.ProcessEnv = proces
  * `credential.helper` file and none of these paths exist on the box yet;
  * this closes the gap BEFORE any future SSH-deploy-key switch would make it
  * live): `filesystem.denyRead` also denies `~/.ssh`, `~/.gitconfig`,
- * `~/.aws`, `~/.gnupg` — the remaining home-dir credential stores already
- * listed in `security.ts`'s `SECRET_PATH_PATTERNS` (the `Read`/`Edit`
- * tool-level guard denies them by pattern) but, before this, NOT mounted
- * off in the bwrap sandbox itself. Now that ASPS-768 auto-allows sandboxed
- * `Bash`, an unapproved `cat ~/.ssh/id_rsa` or `git config --get` reading
- * `~/.gitconfig`'s stored credentials would have reached the real file with
- * no Telegram approval and no tool-level guard in the way (the guard only
- * sees `Read`/`Edit`/... tool calls, never a Bash command's arguments) —
- * same class of gap ASPS-766 already closed for `~/.claude`/`~/.npmrc`
- * above; this extends the same fix to the rest of `SECRET_PATH_PATTERNS`'s
- * home-dir entries.
+ * `~/.aws`, `~/.gnupg`. `~/.ssh`, `~/.aws`, `~/.gnupg` mirror the remaining
+ * home-dir directory entries already in `security.ts`'s
+ * `SECRET_PATH_PATTERNS` (the `Read`/`Edit` tool-level guard denies them by
+ * pattern) but, before this, NOT mounted off in the bwrap sandbox itself.
+ * `~/.gitconfig` is NOT one of `SECRET_PATH_PATTERNS`'s entries — it is
+ * added here in addition to that set, because it can hold a plaintext
+ * `credential.helper store` credential; denying it is a deliberate
+ * over-inclusion for defense-in-depth, not a gap-fill against an existing
+ * pattern. Now that ASPS-768 auto-allows sandboxed `Bash`, an unapproved
+ * `cat ~/.ssh/id_rsa` or `git config --get` reading `~/.gitconfig`'s stored
+ * credentials would have reached the real file with no Telegram approval
+ * and no tool-level guard in the way (the guard only sees `Read`/`Edit`/...
+ * tool calls, never a Bash command's arguments) — same class of gap
+ * ASPS-766 already closed for `~/.claude`/`~/.npmrc` above; this extends
+ * the same fix to `~/.ssh`/`~/.aws`/`~/.gnupg` (`SECRET_PATH_PATTERNS`'s
+ * remaining home-dir entries) plus `~/.gitconfig` (added beyond that set).
  *
  * `*.pem`/`*.key` (also in `SECRET_PATH_PATTERNS`) are deliberately NOT
  * added here. `filesystem.denyRead` is typed `string[]` with no documented

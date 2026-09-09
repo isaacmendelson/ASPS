@@ -1007,7 +1007,7 @@ describe("runAgent", () => {
       else process.env.HOME = savedHome;
     });
 
-    it("denies reading ~/.ssh, ~/.gitconfig, ~/.aws, ~/.gnupg — ASPS-779 fold-in extending the ASPS-766 home-dir credential-read closure to the rest of SECRET_PATH_PATTERNS's home-dir entries", async () => {
+    it("denies reading ~/.ssh, ~/.gitconfig, ~/.aws, ~/.gnupg — ASPS-779 fold-in extending the ASPS-766 home-dir credential-read closure to SECRET_PATH_PATTERNS's remaining home-dir entries (~/.ssh, ~/.aws, ~/.gnupg), plus ~/.gitconfig added beyond that set as an additional credential store", async () => {
       const savedHome = process.env.HOME;
       process.env.HOME = "/home/aspsbot";
       queryMock.mockReturnValue(
