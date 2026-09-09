@@ -555,6 +555,65 @@ export function findSecretPathInInput(input: unknown): SecretPathHit | undefined
   return scan(input, "");
 }
 
+/**
+ * Shell token separators for the ASPS-780 Bash secret-path scan: whitespace
+ * (spaces, tabs, and — via `\s` — newlines/CR) PLUS the shell separators that
+ * end one word and begin the next without a surrounding space (`;`, `|`, `&`,
+ * `(`, `)`, `<`, `>`). Splitting on this class means `cat x.pem;true` (no
+ * space before `true`) still yields `x.pem` as its own token. This is a
+ * deliberately coarse split for the sole purpose of isolating path-shaped
+ * tokens to hand to `matchSecretPath` — it is NOT a shell parser.
+ */
+const BASH_TOKEN_SEPARATOR = /[\s;|&()<>]+/;
+
+/**
+ * Tokenized secret-path scan for a raw `Bash` command string (ASPS-780 —
+ * closes the residual finding from the ASPS-779 security gate).
+ *
+ * The step-1 `findSecretPathInInput` guard in `createCanUseTool` (agent.ts)
+ * scans a tool's input fields, but a `Bash` call's only field is
+ * `{ command: "<whole string>" }`, so `matchSecretPath` runs against the
+ * ENTIRE command and — because `SECRET_PATH_PATTERNS` are trailing-anchored
+ * (`/\.pem$/`, `/\.key$/`, ...) — only matches when the whole command ENDS in
+ * a secret path. A chained/obfuscated command evades that: `cat
+ * /tmp/stray.pem; true` (ends in `true`), `p=/tmp/stray.key; cat "$p"`, `cat
+ * /tmp/a.pem && echo done`. Because the bwrap sandbox's `filesystem.denyRead`
+ * binds CONCRETE paths only (no glob support — see `buildSandboxSettings` in
+ * agent.ts), a stray `*.pem`/`*.key` OUTSIDE the denied directories is not
+ * mounted off, so such a command would reach the ASPS-768 sandboxed-Bash
+ * auto-allow and (sandbox egress is open) the value could be exfiltrated.
+ *
+ * This closes it by mirroring `hasSecretNamedValueToken`'s per-token approach:
+ * split the command on whitespace AND shell separators (`BASH_TOKEN_SEPARATOR`
+ * above), strip surrounding quotes from each token, and return the first token
+ * that `matchSecretPath` hits — so a secret path anywhere in the command (as
+ * its own token, including a `VAR=path` assignment token, which the
+ * trailing-anchored patterns still match) is caught. Reuses `matchSecretPath`
+ * and the existing `SecretPathHit` shape (single source of truth — no new
+ * return type). The reported `field` is `"command"`, so the caller's existing
+ * deny message renders naturally.
+ *
+ * Deliberately scoped to the Bash command string ONLY — the generic `scan()`
+ * used by `findSecretPathInInput` is NOT broadened to split arbitrary tool
+ * fields on shell metacharacters, which would risk false positives on
+ * non-Bash inputs (a legitimate `new_string`/`old_string` containing a `.pem`
+ * substring mid-word, etc.). A hit here must hard-deny the `Bash` call via the
+ * SAME code path the caller already uses for a `findSecretPathInInput` hit.
+ */
+export function findSecretPathInBashCommand(command: string): SecretPathHit | undefined {
+  if (typeof command !== "string" || command.length === 0) return undefined;
+  for (const rawToken of command.split(BASH_TOKEN_SEPARATOR)) {
+    if (rawToken.length === 0) continue;
+    // Strip any leading/trailing quote characters so a quoted path token
+    // (`"/tmp/a.key"`, `'/tmp/a.pem'`) is matched by its inner value.
+    const token = rawToken.replace(/^['"]+|['"]+$/g, "");
+    if (token.length === 0) continue;
+    const pattern = matchSecretPath(token);
+    if (pattern) return { field: "command", pattern };
+  }
+  return undefined;
+}
+
 function scan(value: unknown, fieldPath: string): SecretPathHit | undefined {
   if (typeof value === "string") {
     const pattern = matchSecretPath(value);
