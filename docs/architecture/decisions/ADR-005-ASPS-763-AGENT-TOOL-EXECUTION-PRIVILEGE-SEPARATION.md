@@ -61,6 +61,14 @@ Adopt a two-part privilege separation:
      `github_create_pr`/`github_comment`.
    - This server gets NO auto-allow wildcard and NO `allowedTools` entry, so every
      call falls through to `canUseTool`'s deny-by-default branch → Telegram approval.
+   - `jira_update_issue` additionally enforces a **writable-field allowlist**
+     (ASPS-778): only `labels`, `summary`, and `description` may be written; any
+     other `fields` key (assignee, parent, security level, priority, status,
+     `customfield_*`) is rejected before the REST PUT (whole-call, no partial
+     application). This bounds even an approved call to non-privilege-bearing
+     fields, so a mis-tapped approval cannot reassign, re-parent, or change the
+     security level of an issue. `JIRA_UPDATABLE_FIELDS` in `privileged.ts` is the
+     single source of truth (guard + tool description).
 
 The read-only bot-scoped MCP servers (ASPS-748) and their auto-allow wildcards are
 unchanged. `settingSources:[]` isolation is unchanged.
