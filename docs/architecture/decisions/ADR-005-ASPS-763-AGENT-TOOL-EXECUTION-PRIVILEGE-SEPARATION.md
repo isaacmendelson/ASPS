@@ -57,9 +57,13 @@ Adopt a two-part privilege separation:
      (`findSecretPathInBashCommand`, splitting on the shared shell-metacharacter
      set) and matches each token, so a secret path in a chained/obfuscated
      command (`cat x.pem; true`, `` `cat x.key` ``, `${x:-x.pem}`) hard-denies
-     instead of reaching the auto-allow. Remaining residual — inner-quote /
-     backslash-escape suffix obfuscation (`x.p"e"m`, `x.pe\m`) — tracked as
-     ASPS-782.
+     instead of reaching the auto-allow. ASPS-782 then closed inner-quote /
+     backslash-escape suffix obfuscation (`x.p"e"m`, `x.pe\m`) via a second
+     heuristic-dequote scan pass. Remaining residuals (tracked, defense-in-depth
+     only — the bwrap `denyRead` covers the concrete secret dirs regardless):
+     ANSI-C `$'\xNN'` escapes and full variable-expansion (`k=pem; cat a.$k`,
+     unsolvable by any static scan) — the tool-level guard is belt-and-suspenders,
+     not the sole control.
    - `credentials.files`/`credentials.envVars` deny the github-credentials file and
      all tokens, so the sandboxed command and its children cannot see them. The
      `credentials.envVars` deny set is a hand-maintained denylist; a boot-time
