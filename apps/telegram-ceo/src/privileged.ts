@@ -200,9 +200,36 @@ const jiraCommentTool = tool(
   },
 );
 
+/**
+ * Writable-field allowlist for `jira_update_issue` (ASPS-778, security-hardening
+ * subtask of ASPS-763). The bot's only legitimate writes here are agent labels
+ * and, occasionally, summary/description — everything else (assignee, parent,
+ * security level, priority, status, any `customfield_*`, etc.) must be rejected
+ * BEFORE the REST PUT, since this tool otherwise accepted an arbitrary JIRA
+ * `fields` object. Single source of truth — reused by both the runtime guard
+ * below and the tool's description string; do not duplicate the field list
+ * elsewhere.
+ */
+export const JIRA_UPDATABLE_FIELDS: ReadonlySet<string> = new Set(["labels", "summary", "description"]);
+
+/**
+ * Rejects the WHOLE call (no partial application) if `fields` contains any key
+ * outside `JIRA_UPDATABLE_FIELDS` — mirrors `validateIssueKey`'s pattern
+ * (descriptive thrown `Error`, caught by the tool's existing `try/catch` and
+ * turned into `errorResult`), not a new error channel.
+ */
+function validateUpdateFields(fields: Record<string, unknown>): void {
+  const disallowed = Object.keys(fields).filter((key) => !JIRA_UPDATABLE_FIELDS.has(key));
+  if (disallowed.length > 0) {
+    throw new Error(
+      `jira_update_issue: field(s) not allowed: ${disallowed.join(", ")} — allowed fields are: ${Array.from(JIRA_UPDATABLE_FIELDS).join(", ")}`,
+    );
+  }
+}
+
 const jiraUpdateIssueTool = tool(
   "jira_update_issue",
-  "Update fields on a JIRA issue (e.g. labels). WRITE operation — requires Telegram approval.",
+  `Update fields on a JIRA issue. Only these fields may be written: ${Array.from(JIRA_UPDATABLE_FIELDS).join(", ")}. Any other field (e.g. assignee, parent, security, priority, status, customfield_*) is rejected. WRITE operation — requires Telegram approval.`,
   {
     issueKey: z.string().regex(JIRA_ISSUE_KEY_PATTERN, "must match PROJECT-123"),
     fields: z.record(z.string(), z.unknown()),
@@ -210,6 +237,7 @@ const jiraUpdateIssueTool = tool(
   async ({ issueKey, fields }): Promise<CallToolResult> => {
     try {
       validateIssueKey(issueKey);
+      validateUpdateFields(fields);
       const url = `${jiraBaseUrl()}/rest/api/3/issue/${encodeURIComponent(issueKey)}`;
       await restCall(url, {
         method: "PUT",

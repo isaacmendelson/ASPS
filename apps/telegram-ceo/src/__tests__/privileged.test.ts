@@ -13,6 +13,7 @@ vi.mock("node:child_process", () => ({
 
 import {
   JIRA_ISSUE_KEY_PATTERN,
+  JIRA_UPDATABLE_FIELDS,
   buildPrivilegedMcpServer,
   githubCommentTool,
   githubCreatePrTool,
@@ -157,17 +158,83 @@ describe("jira_comment — wraps plain text in Atlassian Document Format", () =>
   });
 });
 
-describe("jira_update_issue — PUTs arbitrary fields (e.g. labels)", () => {
-  it("PUTs the fields object to the issue endpoint", async () => {
+describe("jira_update_issue — PUTs only allowlisted fields (ASPS-778)", () => {
+  it("exposes the writable-field allowlist as exactly labels/summary/description", () => {
+    expect(JIRA_UPDATABLE_FIELDS).toEqual(new Set(["labels", "summary", "description"]));
+  });
+
+  it("PUTs an allowlisted fields object (labels) to the issue endpoint", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({}, 204));
     vi.stubGlobal("fetch", fetchMock);
 
-    await jiraUpdateIssueTool.handler({ issueKey: "ASPS-766", fields: { labels: ["backend", "qa-pass"] } }, {});
+    const result = await jiraUpdateIssueTool.handler(
+      { issueKey: "ASPS-766", fields: { labels: ["backend", "qa-pass"] } },
+      {},
+    );
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe("https://example.atlassian.net/rest/api/3/issue/ASPS-766");
     expect(init.method).toBe("PUT");
     expect(JSON.parse(init.body)).toEqual({ fields: { labels: ["backend", "qa-pass"] } });
+    expect(result.isError).toBeFalsy();
+  });
+
+  it("PUTs an allowlisted fields object (summary + description) to the issue endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({}, 204));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await jiraUpdateIssueTool.handler(
+      { issueKey: "ASPS-766", fields: { summary: "New summary", description: "New description" } },
+      {},
+    );
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init.body)).toEqual({ fields: { summary: "New summary", description: "New description" } });
+    expect(result.isError).toBeFalsy();
+  });
+
+  it("rejects a fields object containing a non-allowlisted field (assignee) BEFORE the REST PUT", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await jiraUpdateIssueTool.handler(
+      { issueKey: "ASPS-766", fields: { assignee: { accountId: "abc123" } } },
+      {},
+    );
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("assignee");
+    expect(result.content[0].text).toContain("labels");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a fields object containing a customfield_* key BEFORE the REST PUT", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await jiraUpdateIssueTool.handler(
+      { issueKey: "ASPS-766", fields: { customfield_10001: "sneaky" } },
+      {},
+    );
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("customfield_10001");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a mixed fields object with NO partial application when only some fields are disallowed", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await jiraUpdateIssueTool.handler(
+      { issueKey: "ASPS-766", fields: { labels: ["ok"], security: { id: "10000" }, parent: { key: "ASPS-1" } } },
+      {},
+    );
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("security");
+    expect(result.content[0].text).toContain("parent");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 
