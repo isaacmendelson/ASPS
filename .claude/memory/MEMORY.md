@@ -43,3 +43,5 @@
 - [Always create ADRs](feedback_always_create_adrs.md) — Create ADR in `docs/architecture/decisions/` whenever architecture decisions are made
 - [No idle agents](feedback_no_idle_agents.md) — When agent finishes a task, immediately assign the next one
 - [PR only after all sub-tasks done](feedback_pr_after_all_subtasks.md) — Don't create PR/merge while sub-tasks are still open
+- [Spec updates mandatory](feedback_spec_updates_mandatory.md) — Every task updates affected specs; bug fixes for undocumented features must add the feature
+- [Update Azure docs](feedback_update_azure_docs.md) — Any Azure/CI-CD change updates the deployment guide, architecture MD, HTML diagram, troubleshooting
