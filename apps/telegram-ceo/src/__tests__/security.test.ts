@@ -383,6 +383,45 @@ describe("findSecretPathInBashCommand (ASPS-780 tokenized Bash secret-path scan)
   it("returns undefined for an empty command", () => {
     expect(findSecretPathInBashCommand("")).toBeUndefined();
   });
+
+  // ASPS-782 — inner-quote splitting and backslash-escape evasions. The SHELL
+  // reads a secret path, but the ASPS-780 tokenizer's token does not spell it:
+  //  - inner quotes (`x.p"e"m`, `x.p''em`) are not separators, so the token
+  //    keeps the embedded quotes and `/\.pem$/` misses;
+  //  - a backslash IS in BASH_TOKEN_SEPARATOR, so `x.pe\m` splits into
+  //    `x.pe` + `m` and never matches.
+  // Closed by a heuristic-dequote second pass — see findSecretPathInBashCommand.
+  it.each([
+    ["inner double-quote splitting (x.p\"e\"m)", 'cat /tmp/x.p"e"m'],
+    ["inner single-quote splitting (x.p''em)", "cat /tmp/x.p''em"],
+    ["backslash escape (x.pe\\m)", "cat /tmp/x.pe\\m"],
+    ["chained + inner-quote (id_rsa.p\"e\"m; ls)", 'cat /tmp/id_rsa.p"e"m; ls'],
+    ["inner-quoted .key argument", 'cat "/tmp/a".key'],
+    ["backslash-escaped ACCESS_KEYS.env", "cat ACCESS_KEYS.en\\v"],
+  ])("catches a quote/backslash-obfuscated secret token — %s: %s", (_label, command) => {
+    const hit = findSecretPathInBashCommand(command);
+    expect(hit).toBeDefined();
+    expect(hit?.field).toBe("command");
+    expect(hit?.pattern).toBeInstanceOf(RegExp);
+  });
+
+  it.each([
+    "npm run build",
+    "git status",
+    "cat package.json",
+    "pytest -q",
+    "echo hi | grep h",
+    "dotnet build ASPSBackend.sln -c Debug",
+    "node -e \"1+1\"",
+    "ls -la",
+    'echo "hello.world"',
+  ])("ASPS-782: normalization does not falsely deny a legit command: %s", (command) => {
+    expect(findSecretPathInBashCommand(command)).toBeUndefined();
+  });
+
+  it("still denies a benign-quoted secret ARGUMENT (echo \"a.pem\" — the deny it should be)", () => {
+    expect(findSecretPathInBashCommand('echo "a.pem"')).toBeDefined();
+  });
 });
 
 describe("findSecretPathInInput (ASPS-743 security re-review, Major M2)", () => {

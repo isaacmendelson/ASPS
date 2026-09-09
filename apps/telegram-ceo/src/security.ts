@@ -595,9 +595,39 @@ export function findSecretPathInInput(input: unknown): SecretPathHit | undefined
  * token. This is a deliberately coarse split for the sole purpose of isolating
  * path-shaped tokens to hand to `matchSecretPath` — it is NOT a shell parser.
  * (Inner-quote `a.p"e"m` and backslash-escape `a.pe\m` obfuscation of the
- * suffix itself are out of scope here — tracked separately as ASPS-782.)
+ * suffix itself were out of scope here — now closed by the ASPS-782
+ * heuristic-dequote second pass in `findSecretPathInBashCommand`.)
  */
 const BASH_TOKEN_SEPARATOR = new RegExp(`[\\s${SHELL_METACHARACTER_CLASS_BODY}]+`);
+
+/**
+ * Heuristic shell dequote for the ASPS-782 second pass — approximates what the
+ * SHELL reads from a token, NOT a shell parser. Two transforms:
+ *  1. Remove EVERY quote character (`'` and `"`, not just surrounding ones),
+ *     so inner-quote splitting collapses: `x.p"e"m` / `x.p''em` → `x.pem`.
+ *  2. Drop a backslash and keep the character it escapes: `x.pe\m` → `x.pem`
+ *     (also neutralizes a backslash used to hide a secret suffix, and a lone
+ *     trailing `\`).
+ *
+ * DELIBERATELY approximate — it does NOT honor real shell quoting semantics (a
+ * backslash inside single quotes is literal; `\"` is a literal quote; a `;`
+ * inside quotes is not an operator). For the sole purpose of isolating a
+ * secret-suffixed path token to hand to `matchSecretPath`, this over-collapses
+ * rather than under-collapses, which errs toward MORE matches (fail-safe),
+ * never fewer. It is applied to the WHOLE command (not per raw token) so that a
+ * backslash-escaped separator — `\` IS a member of `BASH_TOKEN_SEPARATOR`, so
+ * `x.pe\m` would otherwise be split into `x.pe` + `m` before any per-token
+ * normalization could run — is unescaped BEFORE the `BASH_TOKEN_SEPARATOR`
+ * split, reconstructing `x.pem` as one token. Single `\\([\\s\\S])` handles
+ * any escaped char (newline included); the trailing `\\$` drops a dangling
+ * backslash.
+ */
+function heuristicShellDequote(command: string): string {
+  return command
+    .replace(/['"]/g, "")
+    .replace(/\\([\s\S])/g, "$1")
+    .replace(/\\$/, "");
+}
 
 /**
  * Tokenized secret-path scan for a raw `Bash` command string (ASPS-780 —
@@ -632,17 +662,46 @@ const BASH_TOKEN_SEPARATOR = new RegExp(`[\\s${SHELL_METACHARACTER_CLASS_BODY}]+
  * non-Bash inputs (a legitimate `new_string`/`old_string` containing a `.pem`
  * substring mid-word, etc.). A hit here must hard-deny the `Bash` call via the
  * SAME code path the caller already uses for a `findSecretPathInInput` hit.
+ *
+ * ASPS-782 — inner-quote / backslash-escape hardening. The ASPS-780 tokenizer
+ * only strips SURROUNDING quotes and never unescapes backslashes, so two
+ * evasions survived: the shell reads a secret path the guard's token does not
+ * spell —
+ *  - inner-quote splitting: `cat /tmp/x.p"e"m` / `cat /tmp/x.p''em` — the shell
+ *    reads `/tmp/x.pem`, but the token keeps the embedded quotes, so `/\.pem$/`
+ *    misses; and
+ *  - backslash escaping: `cat /tmp/x.pe\m` — the shell reads `/tmp/x.pem`, but
+ *    `\` is a `BASH_TOKEN_SEPARATOR` member so the token splits into `/tmp/x.pe`
+ *    + `m` and never matches.
+ *
+ * Closed ADDITIVELY, without touching the ASPS-780 pass: run the exact same
+ * tokenize-and-`matchSecretPath` scan a SECOND time over a heuristically
+ * dequoted copy of the command (`heuristicShellDequote` above). Dequoting the
+ * WHOLE command before the split is what catches the backslash-separator case
+ * (`x.pe\m` → `x.pem` reconstructs one token). Keeping the raw pass FIRST is
+ * what preserves ASPS-780 exactly, including matches that the dequote would
+ * BREAK — e.g. a Windows-separated `C:\Users\x\id_rsa` matches `/id_rsa$/` via
+ * the raw pass (backslash split) but would dequote to `C:Usersxid_rsa` and
+ * miss; the raw pass runs first, so that never regresses. The dequote pass only
+ * ever ADDS hits. A hit from either pass reports `field: "command"` unchanged.
  */
 export function findSecretPathInBashCommand(command: string): SecretPathHit | undefined {
   if (typeof command !== "string" || command.length === 0) return undefined;
-  for (const rawToken of command.split(BASH_TOKEN_SEPARATOR)) {
-    if (rawToken.length === 0) continue;
-    // Strip any leading/trailing quote characters so a quoted path token
-    // (`"/tmp/a.key"`, `'/tmp/a.pem'`) is matched by its inner value.
-    const token = rawToken.replace(/^['"]+|['"]+$/g, "");
-    if (token.length === 0) continue;
-    const pattern = matchSecretPath(token);
-    if (pattern) return { field: "command", pattern };
+  // Pass 1 (ASPS-780): raw command. Pass 2 (ASPS-782): heuristically dequoted
+  // command, so inner-quote/backslash-escape evasions are caught too. The
+  // dequote is additive — the raw pass runs first so nothing it already
+  // matched can regress.
+  for (const source of [command, heuristicShellDequote(command)]) {
+    for (const rawToken of source.split(BASH_TOKEN_SEPARATOR)) {
+      if (rawToken.length === 0) continue;
+      // Strip any leading/trailing quote characters so a quoted path token
+      // (`"/tmp/a.key"`, `'/tmp/a.pem'`) is matched by its inner value. (In the
+      // dequoted pass every quote is already gone, so this is a no-op there.)
+      const token = rawToken.replace(/^['"]+|['"]+$/g, "");
+      if (token.length === 0) continue;
+      const pattern = matchSecretPath(token);
+      if (pattern) return { field: "command", pattern };
+    }
   }
   return undefined;
 }
