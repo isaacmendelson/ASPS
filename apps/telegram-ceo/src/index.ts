@@ -1,5 +1,6 @@
 import { config } from "dotenv";
 import { resolve } from "node:path";
+import { assertSandboxEnvDenylistComplete } from "./agent.js";
 import { startBot } from "./bot.js";
 
 // Load .env from the telegram-ceo directory
@@ -12,6 +13,18 @@ for (const key of required) {
     console.error(`Missing required environment variable: ${key}`);
     process.exit(1);
   }
+}
+
+// ASPS-779: boot-time self-check that every secret-shaped env var this
+// process holds is also in agent.ts's SANDBOX_DENIED_ENV_VARS — see the
+// block comment on assertSandboxEnvDenylistComplete for the full rationale.
+// Fails the whole process rather than starting with a silent sandbox gap;
+// only the offending VAR NAMES are ever logged, never a value.
+try {
+  assertSandboxEnvDenylistComplete();
+} catch (err) {
+  console.error(err instanceof Error ? err.message : String(err));
+  process.exit(1);
 }
 
 // Auth: the Claude Agent SDK accepts either a subscription OAuth token

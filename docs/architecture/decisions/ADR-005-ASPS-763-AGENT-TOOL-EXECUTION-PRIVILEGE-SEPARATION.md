@@ -47,9 +47,19 @@ Adopt a two-part privilege separation:
 1. **Contain every Bash execution in the SDK's built-in bubblewrap sandbox**
    (`sandbox.enabled:true`, `failIfUnavailable:true`):
    - `filesystem.denyRead` the secrets directory; `allowWrite` limited to the repo
-     clone; rest of FS read-only.
+     clone; rest of FS read-only. Extended (ASPS-766, ASPS-779) to also deny the
+     home-dir credential stores `~/.claude`, `~/.npmrc`, `~/.ssh`, `~/.gitconfig`,
+     `~/.aws`, `~/.gnupg` — the concrete-path entries of `SECRET_PATH_PATTERNS` plus
+     `~/.gitconfig`. `*.pem`/`*.key` are NOT added: the SDK's `denyRead` is a
+     concrete-path list with no glob support, so those stay covered only by the
+     tool-level `SECRET_PATH_PATTERNS` guard for `Read`/`Edit` (residual gap for
+     chained/obfuscated Bash reads tracked as ASPS-780).
    - `credentials.files`/`credentials.envVars` deny the github-credentials file and
-     all tokens, so the sandboxed command and its children cannot see them.
+     all tokens, so the sandboxed command and its children cannot see them. The
+     `credentials.envVars` deny set is a hand-maintained denylist; a boot-time
+     self-check (ASPS-779, `assertSandboxEnvDenylistComplete`) fails the process at
+     startup if any secret-shaped env var name is missing from it, so a future
+     secret env var cannot silently reach sandboxed commands.
    - Do NOT set `autoAllowBashIfSandboxed`. `canUseTool` remains the sole authority:
      it auto-allows Bash (after the destructive-pattern hard-deny) because the
      sandbox now bounds the blast radius.

@@ -40,7 +40,7 @@ vi.mock("../privileged.js", () => ({
 }));
 
 // Imported after the mocks so agent.ts picks up the mocked collaborators.
-const { runAgent, createCanUseTool } = await import("../agent.js");
+const { runAgent, createCanUseTool, assertSandboxEnvDenylistComplete } = await import("../agent.js");
 const { clearSession, getSessionId } = await import("../session.js");
 
 function asAsyncIterable<T>(items: T[]): AsyncIterable<T> {
@@ -1007,6 +1007,28 @@ describe("runAgent", () => {
       else process.env.HOME = savedHome;
     });
 
+    it("denies reading ~/.ssh, ~/.gitconfig, ~/.aws, ~/.gnupg — ASPS-779 fold-in extending the ASPS-766 home-dir credential-read closure to SECRET_PATH_PATTERNS's remaining home-dir entries (~/.ssh, ~/.aws, ~/.gnupg), plus ~/.gitconfig added beyond that set as an additional credential store", async () => {
+      const savedHome = process.env.HOME;
+      process.env.HOME = "/home/aspsbot";
+      queryMock.mockReturnValue(
+        asAsyncIterable([{ type: "result", subtype: "success", result: "ok", session_id: "sess-1" }]),
+      );
+
+      await runAgent(userId, "hi");
+
+      const { options } = queryMock.mock.calls[0][0];
+      expect(options.sandbox.filesystem.denyRead).toEqual(
+        expect.arrayContaining([
+          path.join("/home/aspsbot", ".ssh"),
+          path.join("/home/aspsbot", ".gitconfig"),
+          path.join("/home/aspsbot", ".aws"),
+          path.join("/home/aspsbot", ".gnupg"),
+        ]),
+      );
+      if (savedHome === undefined) delete process.env.HOME;
+      else process.env.HOME = savedHome;
+    });
+
     it("honors a SECRETS_DIR override for both filesystem.denyRead and credentials.files", async () => {
       process.env.SECRETS_DIR = "/custom/secrets";
       queryMock.mockReturnValue(
@@ -1102,5 +1124,55 @@ describe("runAgent", () => {
 
     expect(text).toContain("error_max_turns");
     expect(text).toContain("ran out of turns");
+  });
+});
+
+describe("assertSandboxEnvDenylistComplete (ASPS-779 boot-time self-check)", () => {
+  it("throws naming the offending var when a secret-shaped env var is NOT in SANDBOX_DENIED_ENV_VARS", () => {
+    const fakeEnv = { FOO_TOKEN: "shh" } as unknown as NodeJS.ProcessEnv;
+    expect(() => assertSandboxEnvDenylistComplete(fakeEnv)).toThrowError(/FOO_TOKEN/);
+  });
+
+  it("never includes the env VALUE in the thrown message — only the name", () => {
+    const fakeEnv = { FOO_TOKEN: "super-secret-value-should-never-appear" } as unknown as NodeJS.ProcessEnv;
+    try {
+      assertSandboxEnvDenylistComplete(fakeEnv);
+      throw new Error("expected assertSandboxEnvDenylistComplete to throw");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      expect(message).not.toContain("super-secret-value-should-never-appear");
+    }
+  });
+
+  it("passes when every secret-shaped env var is already denied (the real SANDBOX_DENIED_ENV_VARS set)", () => {
+    const fakeEnv = {
+      TELEGRAM_BOT_TOKEN: "x",
+      CLAUDE_CODE_OAUTH_TOKEN: "x",
+      ANTHROPIC_API_KEY: "x",
+      GITHUB_TOKEN: "x",
+      JIRA_EMAIL: "x",
+      JIRA_API_TOKEN: "x",
+      // Non-secret-shaped vars must not trip the check.
+      WORKING_DIR: "/home/aspsbot/ASPS",
+      MODEL: "claude-x",
+    } as unknown as NodeJS.ProcessEnv;
+
+    expect(() => assertSandboxEnvDenylistComplete(fakeEnv)).not.toThrow();
+  });
+
+  it("catches a NEW secret-suffixed var (_KEY/_SECRET/_PASSWORD), not just _TOKEN", () => {
+    const fakeEnv = { STRIPE_API_KEY: "x" } as unknown as NodeJS.ProcessEnv;
+    expect(() => assertSandboxEnvDenylistComplete(fakeEnv)).toThrowError(/STRIPE_API_KEY/);
+
+    const fakeEnv2 = { DB_PASSWORD: "x" } as unknown as NodeJS.ProcessEnv;
+    expect(() => assertSandboxEnvDenylistComplete(fakeEnv2)).toThrowError(/DB_PASSWORD/);
+
+    const fakeEnv3 = { WEBHOOK_SECRET: "x" } as unknown as NodeJS.ProcessEnv;
+    expect(() => assertSandboxEnvDenylistComplete(fakeEnv3)).toThrowError(/WEBHOOK_SECRET/);
+  });
+
+  it("ignores an undefined-valued key (present in the object shape but not actually set)", () => {
+    const fakeEnv = { SOME_TOKEN: undefined } as unknown as NodeJS.ProcessEnv;
+    expect(() => assertSandboxEnvDenylistComplete(fakeEnv)).not.toThrow();
   });
 });
