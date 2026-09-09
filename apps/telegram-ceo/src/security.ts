@@ -577,6 +577,58 @@ function scan(value: unknown, fieldPath: string): SecretPathHit | undefined {
   return undefined;
 }
 
+/**
+ * Self-modification guard (ASPS-768, ADR-005 implementation-plan story
+ * ASPS-763-5).
+ *
+ * `createCanUseTool` (agent.ts) auto-allows an in-repo `Edit`/`Write`/
+ * `MultiEdit`/`NotebookEdit` once `checkPathAllowed` passes (no secret
+ * pattern, inside `WORKING_DIR`) — see the block comment on
+ * `createCanUseTool` for the full ASPS-768 rationale (the bwrap sandbox +
+ * the gated `ceo-privileged` MCP server bound the blast radius of arbitrary
+ * Bash/file writes to "a recoverable repo clone", so routine dev work no
+ * longer needs a human tap). That reasoning does NOT extend to two specific
+ * targets: `CLAUDE.md` (the system-prompt content re-read fresh on every
+ * turn — see `context.ts`'s `loadClaudeMd` — so an edit here changes the
+ * agent's own operating instructions on its VERY NEXT turn with no restart)
+ * and `apps/telegram-ceo/**` (this bot's own source: `canUseTool`, the
+ * sandbox config, the approval flow, this guard itself). An injected agent
+ * that could freely rewrite either could disable or weaken its own
+ * permission model without ever going through Telegram approval — the
+ * textbook self-modification/privilege-escalation path. Both stay excluded
+ * from the ASPS-768 auto-allow and fall through to the same Telegram
+ * approval any other sensitive edit already required before this story.
+ *
+ * Matched against the fully resolved absolute path (the same
+ * `checkPathAllowed`-produced `resolvedPath` `createCanUseTool` already has
+ * in hand — do not re-resolve). `(^|[\\/])` / `[\\/]` handle both POSIX
+ * (`/`, the VPS) and Windows (`\`, local dev) separators from one pattern
+ * set, same style as `SECRET_PATH_PATTERNS` above.
+ *
+ * Companion control: `buildSandboxSettings` in `agent.ts` also lists these
+ * same two roots in the bwrap sandbox's `filesystem.denyWrite` — this
+ * function alone only gates the `Edit`/`Write`/`MultiEdit`/`NotebookEdit`
+ * *tools*; a sandboxed `Bash` command (now auto-allowed, see
+ * `createCanUseTool`) is not a path-bearing tool call this function ever
+ * sees, so without the sandbox-level `denyWrite` a `Bash`
+ * `echo x >> CLAUDE.md` could still self-modify with no approval. Two
+ * independent layers (in-process regex here, OS-level bwrap mount there)
+ * because they gate two different execution paths (the tool call vs. the
+ * shell) — keep both in sync if either root ever changes.
+ */
+export const SELF_MODIFICATION_PATTERNS: RegExp[] = [
+  /(^|[\\/])CLAUDE\.md$/i,
+  /(^|[\\/])apps[\\/]telegram-ceo(?:[\\/]|$)/i,
+];
+
+/**
+ * Returns the first self-modification pattern that matches `resolvedPath`,
+ * or `undefined` if it matches none.
+ */
+export function matchSelfModificationPath(resolvedPath: string): RegExp | undefined {
+  return SELF_MODIFICATION_PATTERNS.find((pattern) => pattern.test(resolvedPath));
+}
+
 export type PathGuardResult =
   | { allowed: true; resolvedPath: string }
   | { allowed: false; reason: string };

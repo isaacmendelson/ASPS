@@ -10,11 +10,28 @@ describe("TELEGRAM_SYSTEM_PROMPT_APPEND", () => {
     expect(TELEGRAM_SYSTEM_PROMPT_APPEND).toMatch(/do not use `?Bash`?.*(cat|ls|grep|find|head|tail)/is);
   });
 
-  it("tells the agent its GitHub/JIRA credentials are already in the environment, so it must not hunt the filesystem for them (ASPS-747)", () => {
+  it("tells the agent its GitHub/JIRA credentials are NOT reachable from Bash post-ASPS-768 — corrects the pre-ASPS-768 false claim that they are 'already present as environment variables in your process' for direct use", () => {
     expect(TELEGRAM_SYSTEM_PROMPT_APPEND).toContain("GITHUB_TOKEN");
     expect(TELEGRAM_SYSTEM_PROMPT_APPEND).toContain("JIRA_API_TOKEN");
     expect(TELEGRAM_SYSTEM_PROMPT_APPEND).toMatch(/ACCESS_KEYS\.env/);
-    expect(TELEGRAM_SYSTEM_PROMPT_APPEND.toLowerCase()).toContain("do not search the filesystem");
+    expect(TELEGRAM_SYSTEM_PROMPT_APPEND.toLowerCase()).toContain("not reachable from bash");
+    // The old instruction told the agent to "use them directly" from Bash —
+    // that must no longer appear now that the sandbox denies every one of
+    // these env vars to sandboxed commands (ASPS-765/768).
+    expect(TELEGRAM_SYSTEM_PROMPT_APPEND).not.toMatch(/use them directly/i);
+  });
+
+  it("instructs JIRA/GitHub WRITES through the gated mcp__ceo-privileged__* tools, not Bash (ASPS-768 — Bash has no credential in the sandbox)", () => {
+    expect(TELEGRAM_SYSTEM_PROMPT_APPEND).toContain("mcp__ceo-privileged__");
+    expect(TELEGRAM_SYSTEM_PROMPT_APPEND).toContain("jira_transition");
+    expect(TELEGRAM_SYSTEM_PROMPT_APPEND).toContain("github_create_pr");
+  });
+
+  it("tells the agent routine Bash + in-repo edits now run without a Telegram prompt (ASPS-768), while still naming what stays gated (destructive patterns, self-modification, out-of-repo writes, JIRA/GitHub writes, git push)", () => {
+    expect(TELEGRAM_SYSTEM_PROMPT_APPEND).toMatch(/without a Telegram prompt/i);
+    expect(TELEGRAM_SYSTEM_PROMPT_APPEND).toContain("CLAUDE.md");
+    expect(TELEGRAM_SYSTEM_PROMPT_APPEND).toContain("apps/telegram-ceo");
+    expect(TELEGRAM_SYSTEM_PROMPT_APPEND.toLowerCase()).toContain("own operating instructions");
   });
 
   it("still states that state-changing tool calls pause for operator approval (unchanged expectation)", () => {

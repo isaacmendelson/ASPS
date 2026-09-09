@@ -9,12 +9,20 @@ Runs on Linux and Windows: the SDK spawns the platform's own shell for Bash
 (`/bin/bash` on Linux, PowerShell on Windows), so there is no OS-specific
 tool code left in this bot.
 
-**Security model (ASPS-743): read-mostly, with human approval for every
-state-changing action.** See [Permission model](#permission-model--telegram-approval-flow-asps-743)
+**Security model (ASPS-743, relaxed by ASPS-768/ADR-005): read-mostly, with
+sandboxed containment for the rest and human approval reserved for what the
+sandbox + gating cannot bound.** See [Permission model](#permission-model--telegram-approval-flow-asps-743)
 below before deploying this anywhere it can reach real credentials or a
-real repo — the summary is: reads run freely, writes/Bash/etc. do not run
-until you tap Approve in Telegram, and both are backed by hard technical
-controls, not just prompt instructions.
+real repo — the summary as of ASPS-768: reads run freely; routine dev work
+(Bash, in-repo Edit/Write) now runs freely TOO, because it is contained
+inside a bubblewrap sandbox (ASPS-765) that cannot reach secrets or the
+git-push credential; what remains gated behind a Telegram Approve/Deny tap
+is exactly what the sandbox can't bound — destructive Bash patterns
+(hard-denied, never approvable), edits to the bot's own instructions/source
+(`CLAUDE.md`, `apps/telegram-ceo/**`), anything outside the repo, and every
+JIRA/GitHub write + `git push` (routed through the gated `ceo-privileged`
+MCP server). All of this is backed by hard technical controls, not just
+prompt instructions.
 
 ## Setup
 
@@ -61,9 +69,18 @@ The bot runs the Claude Agent SDK with the native Claude Code toolset:
 
 - `Read` / `Grep` / `Glob` — free to use, but every call still passes through
   the path guard (see below).
-- `Write` / `Edit` / `MultiEdit` / `NotebookEdit` / `NotebookRead` / `Bash` /
-  `Task` / `WebFetch` / most MCP tools — gated behind a Telegram approval
-  (see below).
+- `Write` / `Edit` / `MultiEdit` / `NotebookEdit` — auto-allowed (ASPS-768)
+  once the path guard passes AND the target is inside `WORKING_DIR` AND it is
+  NOT a self-modification path (`CLAUDE.md` or `apps/telegram-ceo/**` — see
+  [Permission model](#permission-model--telegram-approval-flow-asps-743) §6).
+  A self-modification target, a path-less call, or a path outside
+  `WORKING_DIR` still requires a Telegram approval like before ASPS-768.
+- `Bash` — auto-allowed (ASPS-768) once it survives the
+  `DANGEROUS_BASH_PATTERNS` hard-deny, PROVIDED the bubblewrap sandbox
+  (ASPS-765) is enabled — see §5/§6 below. Every execution still runs inside
+  that sandbox regardless of the auto-allow.
+- `NotebookRead` / `Task` / `WebFetch` / most MCP tools — still gated behind
+  a Telegram approval (see below); unaffected by ASPS-768.
 - `AskUserQuestion` — **disabled** via `disallowedTools` (`DISALLOWED_TOOLS`
   in `src/agent.ts`): the interactive multiple-choice tool can't return a
   structured choice over the one-way Telegram approve/deny bridge (it aborted
@@ -227,22 +244,32 @@ approval like any other state-changing action.
 
 ### 3. Deny-by-default + Telegram approval (`src/agent.ts`, `src/approvals.ts`, `src/bot.ts`)
 
-`canUseTool` classifies every tool call:
+`canUseTool` classifies every tool call (updated by ASPS-768 — see §6 below
+for the full rationale and ordering):
 
 - **Auto-allow** (subject to the path guard): `Read`, `Grep`, `Glob`, the
   two read-only knowledge-engine MCP tools, and the read-only `github` /
   `mcp-atlassian` MCP servers (ASPS-748 — see [Agent tools](#agent-tools)).
-- **Hard-deny**: Bash matching `DANGEROUS_BASH_PATTERNS`.
-- **Read-only git auto-allow (ASPS-749)**: a `Bash` call whose command
-  passes `isSafeReadOnlyGitCommand` (`src/security.ts`) auto-allows,
-  evaluated AFTER the hard-deny check above. This is a narrow carve-out
-  under `Bash`, not a general Bash allowlist — see
+- **In-repo write auto-allow (ASPS-768)**: `Edit`/`Write`/`MultiEdit`/
+  `NotebookEdit` auto-allow once the path guard passes, UNLESS the target is
+  a self-modification path (`CLAUDE.md` / `apps/telegram-ceo/**` — see §6).
+- **Hard-deny**: Bash matching `DANGEROUS_BASH_PATTERNS` — evaluated before
+  any Bash auto-allow, so a destructive pattern is never reachable through
+  either of the two branches below.
+- **Sandboxed Bash auto-allow (ASPS-768)**: any other `Bash` call
+  auto-allows, provided the bwrap sandbox (ASPS-765) is enabled — see §6.
+- **Read-only git auto-allow (ASPS-749) — now a fallback**: reached only
+  when the sandbox is NOT enabled: a `Bash` call whose command passes
+  `isSafeReadOnlyGitCommand` (`src/security.ts`) still auto-allows even in
+  that degraded mode — see
   [Read-only git auto-allow](#4-read-only-git-auto-allow-asps-749) below for
   the full rule set.
-- **Everything else** (`Write`, `Edit`, `MultiEdit`, `NotebookEdit`,
-  non-dangerous `Bash`, `Task`, `WebFetch`, every `ceo-privileged`
-  JIRA/GitHub write tool (ASPS-766), any other MCP tool, etc.):
-  `canUseTool` calls `requestApproval()`, which sends the authorized user an
+- **Everything else** (a self-modification `Edit`/`Write`/`MultiEdit`/
+  `NotebookEdit`, a path-less write call, non-sandboxed non-read-only-git
+  `Bash`, `Task`, `WebFetch`, every `ceo-privileged` JIRA/GitHub write tool
+  (ASPS-766/767 — deliberately NEVER auto-allowed), any other MCP tool,
+  etc.): `canUseTool` calls `requestApproval()`, which sends the authorized
+  user an
   inline-keyboard Telegram message (✅ Approve / ❌ Deny) with the **full,
   untruncated** command or path (ASPS-743 security re-review, Major M1 — a
   300-char truncation could previously hide a malicious tail behind a
@@ -411,6 +438,78 @@ systemd unit's `RestrictNamespaces=` relaxed to `user pid mnt`) already
 applied on the box — see `docs/cloud/VPS_TELEGRAM_HARDENING.md` and
 `docs/architecture/decisions/ADR-005-ASPS-763-AGENT-TOOL-EXECUTION-PRIVILEGE-SEPARATION.md`.
 
+### 6. Sandboxed Bash + in-repo write auto-allow (ASPS-768, ADR-005 story ASPS-763-5 — CLOSES ASPS-762)
+
+This is the relaxation ASPS-762 originally asked for ("stop flooding me with
+approval taps for routine dev work"), delivered only once §5's sandbox +
+the ASPS-766/767 gated write path made it safe. **The thesis:** every Bash
+execution is contained in the bwrap sandbox (secrets dir, git-push
+credential, and every token env var all denied — §5), and every JIRA/GitHub
+write + `git push` is routed off Bash onto the gated `ceo-privileged` MCP
+server (still per-call Telegram-approved, unaffected by this story). So the
+blast radius of an auto-allowed Bash command or in-repo file edit is bounded
+to "a recoverable repo clone + public source" — it cannot read a secret,
+cannot complete an unapproved push (no credential), and cannot rewrite its
+own operating instructions or its own permission logic either (see the
+self-modification exclusion below). Two things changed in `canUseTool`
+(`src/agent.ts`):
+
+- **Bash auto-allows** once it survives the `DANGEROUS_BASH_PATTERNS`
+  hard-deny (§2) — no per-command allowlist is needed anymore. This
+  supersedes the narrower ASPS-749 read-only-git carve-out for the normal
+  (sandboxed) case: a git WRITE (`commit`/`push`/`checkout`/...) now also
+  auto-allows here. An ambient `Bash git push` still cannot succeed even
+  though it no longer prompts — §5's `credentials.files` denies it the
+  stored credential, so it fails at execution time, not at the approval
+  gate.
+  - **Coupling (load-bearing):** this auto-allow is gated on the sandbox
+    actually being enabled (`createCanUseTool`'s third parameter,
+    `sandboxEnabled`, threaded from `buildOptions`'s
+    `buildSandboxSettings(...).enabled`). If the sandbox is ever off, Bash
+    falls back to the pre-768 gated behavior (plus the ASPS-749 read-only-git
+    carve-out as a narrower auto-allow within that degraded mode) instead of
+    silently running an unsandboxed command with full access to secrets and
+    the ambient git credential. The SDK's own `autoAllowBashIfSandboxed`
+    flag is deliberately left unset (as in §5) — `canUseTool` implements the
+    auto-allow itself precisely so this coupling and the self-modification
+    exclusion below can be expressed; the SDK flag would bypass `canUseTool`
+    entirely and could express neither.
+- **In-repo `Edit`/`Write`/`MultiEdit`/`NotebookEdit` auto-allows** once the
+  path guard (§1) passes — inside `WORKING_DIR`, no secret pattern — UNLESS
+  the resolved target is a **self-modification path**:
+  `matchSelfModificationPath` (`src/security.ts`) matches `CLAUDE.md` (the
+  system-prompt content re-read fresh on every turn, so an edit here changes
+  the agent's own operating instructions on its VERY NEXT turn with no
+  restart) or anything under `apps/telegram-ceo/**` (this bot's own source —
+  `canUseTool`, the sandbox config, the approval flow, this guard itself).
+  An injected agent that could freely rewrite either could disable or weaken
+  its own permission model with no Telegram approval — the textbook
+  self-modification/privilege-escalation path. Both stay excluded from the
+  auto-allow and fall through to the same Telegram approval any other write
+  already required before this story. A call with no resolvable path (e.g.
+  an empty/malformed input) also falls through to approval.
+  - **Two independent layers, not one:** the guard above only sees
+    `Edit`/`Write`/`MultiEdit`/`NotebookEdit` *tool* calls — it has no
+    visibility into a sandboxed `Bash` command, which this same story also
+    auto-allows. Without a second control, `Bash echo x >> CLAUDE.md` could
+    still self-modify with no approval. `buildSandboxSettings`
+    (`src/agent.ts`) closes that at the OS/mount level: `filesystem.denyWrite`
+    lists the same two roots (`CLAUDE.md`, `apps/telegram-ceo/`) so a
+    sandboxed command cannot write them regardless of which tool the write
+    comes through, even though they are inside `filesystem.allowWrite`'s
+    `WORKING_DIR`.
+
+What this does NOT change: destructive Bash (§2), the secret-path scan (§1),
+the path guard's outside-`WORKING_DIR` check (§1), and every
+`ceo-privileged` JIRA/GitHub write + `git_push` tool (ASPS-766/767) —
+deliberately NEVER added to the auto-allow wildcards, so every call still
+falls through to Telegram approval exactly as before this story.
+
+**ASPS-762 (PR #51, the original "cancel the approvals" attempt) is
+superseded by this story** — its per-command Bash allowlist approach is
+replaced by sandbox-contained auto-allow, which does not need to enumerate
+safe commands at all. ASPS-762 should be closed once this merges.
+
 ### SDK permission precedence — why `settingSources` is `[]`, not `["project"]`
 
 The bot's earlier design passed `settingSources: ["project"]` so the SDK
@@ -448,7 +547,7 @@ re-open a tool.
 - Only responds to Telegram user IDs listed in `AUTHORIZED_USERS` — enforced on every inbound update: regular messages, edited messages, and callback queries. Unauthorized senders are dropped **silently** (no "Unauthorized" reply) to avoid letting anyone enumerate which user ids are authorized by probing for a distinct response.
 - The agent only triggers on messages in a **private** Telegram chat (`msg.chat.type === "private"`); group/supergroup/channel messages never reach the agent, even from an authorized user.
 - File access is confined to `WORKING_DIR` — not merely by the SDK's default `cwd` scoping — and a secret-pattern path (`*.env`, `ACCESS_KEYS*`, `id_rsa*`, `.ssh/`, ...) is **always** hard-denied for **every** tool call, regardless of tool name or which input field carries it: `findSecretPathInInput` (`security.ts`) recursively scans **every string-valued field** of every tool's input — including array/nested fields like `MultiEdit`'s `edits[]` — before any other check runs, not just the single documented path field of tools in the `PATH_INPUT_FIELD` allowlist. See [Path guard](#1-path-guard-srcsecurityts--checkpathallowed) below.
-- **Every state-changing tool call requires an explicit Telegram approval from the authorized user** (see above), and the approval prompt shows the **full, untruncated** command/path — never a truncated summary that could hide a malicious tail — sent as **plain text** (no Markdown parsing) so the untrusted content cannot alter the message's structure; the Bash denylist is defense-in-depth on top of that, not a replacement for it.
+- **Routine dev work no longer requires a Telegram approval (ASPS-768)** — non-destructive Bash and in-repo `Edit`/`Write`/`MultiEdit`/`NotebookEdit` auto-allow, because they are contained: every Bash execution runs inside the bwrap sandbox (§5, secrets/credential/token env vars all denied), and JIRA/GitHub writes + `git push` are routed off Bash onto the gated `ceo-privileged` MCP server. What still requires an explicit Telegram approval from the authorized user: destructive Bash patterns (hard-denied, never approvable even with a tap), edits to the bot's own operating instructions or source (`CLAUDE.md`, `apps/telegram-ceo/**` — both ALSO denied write access at the sandbox/mount level, not just at the tool-call level, so a sandboxed `Bash` write can't reach them either), anything outside `WORKING_DIR`, `Task`/`WebFetch`, and every JIRA/GitHub write + `git push`. The approval prompt (when one is shown) still shows the **full, untruncated** command/path — never a truncated summary that could hide a malicious tail — sent as **plain text** (no Markdown parsing) so the untrusted content cannot alter the message's structure; the Bash denylist is defense-in-depth on top of that, not a replacement for it.
 - Tool calls made from *inside* a subagent spawned by `Task` re-enter the same `canUseTool` policy as the main thread (confirmed against the SDK's own `CanUseTool` type, which documents an `agentID` option field for exactly this case) — a single Task approval cannot unleash an unguarded agent.
 - `canUseTool` is the sole permission authority: `settingSources: []` means no `.claude/settings.json` allow-rule can bypass it (see the precedence section above).
 - On an agent error, the Telegram reply is a **generic** message; the real error (which can include stack traces or paths) is logged server-side only, never sent to the chat.
