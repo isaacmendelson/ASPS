@@ -4,6 +4,7 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { CanUseTool, McpServerConfig, Options, SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import {
   checkPathAllowed,
+  findSecretPathInBashCommand,
   findSecretPathInInput,
   isSafeReadOnlyGitCommand,
   matchDangerousBashCommand,
@@ -625,7 +626,21 @@ function summarizeToolCall(toolName: string, input: Record<string, unknown>): st
  */
 export function createCanUseTool(userId: number, workingDir: string, sandboxEnabled = true): CanUseTool {
   return async (toolName, input) => {
-    const secretHit = findSecretPathInInput(input);
+    // Step 1 — secret-path invariant scan. `findSecretPathInInput` scans every
+    // string field of the input against SECRET_PATH_PATTERNS. For a `Bash`
+    // call the only field is `{ command }`, and those patterns are
+    // trailing-anchored, so that whole-string check only catches a command
+    // that ENDS in a secret path. ASPS-780: also run the tokenized
+    // `findSecretPathInBashCommand` on the Bash command string so a secret
+    // path anywhere in a chained/obfuscated command (`cat /tmp/stray.pem;
+    // true`, `p=/tmp/stray.key; cat "$p"`) is caught too — hard-denied via
+    // this SAME code path. Scoped to the Bash command string only; the generic
+    // scan is not broadened (see `findSecretPathInBashCommand` in security.ts).
+    const secretHit =
+      findSecretPathInInput(input) ??
+      (toolName === "Bash" && typeof input.command === "string"
+        ? findSecretPathInBashCommand(input.command)
+        : undefined);
     if (secretHit) {
       return {
         behavior: "deny",

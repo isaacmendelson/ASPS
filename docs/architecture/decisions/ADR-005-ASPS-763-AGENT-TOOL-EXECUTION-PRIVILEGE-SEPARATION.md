@@ -52,8 +52,14 @@ Adopt a two-part privilege separation:
      `~/.aws`, `~/.gnupg` — the concrete-path entries of `SECRET_PATH_PATTERNS` plus
      `~/.gitconfig`. `*.pem`/`*.key` are NOT added: the SDK's `denyRead` is a
      concrete-path list with no glob support, so those stay covered only by the
-     tool-level `SECRET_PATH_PATTERNS` guard for `Read`/`Edit` (residual gap for
-     chained/obfuscated Bash reads tracked as ASPS-780).
+     tool-level `SECRET_PATH_PATTERNS` guard. ASPS-780 closed the arbitrary-Bash
+     case of that guard: the step-1 secret scan now tokenizes the Bash `command`
+     (`findSecretPathInBashCommand`, splitting on the shared shell-metacharacter
+     set) and matches each token, so a secret path in a chained/obfuscated
+     command (`cat x.pem; true`, `` `cat x.key` ``, `${x:-x.pem}`) hard-denies
+     instead of reaching the auto-allow. Remaining residual — inner-quote /
+     backslash-escape suffix obfuscation (`x.p"e"m`, `x.pe\m`) — tracked as
+     ASPS-782.
    - `credentials.files`/`credentials.envVars` deny the github-credentials file and
      all tokens, so the sandboxed command and its children cannot see them. The
      `credentials.envVars` deny set is a hand-maintained denylist; a boot-time
