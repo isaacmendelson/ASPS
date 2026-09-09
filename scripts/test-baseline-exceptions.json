@@ -7,14 +7,6 @@
     "desktop": [],
     "extension": [
       {
-        "selector": "integration/extension-flow.test.js",
-        "expectedFailureCount": 9,
-        "failureIdSha256": "f26b595b316c75582cf9bea6bc264ae1fcf4da0fafee972a1adc9568ce7b410d",
-        "owner": "browser-extension",
-        "reason": "Legacy integration harness asserts on background.js wiring it never actually exercises (no import of background.js; assertions check chrome mock call counts registered by other unrelated tests). Needs a rewrite against the real background.js message/listener wiring, not a mock-signature fix. Renewed 2026-09-08 (ASPS-753 hybrid baseline fix); tracked for a follow-up rewrite.",
-        "expires": "2026-12-08"
-      },
-      {
         "selector": "unit/services/CacheService.test.js",
         "expectedFailureCount": 6,
         "failureIdSha256": "6bbb2f3350858ef5912c351de43c60242e142e67484020b182f40403a43ce813",
