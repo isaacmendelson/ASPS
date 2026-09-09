@@ -64,3 +64,12 @@ the repo-root [`.mcp.json`](../../.mcp.json), exposing two tools: **`knowledge_a
 query the Knowledge Engine directly — no Bash/CLI shell-out needed. This closes the integration
 point referenced by [`../aiducation/learning-engine/README.md`](../aiducation/learning-engine/README.md) (Principle 7).
 Owner: **knowledge-manager**.
+
+**Startup warm-up (ASPS-781).** The MCP server builds the `KnowledgeService` **once per process**
+(a lazy singleton reused by both tools) and **warms it at startup** — it opens the chromadb
+collection and runs one throwaway search to force the embedder to load — before it begins serving.
+Earlier the server rebuilt the service on every call, which caused a cold-start `CONNECT_TIMEOUT` on
+the first query and avoidable per-query latency. Practical effect: the first `knowledge_search`/
+`knowledge_ask` after a restart is as fast as the rest; if the retrieval stack is broken the server
+fails loudly at boot rather than on the first query. The separate `ke_cli.py index`/ingest path
+keeps its own short-lived service and is unaffected.
