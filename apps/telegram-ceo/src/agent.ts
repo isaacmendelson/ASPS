@@ -214,6 +214,77 @@ const SANDBOX_DENIED_ENV_VARS = [
 ];
 
 /**
+ * ASPS-779 (ASPS-768 security-gate Minor follow-up) — `SANDBOX_DENIED_ENV_VARS`
+ * above is a hand-maintained denylist: a future secret env var (a new
+ * integration's API key, say) could be added to `.env.example`/the VPS
+ * `EnvironmentFile=` sources and wired into the bot's own process without
+ * anyone remembering to also add its name here, silently reopening the exact
+ * "sandboxed Bash reads a token straight out of `process.env`" gap
+ * `SANDBOX_DENIED_ENV_VARS` exists to close (see the block comment above it).
+ * A true "deny every env var except an explicit passthrough allowlist" is
+ * not expressible in the SDK's `credentials.envVars` shape (`sdk.d.ts`: a
+ * flat `{name, mode}[]`, no wildcard/allowlist-inversion mode) — the accepted
+ * alternative (ticket-preferred) is a BOOT-TIME SELF-CHECK: assert every env
+ * var whose NAME *looks* like a secret is actually on the denylist, and fail
+ * the whole process at startup if not, rather than silently starting with a
+ * gap. This is deliberately a fail-CLOSED startup assertion, not a runtime
+ * warning — a missing entry here means the sandbox's core guarantee no
+ * longer holds, so the bot must not come up at all until the code is fixed.
+ *
+ * Name-shape heuristic, not a value inspection — this function reads
+ * `process.env` KEYS only and must never read or log a VALUE (a false
+ * positive here would still only name a var, never expose what it holds).
+ * Matches (case-insensitively) any name containing `_TOKEN`, `_KEY`,
+ * `_SECRET`, or `_PASSWORD` — deliberately "contains", not just "ends with",
+ * so a name like `_TOKEN_EXPIRY` (not itself a secret) is treated as a false
+ * positive that must ALSO be added to `SANDBOX_DENIED_ENV_VARS` (safe
+ * over-inclusion; the sandbox already denies vars that don't need it, e.g.
+ * this would just deny one more non-secret var to sandboxed commands) rather
+ * than risk a false negative on a real secret whose name happens to have a
+ * suffix after `_TOKEN`. `KNOWN_BARE_SECRET_NAMES` is a small explicit
+ * fallback for names that don't carry one of those substrings at all (kept
+ * even though today's two entries already match the substring scan too —
+ * documented redundancy, not dead code, for a future bare name that
+ * wouldn't).
+ */
+const SECRET_ENV_NAME_SUBSTRINGS = ["_TOKEN", "_KEY", "_SECRET", "_PASSWORD"];
+const KNOWN_BARE_SECRET_ENV_NAMES: ReadonlySet<string> = new Set([
+  "ANTHROPIC_API_KEY",
+  "TELEGRAM_BOT_TOKEN",
+]);
+
+function looksLikeSecretEnvName(name: string): boolean {
+  const upper = name.toUpperCase();
+  if (KNOWN_BARE_SECRET_ENV_NAMES.has(upper)) return true;
+  return SECRET_ENV_NAME_SUBSTRINGS.some((substring) => upper.includes(substring));
+}
+
+/**
+ * Boot-time self-check (ASPS-779): scans `env`'s keys for anything that
+ * looks like a secret name (see `looksLikeSecretEnvName` above) and throws
+ * if any such name is missing from `SANDBOX_DENIED_ENV_VARS`. Call this once
+ * at process startup, before the bot starts serving turns (see `index.ts`) —
+ * intentionally a pure function taking `env` as a parameter (defaulting to
+ * `process.env`) so it is unit-testable with a fake env object, and so it
+ * never needs to be called more than once per process. Only variable NAMES
+ * ever appear in the thrown message — never a value.
+ */
+export function assertSandboxEnvDenylistComplete(env: NodeJS.ProcessEnv = process.env): void {
+  const missing = Object.keys(env)
+    .filter((name) => env[name] !== undefined && looksLikeSecretEnvName(name))
+    .filter((name) => !SANDBOX_DENIED_ENV_VARS.includes(name));
+
+  if (missing.length > 0) {
+    throw new Error(
+      "Sandbox env self-check failed (ASPS-779): the following env var name(s) look like " +
+        `secrets but are missing from SANDBOX_DENIED_ENV_VARS in agent.ts: ${missing.join(", ")}. ` +
+        "A sandboxed Bash command would inherit them unfiltered. Add each name to " +
+        "SANDBOX_DENIED_ENV_VARS before starting the bot.",
+    );
+  }
+}
+
+/**
  * Build the SDK's built-in bubblewrap sandbox config for every Bash
  * execution (ASPS-765 / ADR-005 part 1 — "Contain every Bash execution in
  * the SDK's built-in bubblewrap sandbox"). `Bash` itself STAYS gated behind
@@ -258,6 +329,44 @@ const SANDBOX_DENIED_ENV_VARS = [
  * loop. `denyWrite` closes that at the OS/mount level regardless of which
  * tool the write comes through; `allowWrite` still covers the rest of the
  * repo clone for ordinary dev writes.
+ *
+ * ASPS-779 fold-in (ASPS-768 security-gate Minor follow-up, defense-in-depth
+ * — not a live vuln today, since the bot pushes over HTTPS with a stored
+ * `credential.helper` file and none of these paths exist on the box yet;
+ * this closes the gap BEFORE any future SSH-deploy-key switch would make it
+ * live): `filesystem.denyRead` also denies `~/.ssh`, `~/.gitconfig`,
+ * `~/.aws`, `~/.gnupg` — the remaining home-dir credential stores already
+ * listed in `security.ts`'s `SECRET_PATH_PATTERNS` (the `Read`/`Edit`
+ * tool-level guard denies them by pattern) but, before this, NOT mounted
+ * off in the bwrap sandbox itself. Now that ASPS-768 auto-allows sandboxed
+ * `Bash`, an unapproved `cat ~/.ssh/id_rsa` or `git config --get` reading
+ * `~/.gitconfig`'s stored credentials would have reached the real file with
+ * no Telegram approval and no tool-level guard in the way (the guard only
+ * sees `Read`/`Edit`/... tool calls, never a Bash command's arguments) —
+ * same class of gap ASPS-766 already closed for `~/.claude`/`~/.npmrc`
+ * above; this extends the same fix to the rest of `SECRET_PATH_PATTERNS`'s
+ * home-dir entries.
+ *
+ * `*.pem`/`*.key` (also in `SECRET_PATH_PATTERNS`) are deliberately NOT
+ * added here. `filesystem.denyRead` is typed `string[]` with no documented
+ * glob-matching (checked `node_modules/@anthropic-ai/claude-agent-sdk/sdk.d.ts`
+ * and the corresponding zod schema in `sdk.mjs`: the ONLY place this SDK
+ * documents picomatch glob semantics is the unrelated CLAUDE.md
+ * `excludePatterns` option, whose doc comment explicitly says so — `denyRead`
+ * has no such comment); the sandbox is bwrap/mount-based, which binds
+ * CONCRETE paths, not glob expressions, so an entry like `*.pem` would
+ * either be a no-op or (worse) fail confusingly rather than deny anything.
+ * A broken denyRead entry is worse than no entry — it would read as
+ * "covered" in this file while doing nothing at runtime. Residual gap this
+ * leaves: a sandboxed `Bash` command reading a `*.pem`/`*.key` file OUTSIDE
+ * the concrete directories denied here (e.g. a stray key dropped directly
+ * under the repo clone) is NOT stopped by `denyRead` — it remains covered
+ * only by the tool-level guard (`findSecretPathInInput`/`checkPathAllowed`
+ * in `security.ts`, which DOES pattern-match `*.pem`/`*.key`) for `Read`/
+ * `Edit`/`Write`/... tool calls specifically, not for arbitrary Bash. This
+ * gap is accepted and logged here rather than closed silently — flagged for
+ * whoever revisits this if the SDK ever adds real glob support to
+ * `denyRead` (re-check `sdk.d.ts` first).
  */
 function buildSandboxSettings(workingDir: string): NonNullable<Options["sandbox"]> {
   const bwrapPath = process.env.BWRAP_PATH || "/usr/bin/bwrap";
@@ -265,6 +374,10 @@ function buildSandboxSettings(workingDir: string): NonNullable<Options["sandbox"
   const home = process.env.HOME || homedir();
   const claudeHomeDir = path.join(home, ".claude");
   const npmrcPath = path.join(home, ".npmrc");
+  const sshDir = path.join(home, ".ssh");
+  const gitconfigPath = path.join(home, ".gitconfig");
+  const awsDir = path.join(home, ".aws");
+  const gnupgDir = path.join(home, ".gnupg");
   const claudeMdPath = path.join(workingDir, "CLAUDE.md");
   const selfSourceDir = path.join(workingDir, "apps", "telegram-ceo");
 
@@ -276,11 +389,15 @@ function buildSandboxSettings(workingDir: string): NonNullable<Options["sandbox"
       // The secrets dir is denied wholesale — not merely the two files
       // referenced by name below — so a future file added under it
       // (rotated tokens, a new credential) is covered without a code
-      // change. `~/.claude` and `~/.npmrc` (ASPS-766 fold-in, see above)
-      // close the remaining home-dir credential-read channel. Write access
-      // is scoped to the repo clone only; the rest of the filesystem stays
-      // read-only (bwrap default).
-      denyRead: [secretsDir, claudeHomeDir, npmrcPath],
+      // change. `~/.claude` and `~/.npmrc` (ASPS-766 fold-in) plus
+      // `~/.ssh`, `~/.gitconfig`, `~/.aws`, `~/.gnupg` (ASPS-779 fold-in,
+      // see the block comment above) close the home-dir credential-read
+      // channel for every concrete-path entry in `SECRET_PATH_PATTERNS`
+      // (`*.pem`/`*.key` are NOT concrete paths — see above for why they
+      // stay out of this list and where they're still covered). Write
+      // access is scoped to the repo clone only; the rest of the
+      // filesystem stays read-only (bwrap default).
+      denyRead: [secretsDir, claudeHomeDir, npmrcPath, sshDir, gitconfigPath, awsDir, gnupgDir],
       allowWrite: [workingDir],
       // ASPS-768 fold-in (see block comment above): carve the two
       // self-modification roots back OUT of allowWrite so a now-auto-allowed

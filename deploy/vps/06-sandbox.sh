@@ -13,6 +13,16 @@
 # feature also needs lives in telegram-ceo.service itself (rendered by
 # 05-service.sh) and only takes effect on the next service (re)start.
 #
+# ASPS-779 fold-in: also installs `socat` -- the SDK's own sandbox schema
+# lists a separate `socatPath` option alongside `bwrapPath` (see
+# node_modules/@anthropic-ai/claude-agent-sdk/sdk.mjs), because the
+# sandbox's network proxy (used to enforce network.allowedDomains egress
+# control for sandboxed Bash) shells out to `socat`, not just `bwrap`. It
+# was previously installed by hand on the live box outside this script --
+# provisioning drifting from the real box is exactly the gap this fold-in
+# closes, so a fresh box provisioned from this script alone has everything
+# the sandbox needs.
+#
 # Runs as root. Idempotent -- safe to re-run.
 #
 # See docs/cloud/VPS_TELEGRAM_HARDENING.md "bubblewrap sandbox enablement"
@@ -31,7 +41,7 @@ load_config "$SCRIPT_DIR"
 
 apparmor_profile_target="/etc/apparmor.d/bwrap"
 
-log_step "1/4 -- install bubblewrap"
+log_step "1/5 -- install bubblewrap"
 if package_installed bubblewrap; then
     log_info "bubblewrap already installed ($(dpkg-query -W -f='${Version}' bubblewrap))."
 else
@@ -45,7 +55,28 @@ if [[ ! -x /usr/bin/bwrap ]]; then
     exit 1
 fi
 
-log_step "2/4 -- AppArmor userns resolution: scoped profile for /usr/bin/bwrap"
+log_step "2/5 -- install socat (ASPS-779: SDK sandbox network proxy)"
+# The Claude Agent SDK sandbox's network proxy (enforces
+# network.allowedDomains egress control for sandboxed Bash) shells out to
+# `socat`, independently of `bwrap` -- see the top-of-file comment. Mirrors
+# the bubblewrap install above: idempotency check, install, then verify the
+# binary is actually on PATH afterward rather than trusting the package
+# install silently succeeded.
+if package_installed socat; then
+    log_info "socat already installed ($(dpkg-query -W -f='${Version}' socat))."
+else
+    apt-get update -y
+    apt-get install -y socat
+    log_info "socat installed ($(dpkg-query -W -f='${Version}' socat))."
+fi
+
+if ! command -v socat >/dev/null 2>&1; then
+    log_error "socat not found on PATH after installing the socat package -- aborting."
+    exit 1
+fi
+log_info "socat verified on PATH: $(command -v socat)"
+
+log_step "3/5 -- AppArmor userns resolution: scoped profile for /usr/bin/bwrap"
 # Ubuntu 24.04 mediates *unprivileged* user-namespace creation with AppArmor
 # (kernel.apparmor_restrict_unprivileged_userns=1, the distro default -- left
 # untouched by this script). An unconfined process (no AppArmor profile
@@ -100,14 +131,14 @@ else
     log_info "${apparmor_profile_target} already up to date -- skipped (re-parsing anyway is cheap and safe on re-run, but unnecessary here)."
 fi
 
-log_step "3/4 -- confirm the box-wide sysctl restriction was NOT relaxed (fallback not applied)"
+log_step "4/5 -- confirm the box-wide sysctl restriction was NOT relaxed (fallback not applied)"
 current_restrict_userns="$(sysctl -n kernel.apparmor_restrict_unprivileged_userns 2>/dev/null || echo unknown)"
 log_info "kernel.apparmor_restrict_unprivileged_userns=${current_restrict_userns} (left at distro default by this script -- the scoped /usr/bin/bwrap profile above is the fix, not this sysctl)."
 if [[ "$current_restrict_userns" != "1" ]]; then
     log_warn "Expected kernel.apparmor_restrict_unprivileged_userns=1 (distro default) but found '${current_restrict_userns}'. Something outside this script already changed it -- verify intentionally, this script does not manage that sysctl."
 fi
 
-log_step "4/4 -- smoke test: userns+mnt+pid bwrap sandbox as ${ASPSBOT_USER}"
+log_step "5/5 -- smoke test: userns+mnt+pid bwrap sandbox as ${ASPSBOT_USER}"
 # Read-only, non-destructive: unshares user+pid, ro-binds the whole
 # filesystem, and runs `true`. Exercises exactly the AppArmor path fixed
 # above (unshare(CLONE_NEWUSER) as an unprivileged, non-root user) without
@@ -126,5 +157,6 @@ fi
 
 log_step "Done"
 log_info "bubblewrap installed and /usr/bin/bwrap can create unprivileged user+mount+pid namespaces as ${ASPSBOT_USER}."
+log_info "socat installed ($(command -v socat)) -- required by the SDK sandbox's network proxy (ASPS-779)."
 log_info "Reminder: telegram-ceo.service's RestrictNamespaces= (scoped to 'user pid mnt' in the template / its drop-in) only takes effect on the unit's next (re)start -- this script deliberately does not start/restart the service."
 log_info "For the full realistic-sandbox acceptance test (secrets masked, ambient git-push credential unreachable, network egress kept, repo bind-mount writable), see docs/cloud/VPS_TELEGRAM_HARDENING.md 'bubblewrap sandbox enablement'."

@@ -244,3 +244,34 @@ bwrap \
   live-tested end-to-end because the bot is intentionally not started; that
   end-to-end verification is part of ASPS-763-2's acceptance, not this
   task's.
+
+### ASPS-779 fold-in — `socat` added to sandbox provisioning (2026-09-09)
+
+**Required package this section under-specified:** the SDK sandbox schema
+exposes a `socatPath` option alongside `bwrapPath` (see
+`node_modules/@anthropic-ai/claude-agent-sdk/sdk.mjs`) — its network proxy
+(the mechanism that enforces `network.allowedDomains` egress control for
+sandboxed Bash) shells out to `socat`, not just `bwrap`. This was installed
+**by hand** on the live box outside of `06-sandbox.sh` when the sandbox was
+first exercised end-to-end, which is exactly the kind of provisioning drift
+this repo's scripts exist to prevent — a fresh re-provision from
+`deploy/vps/06-sandbox.sh` alone would NOT have installed it before this
+fold-in.
+
+**Fix:** `deploy/vps/06-sandbox.sh` step 2/5 now installs `socat` with the
+same idempotency check (`package_installed`) and post-install verification
+(`command -v socat`) pattern already used for `bubblewrap`, and fails loudly
+(`log_error` + `exit 1`) if the binary isn't on `PATH` afterward. Required
+packages for the sandbox are now: **`bubblewrap`** (the `bwrap` binary
+itself) and **`socat`** (the sandbox's network proxy).
+
+**Files changed (this fold-in):**
+
+| File | Change |
+|---|---|
+| `deploy/vps/06-sandbox.sh` | New step 2/5 installs `socat` (idempotent + verified); later steps renumbered 3/5–5/5. |
+| `docs/cloud/VPS_TELEGRAM_HARDENING.md` | This subsection. |
+
+Live box already had `socat` from the earlier manual install — no live-box
+change needed for this fold-in; it only closes the provisioning-script gap
+for future/re-provisioned boxes.
