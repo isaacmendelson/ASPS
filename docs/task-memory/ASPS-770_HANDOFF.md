@@ -3,7 +3,7 @@
 **JIRA:** ASPS-770 (story 1/8 of epic ASPS-769, MASDP/SPS separation). Epic authority: [`ADR-006-MASDP-SPS-SEPARATION.md`](../architecture/decisions/ADR-006-MASDP-SPS-SEPARATION.md).
 **Agent:** devops
 **Branch:** `asps-770-project-config-contract`
-**Status (this session):** Implementation complete, pre-QA gate steps 1–2 done, verification evidence recorded below. **Not yet pushed / no PR opened** — CEO runs QA + code review + security gate per this story's own instructions ("Do NOT open a PR/merge — CEO runs QA + code review + security gate and merges").
+**Status (this session):** Implementation complete, all pre-QA gate steps done (branch, verification, commit, merge-latest-main check, push). **No PR opened** — CEO runs QA + code review + security gate per this story's own instructions ("Do NOT open a PR/merge — CEO runs QA + code review + security gate and merges"). Commit: `17f6857`. Branch pushed to `origin/asps-770-project-config-contract`.
 
 ## What this story is
 
@@ -72,14 +72,12 @@ No conventional unit TDD applies here — see `PROJECT-CONFIG-CONTRACT.md`
 
 1. ✅ Branch `asps-770-project-config-contract` created off latest `main` (was clean, up to date with origin/main at session start).
 2. ✅ Schema-validation check run — evidence above / in `PROJECT-CONFIG-CONTRACT.md`.
-3. ⬜ Commit — next step (this session, immediately after this handoff write).
-4. ⬜ Merge latest `main` (should be a no-op — nothing else landed on `main` since branch creation) + push branch.
+3. ✅ Commit `17f6857` — header `ASPS-770 Freeze the MASDP project-config contract + registry/secrets_ref shape`.
+4. ✅ Merged latest `main` (`git fetch` + `git merge --ff-only origin/main` → "Already up to date", no-op — nothing landed on `main` since branch creation) + pushed branch (`origin/asps-770-project-config-contract`, tracking set up).
 5. ⬜ CEO runs QA + code review + security gate (per this story's explicit instruction — no PR opened by this agent).
 
 ## Continuation point
 
-1. Commit with header `ASPS-770 Freeze the MASDP project-config contract + registry/secrets_ref shape` (body + `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`).
-2. `git fetch && git merge origin/main` (expect no-op/clean), re-run `validate_projects.py` if `main` moved.
-3. `git push -u origin asps-770-project-config-contract`.
-4. Hand back to CEO for QA + code review + security gate. Security gate here is realistically a **"no security impact" determination** candidate (doc/schema/example-data only, no code, no secrets, no infra, no auth/permission-model change) — but that determination must still be made explicitly by the reviewer, not silently skipped, per `task-workflow.md`'s security-gate section.
-5. No JIRA transition performed by this agent in this session — CEO/whoever owns the JIRA workflow should set ASPS-770 label `devops`, transition to appropriate state, and propagate epic ASPS-769 to In Progress if this is its first child work (per `task-workflow.md` "Parent issue status propagation") — not yet checked/done in this session (no JIRA tool call made).
+1. Hand back to CEO for QA + code review + security gate. Security gate here is realistically a **"no security impact" determination** candidate (doc/schema/example-data only, no code, no secrets, no infra, no auth/permission-model change) — but that determination must still be made explicitly by the reviewer, not silently skipped, per `task-workflow.md`'s security-gate section.
+2. After gates pass: open the PR (`https://github.com/isaacmendelson/ASPS/pull/new/asps-770-project-config-contract`), transition JIRA ASPS-770 to In Review (31) then Done (41) per the standard flow, and check/propagate epic ASPS-769 to In Progress if this is its first child work (per `task-workflow.md` "Parent issue status propagation").
+3. No JIRA tool call was made in this session (no JIRA transition/label performed by this agent) — that remains open for whoever picks this up next.
