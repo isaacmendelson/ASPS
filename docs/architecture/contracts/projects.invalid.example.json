@@ -1,0 +1,20 @@
+{
+  "_comment_for_humans": "NEGATIVE TEST FIXTURE (ASPS-770). Deliberately violates projects.schema.json in three ways so validate_projects.py's negative check has something real to fail on. Never treat this file as a template — see projects.example.json for the valid shape. (The leading underscore key itself is ALSO a schema violation, since projectRecord/registry both set additionalProperties:false — that's intentional, it is not consumed as a project record.)",
+  "schema_version": "1",
+  "projects": [
+    {
+      "name": "sps",
+      "github_repo": "isaacmendelson/ASPS",
+      "jira_project": "ASPS",
+      "working_dir": "C:\\Jobs\\ASPS\\GitHub\\Software",
+      "domain_context": "C:\\Jobs\\ASPS\\GitHub\\Software\\CLAUDE.md",
+      "secrets_ref": "sps"
+    },
+    {
+      "name": "bad-project",
+      "github_repo": 12345,
+      "jira_project": "asps-not-uppercase",
+      "working_dir": "relative/without/leading-dot-or-drive"
+    }
+  ]
+}

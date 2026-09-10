@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://masdp.internal/schemas/projects.schema.json",
+  "title": "MASDP Project Registry (projects.json)",
+  "description": "ASPS-770 — frozen project-config contract for ADR-006 (MASDP/SPS separation). One record per managed project. MASDP is tenant #0 and MUST appear as a record in its own registry (dogfooding, ADR-006 'Project-config contract'). Authored in the SPS repo now; the canonical copy moves into the MASDP repo in ASPS-771/772 — do not treat this copy as living documentation once that migration lands.",
+  "type": "object",
+  "required": ["schema_version", "projects"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "description": "Contract version for this file's shape. Bump on any breaking change to the record shape below.",
+      "type": "string",
+      "const": "1"
+    },
+    "projects": {
+      "description": "Every project MASDP manages, including MASDP itself (tenant #0). Order is not significant.",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/projectRecord" },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "projectRecord": {
+      "type": "object",
+      "title": "Project record",
+      "description": "{ name, github_repo, jira_project, working_dir, domain_context, secrets_ref } — the six fields locked by ADR-006 decision 1. No other fields are permitted by this schema version; extend via schema_version bump, not silent addition.",
+      "required": [
+        "name",
+        "github_repo",
+        "jira_project",
+        "working_dir",
+        "domain_context",
+        "secrets_ref"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Stable project slug. Lowercase kebab-case. Used as the human/agent-facing project identifier (e.g. the Telegram bot's project-selector key, the Knowledge Engine collection suffix per ADR-006 decision 4). Must be unique across the registry.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,63}$",
+          "examples": ["masdp", "sps"]
+        },
+        "github_repo": {
+          "description": "The project's GitHub repository, as 'owner/repo' or a full https://github.com/owner/repo(.git) URL. Does not include credentials — the repo is public-shape metadata; auth for cloning/pushing is resolved via secrets_ref.",
+          "type": "string",
+          "pattern": "^(?:https://github\\.com/)?[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:\\.git)?$",
+          "examples": ["isaacmendelson/ASPS", "https://github.com/isaacmendelson/ASPS.git"]
+        },
+        "jira_project": {
+          "description": "The JIRA project key this project's issues live under (Atlassian project-key shape: 2-10 chars, uppercase letters/digits, starting with a letter).",
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]{1,9}$",
+          "examples": ["ASPS", "MASDP"]
+        },
+        "working_dir": {
+          "description": "Where the project's clone lives on the MASDP host. Either an absolute path (POSIX '/...' or Windows 'C:\\...' / 'C:/...') or a path relative to a configured projects root, written with a leading './' so relative-vs-absolute is unambiguous by inspection alone.",
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?:[A-Za-z]:[\\\\/]|/|\\./).+",
+          "examples": ["/home/aspsbot/projects/sps", "./sps", "C:\\Jobs\\ASPS\\GitHub\\Software"]
+        },
+        "domain_context": {
+          "description": "Path to the project's own entry-point instructions (its CLAUDE.md / role-pack root under its working_dir) — the project's 'what' that MASDP's generic 'how' loads per project. Same path-shape rules as working_dir: absolute, or relative with a leading './' (commonly relative to the project's own working_dir, e.g. './CLAUDE.md').",
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?:[A-Za-z]:[\\\\/]|/|\\./).+",
+          "examples": ["./CLAUDE.md", "/home/aspsbot/projects/sps/CLAUDE.md"]
+        },
+        "secrets_ref": {
+          "description": "Opaque handle naming this project's secret bundle. Resolved by MASDP's secrets loader to a directory OUTSIDE every project clone on the host — see docs/architecture/contracts/SECRETS-REF-BUNDLE-LAYOUT.md. This field is a NAME, never a path and never a value — the bundle's on-disk location is a host-level convention (bundle root + secrets_ref), not something this file encodes directly, so this JSON can be safely reviewed/diffed without exposing host filesystem layout.",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "examples": ["masdp", "sps"]
+        }
+      }
+    }
+  }
+}

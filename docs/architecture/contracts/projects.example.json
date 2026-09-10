@@ -1,0 +1,21 @@
+{
+  "schema_version": "1",
+  "projects": [
+    {
+      "name": "masdp",
+      "github_repo": "TBD-ASPS-771/masdp",
+      "jira_project": "TBD",
+      "working_dir": "./masdp",
+      "domain_context": "./masdp/CLAUDE.md",
+      "secrets_ref": "masdp"
+    },
+    {
+      "name": "sps",
+      "github_repo": "isaacmendelson/ASPS",
+      "jira_project": "ASPS",
+      "working_dir": "C:\\Jobs\\ASPS\\GitHub\\Software",
+      "domain_context": "C:\\Jobs\\ASPS\\GitHub\\Software\\CLAUDE.md",
+      "secrets_ref": "sps"
+    }
+  ]
+}
